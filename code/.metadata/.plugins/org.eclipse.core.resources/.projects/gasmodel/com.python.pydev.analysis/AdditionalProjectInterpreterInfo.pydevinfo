@@ -1,0 +1,39 @@
+-- VERSION_3
+-- START DISKCACHE
+/Users/Jessica/FMbeta/code/.metadata/.plugins/org.eclipse.core.resources/.projects/gasmodel/com.python.pydev.analysis/v1_indexcache
+.v1_indexcache
+ModelParameters.Plotting|0|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/Plotting.py
+UWFirnAir_alpha_v014_trans|0|/Users/Jessica/FMbeta/code/gasmodel/UWFirnAir_alpha_v014_trans.py
+ModelParameters.Sites|0|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/Sites.py
+ModelParameters.__init__|0|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/__init__.py
+ModelParameters.Gasses|0|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/Gasses.py
+-- END DISKCACHE
+-- START DICTIONARY
+4
+3=ModelParameters.Plotting
+1=UWFirnAir_alpha_v014_trans
+4=ModelParameters.Sites
+2=ModelParameters.Gasses
+-- END DICTIONARY
+-- START TREE 1
+16
+A|1|A!10@
+bou|1|boundaries!10@
+dat|1|DataPath!11@
+dif|1|diffusivity!10@
+f_u|1|F_upwind!10@
+gas|2|gasses!18@gasinterp!10@
+mak|1|makeplots!26@
+por|1|porosity!10@
+res|1|ResultsPlace!11@
+rho|1|rhoHLAnalytic!10@
+sit|1|sites!34@
+sol|1|solver!10@
+spa|1|space!10@
+spo|1|spot!11@
+tra|2|transient_solve_SS!10@transient_solve_TR!10@
+w|1|w!10@
+-- END TREE
+-- START TREE 2
+0
+-- END TREE

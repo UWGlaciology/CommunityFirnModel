@@ -1,0 +1,8 @@
+INSTUPfirnmodel
+/Users/Jessica/FMbeta/code/firnmodel/firnmodel.py
+INFOS:&&2|1|2|0&&2|3|2|0&&2|4|2|0&&2|5|2|0
+solver=3
+HerronLangwayAnalytic=1
+runModel=5
+firnmodel=2
+transient_solve_TR=4

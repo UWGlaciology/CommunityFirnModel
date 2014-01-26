@@ -1,0 +1,6 @@
+MODULES_MANAGER_V2
+ModelParameters.Gasses|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/Gasses.py
+ModelParameters.Plotting|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/Plotting.py
+ModelParameters.Sites|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/Sites.py
+ModelParameters.__init__|/Users/Jessica/FMbeta/code/gasmodel/ModelParameters/__init__.py
+UWFirnAir_alpha_v014_trans|/Users/Jessica/FMbeta/code/gasmodel/UWFirnAir_alpha_v014_trans.py

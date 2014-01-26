@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;firnmodel/configs/configHLstress1.json&apos; to &apos;configHL.json&apos;" description="Rename resource &apos;configHLstress1.json&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="configs/configHLstress1.json" name="configHL.json" stamp="1387148732431" updateReferences="true"/>
+</session>

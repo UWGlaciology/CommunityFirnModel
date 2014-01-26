@@ -1,0 +1,247 @@
+\documentclass{article}
+
+\usepackage{hyperref}
+
+\begin{document}
+
+\title{Community Firn Model (CFM)}
+\author{Jessica Lundin, Max Steven, Paul Harris\\ Earth and Space Sciences Department, University of Washington}
+
+\maketitle
+\newpage
+
+\section{Download Required Software}
+
+
+\begin{itemize}
+  \item Download individually
+  \begin{enumerate}
+    \item Download Python at \href{http://www.python.org/getit/}{www.python.org/getit/}.
+
+    Choose version 2.7.x as it is more stable than version 3.3.x.
+
+    For Mac users, MacPorts is a useful way to maintain software that includes Python. Download MacPorts at \href{http://www.macports.org/install.php}{www.macports.org/install.php}.
+    
+    \item Download NumPy and SciPy using the Anaconda distribution at \href{http://continuum.io/downloads}{continuum.io/downloads}.
+
+    More detailed instructions for installation can be found at \href{http://docs.continuum.io/anaconda/install.html}{docs.continuum.io/anaconda/install.html}.
+    
+    \item Download matplotlib at \href{http://matplotlib.org/downloads.html}{matplotlib.org/downloads.html}.
+
+  \end{enumerate}
+  \item Download everything (and more) in one package
+  
+  \begin{enumerate}
+    \item Enthought is a Python distribution that includes Python, NumPy, SciPy, and matplotlib, as well as a GUI, IPython console, and other features. Download Enthought at \href{https://www.enthought.com/store/}{www.enthought.com/store/}.
+
+    The free download contains everything we need.
+  \end{enumerate}
+\end{itemize}
+
+\section{Download Our Firn Model}
+
+\begin{itemize}
+  \item Directly from our website
+  \begin{enumerate}
+    \item Windows: (link to zip file).
+    \item Mac OS/UNIX/LINUX: (link to tar ball).
+  \end{enumerate}
+
+  \item Using our GitHub repository 
+  \begin{enumerate}
+    \item Find our GitHub repository at \href{https://github.com/jessicalundin/FMbeta/}{github.com/jessicalundin/FMbeta/}.
+    \item Clone in Desktop or Download ZIP.
+    \item You should now have a folder ``FMbeta'' that contains the whole project.
+  \end{enumerate}
+\end{itemize}
+
+\section{Files and Folders in ``FMbeta''}
+\begin{itemize}
+  \item code
+
+  The ``code'' folder contains the files needed to run the model.
+  \begin{enumerate}
+    \item firnmodel.py is the main model code.
+    \item config.json is a list of variables that are used by firnmodel.py (This is what you will change.
+    \item plot.py produces plots from data files created by firnmodel.py.
+  \end{enumerate}
+  \item manual
+
+  The ``manual'' folder contains a manual with instructions, variable descriptions and other information.
+  \begin{enumerate} 
+    \item manual.tex is the LaTeX document containing the manual for the model.
+    \item manual.pdf is the PDF of the manual produced by manual.tex.
+    \item Any other files are produced by manual.tex and are generally unimportant.
+    
+  \end{enumerate}
+\end{itemize}
+
+\section{How to Run an Experiment}
+
+\section{Output Files and Plots}
+\begin{itemize}
+  \item Data Files
+
+  Each output file consists of comma seperated values. The first element in each row represents the time step in years.
+  The remaining elements in the row represent the value of the chosen element of the firn at each point along the grid.
+  These output files are:
+  \begin{enumerate}
+    \item age.csv
+
+    How old the firn is in  \begin{math}(years)\end{math}.
+    \item density.csv
+
+    The density of the firn in \begin{math}(kg \: m^{-3})\end{math}
+    \item depth.csv
+
+    The depth of the firn in  \begin{math}(m)\end{math}
+
+    \item temp.csv
+
+    The temperature of the firn in  \begin{math}(K)\end{math}
+
+    \item r2.csv (only if grain growth is turned on)
+  \end{enumerate}
+  \item Plots
+
+  Plots of output data are produced by setting ``plotting'' to ``on'' in config.json. Each plot consists of the inital and final
+  profiles of the data plotted against depth.
+\end{itemize}
+
+
+\newpage
+\appendix
+\section{Model Variable Appendix}
+
+\begin{tabular}{ |l| p{5cm} | p{3cm} |}
+  \hline
+  Variable &
+  Description &
+  Options \\
+  \hline
+  BCtemp &
+  -- &
+  \\
+  \hline
+ BCbdot &
+  --  &
+  \\
+  \hline
+   BCrho &
+  -- &
+  \\
+  \hline
+   physRho &
+  -- &
+  \\
+  \hline
+   physGrain &
+  Turns grain physics calculations on or off. &
+  ``on'', ``off''\\
+\hline
+   heatDiff &
+  Turns heat diffusion calculations on or off. &
+  ``on'', ``off''\\
+  \hline
+   Ts0 &
+  Beginning Surface Temperature &
+   \\
+  \hline
+   rhos0 &
+  Beginning Surface Density &
+  \\
+  \hline
+   bdot0 &
+  Beginning Accumulation Rate &
+  \\
+  \hline
+   r2s0 &
+  Beginning \begin{math} r^2 \end{math} &
+  \\
+  \hline
+   years &
+  Number of years to run the experiment. &
+  \\
+  \hline
+   stpsPerYear &
+  Number of steps for each year the experiment is run. &
+  \\
+  \hline
+  gridH &
+  Grid Height &
+  \\
+  \hline
+   gridbase &
+  -- &
+  \\
+  \hline
+  gridlen &
+  Grid Length &
+  \\
+  \hline
+  sPerYear &
+  Seconds Per Year &
+  \\
+  \hline
+  rhoi &
+  Density of ice &
+  \\
+  \hline
+  rhoiMgm &
+  Density of ice in (\begin{math} Mg \: m^{-3} \end{math}) &
+  \\
+  \hline
+   rho1 &
+  -- &
+  \\
+  \hline
+   rho2 &
+  -- &
+  \\
+  \hline
+   Q1 &
+  -- &
+  \\
+  \hline
+   Q2 &
+  -- &
+  \\
+  \hline
+  k1 &
+  -- &
+  \\
+  \hline
+   k2 &
+  -- & 
+ \\
+  \hline
+   a &
+  -- &
+  \\
+  \hline
+   b &
+  -- &
+  \\
+  \hline
+   R &
+  -- &
+  \\
+  \hline
+   g &
+  Acceleration of Gravity &
+  \\
+  \hline
+   H &
+  -- &
+  \\
+  \hline
+  kg &
+  Grain Growth Constant &
+  \\
+  \hline
+  Eg &
+  Grain Growth Activation Energy &
+  \\
+  \hline
+\end{tabular}
+\end{document}
