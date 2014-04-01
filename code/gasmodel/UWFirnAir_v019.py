@@ -1,7 +1,10 @@
 # UW Community Firn-Air Transport Model
 # Max Stevens
-# version 0.18, 8/9/13
-# Turning gravity to source-dependent term.
+# version 0.19, 31 March 2014
+# Working on gravity and commenting.
+
+### In order to run transient, you must put the files from firnmodel.py output into DataImport folder.
+### All units should be kilograms, meters, and seconds (MKS system)
 
 import sys
 import os
@@ -20,25 +23,18 @@ import ModelParameters.Diffusivity as MPD
 import ModelParameters.density as MPRHO
 import csv
 
+# Set path to find all files to import and set output location
 spot = os.path.dirname(sys.argv[0]) #Add Folder
 print spot 
 # os.chdir(spot) #change pwd to location of firnmodel.py
 sys.path.insert(1,spot)
 ResultsPlace=os.path.join(spot,'Results')
 sys.path.insert(3,os.path.join(spot,'DataImport'))
-
 DataPath = os.path.join(spot,'DataImport')
-
-# In order to run transient, you must put the files from firn model output into DataImport folder.
 
 np.set_printoptions(linewidth=300) #set output reading to be wider. A bit easier to read :)
 
-# All units should be kilograms, meters, and seconds (MKS system)
-
-#def trapezoid(func,dx): #this function is for Christo's advection equations.
-#    out = dx*( np.sum(func) -0.5*func[0] -0.5*func[np.size(func)-1]  )
-#    return out
-    
+# Downward Advection (of air)        
 def w(z_edges_vec,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function for downward advection of air. 
     
     por_tot_interface=np.interp(z_edges_vec,z_P_vec,por_tot)
@@ -51,7 +47,7 @@ def w(z_edges_vec,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function fo
         w_ad=w_ice
     
     elif ad_method=='Christo':
-    ############## Christo's Method from his thesis (chapter 5). This could be vectorized to speed it up.
+    ### Christo's Method from his thesis (chapter 5). This (maybe) could be vectorized to speed it up.
     
         bubble_pres = np.zeros_like(z_edges_vec)
         dscl = np.append(0, np.diff(por_cl)/dz)    
@@ -83,11 +79,11 @@ def w(z_edges_vec,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function fo
         
         w_ad=velocity
     
-    #########
+    ###
 
     return w_ad
 
-def A(P): 
+def A(P): # Power-law scheme, Patankar eq. 5.34
     A = np.maximum( (1 - 0.1 * np.abs( P ) )**5, np.zeros(np.size(P) ) )
     return A    
     
