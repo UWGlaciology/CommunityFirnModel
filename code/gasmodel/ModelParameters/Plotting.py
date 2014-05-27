@@ -35,15 +35,16 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
 
             
         plt.xlabel('Depth (m)')
-        plt.ylabel('$CO_{2}$ (ppm)')
+        #plt.ylabel('$\delta^{15}N_{2}$ (per mil)')
+        plt.ylabel('${CO}_{2}$ (ppm)')
         #plt.title('Concentration of $CO_{2}$ in firn at NEEM')
-        plt.legend(('Max\'s model','Measurements'),loc=3)
+        #plt.legend(('Max\'s model','Measurements'),loc=3)
         plt.grid()
         
         ax = plt.gca()
         ax.ticklabel_format(useOffset=False)
         
-        fname=os.path.join(ResultsPlace,'ESS524_fig1.eps')
+        fname=os.path.join(ResultsPlace,'ESS524_fig3.eps')
         plt.savefig(fname,dpi=100)
         
         fig2=plt.figure(2)

@@ -465,7 +465,7 @@ def porosity(rho_prof):
     
     return rho_co, por_co, por_tot, por_cl, por_op
       
-def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhoprof is  density profile
+def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhoprof is density profile
         
 
     if rhoprof is None:
@@ -490,7 +490,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     diffu_full_sch[diffu_full_sch<0] = 1.e-15
     
     ## Use Freitag, 2002, Eq 15 Diffusivity use 9e2 for d_0
-    d_0_fre=d_0#*4.9
+    d_0_fre=d_0*4.9
     diffu_full_fre = D_x*d_0_fre*por_op**2.1
     diffu_full_fre[diffu_full_fre<=0] = 1e-15
     
@@ -519,7 +519,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     #d_eddy=1. #hack if not using eddy diffusivity (wrap entirely into D)
     ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
-    diffu_full=diffu_full_Christo #change this line to change your choice of diffusivity
+    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
@@ -652,7 +652,7 @@ if __name__ == "__main__":
     
     rho_interface=np.interp(z_edges_vec,z_P_vec,rhoHL)
     
-    transdiffu = 'off'
+    transdiffu = 'on'
     
     if transdiffu == 'on':
         phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes, R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl)

@@ -48,7 +48,7 @@ def sites(sitechoice):
         z_co = 78.
         LIZ = 63.
         rho0= 360.
-        hemisphere='SH'
+        hemisphere='SCENARIO'
         
     else:  ## something else
     

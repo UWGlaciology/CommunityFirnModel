@@ -5,7 +5,7 @@
 \begin{document}
 
 \title{Community Firn Model (CFM)}
-\author{Jessica Lundin, Max Steven, Paul Harris\\ Earth and Space Sciences Department, University of Washington}
+\author{Jessica Lundin, Max Stevens, Paul Harris\\ Earth and Space Sciences Department, University of Washington}
 
 \maketitle
 \newpage
@@ -38,16 +38,16 @@
   \end{enumerate}
 \end{itemize}
 
-\section{Download Our Firn Model}
+\section{Download the firn model}
 
 \begin{itemize}
-  \item Directly from our website
+  \item Directly from the website
   \begin{enumerate}
     \item Windows: (link to zip file).
     \item Mac OS/UNIX/LINUX: (link to tar ball).
   \end{enumerate}
 
-  \item Using our GitHub repository 
+  \item Using the GitHub repository 
   \begin{enumerate}
     \item Find our GitHub repository at \href{https://github.com/jessicalundin/FMbeta/}{github.com/jessicalundin/FMbeta/}.
     \item Clone in Desktop or Download ZIP.
@@ -62,7 +62,7 @@
   The ``code'' folder contains the files needed to run the model.
   \begin{enumerate}
     \item firnmodel.py is the main model code.
-    \item config.json is a list of variables that are used by firnmodel.py (This is what you will change.
+    \item config.json is a list of variables that are used by firnmodel.py (This is what you will change.)
     \item plot.py produces plots from data files created by firnmodel.py.
   \end{enumerate}
   \item manual
@@ -77,6 +77,22 @@
 \end{itemize}
 
 \section{How to Run an Experiment}
+
+The model runs in python. Running the model from the command line is simplest. Make sure that the python that is called from the command line is the python installation that includes numpy and scipy modules. First you must run a spin up, and then you run the main model run. 
+
+From the command line, type:
+
+\begin{verbatim}
+python firnmodel.py config.json -s
+\end{verbatim}
+
+to run the spin up. The -s is the option to run the spin up. The spin-up output will be stored in the results folder that you specify in the config.json file that you are calling. Then, to run the main model run, type:
+
+\begin{verbatim}
+python firnmodel.py config.json
+\end{verbatim}
+
+If you are in ipython, you use the same commands except replace ``python'' with ``run'' at the start. 
 
 \section{Output Files and Plots}
 \begin{itemize}
@@ -101,6 +117,9 @@
     The temperature of the firn in  \begin{math}(K)\end{math}
 
     \item r2.csv (only if grain growth is turned on)
+    
+    \item 
+    
   \end{enumerate}
   \item Plots
 

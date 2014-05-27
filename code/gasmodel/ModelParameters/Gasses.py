@@ -33,7 +33,7 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
         #elif hemisphere == 'SCENARIO':
         #    conc1=loadtxt(os.path.join(DataPath,'RampUp2.txt'),skiprows=2) #load data: atmospheric CO2 history.
         #    firn_meas=loadtxt(os.path.join(DataPath,'CO2samples_WAIS.txt'),skiprows=2)   
-        #    conc1=conc1[0:1996,:]
+        #    #conc1=conc1[0:1996,:] # May or may not need this to get time to work...
         
             
     elif gaschoice == 'CH4':
@@ -127,6 +127,8 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
     
     if measurements=='on':
         firn_meas=loadtxt(os.path.join(DataPath,meas_string),skiprows=2)
+    else:
+        firn_meas='None'
     
     
             
