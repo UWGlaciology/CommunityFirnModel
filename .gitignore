@@ -1,1 +1,6 @@
 *.pyc
+code/gasmodel/Results/conc_out.csv
+
+code/gasmodel/Results/ESS524_fig1.eps
+
+code/gasmodel/Results/ESS524_fig2.eps

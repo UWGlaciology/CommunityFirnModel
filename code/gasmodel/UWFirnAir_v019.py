@@ -100,9 +100,15 @@ def solver(a_U,a_D,a_P,b):
     big_A=spdiags(Diags,cols,nz,nz,format='csc')
     big_A=big_A.T
     
+<<<<<<< HEAD
     #denseA=big_A.todense() #Dense bit for code testing
     
     #print ('a_P='+str(a_P[0:6])) #code testing. Is output what it should be?
+=======
+    #denseA=big_A.todense()
+    
+    #print ('a_P='+str(a_P[0:6]))
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     #print ('a_U='+str(a_U[0:6]))
     #print ('a_D='+str(a_D[0:6]))
     #print ('a_Pend='+str(a_P[-5:]))
@@ -115,6 +121,10 @@ def solver(a_U,a_D,a_P,b):
     
     phi_t=splin.spsolve(big_A,rhs)
     
+<<<<<<< HEAD
+=======
+    
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     return phi_t
 
 def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes,R,nz_P,nz_fv,por_op,gas,Accu,T,p_a):
@@ -142,6 +152,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
     Gamma_u =  1/ ( (1 - f_u)/Gamma_P + f_u/Gamma_U )
     Gamma_d =  1/ ( (1 - f_d)/Gamma_P + f_d/Gamma_D )
     
+<<<<<<< HEAD
     Gamma_m = (Gamma_u + Gamma_d)/2
     
     #S_C=0 #use these lines for ignoring gravity
@@ -159,6 +170,18 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
     S_P=(-Gamma_d+Gamma_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
     #S_P=Gamma_m*(deltaM*g/(R*T))
     S_P=1.*S_P
+=======
+    S_C=0
+    S_C=S_C*np.ones(nz_P)
+    
+    S_C_0=0*(-Gamma_d+Gamma_u)*(deltaM*g/(R*T))
+    ##S_C=Gamma_P*(deltaM*g/(R*T))
+    S_C=S_C_0
+    
+    S_P=1/1000*(-Gamma_d+Gamma_u)*(deltaM*g/(R*T))
+    #S_P=Gamma_P*(deltaM*g/(R*T))
+    S_P=0.*S_P
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     
     b_0 = S_C*dZ
     
@@ -233,8 +256,12 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
               
         a_P=a_U+a_D+a_P_0 - S_P*dZ
         
+<<<<<<< HEAD
         #S_C=S_C_0*phi_t
         S_C=S_C_01*phi_t+S_C_02*phi_t
+=======
+        S_C=S_C_0*phi_t
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
         b_0 = S_C*dZ
         
         with open(ConcPath, "a") as f:
@@ -254,7 +281,11 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
     
     f_depth=np.loadtxt(os.path.join(DataPath,'depthS2.csv'),delimiter=',',skiprows=1)
     #f_depth=f_depth[:,1:]
+<<<<<<< HEAD
     f_depth=f_depth[0:1996,1:] #what is 1996?
+=======
+    f_depth=f_depth[0:1996,1:]
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
 
     f_density=np.loadtxt(os.path.join(DataPath,'densityS2.csv'),delimiter=',',skiprows=1)
     #f_density=f_density[:,1:]
@@ -266,10 +297,17 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         
         #rho_prof=rhoHLAnalytic(Accu)
         
+<<<<<<< HEAD
         rho_prof=np.interp(z_nodes,f_depth[i_time,:],f_density[i_time,:]) #density profile
         
         rho_co, por_co, por_tot, por_cl, por_op = porosity(rho_prof) #get porosity 
         diffu, deepnodes, d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_Christo = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof=rho_prof) #get diffusivity profile
+=======
+        rho_prof=np.interp(z_nodes,f_depth[i_time,:],f_density[i_time,:])
+        
+        rho_co, por_co, por_tot, por_cl, por_op = porosity(rho_prof)
+        diffu, deepnodes, d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_Christo = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof=rho_prof)
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
         
         Gamma_P=(diffu*por_op+d_eddy*por_op)
         #Gamma_P=(diffu*por_op)
@@ -470,6 +508,10 @@ def porosity(rho_prof):
       
 def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhoprof is density profile
         
+<<<<<<< HEAD
+=======
+
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     if rhoprof is None:
         rhoprof=rhoHL
     
@@ -519,10 +561,16 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     diffu_full = np.interp(z_nodes,h,diffu_full)
     diffu_full_Christo=diffu_full
     #d_eddy=1. #hack if not using eddy diffusivity (wrap entirely into D)
+<<<<<<< HEAD
     
     ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
     diffu_full=diffu_full_Christo #change this line to change your choice of diffusivity
+=======
+    ## Add in high diffusivity in convective zone and low diffusivity below LIZ
+    
+    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
@@ -536,7 +584,11 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     ind3 = np.intersect1d(ind,ind2)
     d_eddy[ind3] = diffu_full[ind]/10
     d_eddy=d_eddy+d_eddy_up
+<<<<<<< HEAD
     diffu_full[ind]=1e-15 #set "standard" diffusivity equal to zero after LIZ - eddy diffusivity term drives diffusion below
+=======
+    diffu_full[ind]=1e-15 #set "standard" diffusivity equal to zero after LIZ
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     
     #diffu_full[:]=1.e-10 #Use these lines for advection testing.
     #d_eddy[:]=1.e-10
@@ -574,9 +626,12 @@ if __name__ == "__main__":
     reload(MPD)
     reload(plots)
     reload(MPRHO)
+<<<<<<< HEAD
     import time
     
     tic=time.time()
+=======
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     
     rho_i = 917.0 #kg/m^3
     R = 8.314 #J/mol/K
@@ -587,18 +642,27 @@ if __name__ == "__main__":
     sPerYear = 365.25*24*3600 #seconds per year
     depth = 120. # m
     
+<<<<<<< HEAD
     ad_method="Christo" #advection method 
+=======
+    ad_method="Christo"
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     measurements = 'on'
     
     
     # Set up parameters for different sites.
+<<<<<<< HEAD
     sitechoice = 'WAIS'
+=======
+    sitechoice = 'NEEM'
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     Accu_0=Accu_0/sPerYear #accumulation in m/second
 
     
     # Set up Gas Properties. Just CO2 for now.
+<<<<<<< HEAD
     #gaschoice='CO2'
     #gaschoice='CH4'
     #gaschoice='SF6'    
@@ -622,12 +686,33 @@ if __name__ == "__main__":
     
     #Space and time. Time is in seconds!
     z_res=0.5 #resolution of grid, m
+=======
+    gaschoice='CO2'
+    #gaschoice='CH4'
+    #gaschoice='d15N2'
+    D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
+
+    time_yr=conc1[:,0] # Atmospheric measurements times 
+    time_yr_s=time_yr*sPerYear
+    gas_org=conc1[:,1] # Atmospheric measurement concentrations 
+    meas_depth=firn_meas[:,0]
+    #meas_conc=firn_meas[:,1] # measured gas concentrations in firn
+    meas_conc=firn_meas[:,2] # gravity off
+    meas_uncert=firn_meas[:,3]
+    
+    #Space and time. Time is in seconds!
+    z_res=0.1 #resolution of grid, m
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     #dt=0.01
     
     yrs=np.around(time_yr[-1]-time_yr[0]) #should I/can I round here? 9/10
 
     time_total=yrs*sPerYear
+<<<<<<< HEAD
     stpsperyear=5 #If this is for transient this number must (for now) be the same time steps as the input density/depth files.s
+=======
+    stpsperyear=8
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     t_steps=np.int(yrs*stpsperyear)
     #dt=0.2 #time step size.
     dt=time_total/t_steps #time step size. 
@@ -656,6 +741,10 @@ if __name__ == "__main__":
     dZ_d = np.diff(Z_P)
     dZ_d = np.append(dZ_d,dZ_d[-1])
     
+<<<<<<< HEAD
+=======
+    
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     phi_0 = np.zeros(nz_P)
     phi_0[:]=bc_u_0
     
@@ -665,7 +754,11 @@ if __name__ == "__main__":
     
     rho_interface=np.interp(z_edges_vec,z_P_vec,rhoHL)
     
+<<<<<<< HEAD
     transdiffu = 'off'
+=======
+    transdiffu = 'on'
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     
     if transdiffu == 'on':
         phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes, R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl)
@@ -683,17 +776,25 @@ if __name__ == "__main__":
     aa=np.shape(phi_toplot)
     aa=aa[1]
     
+<<<<<<< HEAD
     if firn_meas != 'None':
         gas_meas=np.interp(z_nodes, meas_depth, meas_conc);
+=======
+    gas_meas=np.interp(z_nodes, meas_depth, meas_conc);
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
     
     plotting = 'on'
     
     plots.makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
                     diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_Christo, meas_uncert=meas_uncert)
         
+<<<<<<< HEAD
     elapsed=time.time()-tic
     elapsed_min=elapsed/60.
     mins=np.floor(elapsed_min)
     secs=(elapsed_min-mins)*60
     print mins, 'min', secs, 'sec elapsed'
+=======
+
+>>>>>>> ed9d0ee7a6898b58c072558a32e2e59fb12a9780
         
