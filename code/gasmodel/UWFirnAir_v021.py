@@ -293,6 +293,9 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         #Gamma_P=(diffu*por_op)
         Gamma_P[Gamma_P<=0]=1e-15 # a bit of a hack here - how to deal with diffusivity after close-off?
     
+        diffu_P=diffu*por_op
+        d_eddy_P=d_eddy*por_op
+    
         #nz_P = np.size(z_P_vec)
         #nz_fv = nz_P - 2
         Z_P = z_P_vec
@@ -308,16 +311,32 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         f_u = np.append(0, (1 -(z_P_vec[1:] - z_edges_vec)/dZ_u[1:]))
         f_d = np.append(1 - (z_edges_vec - z_P_vec[0:-1])/dZ_d[0:-1], 0)
         
-        Gamma_U = np.append(Gamma_P[0], Gamma_P[0:-1] )
-        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+        diffu_U = np.append(diffu_P[0], diffu_P[0:-1] )
+        diffu_D = np.append(diffu_P[1:], diffu_P[-1])
+    
+        diffu_u =  1/ ( (1 - f_u)/diffu_P + f_u/diffu_U )
+        diffu_d =  1/ ( (1 - f_d)/diffu_P + f_d/diffu_D )
+    
+        d_eddy_U = np.append(d_eddy_P[0], d_eddy_P[0:-1] )
+        d_eddy_D = np.append(d_eddy_P[1:], d_eddy_P[-1])
+    
+        d_eddy_u =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
+        d_eddy_d =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
         
-        Gamma_u =  1/ ( (1 - f_u)/Gamma_P + f_u/Gamma_U )
-        Gamma_d =  1/ ( (1 - f_d)/Gamma_P + f_d/Gamma_D )
+        #Gamma_U = np.append(Gamma_P[0], Gamma_P[0:-1] )
+        #Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+        #
+        #Gamma_u =  1/ ( (1 - f_u)/Gamma_P + f_u/Gamma_U )
+        #Gamma_d =  1/ ( (1 - f_d)/Gamma_P + f_d/Gamma_D )
         
-        S_C=0
-        S_C=S_C*np.ones(nz_P)
+        S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
+        S_C=S_C_0*phi_0
+        #S_C=0
+        #S_C=S_C*np.ones(nz_P)
         
         #S_C=(-Gamma_d+Gamma_u)*(deltaM*g/(R*T))
+        
+        S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
         
         b_0 = S_C*dZ
         
@@ -327,8 +346,8 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         w_u = np.append(w_edges[0],  w_edges )
         w_d = np.append(w_edges, w_edges[-1])
         
-        D_u = (Gamma_u / dZ_u)
-        D_d = (Gamma_d / dZ_d)
+        D_u = ((diffu_u+d_eddy_u) / dZ_u) #check signs
+        D_d = ((diffu_d+d_eddy_d) / dZ_d)
         
         F_u =  w_u*por_op #Is this correct?
         F_d =  w_d*por_op 
