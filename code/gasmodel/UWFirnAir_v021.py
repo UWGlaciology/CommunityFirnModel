@@ -1,7 +1,7 @@
 # UW Community Firn-Air Transport Model
 # Max Stevens
-# version 0.20, 22 May 2014
-# Working on gravity and commenting, after conversation with Christo at OSU
+# version 0.21, 22 May 2014
+# Working on gravity and commenting, after conversation with Christo at OSU. v0.21 includes the gravity fix in transient.
 
 ### In order to run transient, you must put the files from firnmodel.py output into DataImport folder.
 ### All units should be kilograms, meters, and seconds (MKS system)
