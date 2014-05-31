@@ -541,7 +541,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     
     ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
-    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
+    diffu_full=diffu_full_Christo #change this line to change your choice of diffusivity
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
