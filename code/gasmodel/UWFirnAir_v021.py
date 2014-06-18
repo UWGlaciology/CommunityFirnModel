@@ -513,12 +513,15 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     ## Constants
     d_eddy_sc=d_0 #Eddy diffusivity in the convective zone
     h=z_nodes
+    dind=np.min(np.where(z_nodes>LIZ))
      
     ## Use Severinghaus relationship from Cuffey and Paterson
-    #d_0_sev=d_0*1.49
-    d_0_sev=d_0*0.1
-    diffu_full_Sev = D_x*d_0_sev*((p_0/p_a)*(T/T_0)**1.85*(2.00*(1-(rhoprof/rho_i))-0.167)) 
-    diffu_full_Sev[diffu_full_Sev<=0] = 1e-9
+    d_0_sev=d_0*1.7*0.1
+    #d_0_sev=d_0
+    diffu_full_Sev = D_x*d_0_sev*((p_0/p_a)*(T/T_0)**1.85*(2.00*(1-(rhoprof/rho_i))-0.167))
+    #dhold=max(z_P_vec[diffu_full_Sev>1e-10])
+    diffu_full_Sev = diffu_full_Sev-diffu_full_Sev[dind]
+    diffu_full_Sev[diffu_full_Sev<=0] = 1e-15
     
     ## Use Schwander 1988, Eq. 2 Diffusivity (does not work very well) use 4e2
     ## for d_0
@@ -527,11 +530,13 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     diffu_full_sch =k_sch*(23.7*por_tot-2.84)/(1000**2) # Schwander' diffusivity relationship (for CO2). 31.5 is unit conversion. Added extra 3.72* 9/12/13
     #ind = np.nonzero(h>LIZ)
     #diffu_full_sch[ind] = 0.001
+    diffu_full_sch = diffu_full_sch-diffu_full_sch[dind]
     diffu_full_sch[diffu_full_sch<0] = 1.e-15
     
     ## Use Freitag, 2002, Eq 15 Diffusivity use 9e2 for d_0
     d_0_fre=d_0*4.9
     diffu_full_fre = D_x*d_0_fre*por_op**2.1
+    diffu_full_fre = diffu_full_fre - diffu_full_fre[dind]
     diffu_full_fre[diffu_full_fre<=0] = 1e-15
     
     ## Use Christo's diffusivity data from NEEM-EU
@@ -550,15 +555,9 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
         h=diffu_data[:,0]
         diffu_full=D_x*d_0*diffu_data[:,1]        
         
-      
-    ## try a random profile to test if the model is working.
-    #h=1:100 
-    #diffu_full=d_0*23*ones(length(h))
+
     diffu_full = np.interp(z_nodes,h,diffu_full)
     diffu_full_Christo=diffu_full
-    #d_eddy=1. #hack if not using eddy diffusivity (wrap entirely into D)
-    
-    ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
     diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
     
