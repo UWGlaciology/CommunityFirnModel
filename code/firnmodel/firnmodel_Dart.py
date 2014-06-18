@@ -77,6 +77,7 @@ def solver(a_U,a_D,a_P,b):
 
 def transient_solve_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,phi_0,nz_P,nz_fv,phi_s):
     '''transient 1-d diffusion finite volume method'''
+    #this is solving the heat evolution in the firn
 
     phi_t =phi_0
     
@@ -144,11 +145,10 @@ def transient_solve_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,phi_0,nz_P,nz_fv,phi_s)
 
 def runModel(configName,spin):
     "Runs firnmodel with an input json file."
-    #generate_logger()
+
     
     logging.getLogger()
     logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    #logging.getLogger()
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     # set a format which is simpler for console use
@@ -157,7 +157,6 @@ def runModel(configName,spin):
     console.setFormatter(formatter)
     # add the handler to the root logger
     #logging.getLogger('').addHandler(console)
-    
     
     if spin:
         logging.info('Spin Up initiated')
@@ -197,6 +196,7 @@ def runModel(configName,spin):
         Tz0 = Tz
         years = c['yearSpin']
         stp = int(years *c['stpsPerYearSpin'])
+        #Dcon = c['D_surf']*np.ones(gridLen)
 
     else:
         
@@ -209,7 +209,7 @@ def runModel(configName,spin):
         initAge =     np.genfromtxt(agePath, delimiter = ',')
         initDensity = np.genfromtxt(densityPath, delimiter = ',')
         initTemp =    np.genfromtxt(tempPath, delimiter = ',')
-        
+          
         z   = initDepth[1:]
         gridLen = np.size(z)
         age = initAge[1:]
@@ -226,6 +226,8 @@ def runModel(configName,spin):
         agez0 = age
         rhoz0 = rho
         Tz0 = Tz
+        Dcon = c['D_surf']*np.ones(gridLen) #initialize a grid of Diffusivity constant
+
         
     # mass and stress
     mass = rho*dz
@@ -251,6 +253,8 @@ def runModel(configName,spin):
         bdotSec0 = c['bdot0']/c['sPerYear']/c['stpsPerYearSpin']
         bdotSec = bdotSec0*np.ones(stp)
         rhos0=c['rhos0']*np.ones(stp)
+        #D_surf=c['D_surf']*np.ones(stp)
+        
     else:   
 #         if c['BCtemp'] == 'stepChange':
 #             Ts = c['Ts0']*np.ones(stp)
@@ -280,30 +284,41 @@ def runModel(configName,spin):
         if c['BCrhos0'] == 'stepChange':
             rhos0Pert = c['rhos0Pert']
             rhos0[99*c['stpsPerYear']:] = rhos0[99*c['stpsPerYear']:]+rhos0Pert
+            
+        D_surf=c['D_surf']*np.ones(stp) #this is a diffusivity tracker: D_surf can be smaller to make layers with lower/higher diffusivity (some fraction of the number calculated using parameterization
+        if c['BC_D_surf'] == 'stepChange':
+            D_surf_Pert = c['D_surf_Pert']
+            D_surf[99*c['stpsPerYear']:] = D_surf[99*c['stpsPerYear']:]+D_surf_Pert
     
     if not spin:
         rho_time = np.concatenate(([0], rho))
         Tz_time = np.concatenate(([0], Tz))
         age_time = np.concatenate(([0], age))
         z_time = np.concatenate(([0], z))
+        D_time = np.concatenate(([0], Dcon))
          
         '''initialize files to write in time loop'''
         densityPath = os.path.join(c['resultsFolder'], 'density.csv')
         tempPath = os.path.join(c['resultsFolder'], 'temp.csv')
         agePath = os.path.join(c['resultsFolder'], 'age.csv')
-        depthPath = os.path.join(c['resultsFolder'], 'depth.csv')    
-        with open(densityPath, "a") as f:
+        depthPath = os.path.join(c['resultsFolder'], 'depth.csv')
+        DconPath = os.path.join(c['resultsFolder'], 'Dcon.csv')
+            
+        with open(densityPath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(rho_time)
-        with open(tempPath, "a") as f:
+        with open(tempPath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(Tz_time)
-        with open(agePath, "a") as f:
+        with open(agePath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(age_time)
-        with open(depthPath, "a") as f:
+        with open(depthPath, "w") as f:
             writer = csv.writer(f)
-            writer.writerow(z_time)
+            writer.writerow(z_time)      
+        with open(DconPath, "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(D_time)
 
         # initialize grain growth
         if c['physGrain'] == 'on':
@@ -319,44 +334,61 @@ def runModel(configName,spin):
                 writer = csv.writer(f)
                 writer.writerow(r2_time)
                 
-        bco815All = []
-        bcoDepAll = []
-        lockInAll = []
+        
+        bcoAgeMartAll = []
+        bcoDepMartAll = []
+        bcoAge815All = []
+        bcoDep815All = []
+        LIZAgeAll = []
+        LIZDepAll = []
         intPhiAll = []
+        #tortAll = []
         
-        ### Initial BCO and DIP ###
-        #Bubble close-off using surface temp (should use 10m)
-        #critical density from Martinerie 1994
-        Vc = (6.95e-4)*T10m-0.043
-        bcoMartRho = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000
-        bcoMart = min(age[rho>=bcoMartRho])/c['sPerYear']
-        # bubble close-off age assuming rho_crit = 815kg/m^3
-        bco815 = min(age[rho>=(c['rho2'])])/c['sPerYear']
-
-        # bubble close-off depth
-        bcoDep = min(z[rho>=(c['rho2'])])
-        bco815All.append(bco815) #age of at the 815 density horizon
-        bcoDepAll.append(bcoDep) #this is the 815 close off depth
-        phi = 1-rho/c['rhoi'] #porosity
-        phiC = 1-bcoMartRho/c['rhoi'];
-        phiClosed = np.ones(gridLen)
+        ### Initial BCO,LIZ, and DIP ###
+        #Vc = (6.95e-4)*T10m-0.043 #Martinerie et al., 1994, Eq. 2: critical pore volume at close off
+        #bcoMartRho = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000 # Martinerie density at close off
+        bcoMartRho = 1/( 1/(917.0) + T10m*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+        bcoAgeMart = min(age[rho>=bcoMartRho])/c['sPerYear'] # close-off age from Martinerie
+        bcoDepMart = min(z[rho>=(bcoMartRho)])
+        bcoAgeMartAll.append(bcoAgeMart) #age at the 815 density horizon
+        bcoDepMartAll.append(bcoDepMart) #this is the 815 close off depth
         
-        for jj in range(gridLen):
-            if phi[jj]>phiC:
-                phiClosed[jj] = c['gamma'] * phi[jj]*(phi[jj]/phiC)**-7.6
-                jjMax = jj
-            else:
-                phiClosed[jj] = phiClosed[jjMax]
-       
-        lockIn = min(age[phiClosed[phiClosed<phi]/phi[phiClosed<phi] >= c['phiLockIn']])/c['sPerYear']
-        lockInAll.append(lockIn)
-        intPhi = np.sum(phi * dz)
+        # bubble close-off age and depth assuming rho_crit = 815kg/m^3
+        bcoAge815 = min(age[rho>=(c['rho2'])])/c['sPerYear'] #close-off age where rho=815 kg m^-3
+        bcoDep815 = min(z[rho>=(c['rho2'])]) #depth of 815 horizon
+        bcoAge815All.append(bcoAge815) #age at the 815 density horizon
+        bcoDep815All.append(bcoDep815) #this is the 815 close off depth
+        
+        ### Lock-in depth and age
+        LIZMartRho = bcoMartRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)      
+        LIZAgeMart = min(age[rho>LIZMartRho])/c['sPerYear'] #lock-in age
+        LIZDepMart = min(z[rho>=(LIZMartRho)]) #lock in depth
+        #lockIn = min(age[phiClosed[phiClosed<phi]/phi[phiClosed<phi] >= c['phiLockIn']])/c['sPerYear'] #lock-in age Old, from Jessica's original. Too shallow, likely.       
+        LIZAgeAll.append(LIZAgeMart)
+        LIZDepAll.append(LIZDepMart)
+        
+        ### Porosity, including DIP
+        phi = 1-rho/c['rhoi'] # total porosity
+        phiC = 1-bcoMartRho/c['rhoi']; #porosity at close off
+        #phiClosed = np.ones(gridLen)
+        phiClosed = 0.37*phi*(phi/phiC)**-7.6 #Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
+        
+        #for jj in range(gridLen): #porosity, from Goujon et al. 2003 (good explanation in Buizert thesis, eq. 2.3). Not sure why this is looped.
+        #    if phi[jj]>phiC:
+        #        phiClosed[jj] = c['gamma'] * phi[jj]*(phi[jj]/phiC)**-7.6
+        #        jjMax = jj
+        #    else:
+        #        phiClosed[jj] = phiClosed[jjMax] #phiClosed is closed porosity
+                
+        phiOpen = phi - phiClosed #open porosity
+        phiOpen[phiOpen<=0] = 1.e-10 #don't want negative porosity.
+                   
+        intPhi = np.sum(phi * dz) #depth-integrated porosity
         intPhiAll.append(intPhi)
             
-        bco815Path = os.path.join(c['resultsFolder'], 'rho815.csv')
-        lockInPath = os.path.join(c['resultsFolder'], 'lockIn.csv')
+        bcoPath = os.path.join(c['resultsFolder'], 'BCO.csv')
+        lidPath = os.path.join(c['resultsFolder'], 'LID.csv')
         intPhiPath = os.path.join(c['resultsFolder'], 'porosity.csv')
-
      
     for i in xrange(stp): #start main time-stepping loop
         if c['physRho']=='HLdynamic':
@@ -575,6 +607,9 @@ def runModel(configName,spin):
         ####
 
         rho = np.concatenate(([rhos0[i]],rho[:-1]))
+        
+        if not spin:
+            Dcon = np.concatenate(([D_surf[i]],Dcon[:-1]))
 
         #update mass
         massNew =bdotSec[i]*c['sPerYear']*c['rhoi']
@@ -603,6 +638,7 @@ def runModel(configName,spin):
                 writer = csv.writer(f)
                 writer.writerow(r2_time)
 #         print i 
+
         if spin and i == (stp-1):
 #             print t*i + 1
             rho_time = np.concatenate(([t*i + 1],rho))
@@ -632,6 +668,7 @@ def runModel(configName,spin):
             Tz_time = np.concatenate(([t*i + 1],Tz))
             age_time = np.concatenate(([t*i + 1],age))
             z_time = np.concatenate(([t*i + 1],z))
+            Dcon_time = np.concatenate(([t*i + 1],Dcon))
             with open(densityPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(rho_time)
@@ -644,45 +681,55 @@ def runModel(configName,spin):
             with open(depthPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(z_time)
+            with open(DconPath, "a") as f:
+                writer = csv.writer(f)
+                writer.writerow(Dcon_time)
+             
+                
+            ### BCO,LIZ, and DIP ###
+            #Vc = (6.95e-4)*T10m-0.043 #Martinerie et al., 1994, Eq. 2: critical pore volume at close off
+            #bcoMartRho = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000 # Martinerie density at close off
+            bcoMartRho = 1/( 1/(917.0) + T10m*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+            bcoAgeMart = min(age[rho>=bcoMartRho])/c['sPerYear'] # close-off age from Martinerie
+            bcoDepMart = min(z[rho>=(bcoMartRho)])
+            bcoAgeMartAll.append(bcoAgeMart) #age at the 815 density horizon
+            bcoDepMartAll.append(bcoDepMart) #this is the 815 close off depth
             
-            #Bubble close-off using surface temp (should use 10m)
-            #critical density from Martinerie 1994
-            Vc = (6.95e-4)*T10m-0.043
-            bcoMartRho = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000
-            bcoMart = min(age[rho>=bcoMartRho])/c['sPerYear']
-            # bubble close-off age assuming rho_crit = 815kg/m^3
-            bco815 = min(age[rho>=(c['rho2'])])/c['sPerYear']
-            # bubble close-off depth
-            bcoDep = min(z[rho>=(c['rho2'])])
-            bco815All.append(bco815)
-            bcoDepAll.append(bcoDep)
+            # bubble close-off age and depth assuming rho_crit = 815kg/m^3
+            bcoAge815 = min(age[rho>=(c['rho2'])])/c['sPerYear'] #close-off age where rho=815 kg m^-3
+            bcoDep815 = min(z[rho>=(c['rho2'])]) #depth of 815 horizon
+            bcoAge815All.append(bcoAge815) #age at the 815 density horizon
+            bcoDep815All.append(bcoDep815) #this is the 815 close off depth
             
-#             phi = 1-rho/c['rhoi'] #porosity
-#             phiC = 1-bcoMartRho/c['rhoi'];
-#             phiClosed = np.ones(gridLen)
+            ### Lock-in depth and age
+            LIZMartRho = bcoMartRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)      
+            LIZAgeMart = min(age[rho>LIZMartRho])/c['sPerYear'] #lock-in age
+            LIZDepMart = min(z[rho>=(LIZMartRho)]) #lock in depth
+            #lockIn = min(age[phiClosed[phiClosed<phi]/phi[phiClosed<phi] >= c['phiLockIn']])/c['sPerYear'] #lock-in age Old, from Jessica's original. Too shallow, likely.       
+            LIZAgeAll.append(LIZAgeMart)
+            LIZDepAll.append(LIZDepMart)
             
-#             for jj in range(gridLen):
-#                 if phi[jj]>phiC:
-#                     phiClosed[jj] = c['gamma'] * phi[jj]*(phi[jj]/phiC)**-7.6
-#                     jjMax = jj
-#                 else:
-#                     phiClosed[jj] = phiClosed[jjMax]
-#             lockIn = min(age[phiClosed[phiClosed<phi]/phi[phiClosed<phi] >= c['phiLockIn']])/c['sPerYear']
-#             lockInAll.append(lockIn)
+            ### Porosity, including DIP
+            phi = 1-rho/c['rhoi'] # total porosity
+            phiC = 1-bcoMartRho/c['rhoi']; #porosity at close off
+            #phiClosed = np.ones(gridLen)
+            phiClosed = 0.37*phi*(phi/phiC)**-7.6 #Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
             
-            #calculate depth integrated porosity, intPhi
-#             grdDz = np.ones((gridLen)) * (c['H'] - c['Hbase'])/(gridLen)
-#             grdCntrsdep = np.cumsum(grdDz) - (grdDz/2)
-            
-#             diffz = np.concatenate((np.diff(grdCntrsdep), [grdCntrsdep[-1] - grdCntrsdep[-2]]))
-            intPhi = np.sum(phi * dz)
-            intPhiAll.append(intPhi)
-#             for jj in range(rho.size):
-#                 if (rho[jj] >= c['rho2']):
-#                     indR = jj
-#                     break
-#             intPhi815 = sum(phi[0:(indR+1)] * diffz[0:(indR+1)])
-#             intPhi815All.append(intPhi815)
+            #for jj in range(gridLen): #porosity, from Goujon et al. 2003 (good explanation in Buizert thesis, eq. 2.3). Not sure why this is looped.
+            #    if phi[jj]>phiC:
+            #        phiClosed[jj] = c['gamma'] * phi[jj]*(phi[jj]/phiC)**-7.6
+            #        jjMax = jj
+            #    else:
+            #        phiClosed[jj] = phiClosed[jjMax] #phiClosed is closed porosity
+                    
+            phiOpen = phi - phiClosed #open porosity
+            phiOpen[phiOpen<=0] = 1.e-10 #don't want negative porosity.
+                    
+            intPhi = np.sum(phi * dz) #depth-integrated porosity
+            intPhiAll.append(intPhi)      
+                        
+                         
+
             
 #    plt.figure(1)
 #    p1,= plt.plot(age/c['sPerYear'],rho)
@@ -755,23 +802,23 @@ def runModel(configName,spin):
 #     plt.show()
     
     if not spin:
-        with open(bco815Path, "w") as f: #write rho815.csv file. first row is time. second is BCO age. Third is BCO depth. 
+        with open(bcoPath, "w") as f: #write BCO.csv file. rows are: time, BCO age (mart), BCO depth (mart),BCO age (815), BCO depth (815) 
             writer = csv.writer(f)
-            writer.writerow(TWrite[:len(bco815All)]) 
-            writer.writerow(bco815All)
-            writer.writerow(bcoDepAll)
-#         with open(bcoDepPath, "w") as f:
-#             writer = csv.writer(f)
-#             writer.writerow(bcoDepAll)
-        with open(lockInPath, "w") as f:
+            writer.writerow(TWrite[:len(bcoAge815All)]) 
+            writer.writerow(bcoAgeMartAll)
+            writer.writerow(bcoDepMartAll)
+            writer.writerow(bcoAge815All)
+            writer.writerow(bcoDep815All)
+        with open(lidPath, "w") as f: #write LIZ information. Rows: time, age, dep
             writer = csv.writer(f)
-            writer.writerow(lockInAll)
+            writer.writerow(TWrite[:len(LIZDepAll)])
+            writer.writerow(LIZAgeAll)
+            writer.writerow(LIZDepAll)
         with open(intPhiPath, "w") as f: #depth-integrated porosity
             writer = csv.writer(f)
-            writer.writerow(TWrite[:len(bco815All)])
+            writer.writerow(TWrite[:len(intPhiAll)])
             writer.writerow(intPhiAll)
-            
-            
+                
         logging.debug("spin up years = %s" % c['yearSpin'])  
         logging.debug("spin up steps per year = %s" % c["stpsPerYearSpin"])
         logging.debug("model run years = %s" % c["years"])
