@@ -263,7 +263,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     return phi, a_P_out
 
     
-def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl):
+def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl):
     
     ConcPath = os.path.join(ResultsPlace, 'conc_out.csv') #Save location.
     RhoPath = os.path.join(ResultsPlace, 'rho_out.csv') #Save location.
@@ -282,7 +282,7 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
         
     for i_time in range(0,nt): #6/18/14: need to fix nt so that it is consistent with output from firnmodel.py
         
-        Accu=Accu_m#+0.01*np.sin(i_time) #6/18: what is this used for? Should probably use output from firnmodel.py
+        Accu=Accu_0#+0.01*np.sin(i_time) #6/18: what is this used for? Should probably use output from firnmodel.py
         
         #rho_prof=rhoHLAnalytic(Accu)
         
@@ -749,7 +749,7 @@ if __name__ == "__main__":
     transdiffu = 'off'
     
     if transdiffu == 'on':
-        phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl)
+        phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl)
     
     elif transdiffu == 'off':
         phi, a_P_out =FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,diffu,d_eddy)

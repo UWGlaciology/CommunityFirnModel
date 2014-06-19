@@ -42,8 +42,8 @@ def sites(sitechoice):
 
         #p_a = 7.45e4
         elev=2500. 
-        T = -28.9 +273.15 
-        Accu_0 = 0.25 
+        T = -58 +273.15 
+        Accu_0 = 0.035 
         czd = 4. 
         z_co = 78.
         LIZ = 63.
