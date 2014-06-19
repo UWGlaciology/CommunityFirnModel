@@ -28,7 +28,7 @@ def HerronLangwayAnalytic(c,h):
     hSize = np.size(h)      
     rhoc = 0.550
     rhos = c['rhos0']/1000.0
-    A = c['bdot0']*c['rhoiMgm']#* 0.917
+    A = c['bdot0']*c['rhoiMgm']#* 0.917 'bdot0' is in ice equivalent (I think), but H&L runs using W.E. so we multiply by 0.917
     k0 = 11.0 * np.exp(-10160/(c['R']*c['Ts0'] ))
     k1 = 575.0 * np.exp(-21400/(c['R']*c['Ts0'] ))
 # depth of critical density, eqn 8 from Herron and Langway
@@ -220,7 +220,8 @@ def runModel(configName,spin):
         dx = np.ones(gridLen) 
         years = c['years']
         stp = int(years *c['stpsPerYear'])
-        TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(150,250,5),xrange(250,2010,10))) #set times at which to write data
+        #TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(150,250,5),xrange(250,2010,10))) #set times at which to write data
+        TWrite = (np.arange(0,2005,5)) #set times at which to write data
         
         z0 = z
         agez0 = age
@@ -392,7 +393,7 @@ def runModel(configName,spin):
      
     for i in xrange(stp): #start main time-stepping loop
         if c['physRho']=='HLdynamic':
-            A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
+            A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm'] #A from the input json file is m ice equivalent.
             drho_dt = np.zeros(gridLen)
             for j in xrange(gridLen):
                 if rho[j]<c['rho1']:

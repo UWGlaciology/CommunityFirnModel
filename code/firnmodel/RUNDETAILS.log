@@ -1,7 +1,7 @@
-06/16/2014 02:59:57 PM Model run initiated
-06/16/2014 02:59:57 PM Model configName = config_Dart.json, spin = False
-06/16/2014 02:59:57 PM The physics are HLdynamic
-06/16/2014 03:05:10 PM spin up years = 1000
-06/16/2014 03:05:10 PM spin up steps per year = 1.0
-06/16/2014 03:05:10 PM model run years = 1000
-06/16/2014 03:05:10 PM model run steps per year = 1.0
+06/18/2014 11:29:34 AM Model run initiated
+06/18/2014 11:29:34 AM Model configName = config_Dart.json, spin = False
+06/18/2014 11:29:34 AM The physics are HLSigfus
+06/18/2014 11:30:21 AM spin up years = 1000
+06/18/2014 11:30:21 AM spin up steps per year = 1.0
+06/18/2014 11:30:21 AM model run years = 200
+06/18/2014 11:30:21 AM model run steps per year = 1.0

@@ -78,8 +78,15 @@
 
 \section{How to Run an Experiment}
 
-The model runs in python. Running the model from the command line is simplest. Make sure that the python that is called from the command line is the python installation that includes numpy and scipy modules. First you must run a spin up, and then you run the main model run. 
+The model runs in python. Running the model from the command line is simplest. Make sure that the python that is called from the command line is the python installation that includes numpy and scipy modules. First you must configure the config.json file (can be named whatever you want). Then you must run a spin up, and then you run the main model run. 
 
+\subsection{.json file setup}
+
+The .json file is called by the model to find numerous parameters. This is where you can easily specify the temperature, accumulation rate, etc. 
+
+Note from Max on June 18, 2014: we need to get a section of this manual to describe the variables, e.g. is the 'bdot0' in units of ice equivalent or water equivalent? (I am about 80\% sure it is ice).
+
+\subsection{Running the model}
 From the command line, type:
 
 \begin{verbatim}

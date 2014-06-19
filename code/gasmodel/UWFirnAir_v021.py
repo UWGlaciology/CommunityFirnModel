@@ -117,7 +117,7 @@ def solver(a_U,a_D,a_P,b):
     
     return phi_t
 
-def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes,R,nz_P,nz_fv,por_op,gas,Accu,T,p_a,diffu,d_eddy):
+def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz_fv,por_op,gas,Accu,T,p_a,diffu,d_eddy):
     
     ConcPath = os.path.join(ResultsPlace, 'conc_out.csv') #Save location.
     
@@ -263,7 +263,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
     return phi, a_P_out
 
     
-def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes,R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl):
+def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl):
     
     ConcPath = os.path.join(ResultsPlace, 'conc_out.csv') #Save location.
     RhoPath = os.path.join(ResultsPlace, 'rho_out.csv') #Save location.
@@ -277,21 +277,27 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
     f_density=np.loadtxt(os.path.join(DataPath,'densityS2.csv'),delimiter=',',skiprows=1)
     #f_density=f_density[:,1:]
     f_density=f_density[0:1996,1:]
+    
+    phi_t=phi_0
         
-    for i_time in range(0,nt):
+    for i_time in range(0,nt): #6/18/14: need to fix nt so that it is consistent with output from firnmodel.py
         
-        Accu=Accu_m#+0.01*np.sin(i_time)
+        Accu=Accu_m#+0.01*np.sin(i_time) #6/18: what is this used for? Should probably use output from firnmodel.py
         
         #rho_prof=rhoHLAnalytic(Accu)
         
-        rho_prof=np.interp(z_nodes,f_depth[i_time,:],f_density[i_time,:]) #density profile
+        rho_prof=np.interp(z_nodes,f_depth[i_time,:],f_density[i_time,:]) #density profile, interpolating onto consistent grid (z_nodes); 6/18/14: need to make sure that z_nodes go deep enough to track. 
         
-        rho_co, por_co, por_tot, por_cl, por_op = porosity(rho_prof) #get porosity 
-        diffu, deepnodes, d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_Christo = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof=rho_prof) #get diffusivity profile
+        rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rho_prof) #get porosity
         
-        Gamma_P=(diffu*por_op+d_eddy*por_op)
+        z_co = min(z_nodes[rho_prof>=(bcoRho)])
+        LIZ = min(z_nodes[rho_prof>=(LIDRho)])
+              
+        diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ, rhoprof=rho_prof) #get diffusivity profile
+        
+        #Gamma_P=(diffu*por_op+d_eddy*por_op)
         #Gamma_P=(diffu*por_op)
-        Gamma_P[Gamma_P<=0]=1e-15 # a bit of a hack here - how to deal with diffusivity after close-off?
+        #Gamma_P[Gamma_P<=0]=1e-15 # a bit of a hack here - how to deal with diffusivity after close-off?
     
         diffu_P=diffu*por_op
         d_eddy_P=d_eddy*por_op
@@ -330,7 +336,7 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         #Gamma_d =  1/ ( (1 - f_d)/Gamma_P + f_d/Gamma_D )
         
         S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
-        S_C=S_C_0*phi_0
+        S_C=S_C_0*phi_t
         #S_C=0
         #S_C=S_C*np.ones(nz_P)
         
@@ -340,7 +346,8 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         
         b_0 = S_C*dZ
         
-        rho_interface=np.interp(z_edges_vec,z_P_vec,rhoHL)
+        rho_interface=np.interp(z_edges_vec,z_P_vec,rho_prof)
+        
         w_edges = w(z_edges_vec,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl)
         
         w_u = np.append(w_edges[0],  w_edges )
@@ -380,7 +387,7 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
                 writer = csv.writer(f)       
                 writer.writerow(z_nodes)
                                 
-        a_P =  a_U + a_D + a_P_0
+        a_P =  a_U + a_D + a_P_0 - S_P*dZ
            
         bc_u_0=gas[i_time]
         bc_type = 1.
@@ -430,7 +437,10 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes
         #    plt.plot(z_nodes,phi_t,'b')
         #    plt.show()    
             
-        a_P=a_U+a_D+a_P_0
+        #a_P=a_U+a_D+a_P_0 - S_P*dZ #6/18: not sure if any updating is needed here.
+        #S_C=S_C_0*phi_t
+        #S_C=S_C_01*phi_t+S_C_02*phi_t
+        #b_0 = S_C*dZ
         
     return phi, diffu_hold, rho_hold
         
@@ -488,9 +498,12 @@ def space(depth,z_res):
 
 def porosity(rho_prof):
     
+    bcoRho = 1/( 1/(rho_i) + T*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+    LIDRho = bcoRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)
+    
     ## Porosity, from Goujon et al., 2003, equations 9 and 10
     por_tot = 1-rho_prof/rho_i # Total porosity
-    rho_co = rho_bco #use Martinerie close-off criteria
+    rho_co = bcoRho #use Martinerie close-off criteria
     #rho_co = 0.815 # User chosen close off-density (put in site-specific in sites?)
     por_co = 1 - rho_co/rho_i # Porosity at close-off
     alpha = 0.37 # constant determined in Goujon
@@ -503,9 +516,9 @@ def porosity(rho_prof):
     por_op = por_tot - por_cl # Open Porosity
     por_op[por_op<=0] = 1.e-10
     
-    return rho_co, por_co, por_tot, por_cl, por_op
+    return rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho
       
-def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhoprof is density profile
+def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ, rhoprof = None): #rhoprof is density profile
         
     if rhoprof is None:
         rhoprof=rhoHL
@@ -526,8 +539,8 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     ## Use Schwander 1988, Eq. 2 Diffusivity (does not work very well) use 4e2
     ## for d_0
     k_sch = p_0/p_a*(T/253.16)**1.85 # Constant given in Schwander
-    diffu_full_sch =3.72*0.5*k_sch*(23.7*por_tot-2.84)*31.5 # Schwander' diffusivity relationship (for CO2). 31.5 is unit conversion. Added extra 3.72* 9/12/13
-    diffu_full_sch =k_sch*(23.7*por_tot-2.84)/(1000**2) # Schwander' diffusivity relationship (for CO2). 31.5 is unit conversion. Added extra 3.72* 9/12/13
+    #diffu_full_sch =3.72*0.5*k_sch*(23.7*por_tot-2.84)*31.5 # Schwander' diffusivity relationship (for CO2). 31.5 is unit conversion. Added extra 3.72* 9/12/13
+    diffu_full_sch =k_sch*(23.7*por_tot-2.84)/(1000**2) # Schwander' diffusivity relationship (for CO2). 1/1000**2 is unit conversion. Added extra 3.72* 9/12/13
     #ind = np.nonzero(h>LIZ)
     #diffu_full_sch[ind] = 0.001
     diffu_full_sch = diffu_full_sch-diffu_full_sch[dind]
@@ -543,23 +556,29 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     if sitechoice == 'NEEM':
         diffu_data=np.loadtxt(os.path.join(DataPath,'c_diffu_NEEM.txt'))
         h=diffu_data[:,0]
-        diffu_full=D_x*d_0*diffu_data[:,1]
+        diffu_full_data=D_x*d_0*diffu_data[:,1]
 
     elif sitechoice == 'WAIS':
         diffu_data=np.loadtxt(os.path.join(DataPath,'c_diffu_WAIS.txt'))
         h=diffu_data[:,0]
-        diffu_full=D_x*d_0*diffu_data[:,1]
+        diffu_full_data=D_x*d_0*diffu_data[:,1]
         
     elif sitechoice == 'SCENARIO':
         diffu_data=np.loadtxt(os.path.join(DataPath,'c_diffu_NEEM.txt'))
         h=diffu_data[:,0]
-        diffu_full=D_x*d_0*diffu_data[:,1]        
+        diffu_full_data=D_x*d_0*diffu_data[:,1]        
         
-
-    diffu_full = np.interp(z_nodes,h,diffu_full)
-    diffu_full_Christo=diffu_full
+      
+    ## try a random profile to test if the model is working.
+    #h=1:100 
+    #diffu_full=d_0*23*ones(length(h))
+    diffu_full_data = np.interp(z_nodes,h,diffu_full_data)
+    #diffu_full_data=diffu_full
+    #d_eddy=1. #hack if not using eddy diffusivity (wrap entirely into D)
     
-    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
+    ## Add in high diffusivity in convective zone and low diffusivity below LIZ
+    
+    diffu_full=diffu_full_fre #change this line to change your choice of diffusivity
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
@@ -581,10 +600,35 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, rhoprof = None): #rhopr
     #d_eddy=np.subtract(d_eddy,diffu)
     diffu=diffu_full
     ## Interpolate diffusivity profile to the finite volume nodes (model space)
-    deepnodes = z_nodes>LIZ #leftover line from matlab?
+    #deepnodes = z_nodes>LIZ #leftover line from matlab?
     
-    return diffu, deepnodes, d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_Christo
+    return diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data
     
+def rhoHLAnalytic(R,T,rho_i,rho0,z_nodes,Accu_m): 
+    
+    #if Accu is None:
+    Accu=Accu_m   
+    rho_c = 550.0/1000.
+    rho_i_g=rho_i/1000.
+    rho0_g=rho0/1000.
+    h=z_nodes
+    k0 = 11  * np.exp(-10160/(R*T))
+    k1 = 575 * np.exp(-21400/(R*T))
+    h0_55 = 1/(rho_i_g*k0) * (np.log(rho_c/(rho_i_g-rho_c))-np.log(rho0_g/(rho_i_g-rho0_g)))
+    Z0 = np.exp(rho_i_g*k0*h + np.log(rho0_g/(rho_i_g-rho0_g)))
+    t0_55 = 1/(k0*Accu) * np.log((rho_i_g-rho0_g)/(rho_i_g-rho_c ))
+    rho_h0 = (rho_i_g* Z0)/(1+Z0)
+    t0 =   1/(k0*Accu)*np.log((rho_i_g-rho0_g)/(rho_i_g-rho_h0))
+    Z1 = np.exp(rho_i_g*k1*(h-h0_55)/np.sqrt(Accu) +  np.log(rho_c/(rho_i_g-rho_c)))
+    Z = np.concatenate((Z0[h<h0_55], Z1[h>h0_55]))
+    rho_h = (rho_i_g * Z)/(1+Z)
+    tp = 1/(k1*np.sqrt(Accu)) * np.log((rho_i_g-rho_c)/(rho_i_g-rho_h))+ t0_55    
+    #age = np.concatenate((t0[h<h0_55], tp[h>h0_55]))
+#     bco = min(age[rho_h>=rho_bco])
+    rhoHL=rho_h*1000
+    
+    return rhoHL    
+            
 def boundaries(gas_org):
     bc_u_0 = gas_org[0] #this is concentration on upper boundary (i.e. atmosphere) It is not actually necessary here, because it gets looped over.
     bc_type = 1
@@ -673,12 +717,12 @@ if __name__ == "__main__":
     
     dz, z_edges_vec, z_P_vec, z_nodes, nodes, nz_P, nz_fv = space(depth,z_res) #call on space function to set up spatial grid
     
-    rhoHL = MPRHO.rhoHLAnalytic(R,T,rho_i,rho0,rho_bco,z_nodes,Accu_m) # Get density profile from H&L analytic
-    rho_co, por_co, por_tot, por_cl, por_op = porosity(rhoHL)
-    diffu, deepnodes, d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_Christo = diffusivity(rho_co, por_co, por_tot, por_cl, por_op) #get diffusivity profiles
+    rhoHL = rhoHLAnalytic(R,T,rho_i,rho0,z_nodes,Accu_m) # Get density profile from H&L analytic
+    rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rhoHL)
+    diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ) #get diffusivity profiles
   
-    ind_co=np.argmax(z_edges_vec>=z_co) #index of close-off depth in z_edges vec. A bit of a hack for now...
-    ind_co=np.argmax(rhoHL>=rho_co) #index of close-off depth in z_edges vec. A bit of a hack for now...    
+    #ind_co=np.argmax(z_edges_vec>=z_co) #index of close-off depth in z_edges vec. Should this be nodes or edges?
+    #ind_co=np.argmax(rhoHL>=rho_co) #index of close-off depth in z_edges vec. A bit of a hack for now...    
     #gas = gasinterp(time_yr_s,gas_org,model_time) #interpolate atmospheric gas history to model time.
     gas=np.interp(model_time,time_yr_s,gas_org) #interpolate atmospheric gas history to model time.
     bc_u, bc_d, bc_u_0 = boundaries(gas_org) #set boundary and initial conditions: bc_u is atmospheric condition, bc_d is zero gradient.
@@ -705,10 +749,10 @@ if __name__ == "__main__":
     transdiffu = 'off'
     
     if transdiffu == 'on':
-        phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes, R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl)
+        phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,p_a,por_tot,por_cl)
     
     elif transdiffu == 'off':
-        phi, a_P_out =FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,deepnodes, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,diffu,d_eddy)
+        phi, a_P_out =FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,diffu,d_eddy)
 
     else:
         sys.exit("Oops. You have a typo at transdiffu. Try again.")
@@ -726,7 +770,7 @@ if __name__ == "__main__":
     plotting = 'on'
     
     plots.makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
-                    diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_Christo, meas_uncert=meas_uncert)
+                    diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_data, meas_uncert=meas_uncert)
         
     elapsed=time.time()-tic
     elapsed_min=elapsed/60.
