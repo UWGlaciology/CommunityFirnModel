@@ -263,7 +263,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     return phi, a_P_out
 
     
-def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl,Accu_m):
+def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl,Accu_m, czd):
     
     ConcPath = os.path.join(ResultsPlace, 'conc_out.csv') #Save location.
     RhoPath = os.path.join(ResultsPlace, 'rho_out.csv') #Save location.
@@ -305,7 +305,7 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,n
         z_co = min(z_nodes[rho_prof>=(bcoRho)]) #close-off depth; bcoRho is close off density
         LIZ = min(z_nodes[rho_prof>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
               
-        diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ, rhoprof=rho_prof) #get diffusivity profile
+        diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ, rhoprof=rho_prof) #get diffusivity profile
         
         diffu=diffu*dconint
         
@@ -533,7 +533,7 @@ def porosity(rho_prof):
     
     return rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho
       
-def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ, rhoprof = None): #rhoprof is density profile
+def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ, rhoprof = None): #rhoprof is density profile
         
     if rhoprof is None:
         rhoprof=rhoHL
@@ -593,13 +593,13 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ, rhoprof = No
     
     ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
-    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
+    diffu_full=diffu_full_data #change this line to change your choice of diffusivity
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
     ind = np.nonzero(z_nodes<czd)
     d_eddy_surf=2.426405E-5 #Kawamura, 2006
-    H_scale=4.4
+    H_scale=czd
     d_eddy_up=d_eddy_surf*np.exp(-1*z_nodes/H_scale)
     #d_eddy[ind] = diffu_full[ind]*10
     ind = np.flatnonzero(z_nodes>LIZ)
@@ -681,7 +681,7 @@ if __name__ == "__main__":
     p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
     T_0 = 273.15 # Standard Temp, K
     sPerYear = 365.25*24*3600 #seconds per year
-    depth = 300. # m
+    depth = 120. # m
     
     ad_method="ice_vel" #advection method
     #ad_method="Christo" #advection method
@@ -689,7 +689,8 @@ if __name__ == "__main__":
     
     
     # Set up parameters for different sites.
-    sitechoice = 'SCENARIO'
+    #sitechoice = 'SCENARIO'
+    sitechoice = 'NEEM'
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     
@@ -697,10 +698,10 @@ if __name__ == "__main__":
 
     
     # Set up Gas Properties. Just CO2 for now.
-    #gaschoice='CO2'
+    gaschoice='CO2'
     #gaschoice='CH4'
     #gaschoice='SF6'    
-    gaschoice='d15N2'
+    #gaschoice='d15N2'
     D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
 
     time_yr=conc1[:,0] # Atmospheric measurements times
@@ -712,7 +713,7 @@ if __name__ == "__main__":
     time_yr_s=time_yr*sPerYear
     gas_org=conc1[:,1] # Atmospheric measurement concentrations 
     #gas_org=conc1[0:iin+1,1] #Added 4/2/14 for gala runs. Makes gas_org the same length as the time.
-    if firn_meas != 'None':
+    if firn_meas != 'None': #incomplete
         meas_depth=firn_meas[:,0]
         meas_conc=firn_meas[:,1] # measured gas concentrations in firn
         #meas_conc=firn_meas[:,2] # gravity corrected
@@ -725,7 +726,7 @@ if __name__ == "__main__":
     yrs=np.around(time_yr[-1]-time_yr[0]) #should I/can I round here? 9/10
 
     time_total=yrs*sPerYear #total model run time in seconds
-    stpsperyear=5. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
+    stpsperyear=1. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
     t_steps=np.int(yrs*stpsperyear)
     #dt=0.2 #time step size.
     dt=time_total/t_steps #time step size. 
@@ -736,13 +737,16 @@ if __name__ == "__main__":
     
     rhoHL = MPRHO.rhoHLAnalytic(R,T,rho_i,rho0,rho_bco,z_nodes,Accu_m) # Get density profile from H&L analytic
     rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rhoHL)
+    
     if sitechoice=='SCENARIO':
         z_co = min(z_nodes[rhoHL>=(bcoRho)]) #close-off depth; bcoRho is close off density
         LIZ = min(z_nodes[rhoHL>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
     
     
-    diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, LIZ) #get diffusivity profiles
-    diffu=diffu*0.01
+    diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ) #get diffusivity profiles
+    
+    dcon=1.0
+    diffu=diffu*dcon
     #ind_co=np.argmax(z_edges_vec>=z_co) #index of close-off depth in z_edges vec. Should this be nodes or edges?
     #ind_co=np.argmax(rhoHL>=rho_co) #index of close-off depth in z_edges vec. A bit of a hack for now...    
     #gas = gasinterp(time_yr_s,gas_org,model_time) #interpolate atmospheric gas history to model time.
@@ -759,7 +763,7 @@ if __name__ == "__main__":
     dZ_d = np.diff(Z_P)
     dZ_d = np.append(dZ_d,dZ_d[-1])
     
-    phi_0 = np.zeros(nz_P)
+    phi_0 = np.zeros(nz_P) #phi is mixing ratio of gas.
     phi_0[:]=bc_u_0
     
     Gamma_P=(diffu*por_op+d_eddy*por_op) #could get rid of stuff like this
@@ -768,10 +772,10 @@ if __name__ == "__main__":
     
     #rho_interface=np.interp(z_edges_vec,z_P_vec,rhoHL)
     
-    transdiffu = 'off' #this line chooses transient or steady-state
+    transdiffu = 'on' #this line chooses transient or steady-state
     
     if transdiffu == 'on':
-        phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl,Accu_m)
+        phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl,Accu_m,czd)
     
     elif transdiffu == 'off':
         phi, a_P_out =FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,diffu,d_eddy)
@@ -786,6 +790,15 @@ if __name__ == "__main__":
     aa=np.shape(phi_toplot)
     aa=aa[1]
     
+    d15max=np.max(phi[:,-1])
+    d15LID=np.log(d15max)*R*T/(g*deltaM)
+    
+    print 'dcon =', dcon
+    print 'd15N2 LID =', d15LID
+    print 'LID from density/temperature (Martinerie) =', LIZ    
+    print 'Close off depth =', z_co
+    print 'Difference (close-off - d15N2 LID)=', z_co-d15LID
+
     if firn_meas != 'None':
         gas_meas=np.interp(z_nodes, meas_depth, meas_conc);
     

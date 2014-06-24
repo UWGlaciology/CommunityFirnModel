@@ -42,8 +42,8 @@ def sites(sitechoice):
 
         #p_a = 7.45e4
         elev=2500. 
-        T = -58 +273.15 
-        Accu_0 = 0.035 
+        T = -68 +273.15 
+        Accu_0 = 0.035
         czd = 4. 
         z_co = 78.
         LIZ = 63.
@@ -55,6 +55,6 @@ def sites(sitechoice):
         pass
     
     g=g_s*(r_e/(r_e+elev))**2
-    p_a=p_0*np.exp(-g_s*M_air*elev/(R*288.15))
+    p_a=p_0*np.exp(-g_s*M_air*elev/(R*288.15)) #This may not hold at polar sites
     
     return g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere
