@@ -146,6 +146,7 @@ def transient_solve_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,phi_0,nz_P,nz_fv,phi_s)
 def runModel(configName,spin):
     "Runs firnmodel with an input json file."
 
+    global c
     
     logging.getLogger()
     logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
@@ -243,7 +244,7 @@ def runModel(configName,spin):
     T10m = fT10m(10)
     
     if spin:
-        if c['stpsPerYearSpin'] == 1.:
+        if c['stpsPerYearSpin'] >= 1.:
             Ts = c['Ts0']*np.ones(stp)
         else:
             TPeriod = c['yearSpin']
@@ -664,7 +665,8 @@ def runModel(configName,spin):
                 writer = csv.writer(f)
                 writer.writerow(z_time)        
 #         elif not spin and (t*i)%1 == 0:
-        elif not spin and [True for jj in TWrite if jj == t*i+1] == [True]:
+
+        elif not spin and [True for jj in TWrite if jj == t*i+1] == [True]: #this is writing model output to csv at selected times (TWrite are the times).
             rho_time = np.concatenate(([t*i + 1],rho))
             Tz_time = np.concatenate(([t*i + 1],Tz))
             age_time = np.concatenate(([t*i + 1],age))

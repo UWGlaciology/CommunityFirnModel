@@ -1,8 +1,7 @@
 # UW Community Firn-Air Transport Model
 # Max Stevens
-# version 0.22, 19 June 2014
-# Number of changes since 0.21, but main update is that transient gravity works. Can be tested by using NEEM/WAIS parameters and gas history and comparing output to data and SS version. 
-
+# version 0.22_thermal, 31 July 2014
+# Same as v 0.22 but working on the thermal. v 023 exists but does not plot as quickly right now for testing. There is an issue with the grid - the size of the grid has an effect on the fractionation.
 ### In order to run transient, you must put the files from firnmodel.py output into DataImport folder.
 ### All units should be kilograms, meters, and seconds (MKS system)
 
@@ -158,9 +157,12 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     
     #S_C=0 #use these lines for ignoring gravity
     #S_C=S_C*np.ones(nz_P)
+    omega=0.015/1000
+    dTdz=np.zeros(np.size(diffu_d))
+    dTdz[0:40]=-0.6
     
-    S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
-    S_C_0=0.0
+    S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz)) #S_C is independent source term in Patankar
+    #S_C_0=0.0
     #S_C_01=-Gamma_d*(deltaM*g/(R*T))
     #S_C_02=Gamma_u*(deltaM*g/(R*T))
     
@@ -177,7 +179,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
     #S_P=(-d_eddy_d+d_eddy_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
     #S_P=Gamma_m*(deltaM*g/(R*T))
-    S_P=1.*S_P
+    S_P=0.*S_P
     
     b_0 = S_C*dZ
     

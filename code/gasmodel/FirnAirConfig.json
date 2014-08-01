@@ -1,0 +1,11 @@
+{
+    "ad_method": "Christo",
+    "diffu": "data",
+    "depth": 120.0,
+    "options":["one","two","three"],
+    "gaschoice":["d15N2"],
+    "gravity":"on",
+    "thermal":"off",
+    "runtype":"steady",
+    "runtype_options":"steady, transient"
+}
