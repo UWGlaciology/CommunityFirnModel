@@ -18,7 +18,7 @@ def sites(sitechoice):
     if sitechoice == 'NEEM':     
 
         elev = 2500. #m
-        #p_a = 7.45e4  #Pa: kg m^-1 s^-2
+        p_a = 7.45e4  #Pa: kg m^-1 s^-2
         T = -28.9 +273.16 # K
         Accu_0 = 0.25 # m a^-1, ice eq.
         czd = 4. # m
@@ -55,6 +55,6 @@ def sites(sitechoice):
         pass
     
     g=g_s*(r_e/(r_e+elev))**2
-    p_a=p_0*np.exp(-g_s*M_air*elev/(R*288.15)) #This may not hold at polar sites
+#     p_a=p_0*np.exp(-g_s*M_air*elev/(R*288.15)) #This may not hold at polar sites
     
     return g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere

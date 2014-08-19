@@ -2,10 +2,14 @@
     "ad_method": "Christo",
     "diffu": "data",
     "depth": 120.0,
+    "sitechoice": "NEEM",
     "options":["one","two","three"],
-    "gaschoice":["d15N2"],
+    "gaschoice":["d15N2","d40Ar"],
     "gravity":"on",
-    "thermal":"off",
+    "thermal":"on",
     "runtype":"steady",
-    "runtype_options":"steady, transient"
+    "runtype_options":"steady, transient",
+    "StepsPerYear":1.0,
+    "z_resolution":0.5,
+    "measurements":"off"
 }

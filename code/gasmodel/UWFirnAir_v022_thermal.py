@@ -157,11 +157,11 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     
     #S_C=0 #use these lines for ignoring gravity
     #S_C=S_C*np.ones(nz_P)
-    omega=0.015/1000
+    #omega=0.0/1000
     dTdz=np.zeros(np.size(diffu_d))
-    dTdz[0:40]=-0.6
+    dTdz[0:300]=0.5
     
-    S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz)) #S_C is independent source term in Patankar
+    S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz))/z_res #S_C is independent source term in Patankar
     #S_C_0=0.0
     #S_C_01=-Gamma_d*(deltaM*g/(R*T))
     #S_C_02=Gamma_u*(deltaM*g/(R*T))
@@ -706,7 +706,7 @@ if __name__ == "__main__":
     #gaschoice='CH4'
     #gaschoice='SF6'    
     gaschoice='d15N2'
-    D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
+    D_x, M, deltaM, conc1, firn_meas, d_0, omega = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
 
     time_yr=conc1[:,0] # Atmospheric measurements times
     
@@ -724,13 +724,13 @@ if __name__ == "__main__":
         meas_uncert=firn_meas[:,3]
     
     #Space and time. Time is in seconds!
-    z_res=1 #resolution of grid, m
+    z_res=0.2 #resolution of grid, m
     #dt=0.01
     
     yrs=np.around(time_yr[-1]-time_yr[0]) #should I/can I round here? 9/10
 
     time_total=yrs*sPerYear #total model run time in seconds
-    stpsperyear=1. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
+    stpsperyear=5. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
     t_steps=np.int(yrs*stpsperyear)
     #dt=0.2 #time step size.
     dt=time_total/t_steps #time step size. 

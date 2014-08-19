@@ -19,7 +19,7 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
         D_gas = 1. #free-air diffusivity relative to CO2. Unitless.
         M = 44.01e-3 # molecular mass, kg/mol
         decay = 0.
-
+        omega = 0.0
         
         #if hemisphere == 'SOUTH':
         #    conc1=loadtxt(os.path.join(DataPath,'CO2_NH_history.txt'),skiprows=2) #load data: atmospheric CO2 history.
@@ -40,27 +40,32 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
         D_gas = 1.367
         M = 16.04e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'd15N2':
-        D_gas = 1.275*0.9912227
+        D_gas = 1.275*0.9912227 # not sure of the origin here... Christo's model?
         M = 1.E-3 + M_air
         decay = 0.
+        omega = 0.015/1000
 
     elif gaschoice == 'SF6':
         D_gas = 0.554
         M = 146.06e-3
         decay = 0.
-
+        omega = 0.
+        
     elif gaschoice == 'C14':
         D_gas = 0.991368
         M = 46.01e-3
         decay = 1./8267.
-
+        omega = 0.
+        
     elif gaschoice == 'C13':
         D_gas = 0.9955648
         M = 45.01e-3
         decay = 0.
-
+        omega = 0.
+        
     elif gaschoice == 'CFC11':
         D_gas = 0.525
         M = 137.37e-3
@@ -70,51 +75,69 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
         D_gas = 0.596
         M = 120.91e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'C13_CFC12':
         D_gas = 0.59552
         M = 121.91e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'CC14':
         D_gas = 0.470
         M = 153.82e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'CFC113':
         D_gas = 0.453
         M = 187.38e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'CFC115':
         D_gas = 0.532
         M = 154.47e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'R134a':
         D_gas = 0.630
         M = 102.03e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'CH3CCl3':
         D_gas = 0.485
         M = 133.40e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'HCFC22':
         D_gas = 0.710
         M = 86.47e-3
         decay = 0.
+        omega = 0.
 
     elif gaschoice == 'C13_CH4':
         D_gas = 1.340806
         M = 17.04e-3
         decay = 0.
+        omega = 0.
+        
+    elif gaschoice == 'd40Ar':
+        D_gas = 1.21
+        M = 4.e-3 + M_air
+        decay = 0.
+        omega = 0.0364/1000.
 
     elif gaschoice == 'FOG':
-        #D_gas (Not sure about this one)
+        D_gas = 1.0
         M = 44e-3
         decay = 1./100.
+        omega = 0.
+        
+        
     
                 
     
@@ -136,4 +159,4 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
     D_x = D_gas #* D_ref_CO2
     d_0=D_ref_CO2
                    
-    return D_x, M, deltaM, conc1, firn_meas, d_0
+    return D_x, M, deltaM, conc1, firn_meas, d_0, omega

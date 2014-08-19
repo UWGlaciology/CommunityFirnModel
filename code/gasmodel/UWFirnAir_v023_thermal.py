@@ -45,7 +45,9 @@ T_0 = 273.15 # Standard Temp, K
 sPerYear = 365.25*24*3600 #seconds per year
 
 # Downward Advection (of air)        
-def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function for downward advection of air. 
+def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function for downward advection of air and also calculates total air content. 
+    
+    global teller_co, por_cl_interface
     
     por_tot_interface=np.interp(z_edges,z_nodes,por_tot)
     por_cl_interface=np.interp(z_edges,z_nodes,por_cl)
@@ -55,6 +57,7 @@ def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function for do
     
     if ad_method=='ice_vel':
         w_ad=w_ice
+        trapped = 0.0
     
     elif ad_method=='Christo':
     ### Christo's Method from his thesis (chapter 5). This (maybe) could be vectorized to speed it up.
@@ -78,16 +81,21 @@ def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl): # Function for do
             bubble_pres[teller1] = (dz*np.sum(integral))/(dz*np.sum(integral2))
         
         bubble_pres[teller_co+1:] = bubble_pres[teller_co]*(s[teller_co]/s[teller_co+1:])/(w_ice[teller_co+1:]/w_ice[teller_co])
+        
         bubble_pres[0] = 1
+        #print 'bubble pressure = %s' % bubble_pres
+    
     
         flux= w_ice[teller_co]*bubble_pres[teller_co]*por_cl[teller_co]
         velocity = np.minimum(w_ice ,((flux+(1e-10)-w_ice*bubble_pres*por_cl_interface)/((por_op_interface+1e-10)*C)))
+        
+
         
         w_ad=velocity
     
     ###
 
-    return w_ad
+    return w_ad, bubble_pres
 
 def A(P): # Power-law scheme, Patankar eq. 5.34
     A = np.maximum( (1 - 0.1 * np.abs( P ) )**5, np.zeros(np.size(P) ) )
@@ -108,6 +116,8 @@ def solver(a_U,a_D,a_P,b): #routine to solve Ax=b
     return phi_t
 
 def FirnAir_SS(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz_fv,por_op,gas,Accu,T,p_a,diffu,d_eddy):
+    
+    global rho_interface
     
     ConcPath = os.path.join(ResultsPlace, 'conc_out.csv') #Save location.
     
@@ -137,44 +147,32 @@ def FirnAir_SS(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz_fv,por_op,g
     d_eddy_u =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
     d_eddy_d =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
     
-    #Gamma_m = (Gamma_u + Gamma_d)/2
-    
-    #S_C=0 #use these lines for ignoring gravity
-    #S_C=S_C*np.ones(nz_P)
-    
-    #if cc['gravity']=="off" and cc['thermal']=="off":
-    #    print 'gravity and thermal are off'
-    #    S_C_0=0.0
-    #    S_P=0.0
-    #    S_C=0.0
-    
-    #elif cc['gravity']=='on' and cc['thermal']=='off':
-    S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
-    #S_C_01=-Gamma_d*(deltaM*g/(R*T))
-    #S_C_02=Gamma_u*(deltaM*g/(R*T))
-    
-    #S_C_0=(-d_eddy_d+d_eddy_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
-    #S_C_01=-d_eddy_d*(deltaM*g/(R*T))*0
-    #S_C_02=d_eddy_u*(deltaM*g/(R*T))*0
-    
-    #S_C_0=(Gamma_m)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
-    #S_C_0=0
-    S_C=S_C_0*phi_0
-    #S_C=S_C_01*phi_0+S_C_02*phi_0
-    
-    S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
-    #S_P=(-d_eddy_d+d_eddy_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
-    #S_P=Gamma_m*(deltaM*g/(R*T))
-    #S_P=0.0
+    S_P=0.0 # Source dependent term. Should always be zero, but leaving it in in case there becomes a need.
+    #S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #OLD gravity term, S_P is phi-dependent source
     S_P=1.*S_P
     
-    print "deltaM = %s, gravity = %s",deltaM,g
+    if cc['gravity']=="off" and cc['thermal']=="off":
+        print 'gravity and thermal are off'
+        S_C_0=0.0
+    
+    elif cc['gravity']=='on' and cc['thermal']=='off':
+        S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T))/dz #S_C is independent source term in Patankar
+    
+    elif cc['gravity']=='on' and cc['thermal']=='on':
+        print 'thermal on'
+        dTdz=np.zeros(np.size(diffu_d))
+        dTdz[0:100]=-0.6 #K/m. Negative gradient here means that it is colder deep (z is positive down)
+        S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz))/dz #S_C is independent source term in Patankar
+    
+    S_C=S_C_0*phi_0
+    
+    print "deltaM = %s, gravity = %s" % (deltaM, g)
     
     b_0 = S_C*dZ
     
     rho_interface=np.interp(z_edges,z_nodes,rhoHL)
     
-    w_edges = w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl)
+    w_edges, bubble_pres = w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl)
     
     w_u = np.append(w_edges[0],  w_edges )
     w_d = np.append(w_edges, w_edges[-1])
@@ -240,7 +238,7 @@ def FirnAir_SS(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz_fv,por_op,g
             writer = csv.writer(f)       
             writer.writerow(phi_t)
         
-    return phi, a_P_out
+    return phi, a_P_out, bubble_pres
 
     
 def FirnAir_TR(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl,Accu_m, czd):
@@ -260,6 +258,8 @@ def FirnAir_TR(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,
     f_dcon=np.loadtxt(os.path.join(DataPath,'DconDART2.csv'),delimiter=',',skiprows=0)
     f_dcon[f_dcon==0.9]=0.2
     
+    f_temp=np.loadtxt(os.path.join(DataPath,'tempDART2.csv'),delimiter=',',skiprows=0)
+    
     Accu_vec=np.ones(len(f_density[:,0])) #nned to be aware of accumulation per second or year. Accu_m is per year. Accu_0 is per s.
     Accu_vec[0:20]=Accu_m
     Accu_vec[20:]=Accu_m-0.015
@@ -269,7 +269,7 @@ def FirnAir_TR(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,
         
     for i_time in range(0,nt): #6/18/14: need to fix nt so that it is consistent with output from firnmodel.py
         
-        Accu=Accu_vec[i_time]/sPerYear
+        #Accu=Accu_vec[i_time]/sPerYear
         
         #Accu=Accu_m#+0.01*np.sin(i_time) #6/18: what is this used for? Should probably use output from firnmodel.py
         
@@ -331,11 +331,25 @@ def FirnAir_TR(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,
         d_eddy_u =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
         d_eddy_d =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
         
-        S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
+        if cc['gravity']=="off" and cc['thermal']=="off":
+            print 'gravity and thermal are off'
+            S_C_0=0.0
+    
+        elif cc['gravity']=='on' and cc['thermal']=='off':
+            S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T))/dz #S_C is independent source term in Patankar
+    
+        elif cc['gravity']=='on' and cc['thermal']=='on':
+            print "thermal on"
+            dTdz=np.zeros(np.size(diffu_d))
+            dTdz[0:120]=-0.4
+            S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz))/dz #S_C is independent source term in Patankar
+        
+        #S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
         
         S_C=S_C_0*phi_t #this line might be the troublesome one! Should it be phi_0 instead?
         
-        S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
+        #S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
+        S_P=0.0
         
         b_0 = S_C*dZ
         
@@ -535,7 +549,7 @@ def firnairmodel(airconfig):
         json_data=f.read()
         cc = json.loads(json_data)
     
-    global depth, T, Accu_0, g, d_0, z_nodes, D_x, p_a, sitechoice, deltaM, por_tot, por_cl, ad_method,options,dz
+    global depth, T, Accu_0, g, d_0, z_nodes, D_x, p_a, sitechoice, deltaM, por_tot, por_cl, ad_method,options,dz,omega,z_co,z_edges,rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho
     
 
     depth = cc["depth"] # m
@@ -543,13 +557,13 @@ def firnairmodel(airconfig):
     #ad_method="ice_vel" #advection method
     ad_method = cc["ad_method"]
     #ad_method="Christo" #advection method
-    measurements = 'on'
+    measurements = cc["measurements"]
     
     options=cc["options"]
     
     # Set up parameters for different sites.
     #sitechoice = 'SCENARIO'
-    sitechoice = 'NEEM'
+    sitechoice = cc["sitechoice"]
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     
@@ -569,7 +583,7 @@ def firnairmodel(airconfig):
         print jj
         gaschoice=gaschoice_all[jj]
         
-        D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
+        D_x, M, deltaM, conc1, firn_meas, d_0, omega = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
     
         time_yr=conc1[:,0] # Atmospheric measurements times
         
@@ -587,13 +601,13 @@ def firnairmodel(airconfig):
             meas_uncert=firn_meas[:,3]
         
         #Space and time. Time is in seconds!
-        z_res=0.5 #resolution of grid, m
+        z_res=cc['z_resolution'] #resolution of grid, m
         #dt=0.01
         
         yrs=np.around(time_yr[-1]-time_yr[0]) #should I/can I round here? 9/10
     
         time_total=yrs*sPerYear #total model run time in seconds
-        stpsperyear=1. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
+        stpsperyear=cc['StepsPerYear'] #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
         t_steps=np.int(yrs*stpsperyear)
         #dt=0.2 #time step size.
         dt=time_total/t_steps #time step size. 
@@ -634,11 +648,14 @@ def firnairmodel(airconfig):
             print 'maximum = %s', np.max(phi)
             
         elif runtype == 'steady':
-            phi, a_P_out =FirnAir_SS(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,diffu,d_eddy)
+            phi, a_P_out, bubble_pres =FirnAir_SS(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,diffu,d_eddy)
             print 'maximum = %s', np.max(phi)
         else:
             sys.exit("Oops. You have a typo at runtype. Try again.")
-            
+        
+        trapped = 1000*(bubble_pres*por_cl_interface)*(p_a/101325)*(273.15/T)/(rho_interface/1000) #amount of trapped air in ml STP/cm^3 (from Christo)
+        #print trapped    
+                    
         #phi_final=np.append([phi_0],[phi],axis=0)
         #phi=phi.T
         
@@ -646,6 +663,10 @@ def firnairmodel(airconfig):
         aa=np.shape(phi_toplot)
         aa=aa[1]
         d[gaschoice]=phi
+        d['bubblePres']=bubble_pres
+        d['TAC']=trapped
+        
+        print '%s done' % gaschoice
     
     d15max=np.max(phi[:,-1])
     d15LID=np.log(d15max)*R*T/(g*deltaM)
@@ -681,7 +702,19 @@ if __name__ == "__main__":
     #if plotting != 'off':
     #    plots.makeplots(plotting,z_nodes,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
     #                    diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_data, meas_uncert=meas_uncert)
+    
+    d40Ar=d['d40Ar']
+    d15N2=d['d15N2']
+    N2_p=d15N2[:,-1]
+    Ar_p=(d40Ar[:,-1]-1)/4+1
+    plt.figure(1)
+    plt.plot(z_nodes,N2_p,'b')
+    plt.plot(z_nodes,Ar_p,'r')
+    plt.show()
+    
+    
         
+                
     elapsed=time.time()-tic
     elapsed_min=elapsed/60.
     mins=np.floor(elapsed_min)
