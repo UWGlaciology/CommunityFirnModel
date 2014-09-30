@@ -403,6 +403,7 @@ def runModel(configName,spin):
                 else:
                     dr_dt = c['k2']*np.exp(-c['Q2']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['bHL'])*1000/c['sPerYear']
                     drho_dt[j] = dr_dt
+                    
         
         elif c['physRho']=='HLSigfus':
             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']

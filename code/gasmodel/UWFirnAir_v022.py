@@ -16,7 +16,7 @@ from scipy.sparse import spdiags
 from scipy.sparse.linalg import lsqr
 from scipy.integrate import cumtrapz
 import math
-import ModelParameters.Gasses as MPG
+import ModelParameters.Gasses_old as MPG
 import ModelParameters.Sites as MPS
 import ModelParameters.Plotting as plots
 import ModelParameters.Diffusivity as MPD
@@ -174,7 +174,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     S_C=S_C_0*phi_0
     #S_C=S_C_01*phi_0+S_C_02*phi_0
     
-    S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
+    S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T))/dz #gravity term, S_P is phi-dependent source
     #S_P=(-d_eddy_d+d_eddy_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
     #S_P=Gamma_m*(deltaM*g/(R*T))
     S_P=1.*S_P
@@ -595,7 +595,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ, rhoprof
     
     ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
-    diffu_full=diffu_full_data #change this line to change your choice of diffusivity
+    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
@@ -615,7 +615,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ, rhoprof
     #d_eddy[:]=1.e-10
     
     #d_eddy=np.subtract(d_eddy,diffu)
-    diffu=diffu_full
+    diffu=diffu_full*0.5
     ## Interpolate diffusivity profile to the finite volume nodes (model space)
     #deepnodes = z_nodes>LIZ #leftover line from matlab?
     
@@ -683,7 +683,7 @@ if __name__ == "__main__":
     p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
     T_0 = 273.15 # Standard Temp, K
     sPerYear = 365.25*24*3600 #seconds per year
-    depth = 120. # m
+    depth = 90. # m
     
     ad_method="Christo" #advection method
     #ad_method="Christo" #advection method
@@ -704,6 +704,8 @@ if __name__ == "__main__":
     #gaschoice='CH4'
     #gaschoice='SF6'    
     gaschoice='d15N2'
+    loadgas = True        
+
     D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
 
     time_yr=conc1[:,0] # Atmospheric measurements times
@@ -722,13 +724,13 @@ if __name__ == "__main__":
         meas_uncert=firn_meas[:,3]
     
     #Space and time. Time is in seconds!
-    z_res=1 #resolution of grid, m
+    z_res=0.5 #resolution of grid, m
     #dt=0.01
     
     yrs=np.around(time_yr[-1]-time_yr[0]) #should I/can I round here? 9/10
 
     time_total=yrs*sPerYear #total model run time in seconds
-    stpsperyear=1. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
+    stpsperyear=5. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
     t_steps=np.int(yrs*stpsperyear)
     #dt=0.2 #time step size.
     dt=time_total/t_steps #time step size. 

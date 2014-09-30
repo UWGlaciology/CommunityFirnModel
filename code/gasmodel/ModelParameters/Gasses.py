@@ -6,7 +6,7 @@ Created on Aug 21, 2013
 from numpy import loadtxt
 import os
 
-def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
+def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,loadgas):
     
 
     #d_0 = 5.e2 # Free air diffusivity, CO2, m**2/yr Schwander, 1988 reports 7.24 mm**2/s =379 m**2/yr
@@ -143,20 +143,23 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,measurements):
     
     ### Load gas history. The file must be located in the correct folder, and have the correct naming convention.
     ### If you want to compare to measured samples, make sure that measurements is on.    
-    gas_string=gaschoice+'_history_'+hemisphere+'.txt'
-    meas_string=gaschoice+'_samples_'+sitechoice+'.txt'
     
-    conc1=loadtxt(os.path.join(DataPath,gas_string),skiprows=2) #load data: atmospheric CO2 history.
+    if loadgas:
+        gas_string=gaschoice+'_history_'+hemisphere+'.txt'
+        meas_string=gaschoice+'_samples_'+sitechoice+'.txt'
     
-    if measurements=='on':
-        firn_meas=loadtxt(os.path.join(DataPath,meas_string),skiprows=2)
+        conc1=loadtxt(os.path.join(DataPath,gas_string),skiprows=2) #load data: atmospheric CO2 history.
+    
+#     if measurements=='on':
+#         firn_meas=loadtxt(os.path.join(DataPath,meas_string),skiprows=2)
+#     else:
+#         firn_meas='None'
+    
     else:
-        firn_meas='None'
-    
-    
+        conc1=-9999
             
     deltaM = (M-M_air) #delta molecular mass from CO2.
     D_x = D_gas #* D_ref_CO2
     d_0=D_ref_CO2
                    
-    return D_x, M, deltaM, conc1, firn_meas, d_0, omega
+    return D_x, M, deltaM, conc1, d_0, omega

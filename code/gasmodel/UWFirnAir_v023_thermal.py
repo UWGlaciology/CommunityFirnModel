@@ -32,6 +32,7 @@ sys.path.insert(1,spot)
 ResultsPlace=os.path.join(spot,'Results')
 sys.path.insert(3,os.path.join(spot,'DataImport'))
 DataPath = os.path.join(spot,'DataImport')
+DataPathUser = os.path.join(spot,'DataImport/user_input')
 
 np.set_printoptions(linewidth=300) #set output reading to be wider. A bit easier to read
 
@@ -248,18 +249,20 @@ def FirnAir_TR(z_edges,z_nodes,nt,dt,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,
     DiffuPath = os.path.join(ResultsPlace, 'diffu_out.csv') #Save location.
     ZPath = os.path.join(ResultsPlace, 'Znodes_out.csv') #Save location.
     
-    f_depth=np.loadtxt(os.path.join(DataPath,'depthDART2.csv'),delimiter=',',skiprows=0) #load data from firnmodel.py. This is what should be streamlined.
-    #f_depth=f_depth[:,1:]
-    #f_depth=f_depth[0:1996,1:] #what is 1996?
-
-    f_density=np.loadtxt(os.path.join(DataPath,'densityDART2.csv'),delimiter=',',skiprows=0)
-    #f_density=f_density[:,1:]
-    #f_density=f_density[0:1996,1:]
-    f_dcon=np.loadtxt(os.path.join(DataPath,'DconDART2.csv'),delimiter=',',skiprows=0)
-    f_dcon[f_dcon==0.9]=0.2
+    if (cc['UserData']):
     
-    f_temp=np.loadtxt(os.path.join(DataPath,'tempDART2.csv'),delimiter=',',skiprows=0)
+        f_depth=np.loadtxt(os.path.join(DataPathUser,'depth.csv'),delimiter=',',skiprows=0) #load data from firnmodel.py. This is what should be streamlined.
+        #f_depth=f_depth[:,1:]
+        #f_depth=f_depth[0:1996,1:] #what is 1996?
     
+        f_density=np.loadtxt(os.path.join(DataPathUser,'density.csv'),delimiter=',',skiprows=0)
+        #f_density=f_density[:,1:]
+        #f_density=f_density[0:1996,1:]
+        f_dcon=np.loadtxt(os.path.join(DataPathUser,'Dcon.csv'),delimiter=',',skiprows=0)
+        f_dcon[f_dcon==0.9]=0.2
+        
+        f_temp=np.loadtxt(os.path.join(DataPathUser,'temp.csv'),delimiter=',',skiprows=0)
+        
     Accu_vec=np.ones(len(f_density[:,0])) #nned to be aware of accumulation per second or year. Accu_m is per year. Accu_0 is per s.
     Accu_vec[0:20]=Accu_m
     Accu_vec[20:]=Accu_m-0.015
@@ -653,7 +656,7 @@ def firnairmodel(airconfig):
         else:
             sys.exit("Oops. You have a typo at runtype. Try again.")
         
-        trapped = 1000*(bubble_pres*por_cl_interface)*(p_a/101325)*(273.15/T)/(rho_interface/1000) #amount of trapped air in ml STP/cm^3 (from Christo)
+        #trapped = 1000*(bubble_pres*por_cl_interface)*(p_a/101325)*(273.15/T)/(rho_interface/1000) #amount of trapped air in ml STP/cm^3 (from Christo)
         #print trapped    
                     
         #phi_final=np.append([phi_0],[phi],axis=0)
@@ -671,11 +674,11 @@ def firnairmodel(airconfig):
     d15max=np.max(phi[:,-1])
     d15LID=np.log(d15max)*R*T/(g*deltaM)
     
-    print 'dcon =', dcon
-    print 'd15N2 LID =', d15LID
-    print 'LID from density/temperature (Martinerie) =', LIZ    
-    print 'Close off depth =', z_co
-    print 'Difference (close-off - d15N2 LID)=', z_co-d15LID
+    #print 'dcon =', dcon
+    #print 'd15N2 LID =', d15LID
+    #print 'LID from density/temperature (Martinerie) =', LIZ    
+    #print 'Close off depth =', z_co
+    #print 'Difference (close-off - d15N2 LID)=', z_co-d15LID
     
     return d
     
@@ -703,14 +706,14 @@ if __name__ == "__main__":
     #    plots.makeplots(plotting,z_nodes,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
     #                    diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_data, meas_uncert=meas_uncert)
     
-    d40Ar=d['d40Ar']
-    d15N2=d['d15N2']
-    N2_p=d15N2[:,-1]
-    Ar_p=(d40Ar[:,-1]-1)/4+1
-    plt.figure(1)
-    plt.plot(z_nodes,N2_p,'b')
-    plt.plot(z_nodes,Ar_p,'r')
-    plt.show()
+    #d40Ar=d['d40Ar']
+    #d15N2=d['d15N2']
+    #N2_p=d15N2[:,-1]
+    #Ar_p=(d40Ar[:,-1]-1)/4+1
+    #plt.figure(1)
+    #plt.plot(z_nodes,N2_p,'b')
+    #plt.plot(z_nodes,Ar_p,'r')
+    #plt.show()
     
     
         
