@@ -358,7 +358,7 @@ def runModel(configName,spin):
                     dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
                     drho_dt[j] = dr_dt
                 else:
-                    dr_dt = c['k2']*np.exp(-c['Q2']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['bHL'])*1000/c['sPerYear']
+                    dr_dt = c['k2']*np.exp(-c['Q2']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['bHL'])*1000/c['sPerYear'] #
                     drho_dt[j] = dr_dt
         
         elif c['physRho']=='HLSigfus':
@@ -381,7 +381,7 @@ def runModel(configName,spin):
                     else:
                         drho_dt[j] = 0
                         
-        elif c['physRho'] =='Li2004': #Equation from Arthern et al., 2010
+        elif c['physRho'] =='Li2004': # Equation from Arthern et al., 2010
             drho_dt = np.zeros(gridLen)
             for j in xrange(gridLen):
                 dr_dt = (c['rhoi']-rho[j])*bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']*(139.21-0.542*T10m)*8.36*(c['KtoC']-Tz[j])**-2.061

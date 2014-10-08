@@ -151,13 +151,13 @@ def FirnAir_SS(cc,gaschoice):
     rhoHL = MPRHO.rhoHLAnalytic(R,T,rho_i,rho0,rho_bco,z_nodes,Accu_m) # Get density profile from H&L analytic
     rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rhoHL,T)
     
-    if sitechoice=='SCENARIO':
+    if sitechoice=='SCENARIO': 
         z_co = min(z_nodes[rhoHL>=(bcoRho)]) #close-off depth; bcoRho is close off density
         LIZ = min(z_nodes[rhoHL>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
     
     diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_sev, diffu_full_data = diffusivity(cc,rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,D_x,p_a,z_nodes,T,sitechoice, rhoHL) #get diffusivity profiles
     
-    dcon=1.0
+    dcon=1.0 
     diffu=diffu*dcon   
     gas=np.interp(model_time,time_yr_s,gas_org) #interpolate atmospheric gas history to model time.
     bc_u, bc_d, bc_u_0 = boundaries(gas_org) #set boundary and initial conditions: bc_u is atmospheric condition, bc_d is zero gradient.
@@ -215,7 +215,7 @@ def FirnAir_SS(cc,gaschoice):
     
     b_0 = S_C*dZ
     
-    rho_interface=np.interp(z_edges,z_nodes,rhoHL)
+    rho_interface=np.interp(z_edges,z_nodes,rhoHL) #Density at finite-volume interfaces
     
     w_edges, bubble_pres = w(z_edges,Accu_0,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,dz)
     
