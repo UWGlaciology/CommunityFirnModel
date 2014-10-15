@@ -593,7 +593,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ, rhoprof
     
     ## Add in high diffusivity in convective zone and low diffusivity below LIZ
     
-    diffu_full=diffu_full_data #change this line to change your choice of diffusivity
+    diffu_full=diffu_full_Sev #change this line to change your choice of diffusivity
     
     #Add eddy diffusivity terms: convective zone and non-diffusive zone
     d_eddy=np.zeros(np.size(diffu_full))
@@ -681,7 +681,7 @@ if __name__ == "__main__":
     p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
     T_0 = 273.15 # Standard Temp, K
     sPerYear = 365.25*24*3600 #seconds per year
-    depth = 120. # m
+    depth = 200. # m
     
     ad_method="ice_vel" #advection method
     #ad_method="Christo" #advection method
@@ -689,8 +689,8 @@ if __name__ == "__main__":
     
     
     # Set up parameters for different sites.
-    #sitechoice = 'SCENARIO'
-    sitechoice = 'NEEM'
+    sitechoice = 'SCENARIO'
+    #sitechoice = 'NEEM'
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     
@@ -698,10 +698,10 @@ if __name__ == "__main__":
 
     
     # Set up Gas Properties. Just CO2 for now.
-    gaschoice='CO2'
+    #gaschoice='CO2'
     #gaschoice='CH4'
     #gaschoice='SF6'    
-    #gaschoice='d15N2'
+    gaschoice='d15N2'
     D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
 
     time_yr=conc1[:,0] # Atmospheric measurements times
@@ -745,7 +745,7 @@ if __name__ == "__main__":
     
     diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ) #get diffusivity profiles
     
-    dcon=1.0
+    dcon=0.2
     diffu=diffu*dcon
     #ind_co=np.argmax(z_edges_vec>=z_co) #index of close-off depth in z_edges vec. Should this be nodes or edges?
     #ind_co=np.argmax(rhoHL>=rho_co) #index of close-off depth in z_edges vec. A bit of a hack for now...    
@@ -772,7 +772,7 @@ if __name__ == "__main__":
     
     #rho_interface=np.interp(z_edges_vec,z_P_vec,rhoHL)
     
-    transdiffu = 'on' #this line chooses transient or steady-state
+    transdiffu = 'off' #this line chooses transient or steady-state
     
     if transdiffu == 'on':
         phi, diffu_hold, rho_hold = FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,nz_fv,por_op,gas,Accu_0,T,p_a,por_tot,por_cl,Accu_m,czd)

@@ -42,12 +42,12 @@ def sites(sitechoice):
 
         #p_a = 7.45e4
         elev=2500. 
-        T = -68 +273.15 
+        T = -58 +273.15 
         Accu_0 = 0.035
         czd = 4. 
         z_co = 78.
         LIZ = 63.
-        rho0= 360.
+        rho0= 450.
         hemisphere='SCENARIO'
         
     else:  ## something else
