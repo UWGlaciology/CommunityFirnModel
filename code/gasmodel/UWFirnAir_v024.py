@@ -685,7 +685,7 @@ def diffusivity(cc, rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,
     ind = np.flatnonzero(z_nodes>LIZ)
     ind2 = np.flatnonzero(z_nodes<z_co)
     ind3 = np.intersect1d(ind,ind2)
-    d_eddy[ind3] = diffu_full[ind]/10
+    d_eddy[ind3] = diffu_full[ind]
     d_eddy=d_eddy+d_eddy_up
     diffu_full[ind]=1e-15 #set molecular diffusivity equal to zero after LIZ - eddy diffusivity term drives diffusion below
     

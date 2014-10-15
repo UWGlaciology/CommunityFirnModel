@@ -691,8 +691,8 @@ if __name__ == "__main__":
     
     
     # Set up parameters for different sites.
-    #sitechoice = 'SCENARIO'
-    sitechoice = 'NEEM'
+    sitechoice = 'SCENARIO'
+    #sitechoice = 'WAIS'
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     

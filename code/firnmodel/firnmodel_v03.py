@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import os
 from string import join
 import shutil
+import time
 # import input_data
 
 #global input_temp
@@ -169,7 +170,7 @@ def transient_solve_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,phi_0,nz_P,nz_fv,phi_s)
 
 def runModel(configName,spin):
 
-    
+    tic=time.time()
     "Runs firnmodel with an input json file."
     count = 0
     logging.getLogger()
@@ -414,7 +415,8 @@ def runModel(configName,spin):
         age_time = np.append(modeltime[0],age)
         z_time = np.append(modeltime[0],z)
         D_time = np.append(modeltime[0],Dcon)
-        Clim_time = np.append(modeltime[0],[bdot[0],Ts[0]])
+        if (c['userInput']):
+            Clim_time = np.append(modeltime[0],[bdot[0],Ts[0]]) #not sure if bdot or bdotSec
          
         '''initialize files to write in time loop'''
         densityPath = os.path.join(c['resultsFolder'], 'density.csv')
@@ -422,7 +424,8 @@ def runModel(configName,spin):
         agePath = os.path.join(c['resultsFolder'], 'age.csv')
         depthPath = os.path.join(c['resultsFolder'], 'depth.csv')
         DconPath = os.path.join(c['resultsFolder'], 'Dcon.csv')
-        ClimPath = os.path.join(c['resultsFolder'], 'Clim.csv')
+        if (c['userInput']):        
+            ClimPath = os.path.join(c['resultsFolder'], 'Clim.csv')
             
         with open(densityPath, "w") as f:
             writer = csv.writer(f)
@@ -439,9 +442,10 @@ def runModel(configName,spin):
         with open(DconPath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(D_time)
-        with open(ClimPath, "w") as f:
-            writer = csv.writer(f)
-            writer.writerow(Clim_time)
+        if (c['userInput']):            
+            with open(ClimPath, "w") as f:
+                writer = csv.writer(f)
+                writer.writerow(Clim_time)
 
         # initialize grain growth
         if c['physGrain'] == 'on':
@@ -516,7 +520,7 @@ def runModel(configName,spin):
     for i in xrange(stp): #start main time-stepping loop
         if not spin:
             mtime=modeltime[i] #placeholder for writing data.
-        print 'i=%s' % i
+#         print 'i=%s' % i
         
         if c['physRho']=='HLdynamic':
             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm'] #A from the input json file is m ice equivalent.
@@ -652,7 +656,8 @@ def runModel(configName,spin):
             drho_dt = np.zeros(gridLen)
             D = rho/c['rhoi']
             nBa = c['n']*np.ones(gridLen)
-            A0 =  c['A0Barnola']*np.ones(gridLen)
+            A0b =  c['A0Barnola']
+            A0 = A0b*np.ones(gridLen)/1.e18 #this is for the n=3 region.
             Vc = (6.95e-4)*T10m-0.043
             rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
 #             sigma_b = np.zeros(gridLen)
@@ -665,30 +670,45 @@ def runModel(configName,spin):
                     
             sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
             sigmaEff = sigma - sigma_b
-            for j in xrange(gridLen):
-                if sigmaEff[j]<0:
-                    sigmaEff[j]=0
+            sigmaEff[sigmaEff<0]=0
+            nBa[sigmaEff<0.1e6]=1.
+            A0[sigmaEff<0.1e6]=A0b/1.e8 #for the n=1 region
+#             for j in xrange(gridLen):
+#                     
+#                 if rho[j]<c['rho1']:
+#                     A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
+#                     drho_dt[j] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
+#                 elif rho[j]<800:
+#                     fe = 10.0**(c['alphaBarnola']*(rho[j]/1000)**3.+c['betaBarnola']*(rho[j]/1000)**2.+c['deltaBarnola']*rho[j]/1000+c['gammaBarnola'])
+#                     drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fe*(sigmaEff[j]**nBa[j])
+#                 else:
+# #                     print (1.-(1.-rho/c['rhoi']))
+#                     denom = (1.-(1.-rho/c['rhoi'])**(1./3.))
+# #                     for jj in xrange(gridLen):
+# #                         if math.isnan(denom[jj]):
+# #                             denom[jj] = 1
+#                     fs = 3./16.*(1.- rho/c['rhoi'])/denom**3
+#                     drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fs[j]*(sigmaEff[j]**nBa[j])
                     
-                if sigmaEff[j]<0.1e6:
-                    nBa[j] = 1.
-                    A0[j] = A0[j]/1e8
-                else:
-                    A0[j] = A0[j]/1e18 #why 18? Unit conversion. Not sure it is correct
                     
-                if rho[j]<c['rho1']:
-                    A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
-                    drho_dt[j] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
-                elif rho[j]<800:
-                    fe = 10.0**(c['alphaBarnola']*(rho[j]/1000)**3.+c['betaBarnola']*(rho[j]/1000)**2.+c['deltaBarnola']*rho[j]/1000+c['gammaBarnola'])
-                    drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fe*(sigmaEff[j]**nBa[j])
-                elif rho[j]<c['rhoi']:
+                    
+                
+
+               
+            fe = 10.0**(c['alphaBarnola']*(rho[rho<=800.]/1000)**3.+c['betaBarnola']*(rho[rho<=800.]/1000)**2.+c['deltaBarnola']*rho[rho<=800.]/1000+c['gammaBarnola'])
+            drho_dt[rho<=800.] = rho[rho<=800.]*A0[rho<=800.]*np.exp(-c['QBarnola']/(c['R']*Tz[rho<=800.]))*fe*(sigmaEff[rho<=800.]**nBa[rho<=800.])
+
+            A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
+            drho_dt[rho<c['rho1']] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[rho<c['rho1']]))*(c['rhoiMgm']-rho[rho<c['rho1']]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
+                           
 #                     print (1.-(1.-rho/c['rhoi']))
-                    denom = (1.-(1.-rho/c['rhoi'])**(1./3.))
+            denom = (1.-(1.-rho[rho>800.]/c['rhoi'])**(1./3.))
+            denom[np.isnan(denom)]=1
 #                     for jj in xrange(gridLen):
 #                         if math.isnan(denom[jj]):
 #                             denom[jj] = 1
-                    fs = 3./16.*(1.- rho/c['rhoi'])/denom**3
-                    drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fs[j]*(sigmaEff[j]**nBa[j])
+            fs = 3./16.*(1.- rho[rho>800.]/c['rhoi'])/denom**3
+            drho_dt[rho>800.] = rho[rho>800.]*A0[rho>800.]*np.exp(-c['QBarnola']/(c['R']*Tz[rho>800.]))*fs*(sigmaEff[rho>800.]**nBa[rho>800.])                    
 
         else:
             print 'Error: you need to choose model physics in json (check spelling)'
@@ -805,7 +825,8 @@ def runModel(configName,spin):
             age_time = np.append(mtime,age)
             z_time = np.append(mtime,z)
             Dcon_time = np.append(mtime,Dcon)
-            Clim_time = np.append(mtime,[bdot[i],Ts[i]])
+            if (c['userInput']):
+                Clim_time = np.append(mtime,[bdot[i],Ts[i]])
             with open(densityPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(rho_time)
@@ -821,9 +842,10 @@ def runModel(configName,spin):
             with open(DconPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(Dcon_time)
-            with open(ClimPath, "a") as f:
-                writer = csv.writer(f)
-                writer.writerow(Clim_time)
+            if (c['userInput']):
+                with open(ClimPath, "a") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(Clim_time)
                           
                 
             ### BCO,LIZ, and DIP ###
@@ -941,6 +963,14 @@ def runModel(configName,spin):
 #     
 #     plt.show()
     
+    elapsed=time.time()-tic
+    elapsed_min=elapsed/60.
+    mins=np.floor(elapsed_min)
+    secs=(elapsed_min-mins)*60    
+
+    if spin:
+        logging.info("spin up took %s minutes %s seconds" % (mins, secs))
+   
     if not spin:
         with open(bcoPath, "w") as f: #write BCO.csv file. rows are: time, BCO age (mart), BCO depth (mart),BCO age (815), BCO depth (815) 
             writer = csv.writer(f)
@@ -963,6 +993,7 @@ def runModel(configName,spin):
         logging.debug("spin up steps per year = %s" % c["stpsPerYearSpin"])
         logging.debug("model run years = %s" % c["years"])
         logging.debug("model run steps per year = %s" % c["stpsPerYear"])
+        logging.info("model run took %s minutes %s seconds" % (mins, secs))
         logpath = os.path.join(os.getcwd(),c['resultsFolder'])    
         shutil.copy('RUNDETAILS.log',logpath)
         #os.remove('RUNDETAILS.log')
