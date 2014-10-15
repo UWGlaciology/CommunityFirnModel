@@ -11,6 +11,10 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
               diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_Christo, meas_uncert=None):
         # Plotting
     
+    phi=(phi-1)*1000
+    meas_conc=(meas_conc-1)*1000
+    meas_uncert=meas_uncert*1000
+    
     if meas_uncert is None:
         pass
     
@@ -22,10 +26,10 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
         
         fig1=plt.figure(1)
         plt.clf()
-        plt.plot(Z_P,phi[:,-8],'b')
-        plt.plot(Z_P,phi[:,-4],'r')
-        plt.plot(Z_P,phi[:,-6],'g')
-        plt.plot(Z_P,phi[:,-7],'c')
+        #plt.plot(Z_P,phi[:,-8],'b')
+        #plt.plot(Z_P,phi[:,-4],'r')
+        #plt.plot(Z_P,phi[:,-6],'g')
+        #plt.plot(Z_P,phi[:,-7],'c')
         plt.plot(Z_P,phi[:,-5],'k')
 
         #plt.plot(Z_P,gas_meas,'r')
@@ -36,8 +40,8 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
 
             
         plt.xlabel('Depth (m)')
-        #plt.ylabel('$\delta^{15}N_{2}$ (per mil)')
-        plt.ylabel('${CO}_{2}$ (ppm)')
+        plt.ylabel('$\delta^{15}N_{2}$ (per mil)')
+        #plt.ylabel('${CO}_{2}$ (ppm)')
         #plt.title('Concentration of $CO_{2}$ in firn at NEEM')
         #plt.legend(('Max\'s model','Measurements'),loc=3)
         plt.grid()
@@ -45,7 +49,7 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
         ax = plt.gca()
         ax.ticklabel_format(useOffset=False)
         
-        fname=os.path.join(ResultsPlace,'ESS524_fig3.eps')
+        fname=os.path.join(ResultsPlace,'PIRE_fig3.eps')
         plt.savefig(fname,dpi=100)
         
         fig2=plt.figure(2)

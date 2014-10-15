@@ -16,7 +16,7 @@ from scipy.sparse import spdiags
 from scipy.sparse.linalg import lsqr
 from scipy.integrate import cumtrapz
 import math
-import ModelParameters.Gasses as MPG
+import ModelParameters.Gasses_old as MPG
 import ModelParameters.Sites as MPS
 import ModelParameters.Plotting as plots
 import ModelParameters.Diffusivity as MPD
@@ -160,6 +160,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     #S_C=S_C*np.ones(nz_P)
     
     S_C_0=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #S_C is independent source term in Patankar
+    S_C_0=0.0
     #S_C_01=-Gamma_d*(deltaM*g/(R*T))
     #S_C_02=Gamma_u*(deltaM*g/(R*T))
     
@@ -173,7 +174,7 @@ def FirnAir_SS(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL,R,nz_P,nz
     S_C=S_C_0*phi_0
     #S_C=S_C_01*phi_0+S_C_02*phi_0
     
-    S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
+    S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T))/dz #gravity term, S_P is phi-dependent source
     #S_P=(-d_eddy_d+d_eddy_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
     #S_P=Gamma_m*(deltaM*g/(R*T))
     S_P=1.*S_P
@@ -377,7 +378,8 @@ def FirnAir_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,bc_u,bc_d,phi_0,rhoHL, R,nz_P,n
         
         #S_C=(-Gamma_d+Gamma_u)*(deltaM*g/(R*T))
         
-        S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
+        #S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #gravity term, S_P is phi-dependent source
+        S_P=0.0
         
         b_0 = S_C*dZ
         
@@ -613,7 +615,7 @@ def diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ, rhoprof
     #d_eddy[:]=1.e-10
     
     #d_eddy=np.subtract(d_eddy,diffu)
-    diffu=diffu_full
+    diffu=diffu_full*0.5
     ## Interpolate diffusivity profile to the finite volume nodes (model space)
     #deepnodes = z_nodes>LIZ #leftover line from matlab?
     
@@ -681,16 +683,24 @@ if __name__ == "__main__":
     p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
     T_0 = 273.15 # Standard Temp, K
     sPerYear = 365.25*24*3600 #seconds per year
+<<<<<<< HEAD:code/gasmodel/UWFirnAir_v022b.py
     depth = 200. # m
+=======
+    depth = 90. # m
+>>>>>>> FETCH_HEAD:code/gasmodel/UWFirnAir_v022.py
     
-    ad_method="ice_vel" #advection method
+    ad_method="Christo" #advection method
     #ad_method="Christo" #advection method
     measurements = 'on'
     
     
     # Set up parameters for different sites.
     sitechoice = 'SCENARIO'
+<<<<<<< HEAD:code/gasmodel/UWFirnAir_v022b.py
     #sitechoice = 'NEEM'
+=======
+    #sitechoice = 'WAIS'
+>>>>>>> FETCH_HEAD:code/gasmodel/UWFirnAir_v022.py
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     
@@ -702,6 +712,11 @@ if __name__ == "__main__":
     #gaschoice='CH4'
     #gaschoice='SF6'    
     gaschoice='d15N2'
+<<<<<<< HEAD:code/gasmodel/UWFirnAir_v022b.py
+=======
+    loadgas = True        
+
+>>>>>>> FETCH_HEAD:code/gasmodel/UWFirnAir_v022.py
     D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
 
     time_yr=conc1[:,0] # Atmospheric measurements times
@@ -726,7 +741,7 @@ if __name__ == "__main__":
     yrs=np.around(time_yr[-1]-time_yr[0]) #should I/can I round here? 9/10
 
     time_total=yrs*sPerYear #total model run time in seconds
-    stpsperyear=1. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
+    stpsperyear=5. #If this is for transient this number must (for now) be the same time steps as the input density/depth files. Make sure that it is a float.
     t_steps=np.int(yrs*stpsperyear)
     #dt=0.2 #time step size.
     dt=time_total/t_steps #time step size. 

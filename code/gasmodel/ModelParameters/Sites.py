@@ -18,10 +18,10 @@ def sites(sitechoice):
     if sitechoice == 'NEEM':     
 
         elev = 2500. #m
-        #p_a = 7.45e4  #Pa: kg m^-1 s^-2
-        T = -28.9 +273.16 # K
+        p_a = 7.45e4  #Pa: kg m^-1 s^-2
+        T = -23.5 +273.16 # K
         Accu_0 = 0.25 # m a^-1, ice eq.
-        czd = 4. # m
+        czd = 4.0 # m
         z_co = 78. # m
         LIZ = 63. # m
         rho0= 360. # kg m^-3 
@@ -29,7 +29,7 @@ def sites(sitechoice):
         
     elif sitechoice == 'WAIS':
         elev = 1766. 
-        #p_a = 7.99e4 
+        p_a = 7.99e4 
         T = -31 + 273.16 
         Accu_0 = 0.22 
         czd = 4. 
@@ -40,11 +40,17 @@ def sites(sitechoice):
         
     elif sitechoice == 'SCENARIO':   
 
-        #p_a = 7.45e4
+        p_a = 7.45e4
         elev=2500. 
+<<<<<<< HEAD
         T = -58 +273.15 
         Accu_0 = 0.035
         czd = 4. 
+=======
+        T = -28 +273.15 
+        Accu_0 = 0.23
+        czd = 4.0 
+>>>>>>> FETCH_HEAD
         z_co = 78.
         LIZ = 63.
         rho0= 450.
@@ -55,6 +61,6 @@ def sites(sitechoice):
         pass
     
     g=g_s*(r_e/(r_e+elev))**2
-    p_a=p_0*np.exp(-g_s*M_air*elev/(R*288.15)) #This may not hold at polar sites
+#     p_a=p_0*np.exp(-g_s*M_air*elev/(R*288.15)) #This may not hold at polar sites
     
     return g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere
