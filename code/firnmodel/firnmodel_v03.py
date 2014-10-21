@@ -298,10 +298,10 @@ def runModel(configName,spin):
             years = c['years']
             stp = int(years *c['stpsPerYear']) #how many steps there are in the model run
             modeltime=np.linspace(0,years,stp)
-        #TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(150,250,5),xrange(250,2010,10))) #set times at which to write data
+        TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(150,250,5),xrange(250,2010,10))) #set times at which to write data. This line is firnmice.
         #TWrite = (np.arange(0,2005,5)) #set times at which to write data
         inte=4 # how often the data should be written
-        TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here. 
+#         TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here. 
         #print 'Twrite = %s' %TWrite
         z0 = z
         agez0 = age
@@ -389,7 +389,7 @@ def runModel(configName,spin):
             if t < 1.0: #add seasonal signal
                     Ts = Ts + c['TAmp']*(np.cos(2*np.pi*np.linspace(0,TPeriod,stp))+0.3*np.cos(4*np.pi*np.linspace(0,TPeriod,stp)))
 
-            # Accumulation Rate being added in, vetor bdot
+            # Accumulation Rate being added in, vector bdot
             bdotSec0 = c['bdot0']/c['sPerYear']/c['stpsPerYear']
             bdotSec = bdotSec0*np.ones(stp)
             if c['BCbdot'] == 'stepChange':
@@ -522,17 +522,28 @@ def runModel(configName,spin):
             mtime=modeltime[i] #placeholder for writing data.
 #         print 'i=%s' % i
         
+#         if c['physRho']=='HLdynamic':
+#             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm'] #A from the input json file is m ice equivalent.
+#             drho_dt = np.zeros(gridLen)
+#             for j in xrange(gridLen):
+#                 #print 'A=%s' % A
+#                 if rho[j]<c['rho1']:
+#                     dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
+#                     drho_dt[j] = dr_dt
+#                 else:
+#                     dr_dt = c['k2']*np.exp(-c['Q2']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['bHL'])*1000/c['sPerYear']
+#                     drho_dt[j] = dr_dt
+                    
+                    
         if c['physRho']=='HLdynamic':
             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm'] #A from the input json file is m ice equivalent.
             drho_dt = np.zeros(gridLen)
-            for j in xrange(gridLen):
-                #print 'A=%s' % A
-                if rho[j]<c['rho1']:
-                    dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
-                    drho_dt[j] = dr_dt
-                else:
-                    dr_dt = c['k2']*np.exp(-c['Q2']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['bHL'])*1000/c['sPerYear']
-                    drho_dt[j] = dr_dt
+            dr_dt=drho_dt
+            dr_dt[rho<c['rho1']] = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[rho<c['rho1']]))*(c['rhoiMgm']-rho[rho<c['rho1']]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
+            drho_dt[rho<c['rho1']] = dr_dt[rho<c['rho1']]
+
+            dr_dt[rho>=c['rho1']] = c['k2']*np.exp(-c['Q2']/(c['R']*Tz[rho>=c['rho1']]))*(c['rhoiMgm']-rho[rho>=c['rho1']]/1000)*np.power(A[i],c['bHL'])*1000/c['sPerYear']
+            drho_dt[rho>=c['rho1']] = dr_dt[rho>=c['rho1']]                    
         
         elif c['physRho']=='HLSigfus':
             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
@@ -653,63 +664,87 @@ def runModel(configName,spin):
 #                     drho_dt[j] = dr_dt/c['sPerYear']
             
         elif c['physRho']=='Barnola1991':
+            # print i
+            rho[rho>c['rhoi']]=c['rhoi'] #The Barnola model will go a fraction over the ice density (order 10^-3), so this stops that.
             drho_dt = np.zeros(gridLen)
             D = rho/c['rhoi']
             nBa = c['n']*np.ones(gridLen)
             A0b =  c['A0Barnola']
             A0 = A0b*np.ones(gridLen)/1.e18 #this is for the n=3 region.
-            Vc = (6.95e-4)*T10m-0.043
-            rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
-#             sigma_b = np.zeros(gridLen)
-#             for j in xrange(gridLen):
-#                 if D[j]<1: #not sure why this is here... shouldn't it always be <1?
-#                     sigma_b[j] = c['atmosP']*(D[j]*(1-rhoCRhoi))/(rhoCRhoi*(1-D[j]))
-#                     jMax = j
-#                 else:
-#                     sigma_b[j] = sigma_b[jMax]
-                    
-            sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
-            sigmaEff = sigma - sigma_b
-            sigmaEff[sigmaEff<0]=0
-            nBa[sigmaEff<0.1e6]=1.
-            A0[sigmaEff<0.1e6]=A0b/1.e8 #for the n=1 region
-#             for j in xrange(gridLen):
-#                     
-#                 if rho[j]<c['rho1']:
-#                     A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
-#                     drho_dt[j] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
-#                 elif rho[j]<800:
-#                     fe = 10.0**(c['alphaBarnola']*(rho[j]/1000)**3.+c['betaBarnola']*(rho[j]/1000)**2.+c['deltaBarnola']*rho[j]/1000+c['gammaBarnola'])
-#                     drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fe*(sigmaEff[j]**nBa[j])
-#                 else:
-# #                     print (1.-(1.-rho/c['rhoi']))
-#                     denom = (1.-(1.-rho/c['rhoi'])**(1./3.))
-# #                     for jj in xrange(gridLen):
-# #                         if math.isnan(denom[jj]):
-# #                             denom[jj] = 1
-#                     fs = 3./16.*(1.- rho/c['rhoi'])/denom**3
-#                     drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fs[j]*(sigmaEff[j]**nBa[j])
-                    
-                    
-                    
-                
-
-               
+            #Vc = (6.95e-4)*T10m-0.043
+            #rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
+            #        
+            #sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
+            #sigmaEff = sigma - sigma_b
+            #sigmaEff[sigmaEff<0]=1.e-15
+            sigmaEff=sigma
+            #nBa[sigmaEff<0.1e6]=3.
+            #A0[sigmaEff<0.1e6]=A0b/1.e18#for the n=1 region
+            
+            #this is Max's vectorized version
+            # zone 2   
             fe = 10.0**(c['alphaBarnola']*(rho[rho<=800.]/1000)**3.+c['betaBarnola']*(rho[rho<=800.]/1000)**2.+c['deltaBarnola']*rho[rho<=800.]/1000+c['gammaBarnola'])
+            #fe = 10.0**(c['alphaBarnola']*(rho[rho<=800.]/c['rhoi'])**3.+c['betaBarnola']*(rho[rho<=800.]/c['rhoi'])**2.+c['deltaBarnola']*rho[rho<=800.]/c['rhoi']+c['gammaBarnola'])
             drho_dt[rho<=800.] = rho[rho<=800.]*A0[rho<=800.]*np.exp(-c['QBarnola']/(c['R']*Tz[rho<=800.]))*fe*(sigmaEff[rho<=800.]**nBa[rho<=800.])
-
+            
+            # zone 1
             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
             drho_dt[rho<c['rho1']] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[rho<c['rho1']]))*(c['rhoiMgm']-rho[rho<c['rho1']]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
-                           
-#                     print (1.-(1.-rho/c['rhoi']))
-            denom = (1.-(1.-rho[rho>800.]/c['rhoi'])**(1./3.))
-            denom[np.isnan(denom)]=1
-#                     for jj in xrange(gridLen):
-#                         if math.isnan(denom[jj]):
-#                             denom[jj] = 1
-            fs = 3./16.*(1.- rho[rho>800.]/c['rhoi'])/denom**3
+            
+            # zone 3
+            #print i
+            #denom = (1.-(1.-rho[rho>800.]/c['rhoi'])**(1./3.))
+            #
+            #print denom
+            #denom[np.isnan(denom)]=1.
+#             print denom
+            #fs = 3./16.*(1.- rho[rho>800.]/c['rhoi'])/denom**3
+            fs = (3./16.)*(1-rho[rho>800.]/c['rhoi'])/(1-(1-rho[rho>800.]/c['rhoi'])**(1./3.))**3.
             drho_dt[rho>800.] = rho[rho>800.]*A0[rho>800.]*np.exp(-c['QBarnola']/(c['R']*Tz[rho>800.]))*fs*(sigmaEff[rho>800.]**nBa[rho>800.])                    
 
+        
+        elif c['physRho']=='BarnolaJ':
+            drho_dt = np.zeros(gridLen)
+            D = rho/c['rhoi']
+            nBa = c['n']*np.ones(gridLen)
+            A0 =  c['A0Barnola']*np.ones(gridLen)
+            Vc = (6.95e-4)*T10m-0.043
+            rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
+            sigma_b = np.zeros(gridLen)
+            for j in xrange(gridLen):
+                if D[j]<1:
+                    sigma_b[j] = c['atmosP']*(D[j]*(1-rhoCRhoi))/(rhoCRhoi*(1-D[j]))
+                    jMax = j
+                else:
+                    sigma_b[j] = sigma_b[jMax]
+            sigmaEff = sigma - sigma_b
+            for j in xrange(gridLen):
+                if sigmaEff[j]<0:
+                    sigmaEff[j]=0
+                if sigmaEff[j]<0.1e6:
+                    nBa[j] = 1.
+                    A0[j] = A0[j]/1e8
+                else:
+                    A0[j] = A0[j]/1e18
+                    
+                if rho[j]<c['rho1']:
+                    A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
+                    drho_dt[j] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
+                elif rho[j]<800:
+                    fe = 10.0**(c['alphaBarnola']*(rho[j]/1000)**3.+c['betaBarnola']*(rho[j]/1000)**2.+c['deltaBarnola']*rho[j]/1000+c['gammaBarnola'])
+                    drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fe*(sigmaEff[j]**nBa[j])
+                elif rho[j]<c['rhoi']:
+#                     print (1.-(1.-rho/c['rhoi']))
+                    denom = (1.-(1.-rho/c['rhoi'])**(1./3.))
+                    print denom
+                    for jj in xrange(gridLen):
+                        if math.isnan(denom[jj]):
+                            denom[jj] = 1
+                    fs = 3./16.*(1.- rho/c['rhoi'])/denom**3
+                    drho_dt[j] = rho[j]*A0[j]*np.exp(-c['QBarnola']/(c['R']*Tz[j]))*fs[j]*(sigmaEff[j]**nBa[j])
+        
+        
+        
         else:
             print 'Error: you need to choose model physics in json (check spelling)'
             sys.exit()
@@ -818,8 +853,8 @@ def runModel(configName,spin):
                 writer.writerow(z_time)
 #         elif not spin and (t*i)%1 == 0:
 
-        #elif not spin and [True for jj in TWrite if jj == t*i+1] == [True]:
-        elif not spin and [True for jj in TWrite if jj == mtime] == [True]:
+        elif not spin and [True for jj in TWrite if jj == t*i+1] == [True]:
+#         elif not spin and [True for jj in TWrite if jj == mtime] == [True]:
             rho_time = np.append(mtime,rho)
             Tz_time = np.append(mtime,Tz)
             age_time = np.append(mtime,age)
@@ -1022,7 +1057,7 @@ if __name__ == '__main__':
         configName = os.path.join(os.path.dirname(__file__), sys.argv[1])
     else:
 #         configName = os.path.join(os.path.dirname(__file__), 'configs', 'configLi1.json')
-        configName = os.path.join(os.path.dirname(__file__), 'config.json')
+        configName = os.path.join(os.path.dirname(__file__), 'config_test_input.json')
 
     if '-s' in sys.argv:
         spin = True
