@@ -548,60 +548,47 @@ def runModel(configName,spin):
         elif c['physRho']=='HLSigfus':
             A = bdotSec*(1/t)*c['sPerYear']*c['rhoiMgm']
             drho_dt = np.zeros(gridLen)
-            if max(rho)>c['rho1']:
-                f550 = interpolate.interp1d(rho,sigma)
-                sigma550 = f550(c['rho1'])
+            #if max(rho)>c['rho1']:
+            f550 = interpolate.interp1d(rho,sigma)
+            sigma550 = f550(c['rho1'])
             rhoDiff = (c['rhoiMgm']-rho/1000)
-#             rhoGCm = rho/1000
-            for j in xrange(gridLen):
-                if rho[j]<c['rho1']: #equation 4a H&L
-                    dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[j]))*(c['rhoiMgm']-rho[j]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
-                    drho_dt[j] = dr_dt
-                else:  #equation 4c H&L
-                    k = np.power(c['k2']*np.exp(-c['Q2']/(c['R']*Tz[j])),2)/c['sPerYear']
-                    sigmaDiff = (sigma[j]-sigma550)
-                    if rhoDiff[j]>0:
-                        drho_dt[j] = k*(sigmaDiff*rhoDiff[j])/(c['g']*np.log((c['rhoiMgm']-c['rho1']/1000)/(rhoDiff[j])))
-                    else:
-                        drho_dt[j] = 0
+
+            drho_dt[rho<c['rho1']] = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[rho<c['rho1']]))*(c['rhoiMgm']-rho[rho<c['rho1']]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
+            k = np.power(c['k2']*np.exp(-c['Q2']/(c['R']*Tz[rho>=c['rho1']])),2)/c['sPerYear']
+            sigmaDiff = (sigma[rho>=c['rho1']]-sigma550)
+            #if rhoDiff[rho>=c['rho1']]>0: #Max is not sure why this was coded in.
+            drho_dt[rho>=c['rho1']] = k*(sigmaDiff*rhoDiff[rho>=c['rho1']])/(c['g']*np.log((c['rhoiMgm']-c['rho1']/1000)/(rhoDiff[rho>=c['rho1']])))
+            #else:
+                #drho_dt[rho>=c['rho1']] = 0
                         
-        elif c['physRho'] =='Li2004': #Equation from Li Zwally, 2004
+        elif c['physRho'] =='Li2004': #Equation from Li Zwally, 2004 ...10/21/14 note: Max not sure if this is working properly
             drho_dt = np.zeros(gridLen)
-            for j in xrange(gridLen):
-                dr_dt = (c['rhoi']-rho[j])*bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']*(139.21-0.542*T10m)*8.36*(c['KtoC']-Tz[j])**-2.061
-                drho_dt[j] = dr_dt/c['sPerYear']
-                
-        elif c['physRho'] =='Li2011':
-            drho_dt = np.zeros(gridLen)
-            for j in xrange(gridLen):
-                TmC=T10m-273.15
-                A = bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']
-                beta1 = -9.788 + 8.996*A - 0.6165*TmC 
-                #beta1 = -9.788 + 8.996*A*100 - 0.6165*T10m #scaled: A*100 so accumulation is cm/year, instead of m/year. Seems to work?
-                beta2 = beta1/(-2.0178 + 8.4043*A - 0.0932*TmC) # this is the one from the paper. Does not work with scaled beta1.
-                #beta2 = (-9.788+8.966*A-0.6165*T10m)/(-2.0178 + 8.4043*A - 0.0932*T10m) #the one that seems to work: the published beta1, not the beta1 you need to use in model.
-                if rho[j] <= c['rho1']:
-                    dr_dt = (c['rhoi']-rho[j])*A*beta1*8.36*(c['KtoC']-Tz[j])**-2.061
-                    drho_dt[j] = dr_dt/c['sPerYear']
-                else:
-                    dr_dt = (c['rhoi']-rho[j])*A*beta2*8.36*(c['KtoC']-Tz[j])**-2.061
-                    drho_dt[j] = dr_dt/c['sPerYear']        
+            #for j in xrange(gridLen):
+            dr_dt = (c['rhoi']-rho)*bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']*(139.21-0.542*T10m)*8.36*(c['KtoC']-Tz)**-2.061
+            drho_dt = dr_dt/c['sPerYear']
         
-        elif c['physRho'] =='Helsen2008': #Equation from Arthern et al., 2010
-            drho_dt = np.zeros(gridLen)
-            for j in xrange(gridLen):
-                dr_dt = (c['rhoi']-rho[j])*bdotSec[i]*(1/t)*c['sPerYear']*(76.138-0.28965*Ts[i])*8.36*(c['KtoC']-Tz[j])**-2.061
-                drho_dt[j] = dr_dt/c['sPerYear']
+        elif c['physRho'] =='Li2011':
+            dr_dt = np.zeros(gridLen)
+            TmC=T10m-273.15
+            A = bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']
+            beta1 = -9.788 + 8.996*A - 0.6165*TmC 
+                #beta1 = -9.788 + 8.996*A*100 - 0.6165*T10m #scaled: A*100 so accumulation is cm/year, instead of m/year. Seems to work?
+            beta2 = beta1/(-2.0178 + 8.4043*A - 0.0932*TmC) # this is the one from the paper. Does not work with scaled beta1. Pay attention to units in paper.
+                #beta2 = (-9.788+8.966*A-0.6165*T10m)/(-2.0178 + 8.4043*A - 0.0932*T10m) #the one that seems to work: the published beta1, not the beta1 you need to use in model.
+            dr_dt[rho<=c['rho1']] = (c['rhoi']-rho[rho<=c['rho1']])*A*beta1*8.36*(c['KtoC']-Tz[rho<=c['rho1']])**-2.061
+            dr_dt[rho>c['rho1']] = (c['rhoi']-rho[rho>c['rho1']])*A*beta2*8.36*(c['KtoC']-Tz[rho>c['rho1']])**-2.061
+            drho_dt = dr_dt/c['sPerYear']        
+                                                                          
+        elif c['physRho'] =='Helsen2008': #Equation from Arthern et al., 2010 ...10/21/14 Max not sure if this is working properly.
+            #dr_dt = np.zeros(gridLen)
+            dr_dt = (c['rhoi']-rho)*bdotSec[i]*(1/t)*c['sPerYear']*(76.138-0.28965*Ts[i])*8.36*(c['KtoC']-Tz)**-2.061
+            drho_dt = dr_dt/c['sPerYear']
         
         elif c['physRho'] =='Arthern2010':
-            drho_dt = np.zeros(gridLen)
-            for j in xrange(gridLen):
-                if rho[j]<c['rho1']:
-                    dr_dt = (c['rhoi']-rho[j])*c['ar1']*bdotSec[i]*(1/t)*c['sPerYear']*rho[j]*c['g']*np.exp(-c['Ec']/(c['R']*Tz[j])+c['Eg']/(c['R']*T10m))
-                    drho_dt[j] = dr_dt/c['sPerYear']
-                else:
-                    dr_dt = (c['rhoi']-rho[j])*c['ar2']*bdotSec[i]*(1/t)*c['sPerYear']*rho[j]*c['g']*np.exp(-c['Ec']/(c['R']*Tz[j])+c['Eg']/(c['R']*T10m))
-                    drho_dt[j] = dr_dt/c['sPerYear']
+            dr_dt = np.zeros(gridLen)
+            dr_dt[rho<c['rho1']] = (c['rhoi']-rho[rho<c['rho1']])*c['ar1']*bdotSec[i]*(1/t)*c['sPerYear']*rho[rho<c['rho1']]*c['g']*np.exp(-c['Ec']/(c['R']*Tz[rho<c['rho1']])+c['Eg']/(c['R']*T10m))
+            dr_dt[rho>=c['rho1']] = (c['rhoi']-rho[rho>=c['rho1']])*c['ar2']*bdotSec[i]*(1/t)*c['sPerYear']*rho[rho>=c['rho1']]*c['g']*np.exp(-c['Ec']/(c['R']*Tz[rho>=c['rho1']])+c['Eg']/(c['R']*T10m))
+            drho_dt = dr_dt/c['sPerYear']
 
 #        elif c['physRho'] =='Spencer2001':      # Uncommented out lines 464 - 475
 #             drho_dt = np.zeros(gridLen)
@@ -671,20 +658,21 @@ def runModel(configName,spin):
             nBa = c['n']*np.ones(gridLen)
             A0b =  c['A0Barnola']
             A0 = A0b*np.ones(gridLen)/1.e18 #this is for the n=3 region.
-            #Vc = (6.95e-4)*T10m-0.043
-            #rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
-            #        
-            #sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
-            #sigmaEff = sigma - sigma_b
+            Vc = (6.95e-4)*T10m-0.043
+            rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
+                    
+            sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
+            
+            sigmadiff = sigma - sigma_b
+            print sigmadiff
             #sigmaEff[sigmaEff<0]=1.e-15
             sigmaEff=sigma
-            #nBa[sigmaEff<0.1e6]=3.
-            #A0[sigmaEff<0.1e6]=A0b/1.e18#for the n=1 region
+            #nBa[sigmaEff<0.1e6]=1.
+            #A0[sigmaEff<0.1e6]=A0b/1.e9#for the n=1 region
             
             #this is Max's vectorized version
             # zone 2   
             fe = 10.0**(c['alphaBarnola']*(rho[rho<=800.]/1000)**3.+c['betaBarnola']*(rho[rho<=800.]/1000)**2.+c['deltaBarnola']*rho[rho<=800.]/1000+c['gammaBarnola'])
-            #fe = 10.0**(c['alphaBarnola']*(rho[rho<=800.]/c['rhoi'])**3.+c['betaBarnola']*(rho[rho<=800.]/c['rhoi'])**2.+c['deltaBarnola']*rho[rho<=800.]/c['rhoi']+c['gammaBarnola'])
             drho_dt[rho<=800.] = rho[rho<=800.]*A0[rho<=800.]*np.exp(-c['QBarnola']/(c['R']*Tz[rho<=800.]))*fe*(sigmaEff[rho<=800.]**nBa[rho<=800.])
             
             # zone 1
@@ -692,13 +680,6 @@ def runModel(configName,spin):
             drho_dt[rho<c['rho1']] = dr_dt = c['k1']*np.exp(-c['Q1']/(c['R']*Tz[rho<c['rho1']]))*(c['rhoiMgm']-rho[rho<c['rho1']]/1000)*np.power(A[i],c['aHL'])*1000/c['sPerYear']
             
             # zone 3
-            #print i
-            #denom = (1.-(1.-rho[rho>800.]/c['rhoi'])**(1./3.))
-            #
-            #print denom
-            #denom[np.isnan(denom)]=1.
-#             print denom
-            #fs = 3./16.*(1.- rho[rho>800.]/c['rhoi'])/denom**3
             fs = (3./16.)*(1-rho[rho>800.]/c['rhoi'])/(1-(1-rho[rho>800.]/c['rhoi'])**(1./3.))**3.
             drho_dt[rho>800.] = rho[rho>800.]*A0[rho>800.]*np.exp(-c['QBarnola']/(c['R']*Tz[rho>800.]))*fs*(sigmaEff[rho>800.]**nBa[rho>800.])                    
 
@@ -736,7 +717,7 @@ def runModel(configName,spin):
                 elif rho[j]<c['rhoi']:
 #                     print (1.-(1.-rho/c['rhoi']))
                     denom = (1.-(1.-rho/c['rhoi'])**(1./3.))
-                    print denom
+                    #print denom
                     for jj in xrange(gridLen):
                         if math.isnan(denom[jj]):
                             denom[jj] = 1
