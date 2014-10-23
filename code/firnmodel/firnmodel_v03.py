@@ -658,13 +658,13 @@ def runModel(configName,spin):
             nBa = c['n']*np.ones(gridLen)
             A0b =  c['A0Barnola']
             A0 = A0b*np.ones(gridLen)/1.e18 #this is for the n=3 region.
-            Vc = (6.95e-4)*T10m-0.043
-            rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
-                    
-            sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
-            
-            sigmadiff = sigma - sigma_b
-            print sigmadiff
+            #Vc = (6.95e-4)*T10m-0.043
+            #rhoCRhoi = ((Vc+1/(c['rhoi']*(1e-3)))**-1)*1000/c['rhoi']
+            #        
+            #sigma_b = c['atmosP']*(D*(1-rhoCRhoi))/(rhoCRhoi*(1-D)) # This should be bubble pressure?
+            #
+            #sigmadiff = sigma - sigma_b
+            #print sigmadiff
             #sigmaEff[sigmaEff<0]=1.e-15
             sigmaEff=sigma
             #nBa[sigmaEff<0.1e6]=1.
