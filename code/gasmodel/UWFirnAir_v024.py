@@ -44,7 +44,7 @@ rho_bco = 815. #kg/m^3
 p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
 T_0 = 273.15 # Standard Temp, K
 sPerYear = 365.25*24*3600 #seconds per year
-g=9.8
+g=9.8 #m/s^2
 
 # Downward Advection (of air)        
 def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,dz): # Function for downward advection of air and also calculates total air content. 
