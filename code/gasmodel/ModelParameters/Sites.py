@@ -19,7 +19,7 @@ def sites(sitechoice):
 
         elev = 2500. #m
         p_a = 7.45e4  #Pa: kg m^-1 s^-2
-        T = -28.9 +273.16 # K
+        T = -23.5 +273.16 # K
         Accu_0 = 0.25 # m a^-1, ice eq.
         czd = 4. # m
         z_co = 78. # m
@@ -29,7 +29,7 @@ def sites(sitechoice):
         
     elif sitechoice == 'WAIS':
         elev = 1766. 
-        #p_a = 7.99e4 
+        p_a = 7.99e4 
         T = -31 + 273.16 
         Accu_0 = 0.22 
         czd = 4. 
@@ -40,14 +40,14 @@ def sites(sitechoice):
         
     elif sitechoice == 'SCENARIO':   
 
-        #p_a = 7.45e4
-        elev=2500. 
-        T = -68 +273.15 
-        Accu_0 = 0.035
-        czd = 4. 
-        z_co = 78.
-        LIZ = 63.
-        rho0= 360.
+        p_a = 7.45e4
+        elev= 2500. 
+        T = -24 + 273.15 
+        Accu_0 = 0.22
+        czd = 1.0 
+        z_co = 54.
+        LIZ = 51.5
+        rho0= 350.
         hemisphere='SCENARIO'
         
     else:  ## something else

@@ -151,13 +151,13 @@ def FirnAir_SS(cc,gaschoice):
     rhoHL = MPRHO.rhoHLAnalytic(R,T,rho_i,rho0,rho_bco,z_nodes,Accu_m) # Get density profile from H&L analytic
     rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rhoHL,T)
     
-    if sitechoice=='SCENARIO':
-        z_co = min(z_nodes[rhoHL>=(bcoRho)]) #close-off depth; bcoRho is close off density
-        LIZ = min(z_nodes[rhoHL>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
+    #if sitechoice=='SCENARIO': 
+    #    z_co = min(z_nodes[rhoHL>=(bcoRho)]) #close-off depth; bcoRho is close off density
+    #    LIZ = min(z_nodes[rhoHL>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
     
     diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_sev, diffu_full_data = diffusivity(cc,rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,D_x,p_a,z_nodes,T,sitechoice, rhoHL) #get diffusivity profiles
     
-    dcon=1.0
+    dcon=1.0 
     diffu=diffu*dcon   
     gas=np.interp(model_time,time_yr_s,gas_org) #interpolate atmospheric gas history to model time.
     bc_u, bc_d, bc_u_0 = boundaries(gas_org) #set boundary and initial conditions: bc_u is atmospheric condition, bc_d is zero gradient.
@@ -208,14 +208,14 @@ def FirnAir_SS(cc,gaschoice):
     elif cc['gravity']=='on' and cc['thermal']=='on':
         print 'thermal on'
         dTdz=np.zeros(np.size(diffu_d))
-        dTdz[0:100]=-0.6 #K/m. Negative gradient here means that it is colder deep (z is positive down)
+        dTdz[0:100]=-0.0 #K/m. Negative gradient here means that it is colder deep (z is positive down)
         S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz))/dz #S_C is independent source term in Patankar
     
     S_C=S_C_0*phi_0
     
     b_0 = S_C*dZ
     
-    rho_interface=np.interp(z_edges,z_nodes,rhoHL)
+    rho_interface=np.interp(z_edges,z_nodes,rhoHL) #Density at finite-volume interfaces
     
     w_edges, bubble_pres = w(z_edges,Accu_0,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,dz)
     
@@ -685,7 +685,7 @@ def diffusivity(cc, rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,
     ind = np.flatnonzero(z_nodes>LIZ)
     ind2 = np.flatnonzero(z_nodes<z_co)
     ind3 = np.intersect1d(ind,ind2)
-    d_eddy[ind3] = diffu_full[ind]/10
+    d_eddy[ind3] = diffu_full[ind]
     d_eddy=d_eddy+d_eddy_up
     diffu_full[ind]=1e-15 #set molecular diffusivity equal to zero after LIZ - eddy diffusivity term drives diffusion below
     
@@ -843,8 +843,9 @@ if __name__ == "__main__":
     #plotting = 'on'
     #
     #if plotting != 'off':
-    #    plots.makeplots(plotting,z_nodes,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
-    #                    diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_data, meas_uncert=meas_uncert)
+    #plots.makeplots(plotting,z_nodes,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,diffu_full_Sev,diffu_full_fre,diffu_full_sch,diffu_full_data, meas_uncert=meas_uncert)
+    
+    
     
     #d40Ar=d['d40Ar']
     #d15N2=d['d15N2']
@@ -855,6 +856,16 @@ if __name__ == "__main__":
     #plt.plot(z_nodes,Ar_p,'r')
     #plt.show()
     
+    nodes=d['nodes']
+    d15N2=d['d15N2']
+    d15=d15N2[:,-1]-1
+    slope=(d15[100]-d15[50])/(nodes[100]-nodes[50])
+
+
+    fig1=plt.figure(1)
+    plt.clf()
+    plt.plot(nodes,d15N2[:,-1])
+    plt.show()
     
         
                 

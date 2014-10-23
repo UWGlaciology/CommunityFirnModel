@@ -23,6 +23,7 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
     
     elif plotting == 'on':
         
+        
         fig1=plt.figure(1)
         plt.clf()
         #plt.plot(Z_P,phi[:,-8],'b')
@@ -65,7 +66,9 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
 
         fname=os.path.join(ResultsPlace,'ESS524_fig2.eps')
         plt.savefig(fname,dpi=100)    
-        plt.show()  
+#         plt.ion()
+        plt.show()
+          
         
         
         #

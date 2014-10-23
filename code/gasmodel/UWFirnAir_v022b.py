@@ -683,7 +683,11 @@ if __name__ == "__main__":
     p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
     T_0 = 273.15 # Standard Temp, K
     sPerYear = 365.25*24*3600 #seconds per year
+<<<<<<< HEAD:code/gasmodel/UWFirnAir_v022b.py
+    depth = 200. # m
+=======
     depth = 90. # m
+>>>>>>> FETCH_HEAD:code/gasmodel/UWFirnAir_v022.py
     
     ad_method="Christo" #advection method
     #ad_method="Christo" #advection method
@@ -691,8 +695,12 @@ if __name__ == "__main__":
     
     
     # Set up parameters for different sites.
-    #sitechoice = 'SCENARIO'
-    sitechoice = 'NEEM'
+    sitechoice = 'SCENARIO'
+<<<<<<< HEAD:code/gasmodel/UWFirnAir_v022b.py
+    #sitechoice = 'NEEM'
+=======
+    #sitechoice = 'WAIS'
+>>>>>>> FETCH_HEAD:code/gasmodel/UWFirnAir_v022.py
     g, p_a, T, Accu_0, czd, z_co, LIZ, rho0, hemisphere = MPS.sites(sitechoice)   
     Accu_m=Accu_0 #Accumulation in m/year
     
@@ -704,8 +712,11 @@ if __name__ == "__main__":
     #gaschoice='CH4'
     #gaschoice='SF6'    
     gaschoice='d15N2'
+<<<<<<< HEAD:code/gasmodel/UWFirnAir_v022b.py
+=======
     loadgas = True        
 
+>>>>>>> FETCH_HEAD:code/gasmodel/UWFirnAir_v022.py
     D_x, M, deltaM, conc1, firn_meas, d_0 = MPG.gasses(gaschoice, sitechoice,T,p_a,DataPath,hemisphere,measurements)
 
     time_yr=conc1[:,0] # Atmospheric measurements times
@@ -749,7 +760,7 @@ if __name__ == "__main__":
     
     diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_Sev, diffu_full_data = diffusivity(rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ) #get diffusivity profiles
     
-    dcon=1.0
+    dcon=0.2
     diffu=diffu*dcon
     #ind_co=np.argmax(z_edges_vec>=z_co) #index of close-off depth in z_edges vec. Should this be nodes or edges?
     #ind_co=np.argmax(rhoHL>=rho_co) #index of close-off depth in z_edges vec. A bit of a hack for now...    
