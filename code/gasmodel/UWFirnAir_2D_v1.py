@@ -1,7 +1,7 @@
 # UW Community Firn-Air Transport Model
 # Max Stevens
-# version 0.24, 20 August 2014
-# Working on getting transient to interact smoothly with input from firnmodel.py 
+# 2D version 0.01, 20 November 2014
+# This is an attempt to make the firn air model 2D. Woah. 
 
 ### In order to run transient, you must put the files from firnmodel.py output into DataImport folder.
 ### All units should be kilograms, meters, and seconds (MKS system)
@@ -44,7 +44,7 @@ rho_bco = 815. #kg/m^3
 p_0 = 1.01325e5 # Standard Amtmospheric Pressure, Pa
 T_0 = 273.15 # Standard Temp, K
 sPerYear = 365.25*24*3600 #seconds per year
-g=9.8 #m/s^2
+g=9.8
 
 # Downward Advection (of air)        
 def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,dz): # Function for downward advection of air and also calculates total air content. 
@@ -56,7 +56,6 @@ def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,d
     por_op_interface=np.interp(z_edges,z_nodes,por_op)
     teller_co=np.argmax(por_cl_interface)
     w_ice=Accu*rho_i/rho_interface #Check this - is there a better way?
-    #w_ice=1.5*w_ice
     
     if ad_method=='ice_vel':
         w_ad=w_ice
@@ -91,10 +90,10 @@ def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,d
         
         flux= w_ice[teller_co]*bubble_pres[teller_co]*por_cl[teller_co]
         velocity = np.minimum(w_ice ,((flux+(1e-10)-w_ice*bubble_pres*por_cl_interface)/((por_op_interface+1e-10)*C)))
-        #velocity = velocity * 2   
+            
         w_ad=velocity
 
-    return w_ad, bubble_pres
+    return w_ad
 
 def A(P): # Power-law scheme, Patankar eq. 5.34
     A = np.maximum( (1 - 0.1 * np.abs( P ) )**5, np.zeros(np.size(P) ) )
@@ -147,13 +146,12 @@ def FirnAir_SS(cc,gaschoice):
     model_time_years=model_time/sPerYear
     nt=np.size(model_time) #number of time steps
     
-    dz, z_edges, z_nodes, nodes, nz_P, nz_fv = space(depth,z_res) #call on space function to set up spatial grid
+    ### Space
+    dx, x_edges_vec, X_edges, x_P_vec, nx_P, nx_fv, dz, z_edges_vec, Z_edges, z_P_vec, nz_P, nz_fv, nodes = space(depth,z_res) #call on space function to set up spatial grid
     
     rhoHL = MPRHO.rhoHLAnalytic(R,T,rho_i,rho0,rho_bco,z_nodes,Accu_m) # Get density profile from H&L analytic
     rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rhoHL,T)
     
-    mart_co=np.min(z_nodes[rhoHL>830.0])
-    print 'mart co = ', mart_co
     #if sitechoice=='SCENARIO': 
     #    z_co = min(z_nodes[rhoHL>=(bcoRho)]) #close-off depth; bcoRho is close off density
     #    LIZ = min(z_nodes[rhoHL>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
@@ -161,11 +159,12 @@ def FirnAir_SS(cc,gaschoice):
     diffu,  d_eddy, diffu_full_fre, diffu_full_sch, diffu_full_sev, diffu_full_data = diffusivity(cc,rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,D_x,p_a,z_nodes,T,sitechoice, rhoHL) #get diffusivity profiles
     
     dcon=1.0 
-    diffu=diffu*dcon   
+    diffu=diffu*dcon
+      
     gas=np.interp(model_time,time_yr_s,gas_org) #interpolate atmospheric gas history to model time.
-    bc_u, bc_d, bc_u_0 = boundaries(gas_org) #set boundary and initial conditions: bc_u is atmospheric condition, bc_d is zero gradient.
+    bc_u,bc_d, bc_u_0,bc_w,bc_e = boundaries(gas_org) #set boundary and initial conditions: bc_u is atmospheric condition, bc_d is zero gradient.
     
-    phi_0 = np.zeros(nz_P) #phi is mixing ratio of gas.
+    phi_0 = np.zeros(nx_P,nz_P) #phi is mixing ratio of gas.
     phi_0[:]=bc_u_0
     
     ConcPath = os.path.join(ResultsPlace, 'concentration.csv') #Save location.
@@ -173,30 +172,64 @@ def FirnAir_SS(cc,gaschoice):
     
     diffu_P=diffu*por_op
     d_eddy_P=d_eddy*por_op
-     
-    dZ = np.concatenate(([1],np.diff(z_edges),[1])) #Not sure why there is the 1 on either side... from Ed's Patankar code.
     
-    dZ_u = np.diff(z_nodes)
-    dZ_u = np.append(dZ_u[0], dZ_u)
+    diffu_P_mat=np.tile(diffu_P, (1,nx_P)).T 
+    d_eddy_P_mat=np.tile(d_eddy_P, (1,nx_P)).T 
+    
+    X_P=np.tile(x_P_vec,(nz_P,1))
+    Z_P=(np.tile(z_P_vec,(nx_P,1))).T 
+       
+    dx_vec = np.concatenate(([1],np.diff(x_edges_vec),[1])) #Not sure why there is the 1 on either side... from Ed's Patankar code.   
+    dz_vec = np.concatenate(([1],np.diff(z_edges_vec),[1])) #Not sure why there is the 1 on either side... from Ed's Patankar code.
+    
+    dX=np.tile(dx_vec,(nz_P,1))
+    dZ=(np.tile(dz_vec,(nx_P,1))).T
+    
+    dX_e = np.diff(X_P)
+    dX_e = np.hstack((dX_e, dX_e[:,-1,np.newaxis]))
 
-    dZ_d = np.diff(z_nodes)
-    dZ_d = np.append(dZ_d,dZ_d[-1])
+    dX_w = np.diff(X_P)
+    dX_w = np.hstack((dX_w[:,0,np.newaxis],dX_w))    
+    
+    dZ_u = np.diff(Z_P.T).T
+    dZ_u = np.vstack((dZ_u[0,:], dZ_u))
 
-    f_u = np.append(0, (1 -(z_nodes[1:] - z_edges)/dZ_u[1:]))
-    f_d = np.append(1 - (z_edges - z_nodes[0:-1])/dZ_d[0:-1], 0)
-     
-    diffu_U = np.append(diffu_P[0], diffu_P[0:-1] )
-    diffu_D = np.append(diffu_P[1:], diffu_P[-1])
+    dZ_d = np.diff(Z_P.T).T
+    dZ_d = np.vstack((dZ_d,dZ_d[-1,:]))
+
+    f_e = np.append( (1 -(x_edges_vec - x_P_vec[0:-1])/dX_e[0,0:-1]), 0)
+    f_e = np.tile( f_e, (nz_P, 1) )
     
-    diffu_u =  1/ ( (1 - f_u)/diffu_P + f_u/diffu_U )
-    diffu_d =  1/ ( (1 - f_d)/diffu_P + f_d/diffu_D )
+    f_w = np.append( 0, (1-(x_P_vec[1:] - x_edges_vec)/dX_w[0,1:] ))
+    f_w = np.tile( f_w, (nz_P, 1) )
     
-    d_eddy_U = np.append(d_eddy_P[0], d_eddy_P[0:-1] )
-    d_eddy_D = np.append(d_eddy_P[1:], d_eddy_P[-1])
+    f_u = np.append(0, (1 -(z_P_vec[1:] - z_edges_vec)/dZ_u[1:,0]))
+    f_u = np.tile( f_u, (nx_P,1) ).T
+
+    f_d = np.append(1 - (z_edges_vec - z_P_vec[0:-1])/dZ_d[0:-1,0], 0)
+    f_d = np.tile( f_d, (nx_P,1) ).T
+
     
-    d_eddy_u =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
-    d_eddy_d =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
+    diffu_E = np.hstack((diffu_P_mat[:,1:],diffu_P_mat[:,-1]))      
+    diffu_W = np.hstack((diffu_P_mat[:,0],diffu_P_mat[:,0:-1]))                                                                                   
+    diffu_U = np.vstack(diffu_P_mat[0,:], diffu_P_mat[0:-1,:] )
+    diffu_D = np.vstack(diffu_P_mat[1:,:], diffu_P_mat[-1,:])
     
+    diffu_e =  1/ ( (1 - f_e)/diffu_P_mat + f_e/diffu_E )
+    diffu_w =  1/ ( (1 - f_w)/diffu_P_mat + f_w/diffu_W )
+    diffu_u =  1/ ( (1 - f_u)/diffu_P_mat + f_u/diffu_U )
+    diffu_d =  1/ ( (1 - f_d)/diffu_P_mat + f_d/diffu_D )
+    
+    d_eddy_E = np.hstack((d_eddy_P_mat[:,1:],d_eddy_P_mat[:,-1]))      
+    d_eddy_W = np.hstack((d_eddy_P_mat[:,0],d_eddy_P_mat[:,0:-1]))                                                                                   
+    d_eddy_U = np.vstack(d_eddy_P_mat[0,:], d_eddy_P_mat[0:-1,:] )
+    d_eddy_D = np.vstack(d_eddy_P_mat[1:,:], d_eddy_P_mat[-1,:])
+    
+    d_eddy_e =  1/ ( (1 - f_e)/d_eddy_P_mat + f_e/d_eddy_E )
+    d_eddy_w =  1/ ( (1 - f_w)/d_eddy_P_mat + f_w/d_eddy_W )
+    d_eddy_u =  1/ ( (1 - f_u)/d_eddy_P_mat + f_u/d_eddy_U )
+    d_eddy_d =  1/ ( (1 - f_d)/d_eddy_P_mat + f_d/d_eddy_D )    
+       
     S_P=0.0 # Source dependent term. Should always be zero, but leaving it in in case there becomes a need.
     #S_P=(-diffu_d+diffu_u)*(deltaM*g/(R*T)) #OLD gravity term, S_P is phi-dependent source
     S_P=1.*S_P
@@ -221,27 +254,39 @@ def FirnAir_SS(cc,gaschoice):
     
     b_0 = S_C*dZ
     
-    rho_interface=np.interp(z_edges,z_nodes,rhoHL) #Density at finite-volume interfaces
+    rho_interface=np.interp(z_edges_vec,z_P_vec,rhoHL) #Density at finite-volume interfaces
     
-    w_edges, bubble_pres = w(z_edges,Accu_0,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,dz)
+    w_edges = w(z_edges_vec,Accu_0,rho_interface,por_op,T,p_a,por_tot,por_cl,z_P_vec,ad_method,dz) #this needs to spit back an array.
     
+    u_e=np.zeros(nz_P,nx_P)
+    u_w=np.zeros(nz_P,nx_P)
     w_u = np.append(w_edges[0],  w_edges )
+    w_u = np.tile(w_u,(nx_P,1)).T
     w_d = np.append(w_edges, w_edges[-1])
-    
-    D_u = ((diffu_u+d_eddy_u) / dZ_u) #check signs
+    w_d = np.tile(w_d,(nx_P,1)).T
+        
+    D_e = ((diffu_e+d_eddy_e) / dX_e) #do these need a times dZ?
+    D_w = ((diffu_w+d_eddy_w) / dX_w)
+    D_u = ((diffu_u+d_eddy_u) / dZ_u) 
     D_d = ((diffu_d+d_eddy_d) / dZ_d)
     
-    F_u =  w_u*por_op #Is this correct?
-    F_d =  w_d*por_op 
+    F_e =  u_e #excluding horzontal avection
+    F_w =  u_w
+    F_u =  (w_u.T*por_op).T 
+    F_d =  (w_d.T*por_op).T 
     
+    P_e = F_e/ D_e
+    P_w = F_w/ D_w
     P_u = F_u/ D_u
     P_d = F_d/ D_d
 
+    a_E = D_e * A( P_e ) + F_upwind(  -F_e )
+    a_W = D_w * A( P_w ) + F_upwind( F_w )
     a_U = D_u * A( P_u ) + F_upwind(  F_u )
     a_D = D_d * A( P_d ) + F_upwind( -F_d )
 
-    a_P_0 = por_op*dZ/dt
-    
+    a_P_0 = por_op*dZ*dX/dt
+    ###### 11/11/14 ended here. 
     s=(nz_P,nt)
     phi=np.zeros(s)
     a_P_out=np.zeros(s)
@@ -254,9 +299,9 @@ def FirnAir_SS(cc,gaschoice):
         
     with open(DepthPath, "w") as f:
         writer = csv.writer(f)       
-        writer.writerow(np.append(0,z_nodes)) 
+        writer.writerow(np.append(0,z_P_vec)) 
             
-    a_P =  a_U + a_D + a_P_0 - S_P*dZ
+    a_P =  a_E + a_W + a_U + a_D + a_P_0 - S_P*dZ*dX
     
     for i_time in range(0,nt): 
         
@@ -292,7 +337,7 @@ def FirnAir_SS(cc,gaschoice):
             writer = csv.writer(f)       
             writer.writerow(np.append(model_time_years[i_time],phi_t))
         
-    return phi, a_P_out, bubble_pres, z_nodes
+    return phi, a_P_out, z_nodes
 
     
 def FirnAir_TR(cc,gaschoice,jj):
@@ -577,17 +622,33 @@ def FirnAir_TR(cc,gaschoice,jj):
         
         
 def space(depth,z_res):
-    Lz=depth
-    nz_fv=np.around(depth/z_res)
-    nz_P=nz_fv+2
+    depth=10.
+    z_res=1.
+    
+    Lx= 10. #x extent of domain
+    nx_fv= 10. #number of finite volumes in x
+    nx_P=nx_fv+2 #number of nodes in x
+    
+    Lz=depth #z extent of domain
+    nz_fv=np.around(depth/z_res) #number of finite volumes in z
+    nz_P=nz_fv+2 #number of nodes in z
+    
+    dx=Lx/nx_fv
+    x_edges_vec=dx*np.arange(0,nx_fv+1)
+    
+    X_edges = np.tile(x_edges_vec, (nz_fv+1,1))
     
     dz=Lz/nz_fv
-    z_edges=dz*np.arange(0,nz_fv+1)
-        
-    z_nodes=np.concatenate(([z_edges[0]],z_edges[0:-1]+np.diff(z_edges)/2,[z_edges[-1]]))
-    nodes = np.size(z_nodes)
+    z_edges_vec=(dz*np.arange(0,nz_fv+1))
     
-    return dz, z_edges, z_nodes, nodes, nz_P, nz_fv
+    Z_edges = (np.tile(z_edges_vec, (nx_fv+1,1))).T    
+    
+    x_P_vec=np.concatenate(([x_edges_vec[0]],x_edges_vec[0:-1]+np.diff(x_edges_vec)/2,[x_edges_vec[-1]]))            
+    z_P_vec=np.concatenate(([z_edges_vec[0]],z_edges_vec[0:-1]+np.diff(z_edges_vec)/2,[z_edges_vec[-1]]))
+   
+    nodes = np.size(z_P_vec)
+    
+    return dx, x_edges_vec, X_edges, x_P_vec, nx_P, nx_fv, dz, z_edges_vec, Z_edges, z_P_vec, nz_P, nz_fv, nodes
     
 def porosity(rho_prof,T):
     
@@ -619,13 +680,13 @@ def diffusivity(cc, rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,
     ## Constants
     d_eddy_sc=d_0 #Eddy diffusivity in the convective zone
     h=z_nodes
-    dind=np.min(np.where(z_nodes>z_co))
+    dind=np.min(np.where(z_nodes>LIZ))
      
     ## Use Severinghaus relationship from Cuffey and Paterson
     d_0_sev=d_0*1.7
     #d_0_sev=d_0
     diffu_full_sev = D_x*d_0_sev*((p_0/p_a)*(T/T_0)**1.85*(2.00*(1-(rhoprof/rho_i))-0.167))
-    #diffu_full_sev = diffu_full_sev-diffu_full_sev[dind]
+    diffu_full_sev = diffu_full_sev-diffu_full_sev[dind]
     diffu_full_sev[diffu_full_sev<=0] = 1e-15
     
     ## Use Schwander 1988, Eq. 2 Diffusivity (does not work very well) use 4e2
@@ -687,20 +748,13 @@ def diffusivity(cc, rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,
     d_eddy_surf=2.426405E-5 #Kawamura, 2006
     H_scale=czd
     d_eddy_up=d_eddy_surf*np.exp(-1*z_nodes/H_scale)
-    
-    if cc['lockin']:
     #d_eddy[ind] = diffu_full[ind]*10
-        ind = np.flatnonzero(z_nodes>LIZ)
-        ind2 = np.flatnonzero(z_nodes<z_co)
-        ind3 = np.intersect1d(ind,ind2)
-        d_eddy[ind3] = diffu_full[ind]
-    #d_eddy[ind3] = 0.0
-        diffu_full[ind]=1e-15 #set molecular diffusivity equal to zero after LIZ - eddy diffusivity term drives diffusion below
-        d_eddy=d_eddy+d_eddy_up
-        
-    else:
-        d_eddy=d_eddy_up
-    
+    ind = np.flatnonzero(z_nodes>LIZ)
+    ind2 = np.flatnonzero(z_nodes<z_co)
+    ind3 = np.intersect1d(ind,ind2)
+    d_eddy[ind3] = diffu_full[ind]
+    d_eddy=d_eddy+d_eddy_up
+    diffu_full[ind]=1e-15 #set molecular diffusivity equal to zero after LIZ - eddy diffusivity term drives diffusion below
     
     diffu=diffu_full
     ## Interpolate diffusivity profile to the finite volume nodes (model space)
@@ -716,8 +770,16 @@ def boundaries(gas_org):
     bc_d_0 = 0 
     bc_type = 2
     bc_d   = np.concatenate(([ bc_d_0 ], [ bc_type ]))
+    
+    bc_e_0 = 0 
+    bc_type = 2
+    bc_e   = np.concatenate(([ bc_e_0 ], [ bc_type ]))
+    
+    bc_w_0 = 0 
+    bc_type = 2
+    bc_w   = np.concatenate(([ bc_w_0 ], [ bc_type ]))    
      
-    return bc_u,bc_d, bc_u_0
+    return bc_u,bc_d, bc_u_0,bc_w,bc_e
     
 def firnairmodel(airconfig):
     
@@ -871,9 +933,9 @@ if __name__ == "__main__":
     
     nodes=d['nodes']
     d15N2=d['d15N2']
-    #d40Ar=(d['d40Ar']-1)/4+1.
+    d40Ar=(d['d40Ar']-1)/4+1.
     d15=d15N2[:,-1]-1
-    #d40=d40Ar[:,-1]-1
+    d40=d40Ar[:,-1]-1
     slope=(d15[100]-d15[50])/(nodes[100]-nodes[50])
     meas_string='d15N2_samples_NEEM.txt'
     firn_meas=np.loadtxt(os.path.join(DataPath,meas_string),skiprows=2)
@@ -888,7 +950,7 @@ if __name__ == "__main__":
     plt.rc('text', usetex=True)
     plt.rcParams['text.latex.preamble'] = [r'\boldmath']
     plt.plot(nodes,d15N2[:,-1],'b')
-    #plt.plot(nodes,d40Ar[:,-1],'r')
+    plt.plot(nodes,d40Ar[:,-1],'r')
     #plt.errorbar(meas_depth,meas_conc,yerr=meas_uncert,xerr=None,fmt='.')
     plt.xlabel(r'\textbf{Depth (m)}')
     plt.ylabel(r'{$\delta^{15}$\textbf{N}}')

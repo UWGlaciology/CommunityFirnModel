@@ -268,7 +268,7 @@ def runModel(configName,spin):
         #    stp = int(years *c['stpsPerYearSpin'])
         
         years = c['yearSpin'] #should not need user input years here - just specify in the json
-        stp = int(years *c['stpsPerYearSpin'])
+        stp = int(years *c['stpsPerYearSpin'])+1
         
         #Dcon = c['D_surf']*np.ones(gridLen)
 
@@ -309,18 +309,18 @@ def runModel(configName,spin):
             #stp = int(years * (years / len(input_year)))
             stp = int(years *c['stpsPerYear']) #Make sure that stpsPerYear is set properly in config.
             print stp
-            modeltime=np.linspace(yr_start,yr_end,stp)
+            modeltime=np.linspace(yr_start,yr_end,stp+1)
             #modeltime=modeltime-min(modeltime)
             print 'modeltime= %s' % modeltime
         else:
             years = c['years']
             stp = int(years *c['stpsPerYear']) #how many steps there are in the model run
-            modeltime=np.linspace(0,years,stp)
-        #TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(150,250,5),xrange(250,2010,10))) #set times at which to write data. This line is firnmice.
+            modeltime=np.linspace(0,years,stp+1)
+        TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(150,250,5),xrange(250,2010,10))) #set times at which to write data. This line is firnmice.
         #TWrite = (np.arange(0,2005,5)) #set times at which to write data
         
         inte=4 # how often the data should be written
-        TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here. 
+        #TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here. 
         #print 'Twrite = %s' %TWrite
         z0 = z
         agez0 = age
@@ -525,7 +525,10 @@ def runModel(configName,spin):
         
         ### Porosity, including DIP
         phi = 1-rho/c['rhoi'] # total porosity
+        phi[phi<=0]=1e-16 
+        print "min phi= ", np.min(phi)
         phiC = 1-bcoMartRho/c['rhoi']; #porosity at close off
+        print "phiC=", phiC
         #phiClosed = np.ones(gridLen)
         phiClosed = 0.37*phi*(phi/phiC)**-7.6 #Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
         
@@ -625,8 +628,9 @@ def runModel(configName,spin):
             dr_dt = np.zeros(gridLen)
             kc1=9.2e-9
             kc2=3.7e-9
-            dr_dt[rho<c['rho1']] = kc1*(c['rhoi']-rho[rho<c['rho1']])*np.exp(-c['Ec']/(c['R']*Tz[rho<c['rho1']]))*sigma[rho<c['rho1']]/(r2[rho<c['rho1']])
-            dr_dt[rho>=c['rho1']] = kc2*(c['rhoi']-rho[rho>=c['rho1']])*np.exp(-c['Ec']/(c['R']*Tz[rho>=c['rho1']]))*sigma[rho>=c['rho1']]/(r2[rho>=c['rho1']])
+            thresh=c['rho2']
+            dr_dt[rho<thresh] = kc1*(c['rhoi']-rho[rho<thresh])*np.exp(-c['Ec']/(c['R']*Tz[rho<thresh]))*sigma[rho<thresh]/(r2[rho<thresh])
+            dr_dt[rho>=thresh] = kc2*(c['rhoi']-rho[rho>=thresh])*np.exp(-c['Ec']/(c['R']*Tz[rho>=thresh]))*sigma[rho>=thresh]/(r2[rho>=thresh])
             drho_dt = dr_dt#/c['sPerYear']
         
         elif c['physRho'] =='Spencer2001':      # Uncommented out lines 464 - 475
@@ -701,22 +705,22 @@ def runModel(configName,spin):
             #drho_dt[rho>c['rho1']] = ((c['rhoi']-rho[rho>=c['rho1']])*c['ar2']*bdotSec[i]*(1/t)*c['sPerYear']*rho[rho>c['rho1']]*c['g']*np.exp(-c['Ec']/(c['R']*Tz[rho>c['rho1']])+c['Eg']/(c['R']*T10m)))/c['sPerYear']
             
             #HL Sigfus         
-            #f550 = interpolate.interp1d(rho,sigma)
-            #sigma550 = f550(c['rho1'])
-            #rhoDiff = (c['rhoiMgm']-rho/1000)                                     
-            #k = np.power(c['k2']*np.exp(-c['Q2']/(c['R']*Tz[rho>c['rho1']])),2)/c['sPerYear']
-            #sigmaDiff = (sigma[rho>c['rho1']]-sigma550)
-            #sigmaDiff[sigmaDiff<0]=0 #Stops model from running away - spin up artifact.
-            #dd=(k*(sigmaDiff*rhoDiff[rho>c['rho1']]) / (c['g']*np.log((c['rhoiMgm']-c['rho1']/1000)/(rhoDiff[rho>c['rho1']]))))
-            ##print 'sig1 = ', dd[0]             
-            #drho_dt[rho>c['rho1']] = (k*(sigmaDiff*rhoDiff[rho>c['rho1']]) / (c['g']*np.log((c['rhoiMgm']-c['rho1']/1000)/(rhoDiff[rho>c['rho1']])))) #use H&L Sigfus physics for zone 2.
+            f550 = interpolate.interp1d(rho,sigma)
+            sigma550 = f550(c['rho1'])
+            rhoDiff = (c['rhoiMgm']-rho/1000)                                     
+            k = np.power(c['k2']*np.exp(-c['Q2']/(c['R']*Tz[rho>c['rho1']])),2)/c['sPerYear']
+            sigmaDiff = (sigma[rho>c['rho1']]-sigma550)
+            sigmaDiff[sigmaDiff<0]=0 #Stops model from running away - spin up artifact.
+            dd=(k*(sigmaDiff*rhoDiff[rho>c['rho1']]) / (c['g']*np.log((c['rhoiMgm']-c['rho1']/1000)/(rhoDiff[rho>c['rho1']]))))
+            #print 'sig1 = ', dd[0]             
+            drho_dt[rho>c['rho1']] = (k*(sigmaDiff*rhoDiff[rho>c['rho1']]) / (c['g']*np.log((c['rhoiMgm']-c['rho1']/1000)/(rhoDiff[rho>c['rho1']])))) #use H&L Sigfus physics for zone 2.
             
-            #Li 2011
-            TmC=T10m-273.15
-            A = bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']
-            beta1 = -9.788 + 8.996*A - 0.6165*TmC 
-            beta2 = beta1/(-2.0178 + 8.4043*A - 0.0932*TmC) # this is the one from the paper. Does not work with scaled beta1. Pay attention to units in paper.
-            drho_dt[rho>c['rho1']] = ((c['rhoi']-rho[rho>c['rho1']])*A*beta2*8.36*(c['KtoC']-Tz[rho>c['rho1']])**-2.061)/c['sPerYear']
+            ##Li 2011
+            #TmC=T10m-273.15
+            #A = bdotSec[i]*(1/t)*c['sPerYear']*c['rhoiMgm']
+            #beta1 = -9.788 + 8.996*A - 0.6165*TmC 
+            #beta2 = beta1/(-2.0178 + 8.4043*A - 0.0932*TmC) # this is the one from the paper. Does not work with scaled beta1. Pay attention to units in paper.
+            #drho_dt[rho>c['rho1']] = ((c['rhoi']-rho[rho>c['rho1']])*A*beta2*8.36*(c['KtoC']-Tz[rho>c['rho1']])**-2.061)/c['sPerYear']
 
 #            rho[rho<c['rho1']]
 #                    #equation 5 from Morris and Wingham
@@ -819,7 +823,8 @@ def runModel(configName,spin):
             sys.exit()
         
         #update the density using explicit method
-        rho = rho + dt*drho_dt 
+        rho = rho + dt*drho_dt
+        rho[rho>=c['rhoi']] = c['rhoi']-1.0e-10
 #         plt.plot(rho,drho_dt)
 #         plt.ylim(0,8e-7)
 #         plt.show()
@@ -892,8 +897,11 @@ def runModel(configName,spin):
             r2 = r2 + dr2Dt * dt #* c['stpsPerYear'] #does this need the c['stps']? 11/19/14
             #Add time elapsed to beginning of row for output file
             r2_time = np.concatenate(([t*i + 1], r2))
-            if c['calcGrainSize']: #This uses surface temperature to get an initial grain size.
+            if c['calcGrainSize']: #This uses surface temperature to get an initial grain size. 
                 r2 = np.concatenate(([-2.42e-9*Ts[i]+9.46e-7], r2[:-1]))
+                if not spin:
+                    print "grain size on", r2[0]
+                    
             else:
                 r2 = np.concatenate(([-2.42e-9*(c['Ts0'])+9.46e-7], r2[:-1]))
 
@@ -930,8 +938,8 @@ def runModel(configName,spin):
                     writer.writerow(r2)                
 #         elif not spin and (t*i)%1 == 0:
 
-        #elif not spin and [True for jj in TWrite if jj == t*i+1] == [True]:
-        elif not spin and [True for jj in TWrite if jj == mtime] == [True]:
+        elif not spin and [True for jj in TWrite if jj == t*i+1] == [True]:
+        #elif not spin and [True for jj in TWrite if jj == mtime] == [True]:
             rho_time = np.append(mtime,rho)
             Tz_time = np.append(mtime,Tz)
             age_time = np.append(mtime,age)
@@ -992,6 +1000,7 @@ def runModel(configName,spin):
             
             ### Porosity, including DIP
             phi = 1-rho/c['rhoi'] # total porosity
+            #phi[phi<=0]=1e-16 
             phiC = 1-bcoMartRho/c['rhoi']; #porosity at close off
             #phiClosed = np.ones(gridLen)
             phiClosed = 0.37*phi*(phi/phiC)**-7.6 #Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
