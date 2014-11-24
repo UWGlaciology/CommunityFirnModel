@@ -624,15 +624,17 @@ def runModel(configName,spin):
             
         elif c['physRho']=='Arthern2010T':
             if not c['physGrain']:
-                print "Grain growth should be on for Arthern Transient"           
+                print "!!!ERROR: Grain growth must be on for Arthern Transient!!!"           
             dr_dt = np.zeros(gridLen)
-            kc1=9.2e-9
-            kc2=3.7e-9
-            thresh=c['rho2']
+            kc1=0.0709*c['kg']
+            kc2=0.0291*c['kg']
+            thresh=c['rho1']
             dr_dt[rho<thresh] = kc1*(c['rhoi']-rho[rho<thresh])*np.exp(-c['Ec']/(c['R']*Tz[rho<thresh]))*sigma[rho<thresh]/(r2[rho<thresh])
             dr_dt[rho>=thresh] = kc2*(c['rhoi']-rho[rho>=thresh])*np.exp(-c['Ec']/(c['R']*Tz[rho>=thresh]))*sigma[rho>=thresh]/(r2[rho>=thresh])
             drho_dt = dr_dt#/c['sPerYear']
-        
+            
+            #Arh=np.exp(-c['Ec']/(c['R']*Tz[rho<thresh]))
+            #print "Arh=", Arh[0]
         elif c['physRho'] =='Spencer2001':      # Uncommented out lines 464 - 475
             pass
 
@@ -693,6 +695,13 @@ def runModel(configName,spin):
             drho_dt = np.zeros(gridLen)
             #dr_dt = drho_dt
             drho_dt[rho<=c['rho1']] = (c['kMorris']/(c['rhoW']*c['g'])) * ((c['rhoi']-rho[rho<=c['rho1']])/rho[rho<=c['rho1']]) * 1/Hx[rho<=c['rho1']] * np.exp(-c['QMorris']/(c['R']*Tz[rho<=c['rho1']]))*sigma[rho<=c['rho1']]
+            
+            Arh=np.exp(-c['QMorris']/(c['R']*Tz[rho<=c['rho1']]))
+            iHx=1/Hx[rho<=c['rho1']]
+            ratio=Arh*iHx
+            Edif=np.log(ratio)*c['R']*Tz[rho<=c['rho1']]
+            print 'Hx=', 1/iHx
+            
             #print 'max=', np.max(drho_dt)
             
             ### Choose which zone 2 physics you want
@@ -735,9 +744,11 @@ def runModel(configName,spin):
             #Hx = Hx + np.exp(-c['QMorris']/(c['R']*Tz))*dt #equation 7 from Morris and Wingham
             #Hx_new=np.exp(-c['QMorris']/(c['R']*Tz[0]))
             #Hx = np.concatenate(([Hx_new],Hx[0:-1]))
+           
+            #Hx_new=np.exp(-c['QMorris']/(c['R']*Tz[0]))
             Hx_new=0
             Hx = np.concatenate(([Hx_new],Hx[0:-1]))            
-            Hx=Hx+np.exp(-c['QMorris']/(c['R']*Tz))*dt #just an initial order of magnitude value for Hx  
+            Hx=Hx+np.exp(-c['QMorris']/(c['R']*Tz))*dt#/c['sPerYear']
             
 
 
@@ -898,12 +909,11 @@ def runModel(configName,spin):
             #Add time elapsed to beginning of row for output file
             r2_time = np.concatenate(([t*i + 1], r2))
             if c['calcGrainSize']: #This uses surface temperature to get an initial grain size. 
-                r2 = np.concatenate(([-2.42e-9*Ts[i]+9.46e-7], r2[:-1]))
-                if not spin:
-                    print "grain size on", r2[0]
-                    
-            else:
-                r2 = np.concatenate(([-2.42e-9*(c['Ts0'])+9.46e-7], r2[:-1]))
+                r2 = np.concatenate(([-2.42e-9*Ts[i]+9.46e-7], r2[:-1])) #where is this equation from?
+                #if not spin:
+                #    print "grain size on", r2[0]                    
+            if not c['calcGrainSize']:
+                r2 = np.concatenate(([c['r2s0']], r2[:-1]))
 
         if spin and i == (stp-1):
 #             print t*i + 1
@@ -911,7 +921,8 @@ def runModel(configName,spin):
             Tz_time = np.concatenate(([t*i + 1],Tz))
             age_time = np.concatenate(([t*i + 1],age))
             z_time = np.concatenate(([t*i + 1],z))
-            r2_time = np.concatenate(([t*i + 1],r2))
+            if c['physGrain']:
+                r2_time = np.concatenate(([t*i + 1],r2))
             '''initialize files to write in time loop'''
             densityPath = os.path.join(c['resultsFolder'], 'densitySpin.csv')
             tempPath = os.path.join(c['resultsFolder'], 'tempSpin.csv')
