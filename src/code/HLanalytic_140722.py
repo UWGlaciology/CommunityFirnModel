@@ -12,7 +12,9 @@ def rhoHLAnalytic(T,Accu,rho_surf,z_grid):
     rho_i = 0.917
     rho_c = 0.55
     h=z_grid
-    rho_bco = 0.815
+    #rho_bco = 0.815
+    
+    rho_bco = 1/( 1/(917.) + T*6.95E-7 - 4.3e-5)/1000.
 
     k0 = 11  * np.exp(-10160/(R*T))
     k1 = 575 * np.exp(-21400/(R*T))
@@ -28,11 +30,12 @@ def rhoHLAnalytic(T,Accu,rho_surf,z_grid):
     
     tp = 1/(k1*np.sqrt(Accu)) * np.log((rho_i-rho_c)/(rho_i-rho_h))+ t0_55    
     age = np.concatenate((t0[h<h0_55], tp[h>h0_55]))
-    bco = min(age[rho_h>=rho_bco])
-    
+    bco_age = min(age[rho_h>=rho_bco])
+    bco_dep = min(h[rho_h>=rho_bco])
+        
     rhoHL=rho_h
     
-    return bco,rhoHL,age
+    return bco_dep,bco_age,rhoHL,age
     
 if __name__ == "__main__":
     #
@@ -41,7 +44,8 @@ if __name__ == "__main__":
     z_grid=np.arange(0,bottom+dz,dz)
     
     rho_surf=0.360; #surface density
-    Accu=0.2; #water equivalent accumulation
-    T=243.0; #Temperature in K
+    Accu=0.0179; #water equivalent accumulation
+    T=213.0; #Temperature in K
     
-    bco,rhoHL,age=rhoHLAnalytic(T,Accu,rho_surf,z_grid)    
+    bco_dep,bco_age,rhoHL,age=rhoHLAnalytic(T,Accu,rho_surf,z_grid)  
+    print 'bco depth = ', bco_dep 

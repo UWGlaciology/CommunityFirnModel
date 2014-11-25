@@ -24,6 +24,7 @@ def sites(sitechoice):
         czd = 4. # m
         z_co = 78. # m
         LIZ = 63. # m
+#         LIZ = 78. # m
         rho0= 360. # kg m^-3 
         hemisphere='NH'
         
@@ -40,13 +41,13 @@ def sites(sitechoice):
         
     elif sitechoice == 'SCENARIO':   
 
-        p_a = 7.45e4
-        elev= 2500. 
-        T = -24 + 273.15 
-        Accu_0 = 0.22
-        czd = 1.0 
-        z_co = 54.
-        LIZ = 51.5
+        p_a = 7.00e4
+        elev= 10000. 
+        T = -56 + 273.15 
+        Accu_0 = 0.022
+        czd = 4.0 
+        z_co = 140.
+        LIZ = 120.0
         rho0= 350.
         hemisphere='SCENARIO'
         
