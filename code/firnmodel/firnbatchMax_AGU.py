@@ -1,16 +1,11 @@
-'''
-Created on Oct 23, 2013
 
-@author: Jessica
-'''
-
-import firnmodel_v03_firnmice as frn
+import firnmodel_v03 as frn
 import os
 import logging
 import json
 
-#thenames=["Barnola1991","Arthern2010"]
-thenames=["Arthern2010T"]
+thenames=["Barnola1991","Arthern2010T","Arthern2010S","HLdynamic","HLSigfus","Li2004","Li2011","Helsen2008","Morris2014"]
+# thenames=["Arthern2010T"]
 
 for f in thenames:
     
@@ -29,18 +24,20 @@ for f in thenames:
     
     print f
     
-#     jsonFile = open("config_test_input2.json", "r")
-#     data = json.load(jsonFile)
-#     jsonFile.close()
-# 
-#     tmp = data["physRho"]
-#     data["physRho"] = f
-#     data["resultsFolder"] = f
-# 
-#     jsonFile = open("config_test_input2.json", "w+")
-#     jsonFile.write(json.dumps(data))
-#     jsonFile.close()
+    jsonFile = open("config_test_input_AGU.json", "r")
+    data = json.load(jsonFile)
+    jsonFile.close()
     
-    configName = "config_test_input3.json"
+    re="AGUresults/" + f
+    
+    tmp = data["physRho"]
+    data["physRho"] = f
+    data["resultsFolder"] = re
+
+    jsonFile = open("config_test_input_AGU.json", "w+")
+    jsonFile.write(json.dumps(data))
+    jsonFile.close()
+    
+    configName = "config_test_input_AGU.json"
     frn.runModel(configName,True)
-#     frn.runModel(configName,False) 
+    frn.runModel(configName,False) 

@@ -46,7 +46,6 @@ ii=abc;
     AR4_co(ii)=AR4(ii,ind);
     
     fig2=figure(2);
-    set(fig2,'position',[110,2200,1600,900])
     if ii == 1
         clf
     end
@@ -57,7 +56,7 @@ ii=abc;
     box on
     grid on
     plot(znodes2,N2(ii,:),'b',znodes2,AR4(ii,:),'r','linewidth',1.5)
-%     if ii == 1
+    if ii == 1
         xlim([0 max(znodes2)])
         ylim([0 0.6])
         leg1=legend('\delta^{15}N_2','\delta^{40}Ar/4','location','southeast');
@@ -66,7 +65,7 @@ ii=abc;
         set(leg1,'fontsize',16)
         set(gca,'fontsize',14)
         
-%     end
+    end
     
     subplot(3,1,2)
     cla
@@ -84,8 +83,8 @@ ii=abc;
     set(get(AX(1),'Ylabel'),'String','Accumulation (m a^{-1})','fontsize',16)
     set(get(AX(2),'Ylabel'),'String','Temperature (K)','fontsize',16)
     % set(get(AX(1),'fontsize'),16)
-    set(AX(1),'fontsize',14,'ylim',[0 0.4])
-    set(AX(2),'fontsize',14,'ylim',[210 250])
+    set(AX(1),'fontsize',14)
+    set(AX(2),'fontsize',14)
     set(AX,'xticklabel',timeticks)
     
     
@@ -116,8 +115,6 @@ ii=abc;
 %      pause(0.05)
     
 %     M(ii)=getframe(fig2);
-svnm='dNexcess.eps';
-print(fig2,svnm,'-depsc')
 
 % end
 
