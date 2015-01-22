@@ -1,1 +1,0 @@
-10/14/2013: backed up firn air model on Max's computer and deleted from git repository to get rid of ridiculous file tracking. Several files (density, depth) that were generate for PIRE meeting (advecting ice layer) are now just on Max's computer due to the file size.
