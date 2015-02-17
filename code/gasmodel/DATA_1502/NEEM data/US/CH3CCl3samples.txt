@@ -1,0 +1,3 @@
+DATA_NEEM08_EU_CH3CCL3 Data by UEA, uncertainties by Christo
+Depth	CH3CCl3	grav corr	u(CH3CCl3)
+0.00	11.51	11.51	0.70

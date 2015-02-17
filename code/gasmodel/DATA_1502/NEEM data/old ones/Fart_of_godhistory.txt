@@ -1,0 +1,7 @@
+Fart of God history 
+year    conc
+0	0
+1400	0
+1600	0
+1800	0
+2010	100
