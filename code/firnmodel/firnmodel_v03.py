@@ -19,11 +19,8 @@ import os
 from string import join
 import shutil
 import time
-# import input_data
+import data_interp as IntpData
 
-#global input_temp
-#global input_year
-#global input_AR
 
 
 def HerronLangwayAnalytic(c,h,THL,AHL):
@@ -219,7 +216,18 @@ def runModel(configName,spin):
         FIDaccu=c["InputFileNameAccu"]
         userdata_accu=np.genfromtxt(FIDaccu, delimiter=',')
         input_year_accu=userdata_accu[0,:]
-        input_AR=userdata_accu[1,:]            
+        input_AR=userdata_accu[1,:]
+
+    if c["IntpData"]:
+        years_t, data_temp = IntpData.file_impt(c['InputFileNameTemp'])
+        years_b, data_bDot = IntpData.file_impt(c['InputFileNameAccu'])
+
+        # Here, hard coded for ONLY linear interpolation. Future, add more interp choices ** 2/4/15 mikeoon
+        intpStp = c["IntStp"]
+        intp_name_t, intp_name_b = IntpData.linear_interp(intpStp, years_t, data_temp, years_b, data_bDot)
+
+        input_year_temp, input_temp = IntpData.file_impt(intp_name_t)
+        input_year_accu, input_AR = IntpData.file_impt(intp_name_b)
     
     if spin:    
         
@@ -227,7 +235,7 @@ def runModel(configName,spin):
             rmtree(c['resultsFolder'])
         os.makedirs(c['resultsFolder'])
 
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             gridLen = int((c['H']-c['HbaseSpin'])/(input_AR[0]/c['stpsPerYearSpin']))
         else:
             gridLen = int((c['H']-c['HbaseSpin'])/(c['bdot0']/c['stpsPerYearSpin']))
@@ -237,7 +245,7 @@ def runModel(configName,spin):
         dz = np.append(dz,dz[-1])
         dx = np.ones((gridLen)) #assume box width of 1 unit. To include stress must update this for horizontal longitudinal stress
         
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             THL=input_temp[0]
             AHL=input_AR[0]
         
@@ -262,7 +270,7 @@ def runModel(configName,spin):
 #         age = np.zeros(gridLen)
 #         rho = c['rhos0']*np.ones(gridLen)
         # initial temperature profile
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             Tz = input_temp[0]*np.ones(gridLen)
         else:
             Tz = c['Ts0']*np.ones(gridLen) #init Temp profile
@@ -312,7 +320,7 @@ def runModel(configName,spin):
         dz = np.diff(z)
         dz = np.append(dz,dz[-1])
         dx = np.ones(gridLen)
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             yr_start=max(input_year_temp[0],input_year_accu[0])
             yr_end=min(input_year_temp[-1],input_year_accu[-1])
             print yr_start
@@ -361,7 +369,7 @@ def runModel(configName,spin):
 
     if spin:
         if c['stpsPerYearSpin'] or (stp / years) == 1.:
-            if (c['userInput']):
+            if (c['userInput'] or c['IntpData']):
                 Ts = input_temp[0]*np.ones(stp)
             else:
                 Ts = c['Ts0']*np.ones(stp)
@@ -369,18 +377,18 @@ def runModel(configName,spin):
             TPeriod = c['yearSpin']
             #   Temperature calculation from Anais Orsi, supplementry material, AGU 2012
             #   http://www.agu.org/journals/gl/gl1209/2012GL051260/supplement.shtml
-            if (c['userInput']):
+            if (c['userInput'] or c['IntpData']):
                 Ts = input_temp[0] + c['TAmp']*(np.cos(2*np.pi*np.linspace(0,TPeriod,stp))+0.3*np.cos(4*np.pi*np.linspace(0,TPeriod,stp)))
             else:
                 Ts = c['Ts0'] + c['TAmp']*(np.cos(2*np.pi*np.linspace(0,TPeriod,stp))+0.3*np.cos(4*np.pi*np.linspace(0,TPeriod,stp)))
         
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             print 'stp=%s,years=%s' %(stp,years)
             #t = (1.0 / (stp/years))
             t = 1.0 / c['stpsPerYearSpin']
         else:
             t = 1.0 / c['stpsPerYearSpin']
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             bdotSec0 = input_AR[0]/c['sPerYear']/c['stpsPerYearSpin']
         else:
             bdotSec0 = c['bdot0']/c['sPerYear']/c['stpsPerYearSpin']
@@ -389,7 +397,7 @@ def runModel(configName,spin):
         #D_surf=c['D_surf']*np.ones(stp)
         
     else: #not spin
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             #t = 1.0 / (stp / years)
             t = 1.0/c['stpsPerYear']
             print 't = %s' % t
@@ -401,7 +409,7 @@ def runModel(configName,spin):
 #             Ts = c['Ts0']*np.ones(stp)
 #             Ts[99*c['stpsPerYear']:] = Ts[99*c['stpsPerYear']:]+c['Tpert']
         # Instead of storing the 'Ts0', it takes the input data and makes a new vector of the changing temperatures
-        if (c['userInput']):
+        if (c['userInput']) or c['IntpData']:
             #Ts = input_temp[:]
             #bdotSec = input_AR[:]/c['sPerYear']/(stp / years)
             
@@ -450,7 +458,7 @@ def runModel(configName,spin):
         age_time = np.append(modeltime[0],age)
         z_time = np.append(modeltime[0],z)
         D_time = np.append(modeltime[0],Dcon)
-        if (c['userInput']):
+        if (c['userInput'] or c['IntpData']):
             Clim_time = np.append(modeltime[0],[bdot[0],Ts[0]]) #not sure if bdot or bdotSec
         if c["physGrain"]:
             r2_time = np.append(modeltime[0],r2)
@@ -461,7 +469,7 @@ def runModel(configName,spin):
         agePath = os.path.join(c['resultsFolder'], 'age.csv')
         depthPath = os.path.join(c['resultsFolder'], 'depth.csv')
         DconPath = os.path.join(c['resultsFolder'], 'Dcon.csv')
-        if (c['userInput']):        
+        if (c['userInput'] or c['IntpData']):        
             ClimPath = os.path.join(c['resultsFolder'], 'Clim.csv')
         if c["physGrain"]:
             r2Path = os.path.join(c['resultsFolder'], 'r2.csv')
@@ -481,7 +489,7 @@ def runModel(configName,spin):
         with open(DconPath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(D_time)
-        if (c['userInput']):            
+        if (c['userInput'] or c['IntpData']):            
             with open(ClimPath, "w") as f:
                 writer = csv.writer(f)
                 writer.writerow(Clim_time)
@@ -930,7 +938,7 @@ def runModel(configName,spin):
             Dcon_time = np.append(mtime,Dcon)
             if c['physGrain']:
                 r2_time = np.append(mtime,r2)
-            if (c['userInput']):
+            if (c['userInput'] or c['IntpData']):
                 Clim_time = np.append(mtime,[bdot[i],Ts[i]])
                 
             with open(densityPath, "a") as f:
@@ -948,7 +956,7 @@ def runModel(configName,spin):
             with open(DconPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(Dcon_time)
-            if (c['userInput']):
+            if (c['userInput'] or c['IntpData']):
                 with open(ClimPath, "a") as f:
                     writer = csv.writer(f)
                     writer.writerow(Clim_time)
