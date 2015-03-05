@@ -1,7 +1,7 @@
 {
 "InputFileFolder": "modelInput",
 "InputFileNameTemp": "GISP2_temp.csv",
-"InputFileNameAccu": "GISP2_accu.csv",
+"InputFileNamebdot": "GISP2_accu.csv",
 "resultsFolder": "timetest",
 "physRho": "Helsen2008",
 "Ts0": 210.0,
@@ -22,15 +22,6 @@
 "stpsPerYear": 1.0,
 "D_surf": 1.0,
 "plotting": "off",
-"plotsFolder": "Plots",
-"sPerYear": 31557600.0,
-"rhoi": 917.0,
-"rhoiMgm":0.917,
-"rho1": 550.0,
-"rho2": 815.0,
-"R": 8.314,
-"g": 9.8,
-"KtoC": 273.15,
-"atmosP": 101325,
+"plotsFolder": "Plots"
 }
 
