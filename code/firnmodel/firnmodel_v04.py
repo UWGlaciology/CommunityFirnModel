@@ -21,6 +21,17 @@ import shutil
 import time
 import data_interp as IntpData
 
+def startlogger():
+    logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,filemode='w',format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logging.getLogger('').addHandler(console)
+
 def DefineGlobals():
     global sPerYear,rhoi,rhoiMgm,rho1,rho2,R,g,KtoC,atmosP
     sPerYear = 31557600.0
@@ -38,7 +49,7 @@ def HerronLangwayAnalytic(c,h,THL,AHL):
     config -- firnmod.config.Config
     return -- age, rho (density) for steady-state dynamics
     """
-    print 'AHL=%s' % AHL 
+    #print 'AHL=%s' % AHL 
     hSize = np.size(h)      
     rhoc = 0.550
     rhos = c['rhos0']/1000.0
@@ -179,22 +190,23 @@ def transient_solve_TR(z_edges_vec,z_P_vec,nt,dt,Gamma_P,phi_0,nz_P,nz_fv,phi_s)
 def runModel(configName,spin):
     "Runs firnmodel with an input json file."
     tic=time.time()
-    ### LOGGING ###
-    logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,filemode='w',format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    # set a format which is simpler for console use
-    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    # tell the handler to use this format
-    console.setFormatter(formatter)
-    # add the handler to the root logger
-    logging.getLogger('').addHandler(console)
-    if spin:
-        logging.info('Spin Up initiated')        
-    elif not spin:
-        logging.info('Model run initiated')            
-    logging.info("Model configName = %s, spin = %r" % (configName, spin))
-    #####
+    
+    #### LOGGING ###
+    #logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,filemode='w',format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+    #console = logging.StreamHandler()
+    #console.setLevel(logging.INFO)
+    ## set a format which is simpler for console use
+    #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    ## tell the handler to use this format
+    #console.setFormatter(formatter)
+    ## add the handler to the root logger
+    #logging.getLogger('').addHandler(console)
+    #if spin:
+    #    logging.info('Spin Up initiated')        
+    #elif not spin:
+    #    logging.info('Model run initiated')            
+    #logging.info("Model configName = %s, spin = %r" % (configName, spin))
+    ######
     
     DefineGlobals()
     
@@ -370,6 +382,7 @@ def runModel(configName,spin):
         bdotSec = bdotSec0*np.ones(stp)
         rhos0=c['rhos0']*np.ones(stp)
         #D_surf=c['D_surf']*np.ones(stp)
+        bdot_mean = bdotSec0 * np.ones(gridLen)
         
     else: #not spin
         #t = 1.0 / (stp / years)
@@ -386,6 +399,8 @@ def runModel(configName,spin):
         
         bdot=np.interp(modeltime,input_year_bdot,input_bdot)
         bdotSec = bdot/sPerYear/(stp / years)
+        bdot_mean = bdotSec[0] * np.ones(gridLen)
+        
 
     # Eventually want to get these also under 'user_input' as lines 4 and 5 of csv file
         rhos0=c['rhos0']
@@ -988,15 +1003,8 @@ def runModel(configName,spin):
 
         
 if __name__ == '__main__':
-    #logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,filemode='w',format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
-    #console = logging.StreamHandler()
-    #console.setLevel(logging.INFO)
-    ## set a format which is simpler for console use
-    #formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-    ## tell the handler to use this format
-    #console.setFormatter(formatter)
-    ## add the handler to the root logger
-    #logging.getLogger('').addHandler(console)
+    
+    startlogger()
     
     if len(sys.argv) >= 2 and '-s' not in sys.argv:
         configName = os.path.join(os.path.dirname(__file__), sys.argv[1])
