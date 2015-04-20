@@ -2,7 +2,7 @@
 UW Community Firn Model: Firn Evolution Module
 @authors: Jessica Lundin, Max Stevens, Paul Harris, Will Leahy, Michael Yoon, Huong Vo, Ed Waddington 
 '''
-### HI ED
+
 import csv
 import json
 import sys
