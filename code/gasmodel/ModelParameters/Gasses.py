@@ -12,11 +12,11 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,loadgas):
     #d_0 = 5.e2 # Free air diffusivity, CO2, m**2/yr Schwander, 1988 reports 7.24 mm**2/s =379 m**2/yr
     d_0 = 1.6e-5 # m^2/s :wikipedia value. changed 9/27/13  Schwander, 1988 reports 7.24 mm**2/s = 7.24e-6 m**2/yr
     M_air = 28.97e-3 #kg/mol
-    D_ref_CO2 = 5.75E-10*T**1.81*(101325/p_a) #where is this from?
+    D_ref_CO2 = 5.75E-10*T**1.81*(101325/p_a) #Christo Thesis, appendix A3
     
     
     if gaschoice == 'CO2':
-        D_gas = 1. #free-air diffusivity relative to CO2. Unitless.
+        gam_x = 1. #free-air diffusivity relative to CO2. Unitless (gamma in Buizert thesis, page 13).
         M = 44.01e-3 # molecular mass, kg/mol
         decay = 0.
         omega = 0.0
@@ -37,102 +37,103 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,loadgas):
         
             
     elif gaschoice == 'CH4':
-        D_gas = 1.367
+        gam_x = 1.367
         M = 16.04e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'd15N2':
-        D_gas = 1.275*0.9912227 # not sure of the origin here... Christo's model?
+        gam_x = 1.275*0.9912227 # not sure of the origin here... Christo's model?
+        #gam_x = 
         M = 1.E-3 + M_air
         decay = 0.
         omega = 0.0147/1000
 
     elif gaschoice == 'SF6':
-        D_gas = 0.554
+        gam_x = 0.554
         M = 146.06e-3
         decay = 0.
         omega = 0.
         
     elif gaschoice == 'C14':
-        D_gas = 0.991368
+        gam_x = 0.991368
         M = 46.01e-3
         decay = 1./8267.
         omega = 0.
         
     elif gaschoice == 'C13':
-        D_gas = 0.9955648
+        gam_x = 0.9955648
         M = 45.01e-3
         decay = 0.
         omega = 0.
         
     elif gaschoice == 'CFC11':
-        D_gas = 0.525
+        gam_x = 0.525
         M = 137.37e-3
         decay = 0.
 
     elif gaschoice == 'CFC12':
-        D_gas = 0.596
+        gam_x = 0.596
         M = 120.91e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'C13_CFC12':
-        D_gas = 0.59552
+        gam_x = 0.59552
         M = 121.91e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'CC14':
-        D_gas = 0.470
+        gam_x = 0.470
         M = 153.82e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'CFC113':
-        D_gas = 0.453
+        gam_x = 0.453
         M = 187.38e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'CFC115':
-        D_gas = 0.532
+        gam_x = 0.532
         M = 154.47e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'R134a':
-        D_gas = 0.630
+        gam_x = 0.630
         M = 102.03e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'CH3CCl3':
-        D_gas = 0.485
+        gam_x = 0.485
         M = 133.40e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'HCFC22':
-        D_gas = 0.710
+        gam_x = 0.710
         M = 86.47e-3
         decay = 0.
         omega = 0.
 
     elif gaschoice == 'C13_CH4':
-        D_gas = 1.340806
+        gam_x = 1.340806
         M = 17.04e-3
         decay = 0.
         omega = 0.
         
     elif gaschoice == 'd40Ar':
-        D_gas = 1.21
+        gam_x = 1.21
         M = 4.e-3 + M_air
         decay = 0.
         omega = 0.0985/1000.
 
     elif gaschoice == 'FOG':
-        D_gas = 1.0
+        gam_x = 1.0
         M = 44e-3
         decay = 1./100.
         omega = 0.
@@ -159,7 +160,8 @@ def gasses(gaschoice, sitechoice, T, p_a, DataPath,hemisphere,loadgas):
         conc1=-9999
             
     deltaM = (M-M_air) #delta molecular mass from CO2.
-    D_x = D_gas #* D_ref_CO2
+    #gam_x = D_gas #* D_ref_CO2
     d_0=D_ref_CO2
                    
-    return D_x, M, deltaM, conc1, d_0, omega
+    return gam_x, M, deltaM, conc1, d_0, omega
+    ### D_x is the free-air diffusivity relative to CO2. 

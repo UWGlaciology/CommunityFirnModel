@@ -1,22 +1,22 @@
 {
     "ad_method": "ice_vel",
     "diffu": "Sev",
-    "depth": 150.0,
+    "depth": 80.0,
     "sitechoice": "NEEM",
     "options":["one","two","three"],
     "gaschoiceOptions":["d15N2","d40Ar"],
-    "gaschoice":["d15N2","d40Ar"],
+    "gaschoice":["d15N2"],
     "gravity":"on",
-    "thermal":"on",
+    "thermal":"off",
     "runtype":"transient",
     "runtype_options": "steady, transient",
     "StepsPerYear": 4.0,
-    "z_resolution": 0.5,
+    "z_resolution": 0.2,
     "UserData": true,
     "pressure": 7.45e4,
     "ConZoneDepth": 4.0,
     "rho0":350.0,
     "Tgrad":0.0,
-    "lockin": true
-    "note": "could put some folder (saving) options in here"
+    "lockin": false,
+    "dpath": "NEEM3"
 }
