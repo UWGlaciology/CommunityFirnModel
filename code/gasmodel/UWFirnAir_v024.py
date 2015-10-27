@@ -363,6 +363,7 @@ def FirnAir_TR(cc,gaschoice,jj):
         
         model_time_years=model_time/sPerYear
         nt=np.size(model_time) #number of time steps
+        print 'nt = ', nt
 
         if nt>len(time_yr): #this is because occasionally np.arrange will include end points.
             model_time=np.arange(time_yr[0]*sPerYear,time_yr[-1]*sPerYear,dt)
@@ -606,7 +607,8 @@ def porosity(rho_prof,T):
     
     ## Porosity, from Goujon et al., 2003, equations 9 and 10
     por_tot = 1-rho_prof/rho_i # Total porosity
-    rho_co = bcoRho #use Martinerie close-off criteria
+    rho_co = 910.0
+    #rho_co = bcoRho #use Martinerie close-off criteria
     #rho_co = 0.815 # User chosen close off-density (put in site-specific in sites?)
     por_co = 1 - rho_co/rho_i # Porosity at close-off
     alpha = 0.37 # constant determined in Goujon
@@ -638,7 +640,7 @@ def diffusivity(cc, rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,
     ## Use Severinghaus relationship from Cuffey and Paterson
     #d_0_sev=d_0*1.7
     d_0_sev=d_0
-    diffu_full_sev = gam_x*d_0_sev*((p_0/p_a)*(T/T_0)**1.85*(2.00*(1-(rhoprof/rho_i))-0.167))    
+    diffu_full_sev = 0.1*gam_x*d_0_sev*((p_0/p_a)*(T/T_0)**1.85*(2.00*(1-(rhoprof/rho_i))-0.167))    
     #diffu_full_sev = diffu_full_sev-diffu_full_sev[dind]
     #iind=np.nonzero(diffu_full_sev==np.min(diffu_full_sev[diffu_full_sev>0.0]))
     #diffu_full_sev[diffu_full_sev<=0] = diffu_full_sev[iind]
@@ -955,21 +957,23 @@ if __name__ == "__main__":
     
     fig=plt.figure()
     plt.clf()
-    #plt.rc('font', family='serif', serif='cm10', size=20)
-    #plt.rc('text', usetex=True)
-    #plt.rcParams['text.latex.preamble'] = [r'\boldmath']
+    plt.rc('font', family='serif', serif='cm10', size=20)
+    plt.rc('text', usetex=True)
+    plt.rcParams['text.latex.preamble'] = [r'\boldmath']
     plt.plot(nodes,gc1,'b',linewidth=2)
     #plt.xlim([0,100])
     #plt.ylim([1,1+4e-4])
     #plt.plot(nodes,d40Ar[:,-1],'r')
     plt.errorbar(meas_depth,meas_conc,yerr=meas_uncert,xerr=None,fmt='.',color='b')
     plt.xlabel(r'\textbf{Depth (m)}')
-    plt.ylabel(r'{$\delta^{15}$\textbf{N}}')
+    plt.ylabel(r'\textbf{$\delta^{15}$N}')
+    #plt.xlabel(r'Depth (m)',fontweight='bold')
+    #plt.ylabel(r'$\delta^{15}$N',fontweight='bold')
     plt.grid(b=True)
     #fig = plt.gcf()
     fig.set_size_inches(14,8)
     
-    plt.savefig(svloc+'d15N_Sev_smooth.png')
+    plt.savefig('d15N_PIRE.png')
     
     plt.show()
     

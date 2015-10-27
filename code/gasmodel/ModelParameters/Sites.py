@@ -22,7 +22,7 @@ def sites(sitechoice):
         T = -23.5 +273.16 # K
         Accu_0 = 0.30 # m a^-1, ice eq.
         czd = 4. # m
-        z_co = 78. # m
+        z_co = 150. # m
         LIZ = 63. # m
 #         LIZ = 78. # m
         rho0= 360. # kg m^-3 

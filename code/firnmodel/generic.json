@@ -2,8 +2,8 @@
 "InputFileFolder": "modelInput",
 "InputFileNameTemp": "FM_temp2.csv",
 "InputFileNamebdot": "FM_bdot13.csv",
-"resultsFolder": "SimFM2",
-"physRho": "Simonsen2013",
+"resultsFolder": "HLD_thermal1",
+"physRho": "HLdynamic",
 "Ts0": 210.0,
 "TAmp":10.0,
 "bdot0": 0.01,
@@ -14,16 +14,19 @@
 "heatDiff":"on",
 "rhos0": 360.0,
 "r2s0": 1.0e-8,
-"yearSpin": 1000,
+"yearSpin": 100,
 "stpsPerYearSpin": 1.0,
 "H": 3000,
 "HbaseSpin": 2500.0,
-"years": 500.0,
+"years": 100.0,
 "stpsPerYear": 1.0,
 "D_surf": 1.0,
 "plotting": "off",
 "plotsFolder": "Plots",
 "bdot_type": "mean",
-"bdot_options": ["instant","mean"]
+"bdot_options": ["instant","mean"],
+"isoDiff": "on",
+"iso": "18",
+"_isoOptions":["18","D"]
 }
 

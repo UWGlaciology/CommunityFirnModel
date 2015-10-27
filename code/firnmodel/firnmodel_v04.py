@@ -46,6 +46,12 @@ def DefineGlobals():
     g = 9.8
     KtoC = 273.15
     atmosP = 101325
+    
+# def openNC(x,y,z):
+#     open file
+#     variable1=adsdsaf
+#     
+#     return tskin
 
 def HerronLangwayAnalytic(c,h,THL,AHL): #uses m w.e. a^-1
     """Model steady-state firn density and age profiles and bubble close-off
@@ -288,11 +294,11 @@ def runModel(configName,spin):
             r20 = r2
                     
         ##### use specified spin up length
-        years = c['yearSpin'] #should not need user input years here - just specify in the json
+#         years = c['yearSpin'] #should not need user input years here - just specify in the json
         
         ##### use auto-spin up length
-        #zz=np.min(z[rho>850.0]) #don't know why this is here
-        #years = int(zz/AHL) #this spins up so that a new layer reaches the minimum depth where density is >850.
+        zz=np.min(z[rho>850.0]) #don't know why this is here
+        years = int(zz/AHL) #this spins up so that a new layer reaches the minimum depth where density is >850.
         
         stp = int(years *c['stpsPerYearSpin'])
         print 'stp=',stp
@@ -343,12 +349,12 @@ def runModel(configName,spin):
         #    modeltime=np.linspace(0,years,stp)
         
         ##### TWRITE: need to clean this up or make it easier to specify
-        TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(155,250,5),xrange(260,2010,10))) #set times at which to write data. This line is firnmice.
+#         TWrite = np.concatenate((xrange(0,110,10),xrange(101,150,1),xrange(155,250,5),xrange(260,2010,10))) #set times at which to write data. This line is firnmice.
 #         #TWrite = (np.arange(0,2005,5)) #set times at which to write data
 #         TWrite=TWrite[1:]
         
-#         inte=1 # how often the data should be written
-#         TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here. 
+        inte=3 # how often the data should be written
+        TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here. 
         ######
         
         z0 = z
@@ -413,8 +419,8 @@ def runModel(configName,spin):
         Ts=np.interp(modeltime,input_year_temp,input_temp) #interpolate to model time
         T_mean = Ts # 4/13/15 this might be wrong - but works as long at the Ts is actually the mean annual temp.
         
-#         if t < 1.0: #add seasonal signal
-#             Ts = Ts + c['TAmp']*(np.cos(2*np.pi*np.linspace(0,TPeriod,stp+1))+0.3*np.cos(4*np.pi*np.linspace(0,TPeriod,stp+1)))
+        if t < 1.0: #add seasonal signal
+            Ts = Ts + c['TAmp']*(np.cos(2*np.pi*np.linspace(0,TPeriod,stp+1))+0.3*np.cos(4*np.pi*np.linspace(0,TPeriod,stp+1)))
         
         
         bdot=np.interp(modeltime,input_year_bdot,input_bdot) #bdot is m ice equivalent/year. multiply by 0.917 for W.E. or 917.0 for kg/year
@@ -566,7 +572,12 @@ def runModel(configName,spin):
         bcoPath = os.path.join(c['resultsFolder'], 'BCO.csv')
         lidPath = os.path.join(c['resultsFolder'], 'LID.csv')
         intPhiPath = os.path.join(c['resultsFolder'], 'porosity.csv')
-     
+        
+
+
+    del_s=-30.*np.ones(stp)
+    del_z=del_s[0]*np.ones(gridLen)
+    
     for ii in xrange(stp): #start main time-stepping loop
         if not spin:
             mtime=modeltime[ii] #placeholder for writing data.
@@ -701,8 +712,8 @@ def runModel(configName,spin):
                 dr_dt[rho<rho1] = (rhoi-rho[rho<rho1])*M_0*ar1*bdotSec[ii]*(1/t)*sPerYear*917.0*g*np.exp(-Ec/(R*Tz[rho<rho1])+Eg/(R*T_mean[ii]))
                 dr_dt[rho>=rho1] = (rhoi-rho[rho>=rho1])*M_1*ar2*bdotSec[ii]*(1/t)*sPerYear*917.0*g*np.exp(-Ec/(R*Tz[rho>=rho1])+Eg/(R*T_mean[ii]))                           
             elif c['bdot_type'] == 'mean':
-                M_0=1.435-0.151*np.log(bdot_mean[rho<rho1]*sPerYear)
-                M_1=2.366-0.293*np.log(bdot_mean[rho>=rho1]*sPerYear)
+                M_0=1.435-0.151*np.log(bdot_mean[rho<rho1]*sPerYear*917.0)
+                M_1=2.366-0.293*np.log(bdot_mean[rho>=rho1]*sPerYear*917.0)
                 dr_dt[rho<rho1] = (rhoi-rho[rho<rho1])*M_0*ar1*bdot_mean[rho<rho1]*(1/t)*sPerYear*917.0*g*np.exp(-Ec/(R*Tz[rho<rho1])+Eg/(R*T_mean[ii]))
                 dr_dt[rho>=rho1] = (rhoi-rho[rho>=rho1])*M_1*ar2*bdot_mean[rho>=rho1]*(1/t)*sPerYear*917.0*g*np.exp(-Ec/(R*Tz[rho>=rho1])+Eg/(R*T_mean[ii]))
             drho_dt = dr_dt/sPerYear            
@@ -909,6 +920,64 @@ def runModel(configName,spin):
             
             fT10m = interpolate.interp1d(z,Tz) #temp at 10m depth
             T10m = fT10m(10)
+            
+            
+            
+            # Isotope Diffusion (by Emma 8/5/15)
+        if c['isoDiff'] == 'on' :
+            nz_P = len(z)       # number of nodes in z
+            nz_fv = nz_P-2      # number of finite volumes in z
+            nt = 1             # number of time steps
+
+            z_edges_vec = z[1:-2]+dz[2:-1]/2        # uniform edge spacing of volume edges
+            z_edges_vec = np.concatenate(([z[0]],z_edges_vec, [z[-1]]))
+            z_P_vec = z         # node positions
+            rhoP = rho          # density at each point corresponds to the density vector
+            phi_s = del_s[ii]    # isotope value at surface
+            phi_0 = del_z       # initial isotope profile
+
+            # Define diffusivity for each isotopic species
+            # establish values needed for diffusivity calculation
+            m = 0.018           # kg/mol; molar mass of water
+            pz = 3.454*np.power(10,12)*np.exp(-6133/Tz)    # Pa; saturation vapor pressure over ice
+            
+            alpha_18_z = 0.9722*np.exp(11.839/Tz)           # fractionation factor for 18_O
+            # alpha_18_z = np.exp(11.839/Tz-28.224*np.power(10,-3)) # alternate formulation from Eric's python code
+            alpha_D_z = 0.9098*np.exp(16288/np.power(Tz,2)) # fractionation factor for D
+            Po = 1.              # reference pressure in atm
+            P = 1.
+
+            # Set diffusivity in air (units of m^2/s)
+            Da = 2.1*np.power(10.,-5.)*np.power(Tz/273.15,1.94)*(Po/P)
+            Da_18 = Da/1.0251     # account for fractionation factor for 18_O
+            Da_D = Da/1.0285      # account for fractionation factor for D
+            #print 'Da=', Da
+            # Calculate tortuosity
+            invtau=np.zeros(gridLen)
+            b = 0.25            # Tortuosity parameter
+            #if rho < rhoi/np.sqrt(b):
+            #    invtau = 1 - np.power(b*(rho/rhoi,2))
+            invtau[rho < rhoi/np.sqrt(b)]= 1. - (b*(rho[rho < rhoi/np.sqrt(b)]/rhoi))**2
+            invtau[rho >= rhoi/np.sqrt(b)]=0.
+            
+            #else:
+            #    invtau = 0
+
+            # Set diffusivity for each isotope
+            if c['iso'] == '18':
+                D = m*pz*invtau*Da_18*(1/rho-1/rhoi)/(R*Tz*alpha_18_z)
+            elif c['iso'] == 'D':
+                D = m*pz*invtau*Da_D*(1/rho-1/rhoi)/(R*Tz*alpha_D_z)
+                
+            #print D
+
+            # solve for vertical isotope profile at this time step i
+            del_z = transient_solve_TR(z_edges_vec,z_P_vec,nt,dt,D,phi_0,nz_P,nz_fv,phi_s)
+            #print del_z
+            del_z = np.concatenate(([del_s[ii]],del_z[:-1]))
+            
+            
+            
             
         #update the length of the boxes
         #dzNew = bdotSec[ii]*rhoi/rhos0[ii]*dt #these lines worked on 3/23

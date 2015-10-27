@@ -1,5 +1,5 @@
 {
-    "ad_method": "ice_vel",
+    "ad_method": "Christo",
     "diffu": "Sev",
     "depth": 80.0,
     "sitechoice": "NEEM",
@@ -10,13 +10,13 @@
     "thermal":"off",
     "runtype":"transient",
     "runtype_options": "steady, transient",
-    "StepsPerYear": 4.0,
-    "z_resolution": 0.2,
+    "StepsPerYear": 2.0,
+    "z_resolution": 0.5,
     "UserData": true,
     "pressure": 7.45e4,
     "ConZoneDepth": 4.0,
     "rho0":350.0,
     "Tgrad":0.0,
     "lockin": false,
-    "dpath": "NEEM3"
+    "dpath": "NEEM4"
 }
