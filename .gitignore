@@ -15,4 +15,5 @@ code/gasmodel/Results/ESS524_fig2.eps
 *.tif
 *.tiff
 *.epsc
-
+*.tar
+*.DS_store
