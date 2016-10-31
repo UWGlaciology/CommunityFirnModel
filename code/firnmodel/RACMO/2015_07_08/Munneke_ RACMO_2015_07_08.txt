@@ -1,0 +1,177 @@
+
+Subject:
+Re: RACMO Data Request
+From:
+"Kuipers Munneke, P. (Peter)" <P.KuipersMunneke@uu.nl>
+Date:
+7/8/15, 12:32 AM
+To:
+Michael Yoon <youngjungmyoon@gmail.com>
+CC:
+Stefan Ligtenberg <stefanligtenberg@gmail.com>, "Broeke, M.R. van den" <M.R.vandenBroeke@uu.nl>, "edw@uw.edu" <edw@uw.edu>, "maximusjstevens@gmail.com" <maximusjstevens@gmail.com>
+
+Dear Michael,
+
+Thank you for your data request. I have prepared the Greenland part of the requested data. These can be found at
+
+http://www.staff.science.uu.nl/~kuipe117/yoon/
+
+Here, you will find a number of files:
+
+- two SMB files, containing the surface mass balance (= snowfall + sublimation + snowdrift sublimation +/- erosion - melt) in mm water equivalent per day. The file contains daily cumulative values for the period 1958-2014. The grids are 11 x 11 grid points around Summit and DYE2. This corresponds to an area of roughly 120 x 120 km with Summit / DYE2 in the center.
+
+- two t2m files, containing the daily mean near-surface air temperature modelled at 2 m above the surface, in Kelvin. Grids are equal to the SMB files. Note that I processed the near-surface air temperature. If you really want the surface temperature tskin (i.e. the temperature of the snow-air interface), please let me know and I can process these data as well. At Summit and DYE2, there is a significant difference between t2m and tskin because there is a semi-permanent temperature inversion in the lower boundary layer, causing a few K lower skin temperature. What you will need depends on the exact forcing of your own firn model.
+
+- Two tar archives containing 23 vertical profiles of density and temperature each, for 1960-2014 at a temporal resolution of 28 days. The first time coordinate is 28 January 1960, the second is 25 Feb 1960, etc. In each file containing the vertical profiles, there is a depth coordinate in m, showing the depth of each layer. The layers are irregularly spaced, and you may want to interpolate to a regular grid. The 23 vertical profiles are from 23 locations in a square centered around Summit / DYE2. The vertical profiles are available in a chequered pattern, for every other grid point compared to the SMB and t2m data.
+
+- Two txt files containing the corresponding lat and lon values for each profile. The profile has a number between 1 and 6972. The corresponding number can be found in the txt file from which you can retrieve the lat and lon value for each profile.
+
+If you have any more questions, please let me know. Antarctic data will be provided by Stefan.
+When you are finished downloading these data, let me know so I can delete the files from the web server and make room for other data requests.
+
+With best regards,
+Peter
+
+Sent separately:
+By the way: details on the Greenland firn product can be found in the recently published manuscript at
+
+http://www.the-cryosphere-discuss.net/9/3541/2015/tcd-9-3541-2015.html
+
+Peter
+
+
+
+
+----------------------------------------------------------------------------------
+Dr Peter Kuipers Munneke
+Postdoctoral researcher
+
+Department of Geography
+College of Science, Swansea University
+Singleton Park, Swansea, SA2 8PP, UK
+
+Part-time visiting address:
+Buys Ballot Laboratory (BBL) room 666
+Princetonplein 5, 3584 CC Utrecht
+
+
+
+
+
+
+
+
+
+
+
+> On Jul 4, 2015, at 3:21, Michael Yoon <youngjungmyoon@gmail.com> wrote:
+>
+> Dear Peter,
+>
+> Sorry for the late reply. Things were a bit hectic over here.
+>
+> I have talked to Ed and Max about what specific regions we would like to request the data from. If the sites we are requesting are too large or unavailable please let us know.
+>
+>
+> For Antarctica:
+> 5x5 grid points roughly centered around WAIS Divide Ice Core site:
+>      79° 28' S    112° 05' W 
+>
+> We don't know exactly the orientation of the RACMO grid-point lines near South Pole, but all grid points (probably 15 to 20?) that fall in a diamond that includes the South Pole, with corner points at:
+>      - 80 km from South Pole on 45° W
+>      - 80 km on 180° E
+>      - 80 km on 90° E
+>      - 120 km on 135° E
+>
+> For Greenland:
+> 5x5 grid points roughly centered around DYE 2:
+>      66° 28' 52'' N    46° 16' 59'' W
+>
+> 5x5 grid points roughly centered around Summit:
+>      72° 34' 47'' N    38° 27' 33'' W
+>
+>
+> We would like to receive the whole period of Accumulation Rate and Temperature at a daily time time resolution. If the daily is too large perhaps the next larger time resolution. We would also like to receive the firn model data that goes along with these sites. 
+>
+> The above data will still help us with confirming our own models in the Community firn Model as well as allow us to use real-time Antarctica and Greenland climate to compare firn models.
+>
+> Thank you for your patience and time. Please let me know if there is anything else I can provide. If the data we requested is not available, a lower resolution at these sites would be great to start working with. 
+>
+>
+> Best,
+>
+> Michael Yoon
+>
+>
+>
+>
+> On Mon, Jun 15, 2015 at 7:46 AM, Kuipers Munneke, P. (Peter) <P.KuipersMunneke@uu.nl> wrote:
+>
+>     Dear Michael,
+>
+>     Thank you for your data request. We are happy to provide you data from our firn model for your purposes. However, your request for both Greenland and Antarctica data involves more than 1 TB of data, so I would suggest that we try to find a way for you to get started with less data.
+>
+>     Let me briefly describe what we have.
+>
+>     For both Greenland and Antarctica, we have vertical profiles of temperature, mass, liquid water, and density, provided at 3000 (GrIS) or 5000 (AIS) vertical layers each 28 days. The vertical layers are usually about 5 cm thick. For Greenland, the spatial resolution is 11 x 11 km. For Antarctica, it is 27 x 27 km.
+>
+>     As an example, a data file for 1 location in Greenland containing 3000 layers for 55 years is about 52 MB large. For Greenland, we have ~7000 grid points, giving about 400 GB of data. For Antarctica, we have ~18,000 grid points, and each file is 41 MB in size. This is about 800 GB of data.
+>
+>     Would it be possible for you to start with a test region, a transect, or something similar involving a smaller amount of data?
+>
+>     Finally, some background information on the firn model is in the attached papers. The 2014 Annals of Glaciology paper described the treatment of liquid water in some more detail. However, the model that forms the basis of the firn products over Antarctica and Greenland does not use the positive degree day approach from that paper, but direct forcing of surface mass fluxes and temperature from the RACMO model.
+>
+>
+>     With best regards,
+>     Peter
+>
+>
+>     ----------------------------------------------------------------------------------
+>     Dr Peter Kuipers Munneke
+>     Postdoctoral researcher
+>
+>     Department of Geography
+>     College of Science, Swansea University
+>     Singleton Park, Swansea, SA2 8PP, UK
+>
+>     Part-time visiting address:
+>     Buys Ballot Laboratory (BBL) room 666
+>     Princetonplein 5, 3584 CC Utrecht
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>
+>>>     From: Michael Yoon <youngjungmyoon@gmail.com>
+>>>     Subject: RACMO Data Request
+>>>     Date: 10 Jun 2015 20:18:53 GMT+2
+>>>     To: <imau@science.uu.nl>
+>>>     Cc: Ed Waddington <edw@uw.edu>, maximusjstevens <maximusjstevens@gmail.com>
+>>>
+>>>     Hello,
+>>>
+>>>     My name is Michael Yoon and I am student researcher at the University of Washington. I am currently apart of the Community Firn Model group funded by the PIRE/ICEICS grant. I work with Ed Waddington and Max Stevens at the UW.
+>>>
+>>>     I have sent a request before but I had some trouble with my email and now resending my request.
+>>>
+>>>     We would like to request all of the Greenland (1958 - 2014) and Antarctica (1979 - 2014) data with accumulation rate and temperature and a daily time resolution. 
+>>>
+>>>     We are also interested in the Firn model data. Can you provide me with some more information on what the firn model data includes?
+>>>
+>>>     The data will be used to help develop the Community Firn Model further. It will also be used to check models and compare models.
+>>>
+>>>     If I have left out any information or if you have any questions please let me know. I have also attached Professor Waddington and Max Stevens to the email. Thank you in advance
+>>>
+>>>
+>>>     Best,
+>>>
+>>>     Michael Yoon
+>
+>
+
