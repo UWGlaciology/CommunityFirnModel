@@ -84,6 +84,7 @@ class FirnDensitySpin:
         except ValueError:
             pass
         self.years = int(zz / self.bdot0) #age of the firn at 850
+        print 'years= ',self.years
         self.stp = int(self.years * self.c['stpsPerYearSpin']) #model time steps needed to get a parcel of firn from surface to 850
         self.dt = self.years * S_PER_YEAR / self.stp #time step size, in seconds
         self.t  = 1.0 / self.c['stpsPerYearSpin']
@@ -150,7 +151,7 @@ class FirnDensitySpin:
             'Goujon2003':      Goujon_2003,
         }
 
-        for iter in xrange(self.stp):
+        for iii in xrange(self.stp):
 #             print 'steps=',steps
 #             print 'gridlen=',self.gridLen
 #             print 'bdotsec=',len(bdotSec)
@@ -162,63 +163,68 @@ class FirnDensitySpin:
 
 
             parameters = {
-                'HLdynamic':      [iter, steps, self.gridLen, self.bdotSec, self.diffu.Tz, self.rho],
-                'HLSigfus':       [iter, steps, self.gridLen, self.bdotSec, self.diffu.Tz, self.rho, self.sigma],
-                'Barnola1991':    [iter, steps, self.gridLen, self.bdotSec, self.diffu.Tz, self.rho, self.sigma],
-                'Li2004':         [iter, steps, self.gridLen, self.bdotSec, self.T_mean, self.rho],
-                'Li2011':         [iter, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
-                'Ligtenberg2011': [iter, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
-                'Arthern2010S':   [iter, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
-                'Simonsen2013':   [iter, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
-                'Morris2013':     [iter, steps, self.gridLen, self.diffu.Tz, self.dt, self.rho, True],
-                'Helsen2008':     [iter, steps, self.bdotSec, self.c['bdot_type'], self.bdot_mean, self.diffu.Tz, self.Ts, self.rho],
-                'Arthern2010T':   [iter, self.gridLen, self.diffu.Tz, self.rho, self.sigma, self.r2, self.c['physGrain']],
+                'HLdynamic':      [iii, steps, self.gridLen, self.bdotSec, self.diffu.Tz, self.rho],
+                'HLSigfus':       [iii, steps, self.gridLen, self.bdotSec, self.diffu.Tz, self.rho, self.sigma],
+                'Barnola1991':    [iii, steps, self.gridLen, self.bdotSec, self.diffu.Tz, self.rho, self.sigma],
+                'Li2004':         [iii, steps, self.gridLen, self.bdotSec, self.T_mean, self.rho],
+                'Li2011':         [iii, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
+                'Ligtenberg2011': [iii, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
+                'Arthern2010S':   [iii, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
+                'Simonsen2013':   [iii, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho],
+                'Morris2013':     [iii, steps, self.gridLen, self.diffu.Tz, self.dt, self.rho, True],
+                'Helsen2008':     [iii, steps, self.bdotSec, self.c['bdot_type'], self.bdot_mean, self.diffu.Tz, self.Ts, self.rho],
+                'Arthern2010T':   [iii, self.gridLen, self.diffu.Tz, self.rho, self.sigma, self.r2, self.c['physGrain']],
                 'Spencer2001':    [],
                 'Goujon2003':     [],
+                'PhysParams':     [iii, steps, self.gridLen, self.bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, self.T_mean, self.rho, self.Ts, self.sigma, self.r2, self.c['physGrain']]
             }
+
+
             try:
+                # drho_dt = physics[self.c['physRho']](*parameters[self.c['physRho']])
                 drho_dt = physics[self.c['physRho']](*parameters['PhysParams'])
             except KeyError:
-                print 'error'
+                print 'error: physics did not work'
+                sys.exit(1)
 
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
-            self.rho  = np.concatenate(([rhos0[iter]], self.rho[:-1]))
+            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
             # update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
-                self.diffu.heatDiff(self.z, self.dz, Ts[iter], self.rho, dt)
+                self.diffu.heatDiff(self.z, self.dz, self.Ts[iii], self.rho, self.dt)
             if self.c['isoDiff']:
-                self.diffu.isoDiff(iter, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, dt)
+                self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, self.dt)
 
             # update model grid
-            dzNew = bdotSec[iter] * RHO_I / rhos0[iter] * S_PER_YEAR
-            self.dz = self.mass / self.rho * dx
+            dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+            self.dz = self.mass / self.rho * self.dx
             self.dz = np.concatenate(([dzNew], self.dz[:-1]))
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
 
             # update mass, stress, and mean accumulation rate
-            massNew = bdotSec[iter] * S_PER_YEAR * RHO_I
+            massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass = np.concatenate(([massNew], self.mass[:-1]))
-            self.sigma = self.mass * dx * GRAVITY
+            self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
             self.mass_sum  = self.mass.cumsum(axis = 0)
-            self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * t / (self.age[1:] * RHO_I)))
+            self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I)))
 
             # update grain radius
             if self.c['physGrain']:
-                self.r2 = grainGrowth(self.diffu.Tz, Ts, iter, dt, self.r2, self.c['calcGrainSize'])
+                self.r2 = grainGrowth(self.diffu.Tz, self.Ts, iii, self.dt, self.r2, self.c['calcGrainSize'])
 
             # write results at the end of the time evolution
-            if (iter == (stp - 1)):
-                rho_time = np.concatenate(([t * iter + 1], self.rho))
-                Tz_time  = np.concatenate(([t * iter + 1], self.diffu.Tz))
-                age_time = np.concatenate(([t * iter + 1], self.age))
-                z_time   = np.concatenate(([t * iter + 1], self.z))
+            if (iii == (self.stp - 1)):
+                rho_time = np.concatenate(([self.t * iii + 1], self.rho))
+                Tz_time  = np.concatenate(([self.t * iii + 1], self.diffu.Tz))
+                age_time = np.concatenate(([self.t * iii + 1], self.age))
+                z_time   = np.concatenate(([self.t * iii + 1], self.z))
                 if self.c['physGrain']:
-                    r2_time = np.concatenate(([t * iter + 1], self.r2))
+                    r2_time = np.concatenate(([self.t * iii + 1], self.r2))
 
                 write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)
 

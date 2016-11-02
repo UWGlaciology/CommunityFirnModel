@@ -3,7 +3,7 @@ import os
 from string import join
 import numpy as np
 
-def write_nospin(folder, physGrain, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time):
+def write_nospin_init(folder, physGrain, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time):
     '''
     Writes the results of density, temperature, age, depth, Dcon, Clim, bdot, and r2 (if specified)
     Not used in spin mode
@@ -54,6 +54,60 @@ def write_nospin(folder, physGrain, rho_time, Tz_time, age_time, z_time, D_time,
         csvwriter.writerow(bdot_time)
     if physGrain:
         with open(r2Path, "w") as f:
+            csvwriter = csv.writer(f)
+            csvwriter.writerow(r2_time)
+
+def write_nospin(folder, physGrain, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time):
+    '''
+    Writes the results of density, temperature, age, depth, Dcon, Clim, bdot, and r2 (if specified)
+    Not used in spin mode
+
+    :param folder: the name of the folder that the results will be written to
+    :param physGrain: specifies whether the grain growth is turned on, and whether r2 exists
+    :param rho_time:
+    :param Tz_time:
+    :param age_time:
+    :param z_time:
+    :param D_time:
+    :param Clim_time:
+    :param bdot_time:
+    :param r2_time:
+    '''
+
+    densityPath = os.path.join(folder, 'density.csv')
+    tempPath    = os.path.join(folder, 'temp.csv')
+    agePath     = os.path.join(folder, 'age.csv')
+    depthPath   = os.path.join(folder, 'depth.csv')
+    DconPath    = os.path.join(folder, 'Dcon.csv')
+    ClimPath    = os.path.join(folder, 'Clim.csv')
+    bdotPath    = os.path.join(folder, 'bdot_mean.csv')
+
+    if physGrain:
+        r2Path = os.path.join(folder, 'r2.csv')
+
+    with open(densityPath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(rho_time)
+    with open(tempPath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(Tz_time)
+    with open(agePath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(age_time)
+    with open(depthPath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(z_time)
+    with open(DconPath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(D_time)
+    with open(ClimPath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(Clim_time)
+    with open(bdotPath, "a") as f:
+        csvwriter = csv.writer(f)
+        csvwriter.writerow(bdot_time)
+    if physGrain:
+        with open(r2Path, "a") as f:
             csvwriter = csv.writer(f)
             csvwriter.writerow(r2_time)
 

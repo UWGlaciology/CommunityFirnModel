@@ -1,7 +1,7 @@
 {
 "InputFileFolder": "modelInput",
-"InputFileNameTemp": "temp_FM1.csv",
-"InputFileNamebdot": "bdot_FM1.csv",
+"InputFileNameTemp": "FM_temp1.csv",
+"InputFileNamebdot": "FM_bdot13.csv",
 "resultsFolder": "test_2",
 "physRho": "HLdynamic",
 "Ts0": 210.0,

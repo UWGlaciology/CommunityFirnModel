@@ -17,6 +17,7 @@ from reader import read_temp
 from reader import read_bdot
 from reader import read_init
 from writer import write_nospin
+from writer import write_nospin_init
 from writer import write_nospin_BCO
 from writer import write_nospin_LIZ
 from writer import write_nospin_DIP
@@ -69,12 +70,14 @@ class FirnDensityNoSpin:
 
         # load in model parameters
         gridLen, dx, dt, t, modeltime, years, stp, Ts, T_mean, bdot, bdotSec, rhos0, D_surf = self.define_parameters()
+        print 'years= ', years
+        print 'stp= ', stp
 
         # set up the initial grid of diffusivity constant
         self.Dcon = self.c['D_surf'] * np.ones(gridLen)
 
         # set up vector of times data will be written
-        self.TWrite = modeltime[INTE::INTE]
+        self.TWrite = modeltime[1::INTE]
 
         # set up initial mass, stress, and mean accumulation rate
         self.mass = self.rho * self.dz
@@ -106,7 +109,7 @@ class FirnDensityNoSpin:
             r2_time = None
 
         # write initial values to the results folder
-        write_nospin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time)
+        write_nospin_init(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time)
 
         # set up initial values for bubble close-off depth & age, lock-in zone depth & age, and depth integrated porosity
         self.bcoAgeMartAll = []
@@ -134,9 +137,9 @@ class FirnDensityNoSpin:
         if not self.c['physGrain']:
             r2_time = None
 
-        for iter in xrange(stp):
+        for iii in xrange(stp):
             start_time=time.time()
-            mtime = modeltime[iter]
+            mtime = modeltime[iii]
 
             # getting the right physics for firn density based on user input
             physics = {
@@ -156,17 +159,17 @@ class FirnDensityNoSpin:
             }
 
             parameters = {
-                'HLdynamic':      [iter, steps, self.gridLen, bdotSec, self.diffu.Tz, self.rho],
-                'HLSigfus':       [iter, steps, self.gridLen, bdotSec, self.diffu.Tz, self.rho, self.sigma],
-                'Barnola1991':    [iter, steps, self.gridLen, bdotSec, self.diffu.Tz, self.rho, self.sigma],
-                'Li2004':         [iter, steps, self.gridLen, bdotSec, T_mean, self.rho],
-                'Li2011':         [iter, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
-                'Ligtenberg2011': [iter, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
-                'Arthern2010S':   [iter, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
-                'Simonsen2013':   [iter, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
-                'Morris2013':     [iter, steps, self.gridLen, self.diffu.Tz, dt, self.rho, True],
-                'Helsen2008':     [iter, steps, bdotSec, self.c['bdot_type'], self.bdot_mean, self.diffu.Tz, Ts, self.rho],
-                'Arthern2010T':   [iter, self.gridLen, self.diffu.Tz, self.rho, self.sigma, self.r2, self.c['physGrain']],
+                'HLdynamic':      [iii, steps, self.gridLen, bdotSec, self.diffu.Tz, self.rho],
+                'HLSigfus':       [iii, steps, self.gridLen, bdotSec, self.diffu.Tz, self.rho, self.sigma],
+                'Barnola1991':    [iii, steps, self.gridLen, bdotSec, self.diffu.Tz, self.rho, self.sigma],
+                'Li2004':         [iii, steps, self.gridLen, bdotSec, T_mean, self.rho],
+                'Li2011':         [iii, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
+                'Ligtenberg2011': [iii, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
+                'Arthern2010S':   [iii, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
+                'Simonsen2013':   [iii, steps, self.gridLen, bdotSec, self.bdot_mean, self.c['bdot_type'], self.diffu.Tz, T_mean, self.rho],
+                'Morris2013':     [iii, steps, self.gridLen, self.diffu.Tz, dt, self.rho, True],
+                'Helsen2008':     [iii, steps, bdotSec, self.c['bdot_type'], self.bdot_mean, self.diffu.Tz, Ts, self.rho],
+                'Arthern2010T':   [iii, self.gridLen, self.diffu.Tz, self.rho, self.sigma, self.r2, self.c['physGrain']],
                 'Spencer2001':    [],
                 'Goujon2003':     [],
             }
@@ -178,24 +181,24 @@ class FirnDensityNoSpin:
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + dt
             self.rho = self.rho + dt * drho_dt
-            self.rho  = np.concatenate(([rhos0[iter]], self.rho[:-1]))
-            self.Dcon = np.concatenate(([D_surf[iter]], self.Dcon[:-1]))
+            self.rho  = np.concatenate(([rhos0[iii]], self.rho[:-1]))
+            self.Dcon = np.concatenate(([D_surf[iii]], self.Dcon[:-1]))
 
             # update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
-                self.diffu.heatDiff(self.z, self.dz, Ts[iter], self.rho, dt)
+                self.diffu.heatDiff(self.z, self.dz, Ts[iii], self.rho, dt)
             if self.c['heatDiff']:
-                self.diffu.isoDiff(iter, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, dt)
+                self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, dt)
 
             # update model grid
-            dzNew = bdotSec[iter] * RHO_I / rhos0[iter] * S_PER_YEAR
+            dzNew = bdotSec[iii] * RHO_I / rhos0[iii] * S_PER_YEAR
             self.dz = self.mass / self.rho * dx
             self.dz = np.concatenate(([dzNew], self.dz[:-1]))
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
 
             # update mass, stress, and mean accumulation rate
-            massNew = bdotSec[iter] * S_PER_YEAR * RHO_I
+            massNew = bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass = np.concatenate(([massNew], self.mass[:-1]))
             self.sigma = self.mass * dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
@@ -204,16 +207,16 @@ class FirnDensityNoSpin:
 
             # update grain radius
             if self.c['physGrain']:
-                self.r2 = grainGrowth(self.diffu.Tz, Ts, iter, dt, self.r2, self.c['calcGrainSize'])
+                self.r2 = grainGrowth(self.diffu.Tz, Ts, iii, dt, self.r2, self.c['calcGrainSize'])
 
             # write results as often as specified in the init method
-            if [True for iter in self.TWrite if iter == mtime] == [True]:
+            if [True for iii in self.TWrite if iii == mtime] == [True]:
                 rho_time  = np.append(mtime, self.rho)
                 Tz_time   = np.append(mtime, self.diffu.Tz)
                 age_time  = np.append(mtime, self.age)
                 z_time    = np.append(mtime, self.z)
                 Dcon_time = np.append(mtime, self.Dcon)
-                Clim_time = np.append(mtime, [bdot[iter], Ts[iter]])
+                Clim_time = np.append(mtime, [bdot[int(iii)], Ts[int(iii)]])
                 bdot_time = np.append(mtime, self.bdot_mean)
                 if self.c['physGrain']:
                     r2_time = np.append(mtime, self.r2)
