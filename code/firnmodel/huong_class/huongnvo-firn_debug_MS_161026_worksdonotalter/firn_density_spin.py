@@ -55,7 +55,9 @@ class FirnDensitySpin:
         THL = input_temp[0]
         AHL = input_bdot[0]
         self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL)
-        dx, dt, t, stp, Ts, T_mean, bdotSec, rhos0 = self.define_parameters()
+        dx, dt, t, stp, Ts, T_mean, bdotSec, rhos0, years = self.define_parameters()
+        print 'years= ', years
+        print 'stp= ', stp 
 
         # set up model grid
         # moved up code --> line 54, 55
@@ -96,7 +98,7 @@ class FirnDensitySpin:
         '''
         
         # load in model parameters
-        dx, dt, t, stp, Ts, T_mean, bdotSec, rhos0 = self.define_parameters()
+        dx, dt, t, stp, Ts, T_mean, bdotSec, rhos0, years = self.define_parameters()
         steps = 1 / t #this is time steps per year
         if not self.c['physGrain']:
             r2_time = None
@@ -237,4 +239,4 @@ class FirnDensitySpin:
 
         rhos0 = self.c['rhos0'] * np.ones(stp)
 
-        return dx, dt, t, stp, Ts, T_mean, bdotSec, rhos0
+        return dx, dt, t, stp, Ts, T_mean, bdotSec, rhos0, years
