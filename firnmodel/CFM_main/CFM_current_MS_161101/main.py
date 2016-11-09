@@ -24,10 +24,10 @@ if __name__ == '__main__':
     }
     
     tic=time.time()
-    try:
-        firn = configSpin[spin](configName)
-    except KeyError:
-        default()
+    # try:
+    firn = configSpin[spin](configName)
+    # except KeyError:
+        # sys.exit("Error")
 
     firn.time_evolve()
     

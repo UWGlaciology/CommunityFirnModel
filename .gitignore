@@ -5,7 +5,19 @@ code/gasmodel/Results/ESS524_fig1.eps
 
 code/gasmodel/Results/ESS524_fig2.eps
 
-*.csv
+Clim.csv
+Dcon.csv
+age.csv
+ageSpin.csv
+density.csv
+densitySpin.csv
+depth.csv
+depthSpin.csv
+r2.csv
+r2Spin.csv
+temp.csv
+tempSpin.csv
+
 
 *.log
 *.avi

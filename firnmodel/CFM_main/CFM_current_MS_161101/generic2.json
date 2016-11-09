@@ -28,6 +28,8 @@
 "bdot_options": ["instant","mean"],
 "isoDiff": "on",
 "iso": "18",
-"_isoOptions":["18","D"]
+"_isoOptions":["18","D"],
+"SeasonalTcycle": false,
+"AutoSpinUpTime": true
 }
 

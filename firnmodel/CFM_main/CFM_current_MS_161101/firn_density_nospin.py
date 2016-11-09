@@ -14,22 +14,45 @@ import csv
 import json
 import sys
 import math
-#from scipy import interpolate
-#from scipy.sparse import spdiags
-#import scipy.sparse.linalg as splin
-#from plot import plotData
 from shutil import rmtree
-#import matplotlib.pyplot as plt
 import os
 from string import join
 import shutil
 import time
-#import data_interp as IntpData
-
-
-
 
 class FirnDensityNoSpin:
+    '''
+    Parameters used in the model, for the initialization as well as the time evolution:
+
+    : gridLen: size of grid used in the model run
+                (unit: number of boxes, type: int)
+    : dx: vector of width of each box, used for stress calculations
+                (unit: ???, type: array of ints)
+    : dt: number of seconds per time step
+                (unit: seconds, type: float)
+    : t: number of years per time step
+                (unit: years, type: float)
+    : modeltime: linearly spaced time vector from indicated start year to indicated end year
+                (unit: years, type: array of floats)
+    : years: total number of years in the model run
+                (unit: years, type: float)
+    : stp: total number of steps in the model run
+                (unit: number of steps, type: int)
+    : T_mean: interpolated temperature vector based on the model time and the initial user temperature data
+                (unit: ???, type: array of floats)
+    : Ts: interpolated temperature vector based on the model time & the initial user temperature data
+                may have a seasonal signal imposed depending on number of years per time step (< 1)
+                (unit: ???, type: array of floats)
+    : bdot: bdot is meters of ice equivalent/year. multiply by 0.917 for W.E. or 917.0 for kg/year
+                (unit: ???, type: )
+    : bdotSec: accumulation rate vector at each time step
+                (unit: ???, type: array of floats)
+    : rhos0: surface accumulate rate vector
+                (unit: ???, type: array of floats)
+    :returns D_surf: diffusivity tracker
+                (unit: ???, type: array of floats)
+    '''
+
     def __init__(self, configName):
         '''
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
@@ -38,83 +61,82 @@ class FirnDensityNoSpin:
 
         # load in json config file and parses the user inputs to a dictionary
         with open(configName, "r") as f:
-            jsonString = f.read()
-            self.c = json.loads(jsonString)
+            jsonString      = f.read()
+            self.c          = json.loads(jsonString)
 
         # read in initial depth, age, density, temperature from spin-up results
         initDepth, initAge, initDensity, initTemp = read_init(self.c['resultsFolder'])
 
         # set up the initial age and density of the firn column
-        self.age     = initAge[1:]
-        self.rho     = initDensity[1:]
+        self.age        = initAge[1:]
+        self.rho        = initDensity[1:]
 
         # set up model grid
-        self.z  = initDepth[1:]
-        self.dz = np.diff(self.z)
-        self.dz = np.append(self.dz, self.dz[-1])
+        self.z          = initDepth[1:]
+        self.dz         = np.diff(self.z)
+        self.dz         = np.append(self.dz, self.dz[-1])
+        self.gridLen    = np.size(self.z)
+        self.dx         = np.ones(self.gridLen)
 
-        self.gridLen = np.size(self.z)
-        self.dx = np.ones(self.gridLen)
-
+        # get temperature and accumulation rate from input file
         input_temp, input_year_temp = read_temp(self.c['InputFileNameTemp'])
         input_bdot, input_year_bdot = read_bdot(self.c['InputFileNamebdot'])
 
-        yr_start  = max(input_year_temp[0], input_year_bdot[0])
-        yr_end    = min(input_year_temp[-1], input_year_bdot[-1])
+        # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
+        yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
+        yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
         
-        self.years     = (yr_end - yr_start) * 1.0
-        self.stp       = int(self.years * self.c['stpsPerYear'])
-        self.modeltime = np.linspace(yr_start, yr_end, self.stp + 1)
+        self.years      = (yr_end - yr_start) * 1.0                     # number of years in model run, as a float
+        self.stp        = int(self.years * self.c['stpsPerYear'])       # total number of time steps, as integer
+        self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
+        self.dt         = self.years * S_PER_YEAR / self.stp            # size of time steps, seconds
+        self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
 
-        self.dt = self.years * S_PER_YEAR / self.stp
-        self.t  = 1.0 / self.c['stpsPerYear']
+        self.Ts         = np.interp(self.modeltime, input_year_temp, input_temp) # surface temperature
+        self.T_mean     = self.Ts # initially the mean temp is the same as the surface temperature
 
-        self.TPeriod = self.years
-        self.Ts = np.interp(self.modeltime, input_year_temp, input_temp)
-        self.T_mean = self.Ts
-        if self.t < 1.0:
-            self.Ts = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.TPeriod, self.stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.TPeriod, self.stp + 1)))
+        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
+            self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
 
-        self.bdot = np.interp(self.modeltime, input_year_bdot, input_bdot)
-        self.bdotSec = self.bdot / S_PER_YEAR / (self.stp / self.years)
+        self.bdot       = np.interp(self.modeltime, input_year_bdot, input_bdot) # interpolate accumulation rate to model time ???Should this be nearest?
+        self.bdotSec    = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 
-        self.rhos0 = self.c['rhos0'] * np.ones(self.stp)
-        self.D_surf = self.c['D_surf'] * np.ones(self.stp)
+        self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+        self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
-        # set up the initial grid of diffusivity constant
-        self.Dcon = self.c['D_surf'] * np.ones(self.gridLen)
+        self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
         # set up vector of times data will be written
-        self.TWrite = self.modeltime[1::c['TWriteInt']]
+        self.TWrite     = self.modeltime[1::self.c['TWriteInt']]
 
         # set up initial mass, stress, and mean accumulation rate
-        self.mass = self.rho * self.dz
-        self.sigma = self.mass * self.dx * GRAVITY
-        self.sigma = self.sigma.cumsum(axis = 0)
-        self.mass_sum = self.mass.cumsum(axis = 0)
-        self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
+        self.mass       = self.rho * self.dz
+        self.sigma      = self.mass * self.dx * GRAVITY
+        self.sigma      = self.sigma.cumsum(axis = 0)
+        self.mass_sum   = self.mass.cumsum(axis = 0)
+        self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
 
         # set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
-        self.diffu = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:])
+        self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:])
 
-        # set up initial values for density, temperature, age, depth, diffusivity, Clim??, and accumulation to write
-        rho_time  = np.append(self.modeltime[0], self.rho)
-        Tz_time   = np.append(self.modeltime[0], self.diffu.Tz)
-        age_time  = np.append(self.modeltime[0], self.age)
-        z_time    = np.append(self.modeltime[0], self.z)
-        D_time    = np.append(self.modeltime[0], self.Dcon)
-        Clim_time = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
-        bdot_time = np.append(self.modeltime[0], self.bdot_mean)
+        # set up initial values for density, temperature, age, depth, diffusivity, model climate, and accumulation to write
+        rho_time        = np.append(self.modeltime[0], self.rho)
+        Tz_time         = np.append(self.modeltime[0], self.diffu.Tz)
+        age_time        = np.append(self.modeltime[0], self.age)
+        z_time          = np.append(self.modeltime[0], self.z)
+        D_time          = np.append(self.modeltime[0], self.Dcon)
+        Clim_time       = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
+        bdot_time       = np.append(self.modeltime[0], self.bdot_mean)
 
         # set up initial grain growth (if specified in config file)
         if self.c['physGrain']:
-            r2Path   = os.path.join(self.c['resultsFolder'], 'r2Spin.csv')
-            initr2 = np.genfromtxt(r2Path, delimiter = ',')
-            self.r2 = initr2[1:]
-            r20 = self.r2
-            r2_time = np.append(self.modeltime[0], self.r2)
+            r2Path          = os.path.join(self.c['resultsFolder'], 'r2Spin.csv')
+            initr2          = np.genfromtxt(r2Path, delimiter = ',')
+            self.r2         = initr2[1:]
+            r20             = self.r2
+            r2_time         = np.append(self.modeltime[0], self.r2)
         else:
-            r2_time = None
+            r2_time         = None
 
         # write initial values to the results folder
         write_nospin_init(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time)
@@ -131,6 +153,7 @@ class FirnDensityNoSpin:
         self.update_BCO()
         self.update_LIZ()
         self.update_DIP()
+    ##### END INIT #####
 
     def time_evolve(self):
         '''
@@ -141,7 +164,11 @@ class FirnDensityNoSpin:
         if not self.c['physGrain']:
             r2_time = None
 
-        start_time=time.time()
+        start_time=time.time() # this is a timer to keep track of how long the model run takes.
+
+        ####################################
+        ##### START TIME-STEPPING LOOP #####
+        ####################################
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
 
@@ -234,6 +261,10 @@ class FirnDensityNoSpin:
                 self.update_BCO()
                 self.update_LIZ()
                 self.update_DIP()
+        
+        ##################################
+        ##### END TIME-STEPPING LOOP #####
+        ##################################
         time_done=time.time()
         print 'time for loop=', time_done-start_time, 'seconds'
 
@@ -241,69 +272,7 @@ class FirnDensityNoSpin:
         write_nospin_BCO(self.c['resultsFolder'], self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All,self.modeltime,self.TWrite)
         write_nospin_LIZ(self.c['resultsFolder'], self.LIZAgeAll, self.LIZDepAll,self.modeltime,self.TWrite)
         write_nospin_DIP(self.c['resultsFolder'], self.intPhiAll,self.modeltime,self.TWrite)
-
-    # def define_parameters(self):
-    #     '''
-    #     Return the parameters used in the model, for the initialization as well as the time evolution
-
-    #     :returns gridLen: size of grid used in the model run
-    #                      (unit: number of boxes, type: int)
-    #     :returns dx: vector of width of each box, used for stress calculations
-    #                 (unit: ???, type: array of ints)
-    #     :returns dt: number of seconds per time step
-    #                 (unit: seconds, type: float)
-    #     :returns t: number of years per time step
-    #                (unit: years, type: float)
-    #     :returns modeltime: linearly spaced time vector from indicated start year to indicated end year
-    #                        (unit: years, type: array of floats)
-    #     :returns years: total number of years in the model run
-    #                    (unit: years, type: float)
-    #     :returns stp: total number of steps in the model run
-    #                  (unit: number of steps, type: int)
-    #     :returns T_mean: interpolated temperature vector based on the model time and the initial user temperature data
-    #                     (unit: ???, type: array of floats)
-    #     :returns Ts: interpolated temperature vector based on the model time & the initial user temperature data
-    #                 may have a seasonal signal imposed depending on number of years per time step (< 1)
-    #                 (unit: ???, type: array of floats)
-    #     :returns bdot: bdot is meters of ice equivalent/year. multiply by 0.917 for W.E. or 917.0 for kg/year
-    #                   (unit: ???, type: )
-    #     :returns bdotSec: accumulation rate vector at each time step
-    #                      (unit: ???, type: array of floats)
-    #     :returns rhos0: surface accumulate rate vector
-    #                    (unit: ???, type: array of floats)
-    #     :returns D_surf: diffusivity tracker
-    #                     (unit: ???, type: array of floats)
-    #     '''
-
-    #     gridLen = np.size(self.z)
-    #     dx = np.ones(gridLen)
-
-    #     input_temp, input_year_temp = read_temp(self.c['InputFileNameTemp'])
-    #     input_bdot, input_year_bdot = read_bdot(self.c['InputFileNamebdot'])
-
-    #     yr_start  = max(input_year_temp[0], input_year_bdot[0])
-    #     yr_end    = min(input_year_temp[-1], input_year_bdot[-1])
-        
-    #     years     = (yr_end - yr_start) * 1.0
-    #     stp       = int(years * self.c['stpsPerYear'])
-    #     modeltime = np.linspace(yr_start, yr_end, stp + 1)
-
-    #     dt = years * S_PER_YEAR / stp
-    #     t  = 1.0 / self.c['stpsPerYear']
-
-    #     TPeriod = years
-    #     Ts = np.interp(modeltime, input_year_temp, input_temp)
-    #     T_mean = Ts
-    #     if t < 1.0:
-    #         Ts = Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, TPeriod, stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, TPeriod, stp + 1)))
-
-    #     bdot = np.interp(modeltime, input_year_bdot, input_bdot)
-    #     bdotSec = bdot / S_PER_YEAR / (stp / years)
-
-    #     rhos0 = self.c['rhos0'] * np.ones(stp)
-    #     D_surf = self.c['D_surf'] * np.ones(stp)
-
-    #     return gridLen, dx, dt, t, modeltime, years, stp, Ts, T_mean, bdot, bdotSec, rhos0, D_surf
+    ##### END time_evolve #####
 
     def update_BCO(self):
         '''
@@ -321,6 +290,7 @@ class FirnDensityNoSpin:
         bcoDep815 = min(self.z[self.rho >= (RHO_2)])
         self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
         self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
+    #### end update_BCO
 
     def update_LIZ(self):
         '''
@@ -333,6 +303,7 @@ class FirnDensityNoSpin:
         self.LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
         self.LIZAgeAll.append(self.LIZAgeMart)
         self.LIZDepAll.append(self.LIZDepMart)
+    #### end update_LIZ 
 
     def update_DIP(self):
         '''
@@ -350,3 +321,4 @@ class FirnDensityNoSpin:
 
         intPhi = np.sum(phi * self.dz)  # depth-integrated porosity
         self.intPhiAll.append(intPhi)
+    #### end update_DIP
