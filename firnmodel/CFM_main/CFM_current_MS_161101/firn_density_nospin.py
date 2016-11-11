@@ -225,16 +225,24 @@ class FirnDensityNoSpin:
             if self.c['isoDiff']:
                 self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, self.dt)
 
-            # update model grid
-            dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-            self.dz = self.mass / self.rho * self.dx
-            self.dz = np.concatenate(([dzNew], self.dz[:-1]))
-            self.z = self.dz.cumsum(axis = 0)
-            self.z = np.concatenate(([0], self.z[:-1]))
+            melt = False
 
-            # update mass, stress, and mean accumulation rate
-            massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-            self.mass = np.concatenate(([massNew], self.mass[:-1]))
+            if melt:
+                pass
+
+            else:
+            # update model grid
+                dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dz = self.mass / self.rho * self.dx
+                self.dz = np.concatenate(([dzNew], self.dz[:-1]))
+                self.z = self.dz.cumsum(axis = 0)
+                self.z = np.concatenate(([0], self.z[:-1]))
+
+                # update mass, stress, and mean accumulation rate
+                massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                self.mass = np.concatenate(([massNew], self.mass[:-1]))
+
+
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
             self.mass_sum  = self.mass.cumsum(axis = 0)
