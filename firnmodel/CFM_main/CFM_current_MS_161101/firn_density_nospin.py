@@ -93,7 +93,7 @@ class FirnDensityNoSpin:
         self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
 
         self.Ts         = np.interp(self.modeltime, input_year_temp, input_temp) # surface temperature
-        self.T_mean     = self.Ts # initially the mean temp is the same as the surface temperature
+        
 
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
@@ -118,6 +118,7 @@ class FirnDensityNoSpin:
 
         # set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
         self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:])
+        self.T_mean     = self.diffu.T10m # initially the mean temp is the same as the surface temperature
 
         # set up initial values for density, temperature, age, depth, diffusivity, model climate, and accumulation to write
         rho_time        = np.append(self.modeltime[0], self.rho)
@@ -138,8 +139,18 @@ class FirnDensityNoSpin:
         else:
             r2_time         = None
 
+        if self.c['physRho']=='Morris2013':
+            self.THist      = True
+            HxPath          = os.path.join(self.c['resultsFolder'], 'HxSpin.csv')
+            initHx          = np.genfromtxt(HxPath, delimiter = ',')
+            self.Hx         = initHx[1:]
+            Hx_time         = np.append(self.modeltime[0], self.Hx)
+        else:
+            self.THist      = False
+            Hx_time         = None
+
         # write initial values to the results folder
-        write_nospin_init(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time)
+        write_nospin_init(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time, Hx_time)
 
         # set up initial values for bubble close-off depth & age, lock-in zone depth & age, and depth integrated porosity
         self.bcoAgeMartAll = []
@@ -163,6 +174,8 @@ class FirnDensityNoSpin:
         self.steps = 1 / self.t
         if not self.c['physGrain']:
             r2_time = None
+        if not self.THist:
+            Hx_time = None
 
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
 
@@ -187,9 +200,13 @@ class FirnDensityNoSpin:
                 'dt':           self.dt,
                 'Ts':           self.Ts,
                 'r2':           self.r2,
+                'age':          self.age,
                 'physGrain':    self.c['physGrain'],
                 'calcGrainSize':self.c['calcGrainSize']
             }
+
+            if self.THist: #add Hx to dictionary if physics is Morris
+                PhysParams['Hx']=self.Hx
 
             # choose densification-physics based on user input
             physicsd = {
@@ -218,6 +235,9 @@ class FirnDensityNoSpin:
             self.rho = self.rho + self.dt * drho_dt
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
             self.Dcon = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
+
+            if self.THist:
+                self.Hx = FirnPhysics(PhysParams).THistory()
 
             # update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
@@ -263,8 +283,10 @@ class FirnDensityNoSpin:
                 bdot_time = np.append(mtime, self.bdot_mean)
                 if self.c['physGrain']:
                     r2_time = np.append(mtime, self.r2)
+                if self.THist:
+                    Hx_time = np.append(mtime, self.Hx)
 
-                write_nospin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, Dcon_time, Clim_time, bdot_time, r2_time)
+                write_nospin(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, Dcon_time, Clim_time, bdot_time, r2_time, Hx_time)
 
                 self.update_BCO()
                 self.update_LIZ()

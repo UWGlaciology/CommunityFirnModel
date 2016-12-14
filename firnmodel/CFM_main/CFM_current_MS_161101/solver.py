@@ -84,7 +84,6 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
         a_P =  a_U + a_D + a_P_0
 
         bc_u_0 = phi_s
-    #         print 'phis=',phi_s
         bc_type = 1.
         bc_u   = np.concatenate(([ bc_u_0], [bc_type]))
         bc_d_0 = 0
@@ -106,7 +105,5 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 
         phi_t = solver(a_U, a_D, a_P, b)
         a_P = a_U + a_D + a_P_0
-        print 'itime=',i_time
-        print 'phi_t=',phi_t
 
     return phi_t

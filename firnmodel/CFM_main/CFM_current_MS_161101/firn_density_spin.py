@@ -61,6 +61,8 @@ class FirnDensitySpin:
             jsonString = f.read()
             self.c = json.loads(jsonString)
 
+        print "physics are", self.c['physRho']
+
         # create directory to store results. Deletes if it exists already.
         if os.path.exists(self.c['resultsFolder']):
             rmtree(self.c['resultsFolder'])
@@ -85,7 +87,7 @@ class FirnDensitySpin:
         # get an initial depth/density based on H&L analytic solution
         THL = input_temp[0]
         AHL = input_bdot[0]
-        self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL)
+        self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) #self.age is in seconds
 
         # spin-up time
         if self.c['AutoSpinUpTime']: #automatic, based on time that it will take for a parcel to get to 850 kg m^-3
@@ -99,10 +101,11 @@ class FirnDensitySpin:
         
         self.stp        = int(self.years * self.c['stpsPerYearSpin']) # total number of time steps, as integer
         self.dt         = self.years * S_PER_YEAR / self.stp # size of time steps, seconds
+        self.dts        = self.years / self.stp # size of time step, years
         self.t          = 1.0 / self.c['stpsPerYearSpin'] # years per time step
 
         self.Ts         = self.temp0 * np.ones(self.stp)
-        self.T_mean     = self.Ts
+        self.T_mean     = np.mean(self.Ts)
 
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
@@ -130,6 +133,14 @@ class FirnDensitySpin:
                 self.r2 = r02 * np.ones(self.gridLen)
             else:
                 self.r2 = np.linspace(self.c['r2s0'], (6 * self.c['r2s0']), self.gridLen)
+
+        if self.c['physRho']=='Morris2013':
+            # initial temperature history function (units seconds)
+            self.Hx = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
+            self.THist = True
+        else:
+            self.THist = False
+
     ##### END INIT #####
 
     def time_evolve(self):
@@ -138,8 +149,6 @@ class FirnDensitySpin:
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
         '''
         self.steps = 1 / self.t #this is time steps per year
-        if not self.c['physGrain']:
-            r2_time = None
 
         ####################################
         ##### START TIME-STEPPING LOOP #####
@@ -161,9 +170,12 @@ class FirnDensitySpin:
                 'dt':           self.dt,
                 'Ts':           self.Ts,
                 'r2':           self.r2,
+                'age':          self.age,
                 'physGrain':    self.c['physGrain'],
                 'calcGrainSize':self.c['calcGrainSize']
             }
+            if self.THist:
+                PhysParams['Hx']=self.Hx
 
             # choose densification-physics based on user input
             physicsd = {
@@ -191,6 +203,9 @@ class FirnDensitySpin:
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+        
+            if self.THist:
+                self.Hx = FirnPhysics(PhysParams).THistory()
 
             # update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
@@ -225,5 +240,14 @@ class FirnDensitySpin:
                 z_time   = np.concatenate(([self.t * iii + 1], self.z))
                 if self.c['physGrain']:
                     r2_time = np.concatenate(([self.t * iii + 1], self.r2))
+                else:
+                    r2_time = None
+                if self.THist:                
+                    Hx_time = np.concatenate(([self.t * iii + 1], self.Hx))
+                else:
+                    Hx_time = None
 
-                write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)
+                    
+                write_spin(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time)
+
+                # write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)
