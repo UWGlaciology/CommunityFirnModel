@@ -179,25 +179,26 @@ class FirnDensitySpin:
 
             # choose densification-physics based on user input
             physicsd = {
-                'HLdynamic':       FirnPhysics(PhysParams).HL_dynamic,
-                'HLSigfus':        FirnPhysics(PhysParams).HL_Sigfus,
-                'Barnola1991':     FirnPhysics(PhysParams).Barnola_1991,
-                'Li2004':          FirnPhysics(PhysParams).Li_2004,
-                'Li2011':          FirnPhysics(PhysParams).Li_2011,
-                'Ligtenberg2011':  FirnPhysics(PhysParams).Ligtenberg_2011,
-                'Arthern2010S':    FirnPhysics(PhysParams).Arthern_2010S,
-                'Simonsen2013':    FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2013':      FirnPhysics(PhysParams).Morris_HL_2013,
-                'Helsen2008':      FirnPhysics(PhysParams).Helsen_2008,
-                'Arthern2010T':    FirnPhysics(PhysParams).Arthern_2010T,
-                'Spencer2001':     FirnPhysics(PhysParams).Spencer_2001,
-                'Goujon2003':      FirnPhysics(PhysParams).Goujon_2003,
+                'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
+                'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
+                'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
+                'Li2004':               FirnPhysics(PhysParams).Li_2004,
+                'Li2011':               FirnPhysics(PhysParams).Li_2011,
+                'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
+                'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
+                'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
+                'Morris2013':           FirnPhysics(PhysParams).Morris_HL_2013,
+                'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
+                'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
+                'Spencer2001':          FirnPhysics(PhysParams).Spencer_2001,
+                'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
+                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015
             }
 
-            try:
-                drho_dt = physicsd[self.c['physRho']]()
-            except KeyError:
-                default()
+            # try:
+            drho_dt = physicsd[self.c['physRho']]()
+            # except KeyError:
+                # default()
 
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt

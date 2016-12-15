@@ -404,6 +404,45 @@ class FirnPhysics:
        
         return drho_dt
 
+    def KuipersMunneke_2015(self): #b_dot is in mm W.E. per year.
+        '''
+
+        '''
+
+        ar1=0.07
+        ar2=0.03
+        Ec=60.0e3
+        Eg=42.4e3
+
+        dr_dt = np.zeros(self.gridLen)
+
+        A_instant = self.bdotSec[self.iii] * self.steps * BDOT_TO_A * 1000
+        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
+
+        if self.bdot_type == 'instant':
+            M_0=1.042-0.0916*np.log(self.bdotSec[iii]*S_PER_YEAR*1e3*0.917)
+            M_1=1.734-0.2039*np.log(self.bdotSec[iii]*S_PER_YEAR*1e3*0.917)            
+            M_0=np.maximum(M_0,0.25)
+            M_1=np.maximum(M_1,0.25)
+
+            dr_dt[self.rho<RHO_1]  = (RHO_I-self.rho[self.rho<RHO_1])*M_0*ar1*A_instant*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho<RHO_1])+Eg/(R*self.T_mean))
+            dr_dt[self.rho>=RHO_1] = (RHO_I-self.rho[self.rho>=RHO_1])*M_1*ar2*A_instant*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho>=RHO_1])+Eg/(R*self.T_mean))                           
+        
+        elif self.bdot_type == 'mean':
+            M_0=1.042-0.0916*np.log(self.bdot_mean[self.rho<RHO_1]*S_PER_YEAR*917.0)
+            M_1=1.734-0.2039*np.log(self.bdot_mean[self.rho>=RHO_1]*S_PER_YEAR*917.0)
+            M_0=np.maximum(M_0,0.25)
+            M_1=np.maximum(M_1,0.25)
+            dr_dt[self.rho<RHO_1]  = (RHO_I-self.rho[self.rho<RHO_1])*M_0*ar1*A_mean_1*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho<RHO_1])+Eg/(R*self.T_mean))
+            dr_dt[self.rho>=RHO_1] = (RHO_I-self.rho[self.rho>=RHO_1])*M_1*ar2*A_mean_2*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho>=RHO_1])+Eg/(R*self.T_mean))
+        
+        drho_dt = dr_dt/S_PER_YEAR
+
+        return drho_dt
+        
+
+
     def Spencer_2001(self):
         '''
         :return:
