@@ -108,7 +108,7 @@ class FirnDensitySpin:
         self.T_mean     = np.mean(self.Ts)
 
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
-            self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
+            self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         
         self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (per second)
         self.bdotSec    = self.bdotSec0 * np.ones(self.stp) # vector of accumulation at each time step
@@ -133,6 +133,8 @@ class FirnDensitySpin:
                 self.r2 = r02 * np.ones(self.gridLen)
             else:
                 self.r2 = np.linspace(self.c['r2s0'], (6 * self.c['r2s0']), self.gridLen)
+        else:
+            self.r2 = None
 
         if self.c['physRho']=='Morris2013':
             # initial temperature history function (units seconds)
@@ -172,7 +174,9 @@ class FirnDensitySpin:
                 'r2':           self.r2,
                 'age':          self.age,
                 'physGrain':    self.c['physGrain'],
-                'calcGrainSize':self.c['calcGrainSize']
+                'calcGrainSize':self.c['calcGrainSize'],
+                'z':            self.z,
+                'rhos0':        self.rhos0[iii]
             }
             if self.THist:
                 PhysParams['Hx']=self.Hx

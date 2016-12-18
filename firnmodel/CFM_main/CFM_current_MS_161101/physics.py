@@ -409,10 +409,10 @@ class FirnPhysics:
 
         '''
 
-        ar1=0.07
-        ar2=0.03
-        Ec=60.0e3
-        Eg=42.4e3
+        ar1 = 0.07
+        ar2 = 0.03
+        Ec  = 60.0e3
+        Eg  = 42.4e3
 
         dr_dt = np.zeros(self.gridLen)
 
@@ -421,27 +421,26 @@ class FirnPhysics:
         A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
 
         if self.bdot_type == 'instant':
-            M_0=1.042-0.0916*np.log(self.bdotSec[iii]*S_PER_YEAR*1e3*0.917)
-            M_1=1.734-0.2039*np.log(self.bdotSec[iii]*S_PER_YEAR*1e3*0.917)            
-            M_0=np.maximum(M_0,0.25)
-            M_1=np.maximum(M_1,0.25)
+            M_0 = 1.042 - 0.0916 * np.log(self.bdotSec[iii] * S_PER_YEAR * 1e3 * 0.917)
+            M_1 = 1.734 - 0.2039 * np.log(self.bdotSec[iii] * S_PER_YEAR * 1e3 * 0.917)            
+            M_0 = np.maximum(M_0,0.25)
+            M_1 = np.maximum(M_1,0.25)
 
-            dr_dt[self.rho<RHO_1]  = (RHO_I-self.rho[self.rho<RHO_1])*M_0*ar1*A_instant*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho<RHO_1])+Eg/(R*self.T_mean))
-            dr_dt[self.rho>=RHO_1] = (RHO_I-self.rho[self.rho>=RHO_1])*M_1*ar2*A_instant*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho>=RHO_1])+Eg/(R*self.T_mean))                           
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))                           
         
         elif self.bdot_type == 'mean':
-            M_0=1.042-0.0916*np.log(self.bdot_mean[self.rho<RHO_1]*S_PER_YEAR*917.0)
-            M_1=1.734-0.2039*np.log(self.bdot_mean[self.rho>=RHO_1]*S_PER_YEAR*917.0)
-            M_0=np.maximum(M_0,0.25)
-            M_1=np.maximum(M_1,0.25)
-            dr_dt[self.rho<RHO_1]  = (RHO_I-self.rho[self.rho<RHO_1])*M_0*ar1*A_mean_1*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho<RHO_1])+Eg/(R*self.T_mean))
-            dr_dt[self.rho>=RHO_1] = (RHO_I-self.rho[self.rho>=RHO_1])*M_1*ar2*A_mean_2*GRAVITY*np.exp(-Ec/(R*self.Tz[self.rho>=RHO_1])+Eg/(R*self.T_mean))
+            M_0 = 1.042 - 0.0916 * np.log(self.bdot_mean[self.rho < RHO_1] * S_PER_YEAR * 917.0)
+            M_1 = 1.734 - 0.2039 * np.log(self.bdot_mean[self.rho >= RHO_1] * S_PER_YEAR * 917.0)
+            M_0 = np.maximum(M_0,0.25)
+            M_1 = np.maximum(M_1,0.25)
+
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
         
-        drho_dt = dr_dt/S_PER_YEAR
+        drho_dt = dr_dt / S_PER_YEAR
 
         return drho_dt
-        
-
 
     def Spencer_2001(self):
         '''
@@ -453,7 +452,133 @@ class FirnPhysics:
         '''
         :return:
         '''
-        pass
+        global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou
+        # print "gridLen", self.gridLen
+        atmosP = 101325.0 # Atmospheric Pressure
+        dDdt        = np.zeros(self.gridLen) # Capital D is change in relative density
+
+        top2m           = np.nonzero(self.z <= 1.)
+        # print 'top2', np.max(top2m)
+        self.rho[top2m] = self.rhos0 # top 2 meters of Goujon model are always set to surface density
+        
+        sigma_MPa   = self.sigma / (1.0e6)
+        sigma_bar   = self.sigma / (1.0e5)
+        Qgj         = 60.0e3
+        n           = 3.0 
+
+        rhoi2cgs    = .9165 * (1.-1.53e-4 * (self.T_mean - 273.15)) # Density of ice, temperature dependent, g/cm^3
+        rhoi2       = rhoi2cgs * 1000.0 # density of ice, kg/m^3
+        
+        D           = self.rho / rhoi2 # Relative density
+
+        # print 'rho',self.rho[0:10]
+        # print 'sigma',sigma_bar[0:10]
+        # print 'T_mean', self.T_mean
+        
+        Dm23        = 0.9 #transition from zone 2 to 3
+        rho23       = Dm23 * rhoi2 #density of 2/3 transition
+        
+        D0          = 0.00226 * self.T_mean + 0.03 #D0 is the relative density of transition from zone 1 to 2. Here is from Arnaud et al. (2000) eq. 8, not Goujon (Goujon uses C, not K)
+
+        if D0 > 0.59: #Model requires zone 1/2 transition to be less than D=0.6
+            D0      = 0.59
+        Dms         = D0 + 0.009 #D0 + epsilon factor, maximum is 0.599
+        Dmsrho      = Dms * rhoi2 # density of zone 1/2 transition
+        
+        ind1        = np.argmax(D >= Dms) #first index where the density is greater than or equal to the transition
+        Dm          = D[ind1] #actual transition relative density. Use this so that the transition falls at a node
+        Dmrho      = Dm * rhoi2 #density of first node, zone 2
+
+        # print 'ind1', ind1
+
+        A           = 7.89e3 * np.exp(-Qgj/(R * self.Tz)) * 1.0e-3 #A given in MPa^-3 s^-1, Goujon uses bar as pressure unit. Eq. A5 in Goujon
+        ccc         = 15.5 # no units given, equation A7, given as c
+        Z0g         = 110.2 * D0 ** 3.-148.594 * D0 ** 2.+87.6166 * D0-17. #from Anais' code           
+        lp          = (D/D0) ** (1.0/3.0) # A6
+        Zg          = Z0g+ccc * (lp-1.0) # A7
+        lpp_n       = (4.0 * Z0g * (lp-1.0) ** 2.0 * (2.0 * lp+1.0) + ccc * (lp-1.0) ** 3.0 * (3.0 * lp + 1.0)) # A8, numerator
+        lpp_d       = (12.0 * lp * (4.0 * lp - 2.0 * Z0g * (lp-1.0) - ccc * (lp-1.0) ** 2.0)) # A8, denominator
+        lpp         = lp + (lpp_n/lpp_d) # A8 (l double prime)
+        a           = (np.pi/(3.0 * Zg * lp ** 2.0)) * (3.0 * (lpp ** 2.0 - 1.0) * Z0g + lpp ** 2.0 * ccc * (2.0 * lpp-3.0)+ccc) # A9
+        sigmastar   = (4.0 * np.pi * sigma_bar)/(a * Zg * D) # A4
+
+        # gamma_An=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
+        gamma_An=(5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
+
+        if self.iii == 0:
+            Gamma_Gou       = 0.5 / S_PER_YEAR
+            Gamma_old_Gou   = Gamma_Gou
+        else:
+            Gamma_Gou       = Gamma_old_Gou
+
+        dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+        # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+        dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n         
+        gfrac       = 0.01
+        gam_div     = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
+        
+        ### iterate to increase gamma first if not in steady state    
+        if self.iii != 0 and dDdt[ind1] <= dDdt[ind1+1] and Gamma_Gou!=Gamma_old2_Gou: #and dDdt_old[ind1]!=dDdt_old[ind1]:
+            while dDdt[ind1] < dDdt[ind1 + 1]:
+                Gamma_Gou       = Gamma_Gou * (gam_div)
+                dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+                dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n
+        ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
+        counter = 1
+        while dDdt[ind1] >= dDdt[ind1 + 1]:
+            print 'iterating', counter
+            Gamma_Gou       = Gamma_Gou / (1 + gfrac/2.0)
+            dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+            dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n
+            counter = counter +1
+
+        # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+
+        Gamma_old2_Gou  = Gamma_old_Gou
+        Gamma_old_Gou  = Gamma_Gou
+
+        # print 'iii', self.iii
+        # print 'Gamma_Gou', Gamma_Gou
+        # print 'Gamma_An', gamma_An
+        # print 'dDdt', dDdt[10:ind1+2]
+        
+        rhoC        = RHO_2 #should be Martinerie density
+        frho2       = interpolate.interp1d(self.rho,sigma_bar)
+        sigmarho2   = frho2(rhoC) #pressure at close off
+
+        ind2 = np.argmax(D >= Dm23)
+        # print 'ind2', ind2
+        
+        # sigma_b = sigmarho2 * (D*(1-rhoC/rhoi)) / (rhoC/rhoi*(1-D))
+        # sigma_b = (sigma_MPa[ind2] * (D*(1-Dm23)) / (Dm23*(1-D)))/10. #works for Ex2
+        # sigma_b = ((sigma_bar + atmosP/1.0e5) * (D*(1-Dm23)) / (Dm23*(1-D)))
+        sigma_b                 = ((atmosP / 1.0e5) * (D * (1 - Dm23)) / (Dm23 * (1 - D)))
+        sigmaEff                = (sigma_bar + atmosP / 1.0e5 - sigma_b)
+        sigmaEff[sigmaEff <= 0] = 1.0e-9
+        
+        ind2 = np.argmax(D >= Dm23)
+        ind3 = ind2 + 10
+        
+        # print 'Dm23', Dm23
+        # print 'T34', T34
+
+        dDdt[D>Dm23] = 2.*A[D>Dm23] * ( (D[D>Dm23]*(1-D[D>Dm23])) / (1-(1-D[D>Dm23])**(1/n))**n ) * (2*sigmaEff[D>Dm23]/n)**3.0
+        # print 'dDdt23', dDdt[10:ind1+2]
+        Ad              = 1.2e3 * np.exp(-Qgj / (R * self.Tz)) * 1.0e-1
+        T34             = 0.98
+        dDdt[D>T34] = 9/4*Ad[D>T34]*(1-D[D>T34])*sigmaEff[D>T34]
+        # print 'dDdt34', dDdt[10:ind1+2]
+
+        dDdt_old        = dDdt
+        # print 'dDdtend', dDdt[10:ind1+2]
+        drho_dt         = dDdt*rhoi2
+        drho_dt[top2m]  = 0.0
+
+        # if self.iii<6:
+        #     print drho_dt[10:ind1+2]
+        #     raw_input('press enter')
+
+        return drho_dt
 
     def grainGrowth(self):
         '''
@@ -482,8 +607,8 @@ class FirnPhysics:
         return r2
 
     def THistory(self):
-        self.Hx = self.Hx + np.exp(-110.0e3/(R*self.Tz))*self.dt
-        Hx_new = np.exp(-110.0e3/(R*self.Tz[0]))*self.dt 
+        self.Hx = self.Hx + np.exp(-110.0e3 / (R * self.Tz)) * self.dt
+        Hx_new  = np.exp(-110.0e3 / (R * self.Tz[0])) * self.dt 
         self.Hx = np.concatenate(([Hx_new],self.Hx[:-1]))
         return self.Hx
 

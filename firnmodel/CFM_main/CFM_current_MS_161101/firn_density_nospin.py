@@ -202,7 +202,9 @@ class FirnDensityNoSpin:
                 'r2':           self.r2,
                 'age':          self.age,
                 'physGrain':    self.c['physGrain'],
-                'calcGrainSize':self.c['calcGrainSize']
+                'calcGrainSize':self.c['calcGrainSize'],
+                'z':            self.z,
+                'rhos0':        self.rhos0[iii]
             }
 
             if self.THist: #add Hx to dictionary if physics is Morris
