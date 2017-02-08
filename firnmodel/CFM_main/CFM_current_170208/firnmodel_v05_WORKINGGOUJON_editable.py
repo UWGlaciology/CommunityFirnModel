@@ -2,12 +2,8 @@
 UW Community Firn Model: Firn Evolution Module
 @authors: Jessica Lundin, Max Stevens, Paul Harris, Will Leahy, Michael Yoon, Huong Vo, Ed Waddington 
 '''
-# v0.7, 9/20/16 
-# version goals:
-# consolidate changes from numerous interations of v0.6
-# implement Reeh water model
-# couple with spin-up generator script
 
+### Master copy 3/1/16: added nitrogen isotopes. Goujon working.
 
 import csv
 import json
@@ -30,7 +26,6 @@ import time
 #import netCDF4 as nc
 
 spot = os.path.dirname(sys.argv[0]) #Add Folder
-
 
 def startlogger():
     logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,filemode='w',format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
@@ -207,7 +202,6 @@ def runModel(configName,spin):
     tic=time.time()
     print 'spin=',spin
     
-#     startlogger()
     ### LOGGING ###
     logging.basicConfig(filename='RUNDETAILS.log',level=logging.DEBUG,filemode='w',format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
     console = logging.StreamHandler()
@@ -443,9 +437,8 @@ def runModel(configName,spin):
 #         #TWrite = (np.arange(0,2005,5)) #set times at which to write data
 #         TWrite=TWrite[1:]
         
-        wrst=1
         inte=1 # how often the data should be written
-        TWrite = modeltime[wrst::inte] # vector of times data will be written. Can customize here.
+        TWrite = modeltime[inte::inte] # vector of times data will be written. Can customize here.
 #         TWst=min(min(np.where(modeltime>1958.0)))
 # #         TWrite = modeltime[TWst::inte] # vector of times data will be written. Can customize here. 
 #         TWrite = np.concatenate((modeltime[0:TWst:12], modeltime[TWst::inte])) # vector of times data will be written. Can customize here.
@@ -459,13 +452,6 @@ def runModel(configName,spin):
             r20 = r2
         Dcon = c['D_surf']*np.ones(gridLen) #initialize a grid of Diffusivity constant
         compaction_rate = np.zeros(gridLen-1)
-        
-        try:
-            zz=np.min(z[rho>850.0]) #minimum depth > 850        
-            zinv=-1*(z-zz)
-        except:
-            zinv=-9999*np.ones(np.size(z))
-        
         
     # mass and stress
     mass = rho*dz
@@ -573,7 +559,6 @@ def runModel(configName,spin):
         Tz_time = np.append(modeltime[0],Tz[0::spacewriteint])
         age_time = np.append(modeltime[0],age[0::spacewriteint]/sPerYear)
         z_time = np.append(modeltime[0],z[0::spacewriteint])
-        zinv_time = np.append(modeltime[0],zinv[0::spacewriteint])
         comprate_time = np.append(modeltime[0],compaction_rate[0::spacewriteint])
         D_time = np.append(modeltime[0],Dcon[0::spacewriteint])
         stress_time = np.append(modeltime[0],sigma[0::spacewriteint])
@@ -589,7 +574,6 @@ def runModel(configName,spin):
         tempPath = os.path.join(c['resultsFolder'], 'temp.csv')
         agePath = os.path.join(c['resultsFolder'], 'age.csv')
         depthPath = os.path.join(c['resultsFolder'], 'depth.csv')
-        depthinvPath = os.path.join(c['resultsFolder'], 'depthinv.csv')
         compratePath = os.path.join(c['resultsFolder'], 'comprate.csv')
         DconPath = os.path.join(c['resultsFolder'], 'Dcon.csv')
         stressPath = os.path.join(c['resultsFolder'], 'stress.csv')
@@ -612,9 +596,6 @@ def runModel(configName,spin):
         with open(depthPath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(z_time)
-        with open(depthinvPath, "w") as f:
-            writer = csv.writer(f)
-            writer.writerow(zinv_time)
         with open(compratePath, "w") as f:
             writer = csv.writer(f)
             writer.writerow(comprate_time)        
@@ -661,10 +642,9 @@ def runModel(configName,spin):
         bcoDep815All = []
         LIZAgeAll = []
         LIZDepAll = []
+        d15N_expAll = []
+        d15N_linAll = []
         intPhiAll = []
-        dsurfAll = []
-        dsurfOut = []
-        dsurfOutC = []
         #tortAll = []
         
         ### Initial BCO,LIZ, and DIP ###
@@ -686,28 +666,26 @@ def runModel(configName,spin):
         LIZMartRho = bcoMartRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)      
         LIZAgeMart = min(age[rho>LIZMartRho])/sPerYear #lock-in age
         LIZDepMart = min(z[rho>=(LIZMartRho)]) #lock in depth
+        d15N_exp = np.exp(g*LIZDepMart/(R*T10m))-1
+        d15N_lin = g*LIZDepMart/(R*T10m) 
         #phiLockIn=0.15
         #lockIn = min(age[phiClosed[phiClosed<phi]/phi[phiClosed<phi] >= phiLockIn])/sPerYear #lock-in age Old, from Jessica's original. Too shallow, likely.       
         LIZAgeAll.append(LIZAgeMart)
         LIZDepAll.append(LIZDepMart)
-        
+        d15N_expAll.append(d15N_exp)
+        d15N_linAll.append(d15N_lin)
+                
         ### Porosity, including DIP
         phi = 1-rho/rhoi # total porosity
         phi[phi<=0]=1e-16 
         phiC = 1-bcoMartRho/rhoi; #porosity at close off
         #phiClosed = np.ones(gridLen)
-        phiClosed = 0.37*phi*(phi/phiC)**-7.6 #Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
-        
-
-                
+        phiClosed = 0.37*phi*(phi/phiC)**-7.6 #Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well   
         phiOpen = phi - phiClosed #open porosity
         phiOpen[phiOpen<=0] = 1.e-10 #don't want negative porosity.
                    
         intPhi = np.sum(phi * dz) #depth-integrated porosity
         intPhiAll.append(intPhi)
-        dsurfAll.append(0)
-        dsurfOut.append(0)
-        dsurfOutC.append(0)
             
         bcoPath = os.path.join(c['resultsFolder'], 'BCO.csv')
         lidPath = os.path.join(c['resultsFolder'], 'LID.csv')
@@ -725,9 +703,9 @@ def runModel(configName,spin):
 #             mtime=ii
         
 #         if not spin:
-        mtime=modeltime[ii]+1 #placeholder for writing data.
+        mtime=modeltime[ii] #placeholder for writing data.
 #         if mtime in range(0,400,20):
-#           print 'time=',mtime
+#             print 'time=',mtime
         if spin:
             rho_old=rho
         #print 'ii=%s' % ii
@@ -928,7 +906,8 @@ def runModel(configName,spin):
 #                     dr_dt = rho[j]*C31/sPerYear*np.exp(-C32/(R*Tz[j]))*(1-rho[j]/rhoi)*((1-(1-rho[j]/rhoi)**C33)**C34)*sigma[j]**C35
 #                     drho_dt[j] = dr_dt/sPerYear
 
-        elif c['physRho']=='Goujon2003_1':
+        elif c['physRho']=='Goujon2003':
+            # print "gridLen", gridLen
             top2m=np.nonzero(z<=1.)
             gg=9.82
             rho[top2m]=c['rhos0']
@@ -937,147 +916,6 @@ def runModel(configName,spin):
             sigma_bar=sigma/(1.0e5)
             Qgj=60.0e3
             n=3.0 
-            #drho_dt = np.zeros(gridLen)
-            dDdt = np.zeros(gridLen)
-#             rhoi2=917.0
-            rhoi2cgs=.9165*(1.-1.53e-4*(T10m-273.15)) #from Anais
-            rhoi2=rhoi2cgs*1000.0
-            if ii==0:
-                print 'rhoi2=', rhoi2
-            D = rho/rhoi2
-            
-            Dm23=0.9 #transition from zone 2 to 3
-            
-            D0 = 0.00226 * T10m + 0.03 #from Arnaud, not Goujon (Goujon uses C, not K)
-            if D0>0.59: #Transition has to be less than D=0.6
-                D0=0.59
-                print 'D0 at max of 0.59'
-            Dms = D0 + 0.009 #D0 + epsilon factor, maximum is 0.599
-#             D0=Dms
-            Dmsrho=Dms*rhoi2 #density of change
-            if ii==stp-1:
-                print 'Dmsrho=', Dmsrho
-            ind1=np.argmax(D>=Dms) #first index where the density is greater than or equal to the transition
-            if ii<=2:
-                print 'ind1=',ind1
-#             ind1=ind1
-#             if ii<=2:
-#                 print 'ind1_2=',ind1
-            Dm = D[ind1] #actual transition density. Use this so that the transition falls at a node and avoids the sinularity
-            if ii<=2:
-                print 'Ds=',D[ind1-2:ind1+3]
-#             print 'Dms=',Dms
-            
-            A = 7.89e3*np.exp(-Qgj/(R*Tz))*1.0e-3 #A given in MPa^-3 s^-1, Goujon uses bar as pressure unit
-            if ii<=2:
-                print ii
-                print 'BIGA=',A
-                print 'D0=',D0
-                print 'Dm=',Dm
-            ccc = 15.5 # no units given
-            Z0g=110.2*D0**3.-148.594*D0**2.+87.6166*D0-17. #from Anais' code
-            
-            lp=(D/D0)**(1.0/3.0)
-            Zg=Z0g+ccc*(lp-1.0)
-            if ii<=2:
-                print 'Zg=',Zg
-            lpp_n=(4.0*Z0g * (lp-1.0)**2.0 * (2.0*lp+1.0) + ccc * (lp-1.0)**3.0 * (3.0*lp + 1.0))
-            lpp_d=(12.0*lp * (4.0*lp - 2.0*Z0g*(lp-1.0) - ccc*(lp-1.0)**2.0))
-            lpp=lp + (lpp_n/lpp_d)
-            a = (np.pi/(3.0*Zg * lp**2.0)) * (3.0 * (lpp**2.0 - 1.0)*Z0g + lpp**2.0*ccc*(2.0*lpp-3.0)+ccc)
-
-#             lpp = lp + ((4.0*Z0g*(lp-1.0)**(2.0) * (2.0*lp+1.0) + ccc*(lp-1.0)**3.0 * (3.0*lp+1.0)) / (12.0*lp * (4.0 * lp - 2.0 * Z0g * (lp-1.0) - ccc*(lp-1.0)**2.0)))
-#             a = (np.pi / (3.0*Zg*lp**2.0)) * (3.0*(lpp**2.0 - 1.0)*Z0g + lpp**2.0 *ccc*(2.0*lpp - 3.0) + ccc)
-            sigmastar = (4.0*np.pi*sigma_bar)/(a*Zg*D);
-#             gamma=(5.3*A[ind1] * (Dm**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dm**2))*(1-(5.0/3.0*Dm)));
-            gamma_an=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
-#             print gamma_an
-            gamma=0.455/sPerYear
-#             gamma=0.5/sPerYear
-            if spin and ii<=100:
-                gamma=gamma_an/1.3
-            else:
-                gamma=gamma_an
-            if gamma<=0:
-                print 'GAMMA less than ZERO:',ii
-                
-                
-#             if ii==stp-1:
-            if ii<=3:
-                print ii
-                print 'lpp_n=',lpp_n
-                print 'lpp_d=',lpp_d
-                print 'lp=',lp
-                print 'D0=',D0
-                print 'A=',A
-                print 'AAA=',a
-                print 'gamma=', gamma
-                
-            if ii==stp-1:
-                print 'GAMMAfinal=',gamma
-            
-
-#             dDdt[D<=Dm]=gamma*(sigma_bar[D<=Dm]/(D[D<=Dm])**2.0)*(1.0-(5.0/3.0)*D[D<=Dm])
-
-            dDdt[D<=Dm]=gamma*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-            dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n
-            
-            print 'dDdt_ind=',dDdt[ind1-3:ind1+3]
-#             dDdt[D<=Dms]=gamma*(sigma_bar[D<=Dms])*(1.0-(5.0/3.0)*D[D<=Dms])/((D[D<=Dms])**2.0)
-#             dDdt[D>Dms]=5.3*A[D>Dms]* (((D[D>Dms]**2.0)*D0)**(1/3.)) * (a[D>Dms]/np.pi)**(1.0/2.0) * (sigmastar[D>Dms]/3.0)**n
-            
-#             print dDdt
-            
-            rhoC = rho2 #should be Martinerie density
-            frho2 = interpolate.interp1d(rho,sigma_bar) #jessica did this... not sure why/if it is right. Max, 12/4/15. It is a function...
-            sigmarho2 = frho2(rhoC) #pressure at close off
-#             print 'sigrho2=', sigmarho2
-
-            ind2=np.argmax(D>=Dm23)
-            
-#             sigma_b = sigmarho2 * (D*(1-rhoC/rhoi)) / (rhoC/rhoi*(1-D))
-#             sigma_b = (sigma_MPa[ind2] * (D*(1-Dm23)) / (Dm23*(1-D)))/10. #works for Ex2
-            sigma_b = ((sigma_bar[ind2]+ atmosP/1.0e5) * (D*(1-Dm23)) / (Dm23*(1-D)))
-#             print sigma_b
-            sigmaEff = (sigma_bar + atmosP/1.0e5 - sigma_b)#*1000
-            sigmaEff[sigmaEff<=0]=1.0e-9
-            
-            ind2=np.argmax(D>=Dm23)
-            ind3=ind2+10
-#             if ii==10:
-#                 print 'sigMpa=',sigma_MPa[ind2:ind3]
-#                 print 'sigb=',sigma_b[ind2:]
-#                 print 'atmosP=',atmosP/1.0e5            
-#                 print 'sigEff=',sigmaEff[ind2:ind3]
-                    
-#             dDdt[D>Dm23] = 2.*A[D>Dm23] * ( (D[D>Dm23]*(1-D[D>Dm23])) / (1-(1-D[D>Dm23])**(1/n))**n ) * (2*sigmaEff[D>Dm23]/n)**3.0
-            
-            Ad = 1.2e3*np.exp(-Qgj/(R*Tz))#*1.0e-3
-            T34=0.98
-#             dDdt[D>T34] = 9/4*Ad[D>T34]*(1-D[D>T34])*sigmaEff[D>T34]
-            
-            if ii<=3:
-                print 'minSEF=',np.min(sigmaEff)
-                print 'maxD=',np.max(A)
-                print 'dDdt=',ii, dDdt
-                
-            if ii==stp-1:
-                print 'minSEF=',np.min(sigmaEff)
-                print 'maxD=',np.max(A)
-                print 'dDdt=',ii, dDdt
-            drho_dt=dDdt*rhoi2#/1000.
-            drho_dt[top2m]=0.0
-
-
-        elif c['physRho']=='Goujon2003':
-            top2m=np.nonzero(z<=2.)
-            gg=9.82
-            rho[top2m]=c['rhos0']
-            
-            sigma_MPa=sigma/(1.0e6)
-            sigma_bar=sigma/(1.0e5)
-            Qgj=60.0e3
-            n=3.0 
             dDdt = np.zeros(gridLen)
 #             rhoi2=917.0
             rhoi2cgs=.9165*(1.-1.53e-4*(T10m-273.15)) #from Anais
@@ -1085,11 +923,15 @@ def runModel(configName,spin):
             
             D = rho/rhoi2
             
+            # print 'rho',rho[0:10]
+            # print 'sigma',sigma_bar[0:10]
+
             Dm23=0.9 #transition from zone 2 to 3
             rho23=Dm23*rhoi2
 
             
             D0 = 0.00226 * T10m + 0.03 #from Arnaud, not Goujon (Goujon uses C, not K)
+            
             if D0>0.59: #Transition has to be less than D=0.6
                 D0=0.59
             Dms = D0 + 0.009 #D0 + epsilon factor, maximum is 0.599
@@ -1098,7 +940,9 @@ def runModel(configName,spin):
             ind1=np.argmax(D>=Dms) #first index where the density is greater than or equal to the transition
             Dm = D[ind1] #actual transition density. Use this so that the transition falls at a node and avoids the sinularity
             Dmrho=Dm*rhoi2          
-         
+            
+            # print 'ind1', ind1
+            
             A = 7.89e3*np.exp(-Qgj/(R*Tz))*1.0e-3 #A given in MPa^-3 s^-1, Goujon uses bar as pressure unit
             ccc = 15.5 # no units given
             Z0g=110.2*D0**3.-148.594*D0**2.+87.6166*D0-17. #from Anais' code           
@@ -1109,7 +953,7 @@ def runModel(configName,spin):
             lpp=lp + (lpp_n/lpp_d)
             a = (np.pi/(3.0*Zg * lp**2.0)) * (3.0 * (lpp**2.0 - 1.0)*Z0g + lpp**2.0*ccc*(2.0*lpp-3.0)+ccc)
             sigmastar = (4.0*np.pi*sigma_bar)/(a*Zg*D);
-#             gamma=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
+#             gamma=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))) 
 
             if ii==0:
                 gamma=0.5/sPerYear
@@ -1129,13 +973,20 @@ def runModel(configName,spin):
                     dDdt[D<=Dm]=gamma*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
                     dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n  
             # then iterate to find the maximum value of gamma that will make a continuous drho/dt
+            # counter=1
             while dDdt[ind1]>=dDdt[ind1+1]:
+                # print 'iterating', counter
                 gamma=gamma/gam_div
                 dDdt[D<=Dm]=gamma*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
                 dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n                      
+                # counter = counter +1
 
             gamma_old2=gamma_old
             gamma_old=gamma
+
+            # print 'iii', ii
+            # print 'Gamma', gamma
+            # print 'dDdt', dDdt[10:ind1+2]
             
             rhoC = rho2 #should be Martinerie density
             frho2 = interpolate.interp1d(rho,sigma_bar) #jessica did this... not sure why/if it is right. Max, 12/4/15. It is a function...
@@ -1143,7 +994,7 @@ def runModel(configName,spin):
 #             print 'sigrho2=', sigmarho2
 
             ind2=np.argmax(D>=Dm23)
-            
+            # print 'ind2',ind2
 #             sigma_b = sigmarho2 * (D*(1-rhoC/rhoi)) / (rhoC/rhoi*(1-D))
 #             sigma_b = (sigma_MPa[ind2] * (D*(1-Dm23)) / (Dm23*(1-D)))/10. #works for Ex2
 #             sigma_b = ((sigma_bar + atmosP/1.0e5) * (D*(1-Dm23)) / (Dm23*(1-D)))
@@ -1155,20 +1006,27 @@ def runModel(configName,spin):
             ind2=np.argmax(D>=Dm23)
             ind3=ind2+10
              
-
+            # print 'Dm23', Dm23
+            # print 'T34', T34
                     
             dDdt[D>Dm23] = 2.*A[D>Dm23] * ( (D[D>Dm23]*(1-D[D>Dm23])) / (1-(1-D[D>Dm23])**(1/n))**n ) * (2*sigmaEff[D>Dm23]/n)**3.0
             
             Ad = 1.2e3*np.exp(-Qgj/(R*Tz))*1.0e-1
             T34=0.98
-            if ii==1:
-                print 'rho23=',rho23
-                print 'rho34=',T34*rhoi2 
+            # if ii==1:
+            #     print 'rho23=',rho23
+            #     print 'rho34=',T34*rhoi2 
             dDdt[D>T34] = 9/4*Ad[D>T34]*(1-D[D>T34])*sigmaEff[D>T34]
 
             dDdt_old=dDdt
             drho_dt=dDdt*rhoi2#/1000.
             drho_dt[top2m]=0.0
+
+            # if ii<6:
+            #     # print drho_dt[0:ind1]
+            #     raw_input('press enter')
+
+
 
         elif c['physRho']=='Morris2014': #uses stress. Need to choose physics for zone 2. 
             QMorris=112.0e3
@@ -1274,7 +1132,7 @@ def runModel(configName,spin):
         #update the density using explicit method
         rho = rho + dt*drho_dt
         
-#         dthickness=mass/(dt*drho_dt)        
+        dthickness=mass/(dt*drho_dt)        
         
         #update the age (seconds)
 #         age = np.insert(age,0,0) #insert new surface value
@@ -1309,13 +1167,10 @@ def runModel(configName,spin):
             T10m = fT10m(10)
             
         #update the length of the boxes
-        dz_old=dz
-        sdz_old=np.sum(dz)
         z_old=z
         #dzNew = bdotSec[ii]*rhoi/rhos0[ii]*dt #these lines worked on 3/23
         dzNew = bdotSec[ii]*rhoi/rhos0[ii]*sPerYear
         dz = mass/rho*dx
-        sdz_new=np.sum(dz)
         dz = np.concatenate(([dzNew],dz[:-1]))
 #         dz =dz.transpose()
         z = dz.cumsum(axis = 0)
@@ -1324,31 +1179,13 @@ def runModel(configName,spin):
         z = np.concatenate(([0],z[:-1]))         
         rho = np.concatenate(([rhos0[ii]],rho[:-1]))
         
-        try:
-            zz=np.min(z[rho>850.0]) #minimum depth > 850        
-            zinv=-1*(z-zz)
-        except:
-            zinv=-9999*np.ones(np.size(z))
-        
         zdiffnew=(z[1:]-z[1])
         zdiffold=(z_old[0:-1]-z_old[0])
-        
-        zdn=z[1:]
-        zdo=z_old[0:-1]
-        strain=np.cumsum(zdo-zdn)
-        tstrain=np.sum(zdo-zdn)
         
         compaction_rate=(zdiffold-zdiffnew)/dt*sPerYear #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
         
         if not spin:
             Dcon = np.concatenate(([D_surf[ii]],Dcon[:-1])) #Dcon is a diffusivity tracker. Just creating a vector at each time step that is some fraction which is multiplied by diffusivity in firnair.
-#             comprate_sum=np.cumsum((zdiffold-zdiffnew)/dt)
-#             print comprate_sum[-1]
-#             ddz=np.cumsum(dz_old-dz)
-            dsurf=(sdz_new-sdz_old)+dzNew-input_bdot_mean
-            dsurfAll.append(dsurf)
-            dsurftot=np.sum(dsurfAll)
-
 
         #update mass
         massNew =bdotSec[ii]*sPerYear*rhoi
@@ -1459,7 +1296,6 @@ def runModel(configName,spin):
             Tz_time = np.append(mtime,Tz[0::spacewriteint])
             age_time = np.append(mtime,age[0::spacewriteint]/sPerYear)
             z_time = np.append(mtime,z[0::spacewriteint])
-            zinv_time = np.append(mtime,zinv[0::spacewriteint])
             comprate_time =np.append(mtime,compaction_rate[0::spacewriteint])
             Dcon_time = np.append(mtime,Dcon[0::spacewriteint])
             stress_time = np.append(mtime,sigma[0::spacewriteint])
@@ -1481,10 +1317,7 @@ def runModel(configName,spin):
                 writer.writerow(age_time)
             with open(depthPath, "a") as f:
                 writer = csv.writer(f)
-                writer.writerow(z_time)    
-            with open(depthinvPath, "a") as f:
-                writer = csv.writer(f)
-                writer.writerow(zinv_time)
+                writer.writerow(z_time)
             with open(compratePath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(comprate_time)
@@ -1524,14 +1357,18 @@ def runModel(configName,spin):
             bcoAge815All.append(bcoAge815) #age at the 815 density horizon
             bcoDep815All.append(bcoDep815) #this is the 815 close off depth
             
-            ### Lock-in depth and age
+            ### Lock-in depth and age and d15N fractionation
             LIZMartRho = bcoMartRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)      
             LIZAgeMart = min(age[rho>LIZMartRho])/sPerYear #lock-in age
             LIZDepMart = min(z[rho>=(LIZMartRho)]) #lock in depth
+            d15N_exp = np.exp(g*LIZDepMart/(R*T10m))-1
+            d15N_lin = g*LIZDepMart/(R*T10m) 
             phiLockIn=0.15 #relic?
             lockIn = min(age[phiClosed[phiClosed<phi]/phi[phiClosed<phi] >= phiLockIn])/sPerYear #lock-in age Old, from Jessica's original. Too shallow, likely.       
             LIZAgeAll.append(LIZAgeMart)
             LIZDepAll.append(LIZDepMart)
+            d15N_expAll.append(d15N_exp)
+            d15N_linAll.append(d15N_lin)
             
             ### Porosity, including DIP
             phi = 1-rho/rhoi # total porosity
@@ -1544,11 +1381,16 @@ def runModel(configName,spin):
             phiOpen[phiOpen<=0] = 1.e-10 #don't want negative porosity.
                     
             intPhi = np.sum(phi * dz) #depth-integrated porosity
-            intPhiAll.append(intPhi)
-            dsurfOut.append(dsurf)
-            dsurfOutC.append(dsurftot)
-                  
+            intPhiAll.append(intPhi)      
             
+        if not spin and ii==10:
+            loop10time=time.time()-tic2
+            elapsed=time.time()-tic
+            elapsed=elapsed*(stp/10)
+            elapsed_min=elapsed/60.
+            mins=np.floor(elapsed_min)
+            secs=(elapsed_min-mins)*60 
+            print "estimated model run time is %s minutes %s seconds" % (mins, secs)
             ####### end time stepping loop
                     
     #print 'dt = ', dt
@@ -1569,18 +1411,17 @@ def runModel(configName,spin):
             writer.writerow(bcoDepMartAll)
             writer.writerow(bcoAge815All)
             writer.writerow(bcoDep815All)
-        with open(lidPath, "w") as f: #write LIZ information. Rows: time, age, dep
+        with open(lidPath, "w") as f: #write LIZ and d15N information. Rows: time, age, dep
             writer = csv.writer(f)
             writer.writerow(np.append(modeltime[0],TWrite[:len(LIZDepAll)]))
             writer.writerow(LIZAgeAll)
             writer.writerow(LIZDepAll)
-        c_dsurf=np.cumsum(dsurfAll)
+            writer.writerow(d15N_expAll)
+            writer.writerow(d15N_linAll)
         with open(intPhiPath, "w") as f: #depth-integrated porosity
             writer = csv.writer(f)
             writer.writerow(np.append(modeltime[0],TWrite[:len(intPhiAll)]))
             writer.writerow(intPhiAll)
-            writer.writerow(dsurfOut)
-            writer.writerow(dsurfOutC)
                 
         logging.debug("spin up years = %s" % c['yearSpin'])  
         logging.debug("spin up steps per year = %s" % c["stpsPerYearSpin"])
@@ -1616,7 +1457,7 @@ if __name__ == '__main__':
     else:
         spin = False
         
-#     spin = True
+    #spin = False
 
 # This right now is for testing purposes.
     with open(configName, "r") as f:
