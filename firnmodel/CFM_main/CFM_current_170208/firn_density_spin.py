@@ -199,19 +199,16 @@ class FirnDensitySpin:
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015
             }
 
-            # try:
-            drho_dt = physicsd[self.c['physRho']]()
-            # except KeyError:
-                # default()
+            try:
+                dho_dt = physicsd[self.c['physRho']]()
+            except KeyError:
+                print "Error at line ", info.lineno
 
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
             
 
-            # if iii<12:
-            #     print 'self.rho', self.rho[1:8] 
-        
             if self.THist:
                 self.Hx = FirnPhysics(PhysParams).THistory()
 
@@ -221,26 +218,21 @@ class FirnDensitySpin:
             if self.c['isoDiff']:
                 self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, self.dt)
 
-            # update model grid
+            ##### update model grid
             dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
             self.dz = self.mass / self.rho * self.dx
             self.dz = np.concatenate(([dzNew], self.dz[:-1]))
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
-
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-            # print 'self.z', self.z[1:6]
 
-            # update mass, stress, and mean accumulation rate
+            ##### update mass, stress, and mean accumulation rate
             massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass = np.concatenate(([massNew], self.mass[:-1]))
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
             self.mass_sum  = self.mass.cumsum(axis = 0)
             self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I)))
-
-            # if iii < 12:
-            #     print "self.mass=", self.mass[0:6]
 
             # update grain radius
             if self.c['physGrain']:

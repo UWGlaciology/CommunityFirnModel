@@ -19,6 +19,7 @@ import os
 from string import join
 import shutil
 import time
+import inspect
 
 class FirnDensityNoSpin:
     '''
@@ -99,7 +100,9 @@ class FirnDensityNoSpin:
             self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
 
         self.bdot       = np.interp(self.modeltime, input_year_bdot, input_bdot) # interpolate accumulation rate to model time ???Should this be nearest?
-        print 'self.bdot', self.bdot
+
+        self.iceout     = np.mean(self.bdot)
+
         self.bdotSec    = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
@@ -117,12 +120,6 @@ class FirnDensityNoSpin:
         self.mass_sum   = self.mass.cumsum(axis = 0)
         # self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))) #this is the mean accumulation over the lifetime of the parcel
         self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))) #this is the mean accumulation over the lifetime of the parcel
-
-        print "bdot_mean= ", self.bdot_mean*S_PER_YEAR
-        print "bdot= ", self.bdot[0]
-        print "self.age=", self.age/S_PER_YEAR
-        print "self.mass_sum=", self.mass_sum
-        print "self.mass=", self.mass[0:10]
 
         # set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
         self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:])
@@ -248,7 +245,7 @@ class FirnDensityNoSpin:
             try:
                 drho_dt = physicsd[self.c['physRho']]()
             except KeyError:
-                default()
+                print "Error at line ", info.lineno
 
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
@@ -397,9 +394,7 @@ class FirnDensityNoSpin:
         '''
 
         # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot_mean[0]*S_PER_YEAR) #
-        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot[0]) #
-        if self.i3 < 5:
-            print "xyz", self.dH
+        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout) #
 
         self.dHAll.append(self.dH)
 
