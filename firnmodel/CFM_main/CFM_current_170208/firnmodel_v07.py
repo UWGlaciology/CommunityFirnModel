@@ -471,6 +471,7 @@ def runModel(configName,spin):
     mass = rho*dz
     sigma = mass * dx * g
     sigma = sigma.cumsum(axis = 0)
+    print "mass=", mass[0:10]
 
 
     # define the time domain
@@ -731,14 +732,18 @@ def runModel(configName,spin):
             aHL=1.0
             bHL=0.5
             A = bdotSec[ii]*(1/t)*sPerYear*rhoiMgm #A from the input json file is m ice equivalent.
-
+            if ii<6:
+                print 'A', A
             drho_dt = np.zeros(gridLen)
             dr_dt=drho_dt
             dr_dt[rho<rho1] = k1*np.exp(-Q1/(R*Tz[rho<rho1]))*(rhoiMgm-rho[rho<rho1]/1000)*np.power(A,aHL)*1000/sPerYear
             drho_dt[rho<rho1] = dr_dt[rho<rho1]
 
             dr_dt[rho>=rho1] = k2*np.exp(-Q2/(R*Tz[rho>=rho1]))*(rhoiMgm-rho[rho>=rho1]/1000)*np.power(A,bHL)*1000/sPerYear
-            drho_dt[rho>=rho1] = dr_dt[rho>=rho1]                    
+            drho_dt[rho>=rho1] = dr_dt[rho>=rho1]
+
+            # if ii<6:
+                # print 'drho', drho_dt[1:8]                    
         
         elif c['physRho']=='HLSigfus': #uses m w.e. a^-1
             Q1=10160.
@@ -1267,6 +1272,8 @@ def runModel(configName,spin):
         ### update the density using explicit method ###
         rho = rho + dt*drho_dt
         
+        if ii<12:
+            print 'rho', rho[1:8] 
         # dthickness=mass/(dt*drho_dt)        
         
         ### Update the age (seconds)
@@ -1317,6 +1324,8 @@ def runModel(configName,spin):
         z = np.concatenate(([0],z[:-1]))         
         rho = np.concatenate(([rhos0[ii]],rho[:-1]))
         
+        # print 'z', z[1:10]
+
         try:
             zz=np.min(z[rho>850.0]) #minimum depth > 850        
             zinv=-1*(z-zz)

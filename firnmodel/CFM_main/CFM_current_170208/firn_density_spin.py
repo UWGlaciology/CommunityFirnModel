@@ -207,7 +207,10 @@ class FirnDensitySpin:
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
-            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+            
+
+            # if iii<12:
+            #     print 'self.rho', self.rho[1:8] 
         
             if self.THist:
                 self.Hx = FirnPhysics(PhysParams).THistory()
@@ -225,6 +228,9 @@ class FirnDensitySpin:
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
 
+            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+            # print 'self.z', self.z[1:6]
+
             # update mass, stress, and mean accumulation rate
             massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass = np.concatenate(([massNew], self.mass[:-1]))
@@ -232,6 +238,9 @@ class FirnDensitySpin:
             self.sigma = self.sigma.cumsum(axis = 0)
             self.mass_sum  = self.mass.cumsum(axis = 0)
             self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I)))
+
+            # if iii < 12:
+            #     print "self.mass=", self.mass[0:6]
 
             # update grain radius
             if self.c['physGrain']:

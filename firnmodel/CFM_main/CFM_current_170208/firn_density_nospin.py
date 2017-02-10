@@ -99,6 +99,7 @@ class FirnDensityNoSpin:
             self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
 
         self.bdot       = np.interp(self.modeltime, input_year_bdot, input_bdot) # interpolate accumulation rate to model time ???Should this be nearest?
+        print 'self.bdot', self.bdot
         self.bdotSec    = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
@@ -114,7 +115,14 @@ class FirnDensityNoSpin:
         self.sigma      = self.mass * self.dx * GRAVITY
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.mass_sum   = self.mass.cumsum(axis = 0)
-        self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
+        # self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))) #this is the mean accumulation over the lifetime of the parcel
+        self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))) #this is the mean accumulation over the lifetime of the parcel
+
+        print "bdot_mean= ", self.bdot_mean*S_PER_YEAR
+        print "bdot= ", self.bdot[0]
+        print "self.age=", self.age/S_PER_YEAR
+        print "self.mass_sum=", self.mass_sum
+        print "self.mass=", self.mass[0:10]
 
         # set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
         self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:])
@@ -245,7 +253,7 @@ class FirnDensityNoSpin:
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
-            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+            
             self.Dcon = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
 
             if self.THist:
@@ -260,33 +268,34 @@ class FirnDensityNoSpin:
             melt = False
 
             if melt:
-                pass
+                print "Meltwater percolation is still under development. Run without melt for now."
+                sys.exit()
 
             else:
-            # update model grid
+            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 
+                ##### update model grid
                 self.dz_old = self.dz
                 self.sdz_old = np.sum(self.dz) # old total column thickness
                 self.z_old = self.z
                 self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz = self.mass / self.rho * self.dx
-                self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added
+                self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
                 self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z = self.dz.cumsum(axis = 0)
                 self.z = np.concatenate(([0], self.z[:-1]))
-
-                # update mass, stress, and mean accumulation rate
+                self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+                ##### update mass, stress, and mean accumulation rate
                 massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass = np.concatenate(([massNew], self.mass[:-1]))
+
 
             #### find the compaction rate
             zdiffnew=(self.z[1:]-self.z[1])
             zdiffold=(self.z_old[0:-1]-self.z_old[0])
-        
             zdn=self.z[1:]
             zdo=self.z_old[0:-1]
             self.strain=np.cumsum(zdo-zdn)
             self.tstrain=np.sum(zdo-zdn)
-
             self.compaction_rate=(zdiffold-zdiffnew)/self.dt*S_PER_YEAR #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
             ####
 
@@ -387,7 +396,8 @@ class FirnDensityNoSpin:
         updates the surface elevation change
         '''
 
-        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-self.bdot_mean[0] #
+        # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot_mean[0]*S_PER_YEAR) #
+        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot[0]) #
         if self.i3 < 5:
             print "xyz", self.dH
 

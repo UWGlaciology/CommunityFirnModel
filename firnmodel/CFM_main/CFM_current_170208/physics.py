@@ -31,6 +31,8 @@ class FirnPhysics:
         bHL = 0.5
 
         A = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
+        # if self.iii<6:
+        #     print 'A', A
         drho_dt = np.zeros(self.gridLen)
         dr_dt = drho_dt
 
@@ -39,6 +41,9 @@ class FirnPhysics:
 
         dr_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * np.power(A, bHL) * 1000 / S_PER_YEAR
         drho_dt[self.rho >= RHO_1] = dr_dt[self.rho >= RHO_1]
+
+        # if self.iii<6:
+        #     print 'drho', drho_dt[1:8]   
 
         return drho_dt
 
