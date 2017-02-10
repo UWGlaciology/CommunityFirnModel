@@ -1,8 +1,8 @@
 {
 "InputFileFolder": "modelInput",
-"InputFileNameTemp": "FM_temp3.csv",
-"InputFileNamebdot": "FM_bdot13.csv",
-"resultsFolder": "test_2",
+"InputFileNameTemp": "FM_temp3a.csv",
+"InputFileNamebdot": "FM_bdot13a.csv",
+"resultsFolder": "test_2a",
 "physRho": "HLdynamic",
 "TWriteInt": 1,
 "Ts0": 210.0,
@@ -15,10 +15,10 @@
 "heatDiff":"on",
 "rhos0": 360.0,
 "r2s0": 1.0e-8,
-"yearSpin": 1000,
+"yearSpin": 2000,
 "stpsPerYearSpin": 1.0,
 "H": 3000,
-"HbaseSpin": 2800.0,
+"HbaseSpin": 2500.0,
 "years": 100.0,
 "stpsPerYear": 1.0,
 "D_surf": 1.0,
@@ -26,10 +26,11 @@
 "plotsFolder": "Plots",
 "bdot_type": "mean",
 "bdot_options": ["instant","mean"],
-"isoDiff": "on",
+"isoDiff": "off",
 "iso": "18",
 "_isoOptions":["18","D"],
 "SeasonalTcycle": false,
-"AutoSpinUpTime": true
+"AutoSpinUpTime": false,
+"spacewriteint": 1
 }
 

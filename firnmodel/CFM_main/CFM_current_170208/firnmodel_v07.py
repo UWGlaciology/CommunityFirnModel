@@ -358,12 +358,12 @@ def runModel(configName,spin):
         #     Hx=np.zeros(gridLen) #Hx is temperature history
         #     Hx=Hx+np.exp(-QMorris/(R*Tz))*dt #is this dt correct?            
         # #### use specified spin up length
-        # years = c['yearSpin'] #should not need user input years here - just specify in the json
+        years = c['yearSpin'] #should not need user input years here - just specify in the json
         # years = len(input_year_bdot_spin)
 
         ##### use auto-spin up length
-        zz=np.min(z[rho>850.0]) #minimum depth > 850
-        years = int(zz/AHL)+100 #this spins up so that a new layer reaches the minimum depth where density is >850.
+        # zz=np.min(z[rho>850.0]) #minimum depth > 850
+        # years = int(zz/AHL)+100 #this spins up so that a new layer reaches the minimum depth where density is >850.
         # years = 800
         # years = 10
         stp = int(years *c['stpsPerYearSpin'])

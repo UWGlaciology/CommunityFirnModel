@@ -200,13 +200,15 @@ def write_nospin_LIZ(folder, LIZAgeAll, LIZDepAll,modeltime,TWrite):
         csvwriter.writerow(LIZAgeAll)
         csvwriter.writerow(LIZDepAll)
 
-def write_nospin_DIP(folder, intPhiAll,modeltime,TWrite):
+def write_nospin_DIP(folder, intPhiAll, dsurfOut, dsurfOutC, modeltime,TWrite):
     '''
     Writes the results of depth-integrated porosity
     Not used in spin mode
 
     :param folder: the name of the folder that the results will be written to
-    :param intPhiAll:
+    :param intPhiAll: the depth-integrated porosity at that time step
+    :param dsurfOut: the change in surface elevation since the last time step
+    :param dsurfOutC: the total change in surface elevation since start of model run
     '''
 
     intPhiPath = os.path.join(folder, 'porosity.csv')
@@ -214,4 +216,6 @@ def write_nospin_DIP(folder, intPhiAll,modeltime,TWrite):
         csvwriter = csv.writer(f)
         csvwriter.writerow(np.append(modeltime[0],TWrite[:len(intPhiAll)]))
         csvwriter.writerow(intPhiAll)
+        csvwriter.writerow(dsurfOut)
+        csvwriter.writerow(dsurfOutC)
 

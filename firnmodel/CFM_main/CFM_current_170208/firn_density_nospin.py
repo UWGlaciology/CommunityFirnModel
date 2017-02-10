@@ -160,10 +160,18 @@ class FirnDensityNoSpin:
         self.LIZAgeAll     = []
         self.LIZDepAll     = []
         self.intPhiAll     = []
+        self.dHAll         = []
+        self.dHOut         = []
+        self.dHOutC        = []
 
         self.update_BCO()
         self.update_LIZ()
         self.update_DIP()
+        
+        self.dHAll.append(0)
+        self.dHOut.append(0)
+        self.dHOutC.append(0)
+
     ##### END INIT #####
 
     def time_evolve(self):
@@ -184,6 +192,7 @@ class FirnDensityNoSpin:
         ####################################
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
+            self.i3 = iii
 
             # the parameters that get passed to physics
             PhysParams = {
@@ -255,9 +264,13 @@ class FirnDensityNoSpin:
 
             else:
             # update model grid
-                dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dz_old = self.dz
+                self.sdz_old = np.sum(self.dz) # old total column thickness
+                self.z_old = self.z
+                self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz = self.mass / self.rho * self.dx
-                self.dz = np.concatenate(([dzNew], self.dz[:-1]))
+                self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added
+                self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z = self.dz.cumsum(axis = 0)
                 self.z = np.concatenate(([0], self.z[:-1]))
 
@@ -265,6 +278,17 @@ class FirnDensityNoSpin:
                 massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass = np.concatenate(([massNew], self.mass[:-1]))
 
+            #### find the compaction rate
+            zdiffnew=(self.z[1:]-self.z[1])
+            zdiffold=(self.z_old[0:-1]-self.z_old[0])
+        
+            zdn=self.z[1:]
+            zdo=self.z_old[0:-1]
+            self.strain=np.cumsum(zdo-zdn)
+            self.tstrain=np.sum(zdo-zdn)
+
+            self.compaction_rate=(zdiffold-zdiffnew)/self.dt*S_PER_YEAR #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
+            ####
 
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
@@ -294,6 +318,7 @@ class FirnDensityNoSpin:
                 self.update_BCO()
                 self.update_LIZ()
                 self.update_DIP()
+                self.update_dH()
         
         ##################################
         ##### END TIME-STEPPING LOOP #####
@@ -304,7 +329,8 @@ class FirnDensityNoSpin:
         # write BCO, LIZ, DIP at the end of the time evolution
         write_nospin_BCO(self.c['resultsFolder'], self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All,self.modeltime,self.TWrite)
         write_nospin_LIZ(self.c['resultsFolder'], self.LIZAgeAll, self.LIZDepAll,self.modeltime,self.TWrite)
-        write_nospin_DIP(self.c['resultsFolder'], self.intPhiAll,self.modeltime,self.TWrite)
+        write_nospin_DIP(self.c['resultsFolder'], self.intPhiAll, self.dHOut, self.dHOutC, self.modeltime,self.TWrite)
+        # write_nospin_dH(self.c['resultsFolder'], self.dsurf, self.dsurftot, self.dsurfAll, self.modeltime,self.TWrite)
     ##### END time_evolve #####
 
     def update_BCO(self):
@@ -355,3 +381,20 @@ class FirnDensityNoSpin:
         intPhi = np.sum(phi * self.dz)  # depth-integrated porosity
         self.intPhiAll.append(intPhi)
     #### end update_DIP
+
+    def update_dH(self):
+        '''
+        updates the surface elevation change
+        '''
+
+        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-self.bdot_mean[0] #
+        if self.i3 < 5:
+            print "xyz", self.dH
+
+        self.dHAll.append(self.dH)
+
+        self.dHtot = np.sum(self.dHAll)
+
+        self.dHOut.append(self.dH)
+        self.dHOutC.append(self.dHtot)
+
