@@ -3,6 +3,7 @@ from hl_analytic import hl_analytic
 from reader import read_temp
 from reader import read_bdot
 from writer import write_spin
+from writer import write_spin_hdf5
 from physics import *
 from constants import *
 import numpy as np
@@ -15,6 +16,7 @@ import os
 from string import join
 import shutil
 import time
+import h5py
 
 class FirnDensitySpin:
     '''
@@ -200,7 +202,7 @@ class FirnDensitySpin:
             }
 
             try:
-                dho_dt = physicsd[self.c['physRho']]()
+                drho_dt = physicsd[self.c['physRho']]()
             except KeyError:
                 print "Error at line ", info.lineno
 
@@ -254,6 +256,6 @@ class FirnDensitySpin:
                     Hx_time = None
 
                     
-                write_spin(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time)
-
+                # write_spin(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time)
+                write_spin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time)
                 # write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)
