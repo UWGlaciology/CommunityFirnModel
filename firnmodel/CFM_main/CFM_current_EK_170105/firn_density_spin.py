@@ -128,6 +128,8 @@ class FirnDensitySpin:
         init_del_z      = -50 * np.ones(self.gridLen)
         self.diffu      = Diffusion(self.z, self.stp, self.gridLen, init_Tz, init_del_z)
 
+        print self.diffu.del_z
+
         # set up initial grain growth (if specified in config file)
         if self.c['physGrain']:
             if self.c['calcGrainSize']:
@@ -149,6 +151,7 @@ class FirnDensitySpin:
         ####################################
         ##### START TIME-STEPPING LOOP #####
         ####################################
+        raw_input('press enter')
         for iii in xrange(self.stp):
 
             # the parameters that get passed to physics
@@ -199,8 +202,14 @@ class FirnDensitySpin:
         
             # update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
+                print 'heat on'
                 self.diffu.heatDiff(self.z, self.dz, self.Ts[iii], self.rho, self.dt)
             if self.c['isoDiff']:
+                if iii<2:
+                    print 'iii', iii
+                    # print self.del_s[iii]
+                    # raw_input('press enter')
+
                 self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, self.dt)
 
             # update model grid

@@ -26,6 +26,14 @@ class Diffusion:
        
         self.del_z = init_del_z  # vertical isotope profile is the initial profile set as input
 
+        # self.del_s = -30.0 * np.ones(stp)
+        # self.del_z = self.del_s[0] * np.ones(gridLen)
+
+        # print 'del_s', self.del_s
+        # print 's shape', np.shape(self.del_s)
+        # print 'del_z', self.del_z
+        # print 'z shape', np.shape(self.del_z)
+
         fT10m      = interpolate.interp1d(z, self.Tz) #temp at 10m depth
         self.T10m  = fT10m(10)
 
@@ -41,6 +49,7 @@ class Diffusion:
         :returns self.Tz:
         :returns self.T10m:
         '''
+        print 'heat on'
 
     	nz_P = len(z)
         nz_fv = nz_P - 2
@@ -50,7 +59,10 @@ class Diffusion:
         z_edges_vec = np.concatenate(([z[0]], z_edges_vec, [z[-1]]))
         z_P_vec = z
         phi_s = Ts
+
         phi_0 = self.Tz
+
+
 
         K_ice = 9.828 * np.exp(-0.0057 * phi_0)
         K_firn = K_ice * (rho / 1000) ** (2 - 0.5 * (rho / 1000))
@@ -65,7 +77,7 @@ class Diffusion:
 
         return self.Tz, self.T10m
 
-    def isoDiff(self, iter, z, dz, rho, iso, gridLen, dt):
+    def isoDiff(self, iii, z, dz, rho, iso, gridLen, dt):
         '''
         Isotope diffusion function
 
@@ -86,9 +98,14 @@ class Diffusion:
         z_P_vec = z
 
         # Node positions
-        phi_s = self.del_s[iter]    												# isotope value at surface
+        phi_s = self.del_s[iii]
+        # print 'del_s, iso', phi_s
+        # print 'del_s type', type(phi_s)   
+        # print 'phi_s', phi_s    												# isotope value at surface
         phi_0 = self.del_z       												    # initial isotope profile
-
+        # print 'phi_0',phi_0
+        # print 'phi_0 type',type(phi_0)
+        # print 'phi_0 shape',np.shape(phi_0)
         # Define diffusivity for each isotopic species
         # Establish values needed for diffusivity calculation
         m = 0.018           												        # kg/mol; molar mass of water
@@ -111,14 +128,22 @@ class Diffusion:
         invtau[rho < RHO_I / np.sqrt(b)] = 1.0 - (b * (rho[rho < RHO_I / np.sqrt(b)] / RHO_I)) ** 2
         invtau[rho >= RHO_I / np.sqrt(b)] = 0.0
 
+        # print 'ting', rho
+
         # Set diffusivity for each isotope
         if iso == '18':
             D = m * pz * invtau * Da_18 * (1 / rho - 1 / RHO_I) / (R * self.Tz * alpha_18_z)
+            D[D<=0.0] = 1.0e-30
+            # print 'D',D[-1]
         elif iso == 'D':
             D = m * pz * invtau * Da_D * (1 / rho - 1 / RHO_I) / (R * self.Tz * alpha_D_z)
+            D[D<=0.0] = 1.0e-30
+            # print 'D',D[-1]
+        # D[D==0.00] == 1.0e-15
+        # print 'D',D[-1]
 
         # Solve for vertical isotope profile at this time step i
         self.del_z = transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, D, phi_0, nz_P, nz_fv, phi_s)
-        self.del_z = np.concatenate(([self.del_s[iter]], self.del_z[:-1]))
+        self.del_z = np.concatenate(([self.del_s[iii]], self.del_z[:-1]))
 
         return self.del_z
