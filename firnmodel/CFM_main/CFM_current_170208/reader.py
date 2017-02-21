@@ -57,6 +57,7 @@ def read_init(folder):
 
     densityPath = os.path.join(folder, 'densitySpin.csv')
     tempPath    = os.path.join(folder, 'tempSpin.csv')
+    isoPath     = os.path.join(folder, 'isoSpin.csv')
     agePath     = os.path.join(folder, 'ageSpin.csv')
     depthPath   = os.path.join(folder, 'depthSpin.csv')
 
@@ -64,5 +65,6 @@ def read_init(folder):
     initAge     = np.genfromtxt(agePath, delimiter = ',' )
     initDensity = np.genfromtxt(densityPath, delimiter = ',')
     initTemp    = np.genfromtxt(tempPath, delimiter = ',')
+    initIso     = np.genfromtxt(isoPath, delimiter = ',')
 
-    return initDepth, initAge, initDensity, initTemp
+    return initDepth, initAge, initDensity, initTemp, initIso
