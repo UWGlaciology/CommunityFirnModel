@@ -4,7 +4,7 @@ import numpy as np
 from scipy import interpolate
 
 class Diffusion:
-    def __init__(self, z, stp, gridLen, init_Tz, init_del_z):
+    def __init__(self, z, stp, gridLen, init_Tz):
         '''
         Initializes a diffusion class -- can run heat diffusion or isotope diffusion
 
@@ -13,14 +13,14 @@ class Diffusion:
         :param init_Tz: initial temperature vector along the depth of the firn column
         :param init_T10m:
         '''
-        
+
         self.Tz = init_Tz
+        self.del_s = -30.0 * np.ones(stp)
+        self.del_z = self.del_s[0] * np.ones(gridLen)
+
         fT10m      = interpolate.interp1d(z, self.Tz) #temp at 10m depth
         self.T10m  = fT10m(10)
-    
-        self.del_z = init_del_z  # vertical isotope profile is the initial profile set as input
-
-       
+        print "init"
 
     def heatDiff(self, z, dz, Ts, rho, dt):
         '''
@@ -58,7 +58,7 @@ class Diffusion:
 
         return self.Tz, self.T10m
 
-    def isoDiff(self, z, dz, del_s, rho, iso, dt, gridLen):
+    def isoDiff(self, iter, z, dz, rho, iso, gridLen, dt):
         '''
         Isotope diffusion function
 
@@ -79,7 +79,7 @@ class Diffusion:
         z_P_vec = z
 
         # Node positions
-        phi_s = del_s    												# isotope value at surface
+        phi_s = self.del_s[iter]    												# isotope value at surface
         phi_0 = self.del_z       												    # initial isotope profile
 
         # Define diffusivity for each isotopic species
@@ -95,8 +95,8 @@ class Diffusion:
 
         # Set diffusivity in air (units of m^2/s)
         Da = 2.1 * np.power(10.0, -5.) * np.power(self.Tz / 273.15, 1.94) * (Po / P)
-        Da_18 = Da / 1.0285    	      # account for fractionation factor for 18_O, fixed Johnsen typo
-        Da_D = Da / 1.0251    		    # account for fractionation factor for D, fixed Johnsen typo
+        Da_18 = Da / 1.0251     											        # account for fractionation factor for 18_O
+        Da_D = Da / 1.0285      											        # account for fractionation factor for D
 
         # Calculate tortuosity
         invtau = np.zeros(gridLen)
@@ -107,13 +107,11 @@ class Diffusion:
         # Set diffusivity for each isotope
         if iso == '18':
             D = m * pz * invtau * Da_18 * (1 / rho - 1 / RHO_I) / (R * self.Tz * alpha_18_z)
-            D[D<=0.0]=1.0e-20
         elif iso == 'D':
             D = m * pz * invtau * Da_D * (1 / rho - 1 / RHO_I) / (R * self.Tz * alpha_D_z)
-            D[D<=0.0]=1.0e-20
-            
+
         # Solve for vertical isotope profile at this time step i
         self.del_z = transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, D, phi_0, nz_P, nz_fv, phi_s)
-        self.del_z = np.concatenate(([del_s], self.del_z[:-1]))
+        self.del_z = np.concatenate(([self.del_s[iter]], self.del_z[:-1]))
 
         return self.del_z

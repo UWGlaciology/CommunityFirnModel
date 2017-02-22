@@ -2,6 +2,7 @@ import os
 import numpy as np
 from string import join
 from constants import *
+import h5py
 
 def read_temp(file):
     '''
@@ -43,6 +44,30 @@ def read_bdot(file):
 
     return input_bdot, input_year_bdot
 
+# def read_init(folder):
+#     '''
+#     Read in data for initial depth, age, density, and temperature to run the model without spin
+
+#     :param folder: the folder containing the files holding depth, age, density, and temperature
+
+#     :return initDepth: initial depth vector from a specified csv file
+#     :return initAge: initial age vector from a specified csv file
+#     :return initDensity: initial density vector from a specified csv file
+#     :return initTemp: initial temperature vector from a specified csv file
+#     '''
+
+#     densityPath = os.path.join(folder, 'densitySpin.csv')
+#     tempPath    = os.path.join(folder, 'tempSpin.csv')
+#     agePath     = os.path.join(folder, 'ageSpin.csv')
+#     depthPath   = os.path.join(folder, 'depthSpin.csv')
+
+#     initDepth   = np.genfromtxt(depthPath, delimiter = ',')
+#     initAge     = np.genfromtxt(agePath, delimiter = ',' )
+#     initDensity = np.genfromtxt(densityPath, delimiter = ',')
+#     initTemp    = np.genfromtxt(tempPath, delimiter = ',')
+
+#     return initDepth, initAge, initDensity, initTemp
+
 def read_init(folder):
     '''
     Read in data for initial depth, age, density, and temperature to run the model without spin
@@ -55,16 +80,21 @@ def read_init(folder):
     :return initTemp: initial temperature vector from a specified csv file
     '''
 
-    densityPath = os.path.join(folder, 'densitySpin.csv')
-    tempPath    = os.path.join(folder, 'tempSpin.csv')
-    isoPath     = os.path.join(folder, 'isoSpin.csv')
-    agePath     = os.path.join(folder, 'ageSpin.csv')
-    depthPath   = os.path.join(folder, 'depthSpin.csv')
+    f5 = h5py.File(os.path.join(folder, 'CFMspin.hdf5'),'r')
 
-    initDepth   = np.genfromtxt(depthPath, delimiter = ',')
-    initAge     = np.genfromtxt(agePath, delimiter = ',' )
-    initDensity = np.genfromtxt(densityPath, delimiter = ',')
-    initTemp    = np.genfromtxt(tempPath, delimiter = ',')
-    initIso     = np.genfromtxt(isoPath, delimiter = ',')
+    initDensity = f5['densitySpin'][:]
+    initAge = f5['ageSpin'][:]
+    initDepth = f5['depthSpin'][:]
+    initTemp = f5['tempSpin'][:]
 
-    return initDepth, initAge, initDensity, initTemp, initIso
+    # densityPath = os.path.join(folder, 'densitySpin.csv')
+    # tempPath    = os.path.join(folder, 'tempSpin.csv')
+    # agePath     = os.path.join(folder, 'ageSpin.csv')
+    # depthPath   = os.path.join(folder, 'depthSpin.csv')
+
+    # initDepth   = np.genfromtxt(depthPath, delimiter = ',')
+    # initAge     = np.genfromtxt(agePath, delimiter = ',' )
+    # initDensity = np.genfromtxt(densityPath, delimiter = ',')
+    # initTemp    = np.genfromtxt(tempPath, delimiter = ',')
+
+    return initDepth, initAge, initDensity, initTemp

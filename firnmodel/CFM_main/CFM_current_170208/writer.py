@@ -2,8 +2,9 @@ import csv
 import os
 from string import join
 import numpy as np
+import h5py
 
-def write_nospin_init(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time):
+def write_nospin_init(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time, Hx_time):
     '''
     Writes the results of density, temperature, age, depth, Dcon, Clim, bdot, and r2 (if specified)
     Not used in spin mode
@@ -22,25 +23,18 @@ def write_nospin_init(folder, physGrain, rho_time, Tz_time, del_z_time, age_time
 
     densityPath     = os.path.join(folder, 'density.csv')
     tempPath        = os.path.join(folder, 'temp.csv')
-    isoPath         = os.path.join(folder, 'iso.csv')
     agePath         = os.path.join(folder, 'age.csv')
     depthPath       = os.path.join(folder, 'depth.csv')
     DconPath        = os.path.join(folder, 'Dcon.csv')
     ClimPath        = os.path.join(folder, 'Clim.csv')
     bdotPath        = os.path.join(folder, 'bdot_mean.csv')
 
-    if physGrain:
-        r2Path = os.path.join(folder, 'r2.csv')
-
     with open(densityPath, "w") as f:
         csvwriter = csv.writer(f)
-        csvwriter.writerow(rho_time)  
+        csvwriter.writerow(rho_time)
     with open(tempPath, "w") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(Tz_time)
-    with open(isoPath, "w") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(del_z_time)
     with open(agePath, "w") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(age_time)
@@ -57,11 +51,48 @@ def write_nospin_init(folder, physGrain, rho_time, Tz_time, del_z_time, age_time
         csvwriter = csv.writer(f)
         csvwriter.writerow(bdot_time)
     if physGrain:
+        r2Path = os.path.join(folder, 'r2.csv')
         with open(r2Path, "w") as f:
             csvwriter = csv.writer(f)
             csvwriter.writerow(r2_time)
+    if THist:
+        HxPath = os.path.join(folder, 'Hx.csv')
+        with open(HxPath, "w") as f:
+            csvwriter = csv.writer(f)
+            csvwriter.writerow(Hx_time)
 
-def write_nospin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time):
+# def write_nospin_hdf5(folder, physGrain, THist, rho_out, Tz_out, age_out, z_out, D_out, Clim_out, bdot_out, r2_out, Hx_out):
+def write_nospin_hdf5(self):
+
+    f4 = h5py.File(os.path.join(self.c['resultsFolder'], 'CFMresults.hdf5'),'w')
+    f4.create_dataset('density',data=self.rho_out)
+    f4.create_dataset('temperature',data=self.Tz_out)
+    f4.create_dataset('age',data=self.age_out)
+    f4.create_dataset('depth',data=self.z_out)
+    f4.create_dataset('Dcon',data=self.D_out)
+    f4.create_dataset('bdot',data=self.bdot_out)
+    f4.create_dataset('Modelclimate',data=self.Clim_out)
+    if self.c['physGrain']:
+        f4.create_dataset('r2',data=self.r2_out)
+    if self.THist:
+        f4.create_dataset('Hx',data=self.Hx_out)
+
+    # timewrite = np.append(self.modeltime[0],self.TWrite[:len(self.intPhiAll)])
+    timewrite = self.TWrite_out
+    # timewrite = np.append(self.modeltime[0],self.TWrite)
+
+    DIPwrite=np.vstack((timewrite, self.intPhiAll, self.dHOut, self.dHOutC))    
+    f4.create_dataset('DIP',data = DIPwrite)
+
+    BCOwrite=np.vstack((timewrite, self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All))    
+    f4.create_dataset('BCO',data = BCOwrite)
+
+    LIZwrite=np.vstack((timewrite, self.LIZAgeAll, self.LIZDepAll))    
+    f4.create_dataset('LIZ',data = LIZwrite)
+
+    f4.close()
+
+def write_nospin(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time, Hx_time):
     '''
     Writes the results of density, temperature, age, depth, Dcon, Clim, bdot, and r2 (if specified)
     Not used in spin mode
@@ -80,15 +111,11 @@ def write_nospin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_t
 
     densityPath     = os.path.join(folder, 'density.csv')
     tempPath        = os.path.join(folder, 'temp.csv')
-    isoPath         = os.path.join(folder, 'iso.csv')
     agePath         = os.path.join(folder, 'age.csv')
     depthPath       = os.path.join(folder, 'depth.csv')
     DconPath        = os.path.join(folder, 'Dcon.csv')
     ClimPath        = os.path.join(folder, 'Clim.csv')
     bdotPath        = os.path.join(folder, 'bdot_mean.csv')
-
-    if physGrain:
-        r2Path = os.path.join(folder, 'r2.csv')
 
     with open(densityPath, "a") as f:
         csvwriter = csv.writer(f)
@@ -96,9 +123,6 @@ def write_nospin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_t
     with open(tempPath, "a") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(Tz_time)
-    with open(isoPath, "a") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(del_z_time)
     with open(agePath, "a") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(age_time)
@@ -115,11 +139,31 @@ def write_nospin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_t
         csvwriter = csv.writer(f)
         csvwriter.writerow(bdot_time)
     if physGrain:
+        r2Path = os.path.join(folder, 'r2.csv')
         with open(r2Path, "a") as f:
             csvwriter = csv.writer(f)
             csvwriter.writerow(r2_time)
+    if THist:
+        HxPath = os.path.join(folder, 'Hx.csv')
+        with open(HxPath, "a") as f:
+            csvwriter = csv.writer(f)
+            csvwriter.writerow(Hx_time)
 
-def write_spin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_time, r2_time):
+def write_spin_hdf5(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time):
+
+    f5 = h5py.File(os.path.join(folder, 'CFMspin.hdf5'), 'w')
+
+    f5.create_dataset('densitySpin', data = rho_time)
+    f5.create_dataset('tempSpin', data = Tz_time)
+    f5.create_dataset('ageSpin', data = age_time)
+    f5.create_dataset('depthSpin', data = z_time)
+    if physGrain:
+        f5.create_dataset('r2Spin', data = r2_time)
+    if THist:
+        f5.create_dataset('HxSpin', data = Hx_time)
+
+
+def write_spin(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time):
     '''
     Writes the results of density, temperature, age, depth, and r2 (if specified)
     Used in spin mode
@@ -133,11 +177,10 @@ def write_spin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_tim
     :param r2_time:
     '''
 
-    densityPath     = os.path.join(folder, 'densitySpin.csv')
-    tempPath        = os.path.join(folder, 'tempSpin.csv')
-    isoPath         = os.path.join(folder, 'isoSpin.csv')
-    agePath         = os.path.join(folder, 'ageSpin.csv')
-    depthPath       = os.path.join(folder, 'depthSpin.csv')
+    densityPath = os.path.join(folder, 'densitySpin.csv')
+    tempPath    = os.path.join(folder, 'tempSpin.csv')
+    agePath     = os.path.join(folder, 'ageSpin.csv')
+    depthPath   = os.path.join(folder, 'depthSpin.csv')
 
     if physGrain:
         r2Path = os.path.join(folder, 'r2Spin.csv')
@@ -148,9 +191,6 @@ def write_spin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_tim
     with open(tempPath, "a") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(Tz_time)
-    with open(isoPath, "a") as f:
-        csvwriter = csv.writer(f)
-        csvwriter.writerow(del_z_time)
     with open(agePath, "a") as f:
         csvwriter = csv.writer(f)
         csvwriter.writerow(age_time)
@@ -158,9 +198,15 @@ def write_spin(folder, physGrain, rho_time, Tz_time, del_z_time, age_time, z_tim
         csvwriter = csv.writer(f)
         csvwriter.writerow(z_time)
     if physGrain:
+        r2Path = os.path.join(folder, 'r2Spin.csv')
         with open(r2Path, "a") as f:
             csvwriter = csv.writer(f)
             csvwriter.writerow(r2_time)
+    if THist:
+        HxPath = os.path.join(folder, 'HxSpin.csv')
+        with open(HxPath, "a") as f:
+            csvwriter = csv.writer(f)
+            csvwriter.writerow(Hx_time)
 
 def write_nospin_BCO(folder, bcoAgeMartAll, bcoDepMartAll, bcoAge815All, bcoDep815All,modeltime,TWrite):
     '''
@@ -200,13 +246,16 @@ def write_nospin_LIZ(folder, LIZAgeAll, LIZDepAll,modeltime,TWrite):
         csvwriter.writerow(LIZAgeAll)
         csvwriter.writerow(LIZDepAll)
 
-def write_nospin_DIP(folder, intPhiAll,modeltime,TWrite):
+# def write_nospin_DIP(folder, intPhiAll, dsurfOut, dsurfOutC, modeltime,TWrite):
+def write_nospin_DIP(folder, intPhiAll, modeltime,TWrite):
     '''
     Writes the results of depth-integrated porosity
     Not used in spin mode
 
     :param folder: the name of the folder that the results will be written to
-    :param intPhiAll:
+    :param intPhiAll: the depth-integrated porosity at that time step
+    :param dsurfOut: the change in surface elevation since the last time step
+    :param dsurfOutC: the total change in surface elevation since start of model run
     '''
 
     intPhiPath = os.path.join(folder, 'porosity.csv')
@@ -214,4 +263,6 @@ def write_nospin_DIP(folder, intPhiAll,modeltime,TWrite):
         csvwriter = csv.writer(f)
         csvwriter.writerow(np.append(modeltime[0],TWrite[:len(intPhiAll)]))
         csvwriter.writerow(intPhiAll)
+        # csvwriter.writerow(dsurfOut)
+        # csvwriter.writerow(dsurfOutC)
 

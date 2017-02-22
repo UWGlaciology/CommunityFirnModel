@@ -3,6 +3,7 @@ from hl_analytic import hl_analytic
 from reader import read_temp
 from reader import read_bdot
 from writer import write_spin
+from writer import write_spin_hdf5
 from physics import *
 from constants import *
 import numpy as np
@@ -15,6 +16,7 @@ import os
 from string import join
 import shutil
 import time
+import h5py
 
 class FirnDensitySpin:
     '''
@@ -61,6 +63,8 @@ class FirnDensitySpin:
             jsonString = f.read()
             self.c = json.loads(jsonString)
 
+        print "physics are", self.c['physRho']
+
         # create directory to store results. Deletes if it exists already.
         if os.path.exists(self.c['resultsFolder']):
             rmtree(self.c['resultsFolder'])
@@ -85,7 +89,7 @@ class FirnDensitySpin:
         # get an initial depth/density based on H&L analytic solution
         THL = input_temp[0]
         AHL = input_bdot[0]
-        self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL)
+        self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) #self.age is in seconds
 
         # spin-up time
         if self.c['AutoSpinUpTime']: #automatic, based on time that it will take for a parcel to get to 850 kg m^-3
@@ -93,26 +97,24 @@ class FirnDensitySpin:
                 zz = np.min(self.z[self.rho > 850.0])
                 self.years = int(zz / self.bdot0)
             except ValueError:
-                print "error at 96"
+                pass
         else: # based on time taken to spin up in the config file.
             self.years = self.c['yearSpin']
         
         self.stp        = int(self.years * self.c['stpsPerYearSpin']) # total number of time steps, as integer
         self.dt         = self.years * S_PER_YEAR / self.stp # size of time steps, seconds
+        self.dts        = self.years / self.stp # size of time step, years
         self.t          = 1.0 / self.c['stpsPerYearSpin'] # years per time step
 
         self.Ts         = self.temp0 * np.ones(self.stp)
-        self.T_mean     = self.Ts
+        self.T_mean     = np.mean(self.Ts)
 
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
-            self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
+            self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         
         self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (per second)
         self.bdotSec    = self.bdotSec0 * np.ones(self.stp) # vector of accumulation at each time step
 
-        # Create surface isotope input vector
-        self.del_s = -50 * np.ones(self.stp)    # constant isotope value of -50 for spin up
-        
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp)
 
         # set up initial mass, stress, and mean accumulation rate
@@ -122,14 +124,9 @@ class FirnDensitySpin:
         self.mass_sum   = self.mass.cumsum(axis = 0)
         self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
 
-        #set up longitudinal strain rate
-        self.du_dx = np.zeros(self.gridLen)
-        self.du_dx[1:] = (10**-2)/(S_PER_YEAR)
-        
         # set up initial temperature grid as well as a class to handle heat/isotope diffusion
         init_Tz         = input_temp[0] * np.ones(self.gridLen)
-        init_del_z      = -50 * np.ones(self.gridLen)
-        self.diffu      = Diffusion(self.z, self.stp, self.gridLen, init_Tz, init_del_z)
+        self.diffu      = Diffusion(self.z, self.stp, self.gridLen, init_Tz)
 
         # set up initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -138,6 +135,16 @@ class FirnDensitySpin:
                 self.r2 = r02 * np.ones(self.gridLen)
             else:
                 self.r2 = np.linspace(self.c['r2s0'], (6 * self.c['r2s0']), self.gridLen)
+        else:
+            self.r2 = None
+
+        if self.c['physRho']=='Morris2013':
+            # initial temperature history function (units seconds)
+            self.Hx = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
+            self.THist = True
+        else:
+            self.THist = False
+
     ##### END INIT #####
 
     def time_evolve(self):
@@ -146,8 +153,6 @@ class FirnDensitySpin:
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
         '''
         self.steps = 1 / self.t #this is time steps per year
-        if not self.c['physGrain']:
-            r2_time = None
 
         ####################################
         ##### START TIME-STEPPING LOOP #####
@@ -169,54 +174,61 @@ class FirnDensitySpin:
                 'dt':           self.dt,
                 'Ts':           self.Ts,
                 'r2':           self.r2,
+                'age':          self.age,
                 'physGrain':    self.c['physGrain'],
-                'calcGrainSize':self.c['calcGrainSize']
+                'calcGrainSize':self.c['calcGrainSize'],
+                'z':            self.z,
+                'rhos0':        self.rhos0[iii]
             }
+            if self.THist:
+                PhysParams['Hx']=self.Hx
 
             # choose densification-physics based on user input
             physicsd = {
-                'HLdynamic':       FirnPhysics(PhysParams).HL_dynamic,
-                'HLSigfus':        FirnPhysics(PhysParams).HL_Sigfus,
-                'Barnola1991':     FirnPhysics(PhysParams).Barnola_1991,
-                'Li2004':          FirnPhysics(PhysParams).Li_2004,
-                'Li2011':          FirnPhysics(PhysParams).Li_2011,
-                'Ligtenberg2011':  FirnPhysics(PhysParams).Ligtenberg_2011,
-                'Arthern2010S':    FirnPhysics(PhysParams).Arthern_2010S,
-                'Simonsen2013':    FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2013':      FirnPhysics(PhysParams).Morris_HL_2013,
-                'Helsen2008':      FirnPhysics(PhysParams).Helsen_2008,
-                'Arthern2010T':    FirnPhysics(PhysParams).Arthern_2010T,
-                'Spencer2001':     FirnPhysics(PhysParams).Spencer_2001,
-                'Goujon2003':      FirnPhysics(PhysParams).Goujon_2003,
+                'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
+                'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
+                'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
+                'Li2004':               FirnPhysics(PhysParams).Li_2004,
+                'Li2011':               FirnPhysics(PhysParams).Li_2011,
+                'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
+                'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
+                'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
+                'Morris2013':           FirnPhysics(PhysParams).Morris_HL_2013,
+                'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
+                'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
+                'Spencer2001':          FirnPhysics(PhysParams).Spencer_2001,
+                'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
+                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015
             }
 
-#            try:
-            drho_dt = physicsd[self.c['physRho']]()
-#            except KeyError:
-#                default()
+            try:
+                drho_dt = physicsd[self.c['physRho']]()
+            except KeyError:
+                print "Error at line ", info.lineno
 
             # update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
-            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-        
+            
+
+            if self.THist:
+                self.Hx = FirnPhysics(PhysParams).THistory()
+
             # update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
                 self.diffu.heatDiff(self.z, self.dz, self.Ts[iii], self.rho, self.dt)
             if self.c['isoDiff']:
-                self.diffu.isoDiff(self.z, self.dz, self.del_s[iii], self.rho, self.c['iso'], self.dt, self.gridLen)
+                self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, self.dt)
 
-            # update model grid
+            ##### update model grid
             dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
             self.dz = self.mass / self.rho * self.dx
-             #consider additional change in box height due to longitudinal strain rate
-            self.dz_old = self.dz    
-            self.dz = self.du_dx*self.dt + self.dz_old
             self.dz = np.concatenate(([dzNew], self.dz[:-1]))
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
+            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
-            # update mass, stress, and mean accumulation rate
+            ##### update mass, stress, and mean accumulation rate
             massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass = np.concatenate(([massNew], self.mass[:-1]))
             self.sigma = self.mass * self.dx * GRAVITY
@@ -230,16 +242,20 @@ class FirnDensitySpin:
 
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
-                rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
-                Tz_time         = np.concatenate(([self.t * iii + 1], self.diffu.Tz))
-                del_z_time      = np.concatenate(([self.t * iii + 1], self.diffu.del_z))
-                age_time        = np.concatenate(([self.t * iii + 1], self.age))
-                z_time          = np.concatenate(([self.t * iii + 1], self.z))
+                rho_time = np.concatenate(([self.t * iii + 1], self.rho))
+                Tz_time  = np.concatenate(([self.t * iii + 1], self.diffu.Tz))
+                age_time = np.concatenate(([self.t * iii + 1], self.age))
+                z_time   = np.concatenate(([self.t * iii + 1], self.z))
                 if self.c['physGrain']:
                     r2_time = np.concatenate(([self.t * iii + 1], self.r2))
+                else:
+                    r2_time = None
+                if self.THist:                
+                    Hx_time = np.concatenate(([self.t * iii + 1], self.Hx))
+                else:
+                    Hx_time = None
+
                     
-          
-
-                write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, del_z_time, age_time, z_time, r2_time)
-
-                
+                # write_spin(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time)
+                write_spin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time)
+                # write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)

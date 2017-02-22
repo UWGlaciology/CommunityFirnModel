@@ -109,7 +109,7 @@ class FirnPhysics:
 
     def Li_2011(self):
         '''
-
+        : This uses W.E. units
         :param steps:
         :param gridLen:
         :param bdotSec:
