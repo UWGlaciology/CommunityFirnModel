@@ -30,7 +30,7 @@ class FirnDensityNoSpin:
     : gridLen: size of grid used in the model run
                 (unit: number of boxes, type: int)
     : dx: vector of width of each box, used for stress calculations
-                (unit: ???, type: array of ints)
+                (unit: m, type: array of ints)
     : dt: number of seconds per time step
                 (unit: seconds, type: float)
     : t: number of years per time step
@@ -133,14 +133,14 @@ class FirnDensityNoSpin:
 
         # self.RD = {}
 
-        self.rho_out = np.zeros((self.stp+1,len(self.dz)+1))
+        self.rho_out = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
         # rho_out1 = np.zeros((self.stp+2,len(self.dz)+1))
-        self.Tz_out = np.zeros((self.stp+1,len(self.dz)+1))
-        self.age_out = np.zeros((self.stp+1,len(self.dz)+1))
-        self.z_out = np.zeros((self.stp+1,len(self.dz)+1))
-        self.D_out = np.zeros((self.stp+1,len(self.dz)+1))
-        self.bdot_out = np.zeros((self.stp+1,len(self.dz)+1))
-        self.Clim_out = np.zeros((self.stp+1,3))
+        self.Tz_out = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+        self.age_out = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+        self.z_out = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+        self.D_out = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+        self.bdot_out = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+        self.Clim_out = np.zeros((self.stp+1,3),dtype='float32')
 
         # self.rho_out = np.ones(np.shape(self.D_out))
 
@@ -161,7 +161,6 @@ class FirnDensityNoSpin:
         self.Clim_out[0,:]       = Clim_time
         self.bdot_out[0,:]       = bdot_time
 
-
         # self.rho_out[0,:]        = np.append(self.modeltime[0], self.rho)
         # self.Tz_out[0,:]         = np.append(self.modeltime[0], self.diffu.Tz)
         # self.age_out[0,:]        = np.append(self.modeltime[0], self.age)
@@ -169,17 +168,6 @@ class FirnDensityNoSpin:
         # self.D_out[0,:]          = np.append(self.modeltime[0], self.Dcon)
         # self.Clim_out[0,:]       = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
         # self.bdot_out[0,:]       = np.append(self.modeltime[0], self.bdot_mean)
-
-        # else:
-        #     print "writing in csv"
-        #     rho_time        = np.append(self.modeltime[0], self.rho)
-        #     Tz_time         = np.append(self.modeltime[0], self.diffu.Tz)
-        #     age_time        = np.append(self.modeltime[0], self.age)
-        #     z_time          = np.append(self.modeltime[0], self.z)
-        #     D_time          = np.append(self.modeltime[0], self.Dcon)
-        #     Clim_time       = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
-        #     # Ts_time       = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
-        #     bdot_time       = np.append(self.modeltime[0], self.bdot_mean)
 
         # set up initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -255,9 +243,7 @@ class FirnDensityNoSpin:
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
             mtime_plus1 = self.modeltime[iii+1]
-            if iii>self.stp-10:
-                print mtime
-            # self.i3 = iii
+
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -396,6 +382,7 @@ class FirnDensityNoSpin:
 
 
         # write_nospin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, self.rho_out, self.Tz_out, self.age_out, self.z_out, self.D_out, self.Clim_out, self.bdot_out, self.r2_out, self.Hx_out)
+        print self.rho_out.nbytes/1.0e6
 
         write_nospin_hdf5(self)
 
@@ -462,6 +449,7 @@ class FirnDensityNoSpin:
         '''
 
         # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot_mean[0]*S_PER_YEAR) #
+        
         self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho[-1]/RHO_I))*self.t #
 
         self.dHAll.append(self.dH)

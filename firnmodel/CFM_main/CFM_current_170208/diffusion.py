@@ -20,6 +20,7 @@ class Diffusion:
 
         fT10m      = interpolate.interp1d(z, self.Tz) #temp at 10m depth
         self.T10m  = fT10m(10)
+        print "init"
 
     def heatDiff(self, z, dz, Ts, rho, dt):
         '''
