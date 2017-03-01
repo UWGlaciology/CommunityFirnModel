@@ -20,7 +20,6 @@ class Diffusion:
 
         fT10m      = interpolate.interp1d(z, self.Tz) #temp at 10m depth
         self.T10m  = fT10m(10)
-        print "init"
 
     def heatDiff(self, z, dz, Ts, rho, dt):
         '''
@@ -41,6 +40,7 @@ class Diffusion:
 
         z_edges_vec = z[1:-2] + dz[2:-1] / 2
         z_edges_vec = np.concatenate(([z[0]], z_edges_vec, [z[-1]]))
+
         z_P_vec = z
         phi_s = Ts
         phi_0 = self.Tz
@@ -76,6 +76,7 @@ class Diffusion:
 
         z_edges_vec = z[1:-2] + dz[2:-1] / 2        						        # uniform edge spacing of volume edges
         z_edges_vec = np.concatenate(([z[0]], z_edges_vec, [z[-1]]))
+        
         z_P_vec = z
 
         # Node positions

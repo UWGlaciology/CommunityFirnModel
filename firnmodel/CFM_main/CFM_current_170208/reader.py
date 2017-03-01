@@ -86,6 +86,7 @@ def read_init(folder):
     initAge = f5['ageSpin'][:]
     initDepth = f5['depthSpin'][:]
     initTemp = f5['tempSpin'][:]
+    
 
     # densityPath = os.path.join(folder, 'densitySpin.csv')
     # tempPath    = os.path.join(folder, 'tempSpin.csv')

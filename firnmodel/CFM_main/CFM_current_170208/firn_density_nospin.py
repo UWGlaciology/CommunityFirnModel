@@ -2,11 +2,11 @@ from diffusion import Diffusion
 from reader import read_temp
 from reader import read_bdot
 from reader import read_init
-from writer import write_nospin
-from writer import write_nospin_init
-from writer import write_nospin_BCO
-from writer import write_nospin_LIZ
-from writer import write_nospin_DIP
+# from writer import write_nospin
+# from writer import write_nospin_init
+# from writer import write_nospin_BCO
+# from writer import write_nospin_LIZ
+# from writer import write_nospin_DIP
 from writer import write_nospin_hdf5
 from physics import *
 from constants import *
@@ -327,6 +327,7 @@ class FirnDensityNoSpin:
                 self.z = self.dz.cumsum(axis = 0)
                 self.z = np.concatenate(([0], self.z[:-1]))
                 self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
                 ##### update mass, stress, and mean accumulation rate
                 massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass = np.concatenate(([massNew], self.mass[:-1]))
@@ -450,7 +451,9 @@ class FirnDensityNoSpin:
 
         # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot_mean[0]*S_PER_YEAR) #
         
-        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho[-1]/RHO_I))*self.t #
+        # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho_old[-1]/RHO_I))*self.t #
+
+        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout*self.t) #
 
         self.dHAll.append(self.dH)
 

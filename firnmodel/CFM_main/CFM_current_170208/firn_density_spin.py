@@ -2,7 +2,7 @@ from diffusion import Diffusion
 from hl_analytic import hl_analytic
 from reader import read_temp
 from reader import read_bdot
-from writer import write_spin
+# from writer import write_spin
 from writer import write_spin_hdf5
 from physics import *
 from constants import *
@@ -26,7 +26,11 @@ class FirnDensitySpin:
     : gridLen: size of grid used in the model run
                 (unit: number of boxes, type: int)
     : dx: vector of width of each box, used for stress calculations
-                (unit: ???, type: array of ints)
+                (unit: m, type: array of ints)
+    : dz: vector of thickness of each box
+                (unit: m, type: float)
+    : z:  vector of edge locations of each box (value is the top of the box)
+                (unit: m, type: float)
     : dt: number of seconds per time step
                 (unit: seconds, type: float)
     : t: number of years per time step
@@ -158,7 +162,6 @@ class FirnDensitySpin:
         ##### START TIME-STEPPING LOOP #####
         ####################################
         for iii in xrange(self.stp):
-
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -221,12 +224,12 @@ class FirnDensitySpin:
                 self.diffu.isoDiff(iii, self.z, self.dz, self.rho, self.c['iso'], self.gridLen, self.dt)
 
             ##### update model grid
-            dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-            self.dz = self.mass / self.rho * self.dx
-            self.dz = np.concatenate(([dzNew], self.dz[:-1]))
-            self.z = self.dz.cumsum(axis = 0)
-            self.z = np.concatenate(([0], self.z[:-1]))
-            self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+            dzNew       = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+            self.dz     = self.mass / self.rho * self.dx
+            self.dz     = np.concatenate(([dzNew], self.dz[:-1]))
+            self.z      = self.dz.cumsum(axis = 0)
+            self.z      = np.concatenate(([0], self.z[:-1]))
+            self.rho    = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
             ##### update mass, stress, and mean accumulation rate
             massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
@@ -242,10 +245,12 @@ class FirnDensitySpin:
 
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
+
                 rho_time = np.concatenate(([self.t * iii + 1], self.rho))
                 Tz_time  = np.concatenate(([self.t * iii + 1], self.diffu.Tz))
                 age_time = np.concatenate(([self.t * iii + 1], self.age))
                 z_time   = np.concatenate(([self.t * iii + 1], self.z))
+            
                 if self.c['physGrain']:
                     r2_time = np.concatenate(([self.t * iii + 1], self.r2))
                 else:
