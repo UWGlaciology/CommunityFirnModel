@@ -153,9 +153,17 @@ def read_init(folder, resultsFileName, varname):
     f5 = h5py.File(os.path.join(folder, resultsFileName),'r')
     init_value = f5[varname][:]
 
+
     # initAge = f5['ageSpin'][:]
     # initDepth = f5['depthSpin'][:]
     # initTemp = f5['tempSpin'][:]
+
+    # initDensity = f5['densitySpin'][:]
+    # initAge = f5['ageSpin'][:]
+    # initDepth = f5['depthSpin'][:]
+    # initTemp = f5['tempSpin'][:]
+    
+
 
     # densityPath = os.path.join(folder, 'densitySpin.csv')
     # tempPath    = os.path.join(folder, 'tempSpin.csv')

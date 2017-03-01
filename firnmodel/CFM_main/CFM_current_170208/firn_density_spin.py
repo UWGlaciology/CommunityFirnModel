@@ -28,7 +28,11 @@ class FirnDensitySpin:
     : gridLen: size of grid used in the model run
                 (unit: number of boxes, type: int)
     : dx: vector of width of each box, used for stress calculations
-                (unit: ???, type: array of ints)
+                (unit: m, type: array of ints)
+    : dz: vector of thickness of each box
+                (unit: m, type: float)
+    : z:  vector of edge locations of each box (value is the top of the box)
+                (unit: m, type: float)
     : dt: number of seconds per time step
                 (unit: seconds, type: float)
     : t: number of years per time step
@@ -214,7 +218,6 @@ class FirnDensitySpin:
         ##### START TIME-STEPPING LOOP #####
         ####################################
         for iii in xrange(self.stp):
-
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -305,10 +308,13 @@ class FirnDensitySpin:
 
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
+
                 rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
                 age_time        = np.concatenate(([self.t * iii + 1], self.age))
                 z_time          = np.concatenate(([self.t * iii + 1], self.z))
+
+
                 if self.c['physGrain']:
                     r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
                 else:

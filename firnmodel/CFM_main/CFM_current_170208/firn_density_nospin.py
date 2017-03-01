@@ -426,6 +426,7 @@ class FirnDensityNoSpin:
                 self.z = self.dz.cumsum(axis = 0)
                 self.z = np.concatenate(([0], self.z[:-1]))
                 self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
                 ##### update mass, stress, and mean accumulation rate
                 if self.c['strain']:
                 	self.mass = self.mass*((-self.du_dx)*self.dt + 1)
@@ -597,7 +598,9 @@ class FirnDensityNoSpin:
 
         # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot_mean[0]*S_PER_YEAR) #
         
-        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho[-1]/RHO_I))*self.t #
+        # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho_old[-1]/RHO_I))*self.t #
+
+        self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout*self.t) #
 
         self.dHAll.append(self.dH)
 
