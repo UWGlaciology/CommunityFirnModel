@@ -104,6 +104,7 @@ class FirnDensitySpin:
                 pass
         else: # based on time taken to spin up in the config file.
             self.years = self.c['yearSpin']
+            print 'years', self.years
         
         self.stp        = int(self.years * self.c['stpsPerYearSpin']) # total number of time steps, as integer
         self.dt         = self.years * S_PER_YEAR / self.stp # size of time steps, seconds

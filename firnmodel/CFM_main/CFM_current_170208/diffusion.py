@@ -108,8 +108,10 @@ class Diffusion:
         # Set diffusivity for each isotope
         if iso == '18':
             D = m * pz * invtau * Da_18 * (1 / rho - 1 / RHO_I) / (R * self.Tz * alpha_18_z)
+            D[D<=0]=1.0e-20
         elif iso == 'D':
             D = m * pz * invtau * Da_D * (1 / rho - 1 / RHO_I) / (R * self.Tz * alpha_D_z)
+            D[D<=0]=1.0e-20
 
         # Solve for vertical isotope profile at this time step i
         self.del_z = transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, D, phi_0, nz_P, nz_fv, phi_s)
