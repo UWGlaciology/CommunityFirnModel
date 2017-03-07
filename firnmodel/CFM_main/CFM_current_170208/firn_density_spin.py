@@ -114,6 +114,7 @@ class FirnDensitySpin:
             except ValueError:
                 pass
         else: # based on time taken to spin up in the config file.
+
             self.years = self.c['yearSpin'] # number of years to spin up for
         
         self.dt = S_PER_YEAR / self.c['stpsPerYearSpin']
