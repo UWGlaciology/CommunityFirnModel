@@ -102,8 +102,9 @@ class FirnDensityNoSpin:
         
         self.years      = (yr_end - yr_start) * 1.0 
         self.dt         = S_PER_YEAR / self.c['stpsPerYear']
-        self.stp        = int(self.years * S_PER_YEAR/self.dt)       # total number of time steps, as integer
-        self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
+        self.stp        = int(self.years * S_PER_YEAR/self.dt + 1)       # total number of time steps, as integer
+        # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
+        self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
 
         # self.dt         = self.years * S_PER_YEAR / self.stp            # size of time steps, seconds
         self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
@@ -149,7 +150,7 @@ class FirnDensityNoSpin:
         # set up vector of times data will be written
         self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
-        TWlen           = len(self.TWrite) - 1
+        TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
 
         # set up initial mass, stress, and mean accumulation rate
@@ -190,7 +191,7 @@ class FirnDensityNoSpin:
         self.LIZ_out = np.zeros((TWlen+1,3),dtype='float32')
         self.BCO_out = np.zeros((TWlen+1,5),dtype='float32')
 
-        print 'TWlen', TWlen+1
+        # print 'TWlen', TWlen+1
 
         rho_time        = np.append(self.modeltime[0], self.rho)
         Tz_time         = np.append(self.modeltime[0], self.Tz)
@@ -208,6 +209,8 @@ class FirnDensityNoSpin:
         self.Clim_out[0,:]       = Clim_time
         self.bdot_out[0,:]       = bdot_time
 
+        print 'rho_out size (MB):', self.rho_out.nbytes/1.0e6
+
         # self.rho_out[0,:]        = np.append(self.modeltime[0], self.rho)
         # self.Tz_out[0,:]         = np.append(self.modeltime[0], self.diffu.Tz)
         # self.age_out[0,:]        = np.append(self.modeltime[0], self.age)
@@ -221,7 +224,7 @@ class FirnDensityNoSpin:
             initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
             self.r2             = initr2[1:]
             r20                 = self.r2
-            self.r2_out         = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+            self.r2_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             r2_time             = np.append(self.modeltime[0], self.r2)
             self.r2_out[0,:]    = r2_time
             
@@ -233,7 +236,7 @@ class FirnDensityNoSpin:
             self.THist          = True
             initHx              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
             self.Hx             = initHx[1:]
-            self.Hx_out         = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+            self.Hx_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             Hx_time             = np.append(self.modeltime[0], self.Hx)
             self.Hx_out[0,:]    = Hx_time       
         else:
@@ -242,7 +245,7 @@ class FirnDensityNoSpin:
 
         if self.c['isoDiff']:
             self.del_z          = init_del_z[1:]
-            self.iso_out        = np.zeros((self.stp+1,len(self.dz)+1),dtype='float32')
+            self.iso_out        = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             del_z_time          = np.append(self.modeltime[0], self.del_z)
             self.iso_out[0,:]   = del_z_time
         else:
@@ -373,9 +376,13 @@ class FirnDensityNoSpin:
             if self.c['heatDiff']:
                 # self.diffu.heatDiff(self.z, self.dz, self.Ts[iii], self.rho, self.dt)
                 self.Tz, self.T10m = heatDiff(self,iii)
+            else:
+                self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+
             if self.c['isoDiff']:
                 # self.diffu.isoDiff(self.z, self.dz, self.del_s[iii], self.rho, self.c['iso'], self.dt)
                 self.del_z = isoDiff(self,iii)
+                # print 'del_z', self.del_z[0:2]
             melt = False
 
             if melt:
@@ -424,12 +431,14 @@ class FirnDensityNoSpin:
             if self.c['physGrain']:
                 self.r2 = FirnPhysics(PhysParams).grainGrowth()
 
+            # print 'mtime', mtime
             # write results as often as specified in the init method
             if mtime in self.TWrite:
+
                 ind = np.where(self.TWrite == mtime)[0][0]
                 # print ind
                 # print self.TWrite[ind]
-                mtime_plus1 = self.TWrite[ind]+ (self.TWrite[1]-self.TWrite[0])
+                mtime_plus1 = self.TWrite[ind] #+ (self.TWrite[1]-self.TWrite[0])
                 # print mtime_plus1
             # if [True for ii in self.TWrite if ii == mtime] == [True]:
                 # print self.WTracker
@@ -473,12 +482,12 @@ class FirnDensityNoSpin:
         ##### END TIME-STEPPING LOOP #####
         ##################################
         # print mtime[-5:]
-        print 'Twrite', self.TWrite[-5:]
-        print 'modeltime', self.modeltime[-5:]
+        # print 'Twrite', self.TWrite[-5:]
+        # print 'modeltime', self.modeltime[-5:]
 
 
         # write_nospin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, self.rho_out, self.Tz_out, self.age_out, self.z_out, self.D_out, self.Clim_out, self.bdot_out, self.r2_out, self.Hx_out)
-        print self.rho_out.nbytes/1.0e6
+        
 
         write_nospin_hdf5(self)
 
