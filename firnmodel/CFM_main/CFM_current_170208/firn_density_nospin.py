@@ -69,7 +69,7 @@ class FirnDensityNoSpin:
         with open(configName, "r") as f:
             jsonString      = f.read()
             self.c          = json.loads(jsonString)
-
+        print "Main run starting"
         print "physics are", self.c['physRho']
 
         ### read in initial depth, age, density, temperature from spin-up results
@@ -148,8 +148,8 @@ class FirnDensityNoSpin:
 
         # set up vector of times data will be written
         self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
-        self.TWrite_out = self.TWrite
-        TWlen           = len(self.TWrite_out)
+        # self.TWrite_out = self.TWrite
+        TWlen           = len(self.TWrite) - 1
         self.WTracker        = 1
 
         # set up initial mass, stress, and mean accumulation rate
@@ -165,7 +165,7 @@ class FirnDensityNoSpin:
         #set up longitudinal strain rate
         if self.c['strain']:
             self.du_dx = np.zeros(self.gridLen)
-            self.du_dx[1:] = (10**-2)/(S_PER_YEAR)
+            self.du_dx[1:] = self.c['du_dx']/(S_PER_YEAR)
         
         # set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
         # self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:], init_del_z[1:]) # [1:] because first element is a time stamp
@@ -186,6 +186,11 @@ class FirnDensityNoSpin:
         self.D_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
         self.bdot_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
         self.Clim_out = np.zeros((TWlen+1,3),dtype='float32')
+        self.DIP_out = np.zeros((TWlen+1,4),dtype='float32')
+        self.LIZ_out = np.zeros((TWlen+1,3),dtype='float32')
+        self.BCO_out = np.zeros((TWlen+1,5),dtype='float32')
+
+        print 'TWlen', TWlen+1
 
         rho_time        = np.append(self.modeltime[0], self.rho)
         Tz_time         = np.append(self.modeltime[0], self.Tz)
@@ -250,32 +255,36 @@ class FirnDensityNoSpin:
         # write_nospin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time, Hx_time)
 
         # set up initial values for bubble close-off depth & age, lock-in zone depth & age, and depth integrated porosity
-        self.bcoAgeMartAll = []
-        self.bcoDepMartAll = []
-        self.bcoAge815All  = []
-        self.bcoDep815All  = []
-        self.LIZAgeAll     = []
-        self.LIZDepAll     = []
-        self.intPhiAll     = []
+        # self.bcoAgeMartAll = []
+        # self.bcoDepMartAll = []
+        # self.bcoAge815All  = []
+        # self.bcoDep815All  = []
+        # self.LIZAgeAll     = []
+        # self.LIZDepAll     = []
+        # self.intPhiAll     = []
         self.dHAll         = []
-        self.dHOut         = []
-        self.dHOutC        = []
+        # self.dHOut         = []
+        # self.dHOutC        = []
 
-        self.update_BCO()
-        self.update_LIZ()
-        self.update_DIP()
+        bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 = self.update_BCO()
+        LIZAgeMart, LIZDepMart = self.update_LIZ()
+        intPhi = self.update_DIP()
         
         self.dHAll.append(0)
-        self.dHOut.append(0)
-        self.dHOutC.append(0)
+        dHOut = 0
+        dHOutC = 0
 
-        print 'Ts', self.Ts[0:4]
-        print 'bdot_s', self.bdotSec[0:4]
-        print 'dz', self.dz[0:10]
-        print 'dt', self.dt
+        BCO_time        = np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
+        LIZ_time        = np.append(self.modeltime[0], [LIZAgeMart, LIZDepMart])
+        DIP_time        = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC])
 
+        self.BCO_out[0,:]       = BCO_time
+        self.LIZ_out[0,:]       = LIZ_time
+        self.DIP_out[0,:]       = DIP_time
 
+    ####################    
     ##### END INIT #####
+    ####################
 
     def time_evolve(self):
         '''
@@ -289,14 +298,19 @@ class FirnDensityNoSpin:
         #     Hx_time = None
 
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
-        print 'modeltime',self.modeltime[-1]
         ####################################
         ##### START TIME-STEPPING LOOP #####
         ####################################
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
-            mtime_plus1 = self.modeltime[iii]
-            # print iii
+
+            # ### set up longitudinal strain rate
+            # self.du_dx = np.zeros(self.gridLen)
+            # if mtime  < (2500.):
+            #     self.du_dx[0:] = (0.)/(S_PER_YEAR)
+            # else:
+            #     self.du_dx[0:] = (10**-3.)/(S_PER_YEAR)
+               
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -376,12 +390,17 @@ class FirnDensityNoSpin:
                 self.z_old = self.z
                 self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz = self.mass / self.rho * self.dx
+                if self.c['strain']:
+                	self.dz = ((-self.du_dx)*self.dt + 1)*self.dz_old
+                
                 self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
                 self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z = self.dz.cumsum(axis = 0)
                 self.z = np.concatenate(([0], self.z[:-1]))
                 self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
                 ##### update mass, stress, and mean accumulation rate
+                if self.c['strain']:
+                	self.mass = self.mass*((-self.du_dx)*self.dt + 1)
                 massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass = np.concatenate(([massNew], self.mass[:-1]))
 
@@ -407,9 +426,13 @@ class FirnDensityNoSpin:
 
             # write results as often as specified in the init method
             if mtime in self.TWrite:
-                print mtime
+                ind = np.where(self.TWrite == mtime)[0][0]
+                # print ind
+                # print self.TWrite[ind]
+                mtime_plus1 = self.TWrite[ind]+ (self.TWrite[1]-self.TWrite[0])
+                # print mtime_plus1
             # if [True for ii in self.TWrite if ii == mtime] == [True]:
-                
+                # print self.WTracker
                 self.rho_out[self.WTracker,:] = np.append(mtime_plus1, self.rho)
                 # print '!!!', self.rho_out[0:2,0:10]
                 self.Tz_out[self.WTracker,:]   = np.append(mtime_plus1, self.Tz)
@@ -426,10 +449,23 @@ class FirnDensityNoSpin:
                     self.iso_out[self.WTracker,:] = np.append(mtime_plus1, self.del_z)
 
 
-                self.update_BCO()
-                self.update_LIZ()
-                self.update_DIP()
-                self.update_dH()
+                # self.update_BCO()
+                # self.update_LIZ()
+                # self.update_DIP()
+                # self.update_dH()
+
+                bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 = self.update_BCO()
+                LIZAgeMart, LIZDepMart = self.update_LIZ()
+                intPhi = self.update_DIP()
+                dH, dHtot = self.update_dH()
+
+                # BCO_time        = np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
+                # LIZ_time        = np.append(self.modeltime[0], [LIZAgeMart, LIZDepMart])
+                # DIP_time        = np.append(self.modeltime[0], [intPhi, dH, dHtot])
+
+                self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
+                self.LIZ_out[self.WTracker,:]       = np.append(mtime_plus1, [LIZAgeMart, LIZDepMart])
+                self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
 
                 self.WTracker = self.WTracker + 1
 
@@ -437,8 +473,8 @@ class FirnDensityNoSpin:
         ##### END TIME-STEPPING LOOP #####
         ##################################
         # print mtime[-5:]
-        print self.TWrite[-5:]
-        print self.modeltime[-5:]
+        print 'Twrite', self.TWrite[-5:]
+        print 'modeltime', self.modeltime[-5:]
 
 
         # write_nospin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, self.rho_out, self.Tz_out, self.age_out, self.z_out, self.D_out, self.Clim_out, self.bdot_out, self.r2_out, self.Hx_out)
@@ -461,14 +497,16 @@ class FirnDensityNoSpin:
         bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
         bcoAgeMart = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
         bcoDepMart = min(self.z[self.rho >= (bcoMartRho)])
-        self.bcoAgeMartAll.append(bcoAgeMart)  # age at the 815 density horizon
-        self.bcoDepMartAll.append(bcoDepMart)  # this is the 815 close off depth
+        # self.bcoAgeMartAll.append(bcoAgeMart)  # age at the 815 density horizon
+        # self.bcoDepMartAll.append(bcoDepMart)  # this is the 815 close off depth
 
         # bubble close-off age and depth assuming rho_crit = 815kg/m^3
         bcoAge815 = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
         bcoDep815 = min(self.z[self.rho >= (RHO_2)])
-        self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
-        self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
+        # self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
+        # self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
+
+        return bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815
 
     #### end update_BCO
 
@@ -481,8 +519,10 @@ class FirnDensityNoSpin:
         LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
         self.LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
         self.LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
-        self.LIZAgeAll.append(self.LIZAgeMart)
-        self.LIZDepAll.append(self.LIZDepMart)
+        # self.LIZAgeAll.append(self.LIZAgeMart)
+        # self.LIZDepAll.append(self.LIZDepMart)
+
+        return self.LIZAgeMart, self.LIZDepMart
     #### end update_LIZ 
 
     def update_DIP(self):
@@ -500,7 +540,9 @@ class FirnDensityNoSpin:
         phiOpen[phiOpen <= 0] = 1.e-10  # don't want negative porosity.
 
         intPhi = np.sum(phi * self.dz)  # depth-integrated porosity
-        self.intPhiAll.append(intPhi)
+        # self.intPhiAll.append(intPhi)
+
+        return intPhi
     #### end update_DIP
 
     def update_dH(self):
@@ -516,6 +558,8 @@ class FirnDensityNoSpin:
 
         self.dHtot = np.sum(self.dHAll)
 
-        self.dHOut.append(self.dH)
-        self.dHOutC.append(self.dHtot)
+        # self.dHOut.append(self.dH)
+        # self.dHOutC.append(self.dHtot)
+
+        return self.dH, self.dHtot
 

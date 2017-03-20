@@ -11,24 +11,27 @@ if __name__ == '__main__':
     else:
         configName = os.path.join(os.path.dirname(__file__), 'generic.json')
 
-    if '-s' in sys.argv:
-        spin = 'on'
-        print "spin on"
-    else:
-        spin = 'off'
-        print "spin off"
+    # if '-s' in sys.argv:
+    #     spin = 'on'
+    #     print "spin on"
+    # else:
+    #     spin = 'off'
+    #     print "spin off"
 
-    configSpin = {
-        'on'  : FirnDensitySpin,
-        'off' : FirnDensityNoSpin,
-    }
+    # configSpin = {
+    #     'on'  : FirnDensitySpin,
+    #     'off' : FirnDensityNoSpin,
+    # }
     
     tic=time.time()
     # try:
-    firn = configSpin[spin](configName)
+    # firn = configSpin[spin](configName)
     # except KeyError:
         # sys.exit("Error")
+    firn = FirnDensitySpin(configName)
+    firn.time_evolve()
 
+    firn = FirnDensityNoSpin(configName)
     firn.time_evolve()
     
     print 'run time =' , time.time()-tic , 'seconds'

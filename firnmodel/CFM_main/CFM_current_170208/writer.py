@@ -80,17 +80,17 @@ def write_nospin_hdf5(self):
         f4.create_dataset('isotopes',data=self.iso_out)
 
     # timewrite = np.append(self.modeltime[0],self.TWrite[:len(self.intPhiAll)])
-    timewrite = self.TWrite_out
+    # timewrite = self.TWrite_out
     # timewrite = np.append(self.modeltime[0],self.TWrite_out)
 
-    DIPwrite=np.vstack((timewrite, self.intPhiAll, self.dHOut, self.dHOutC))    
-    f4.create_dataset('DIP',data = DIPwrite)
+    # DIPwrite=np.vstack((timewrite, self.intPhiAll, self.dHOut, self.dHOutC))    
+    f4.create_dataset('DIP',data = self.DIP_out)
 
-    BCOwrite=np.vstack((timewrite, self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All))    
-    f4.create_dataset('BCO',data = BCOwrite)
+    # BCOwrite=np.vstack((timewrite, self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All))    
+    f4.create_dataset('BCO',data = self.BCO_out)
 
-    LIZwrite=np.vstack((timewrite, self.LIZAgeAll, self.LIZDepAll))    
-    f4.create_dataset('LIZ',data = LIZwrite)
+    # LIZwrite=np.vstack((timewrite, self.LIZAgeAll, self.LIZDepAll))    
+    f4.create_dataset('LIZ',data = self.LIZ_out)
 
     f4.close()
 

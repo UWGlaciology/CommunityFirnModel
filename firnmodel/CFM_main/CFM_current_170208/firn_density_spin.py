@@ -65,6 +65,7 @@ class FirnDensitySpin:
             jsonString = f.read()
             self.c = json.loads(jsonString)
 
+        print 'Spin run started'
         print "physics are", self.c['physRho']
 
         # create directory to store results. Deletes if it exists already.
@@ -169,7 +170,7 @@ class FirnDensitySpin:
         ### set up longitudinal strain rate
         if self.c['strain']:
             self.du_dx = np.zeros(self.gridLen)
-            self.du_dx[1:] = (10**-2)/(S_PER_YEAR)
+            self.du_dx[1:] = self.c['du_dx']/(S_PER_YEAR)
         
         ### set up initial temperature grid as well as a class to handle heat/isotope diffusion
         # self.diffu      = Diffusion(self.z, self.stp, self.gridLen, init_Tz, init_del_z) # is this the best way to do this?
@@ -282,11 +283,15 @@ class FirnDensitySpin:
             self.dz_old = self.dz    
             # self.dz = self.du_dx*self.dt + self.dz_old
             self.dz = np.concatenate(([dzNew], self.dz[:-1]))
+            if self.c['strain']:
+                self.dz = ((-self.du_dx)*self.dt + 1)*self.dz_old    
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
             ##### update mass, stress, and mean accumulation rate
+            if self.c['strain']:
+                self.mass = self.mass*((-self.du_dx)*self.dt + 1)
             massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass = np.concatenate(([massNew], self.mass[:-1]))
             self.sigma = self.mass * self.dx * GRAVITY
