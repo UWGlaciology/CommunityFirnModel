@@ -406,6 +406,28 @@ class FirnDensityNoSpin:
             melt = False
 
             if melt:
+
+                if self.bdotSec[iii] <= 0: # All melt for the time period with no accumulation
+                    self.dz_old = self.dz
+                    self.sdz_old = np.sum(self.dz) # old total column thickness
+                    self.z_old = self.z
+                    
+                    self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                    self.dz = self.mass / self.rho * self.dx
+                    self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
+                    self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
+                    self.z = self.dz.cumsum(axis = 0)
+                    self.z = np.concatenate(([0], self.z[:-1]))
+                    self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
+                ##### update mass, stress, and mean accumulation rate
+                massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                self.mass = np.concatenate(([massNew], self.mass[:-1]))
+                else #there is melt and accumulation
+
+
+
+
                 print "Meltwater percolation is still under development. Run without melt for now."
                 sys.exit()
 
