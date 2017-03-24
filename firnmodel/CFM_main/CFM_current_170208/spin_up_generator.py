@@ -28,7 +28,7 @@ os.chdir(spot)
 
 
 
-ddir = '/Users/maxstevens/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Kristin-RACMOv2.3-1958-2013/'
+ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Kristin-RACMOv2.3-1958-2013/'
 
 nc_fn_smb = ddir + 'ZGRN11_smb_monthly_1958-2013.nc'
 nc_fn_temp = ddir + 'ZGRN11_tskin_monthly_1958-2013.nc'
