@@ -284,7 +284,7 @@ class FirnDensitySpin:
             # self.dz = self.du_dx*self.dt + self.dz_old
             self.dz = np.concatenate(([dzNew], self.dz[:-1]))
             if self.c['strain']:
-                self.dz = ((-self.du_dx)*self.dt + 1)*self.dz_old    
+                self.dz = ((-self.du_dx)*self.dt + 1)*self.dz   
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))

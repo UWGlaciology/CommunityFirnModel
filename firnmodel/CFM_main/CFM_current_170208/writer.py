@@ -67,7 +67,7 @@ def write_nospin_hdf5(self):
     f4 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']),'w')
     f4.create_dataset('density',data=self.rho_out)
     f4.create_dataset('temperature',data=self.Tz_out)
-    f4.create_dataset('age',data=self.age_out)
+    f4.create_dataset('age',data=self.age_out/S_PER_YEAR)
     f4.create_dataset('depth',data=self.z_out)
     f4.create_dataset('Dcon',data=self.D_out)
     f4.create_dataset('bdot',data=self.bdot_out)

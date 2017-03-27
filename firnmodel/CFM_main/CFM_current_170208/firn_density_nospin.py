@@ -398,7 +398,7 @@ class FirnDensityNoSpin:
                 self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz = self.mass / self.rho * self.dx
                 if self.c['strain']:
-                	self.dz = ((-self.du_dx)*self.dt + 1)*self.dz_old
+                	self.dz = ((-self.du_dx)*self.dt + 1)*self.dz
                 
                 self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
                 self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
@@ -434,11 +434,12 @@ class FirnDensityNoSpin:
             # print 'mtime', mtime
             # write results as often as specified in the init method
             if mtime in self.TWrite:
-
+                
                 ind = np.where(self.TWrite == mtime)[0][0]
                 # print ind
                 # print self.TWrite[ind]
                 mtime_plus1 = self.TWrite[ind] #+ (self.TWrite[1]-self.TWrite[0])
+                print mtime_plus1
                 # print mtime_plus1
             # if [True for ii in self.TWrite if ii == mtime] == [True]:
                 # print self.WTracker
