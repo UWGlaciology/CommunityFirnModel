@@ -111,9 +111,11 @@ class FirnDensityNoSpin:
 
         ### Temperature
         self.Ts         = np.interp(self.modeltime, input_year_temp, input_temp) # surface temperature interpolated to model time
-        
+        # print len(self.Ts)
+        print self.Ts[0:13]
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
-            self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp + 1)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp + 1)))
+            self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp)))
+            print self.Ts[0:13]
 
         ### Accumulation
         self.bdot       = np.interp(self.modeltime, input_year_bdot, input_bdot) # interpolate accumulation rate to model time ???Should this be nearest?
@@ -195,7 +197,7 @@ class FirnDensityNoSpin:
 
         rho_time        = np.append(self.modeltime[0], self.rho)
         Tz_time         = np.append(self.modeltime[0], self.Tz)
-        age_time        = np.append(self.modeltime[0], self.age)
+        age_time        = np.append(self.modeltime[0], self.age/S_PER_YEAR)
         z_time          = np.append(self.modeltime[0], self.z)
         D_time          = np.append(self.modeltime[0], self.Dcon)
         Clim_time       = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
@@ -306,7 +308,8 @@ class FirnDensityNoSpin:
         ####################################
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
-
+            
+            # print self.Ts[iii]
             # ### set up longitudinal strain rate
             # self.du_dx = np.zeros(self.gridLen)
             # if mtime  < (2500.):
@@ -446,7 +449,7 @@ class FirnDensityNoSpin:
                 self.rho_out[self.WTracker,:] = np.append(mtime_plus1, self.rho)
                 # print '!!!', self.rho_out[0:2,0:10]
                 self.Tz_out[self.WTracker,:]   = np.append(mtime_plus1, self.Tz)
-                self.age_out[self.WTracker,:]  = np.append(mtime_plus1, self.age)
+                self.age_out[self.WTracker,:]  = np.append(mtime_plus1, self.age/S_PER_YEAR)
                 self.z_out[self.WTracker,:]    = np.append(mtime_plus1, self.z)
                 self.D_out[self.WTracker,:] = np.append(mtime_plus1, self.Dcon)
                 self.Clim_out[self.WTracker,:] = np.append(mtime_plus1, [self.bdot[int(iii)], self.Ts[int(iii)]])

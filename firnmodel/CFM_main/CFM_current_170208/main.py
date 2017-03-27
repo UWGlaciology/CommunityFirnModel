@@ -28,9 +28,9 @@ if __name__ == '__main__':
     # firn = configSpin[spin](configName)
     # except KeyError:
         # sys.exit("Error")
-
-    firnS = FirnDensitySpin(configName)
-    firnS.time_evolve()
+    
+    # firnS = FirnDensitySpin(configName)
+    # firnS.time_evolve()
 
     firn = FirnDensityNoSpin(configName)
     firn.time_evolve()

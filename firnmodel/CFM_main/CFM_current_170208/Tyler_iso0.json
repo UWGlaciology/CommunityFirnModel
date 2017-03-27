@@ -1,7 +1,7 @@
 {
 "InputFileFolder": "modelInput",
 "InputFileNameTemp": "CFM_age_temp.csv",
-"InputFileNamebdot": "CFM_age_accum99.csv",
+"InputFileNamebdot": "CFM_age_accum100y2.csv",
 "InputFileNameIso": "CFM_age_isotope.csv",
 "resultsFolder": "Tyler0",
 "physRho": "HLdynamic",
@@ -29,7 +29,7 @@
 "isoDiff": true,
 "iso": "NoDiffusion",
 "_isoOptions":["18","D","NoDiffusion"],
-"SeasonalTcycle": false,
+"SeasonalTcycle": true,
 "AutoSpinUpTime": false,
 "spacewriteint": 1,
 "writehdf5": true,

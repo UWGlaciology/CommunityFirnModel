@@ -1,9 +1,9 @@
 {
 "InputFileFolder": "modelInput",
-"InputFileNameTemp": "CFM_age_temp_constant.csv",
+"InputFileNameTemp": "CFM_age_temp.csv",
 "InputFileNamebdot": "CFM_age_accum_constant.csv",
 "InputFileNameIso": "CFM_age_isotope.csv",
-"resultsFolder": "Tyler2",
+"resultsFolder": "Tyler3b",
 "physRho": "HLdynamic",
 "TWriteInt": 3000,
 "TAmp":10.0,
@@ -29,13 +29,13 @@
 "isoDiff": true,
 "iso": "NoDiffusion",
 "_isoOptions":["18","D","NoDiffusion"],
-"SeasonalTcycle": false,
+"SeasonalTcycle": true,
 "AutoSpinUpTime": false,
 "spacewriteint": 1,
 "writehdf5": true,
 "strain": false,
 "du_dx": 1e-5,
-"resultsFileName": "Tyler2.hdf5",
-"spinFileName": "Tyler2spin.hdf5"
+"resultsFileName": "Tyler3b.hdf5",
+"spinFileName": "Tyler3bspin.hdf5"
 }
 
