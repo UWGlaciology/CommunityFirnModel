@@ -77,8 +77,23 @@ dates = pd.date_range('1958-01-01',periods=len(time_smb),freq='MS')+pd.DateOffse
 s1=smb[:,ii,jj]
 t1=tskin[:,ii,jj]
 
-smb_df=pd.DataFrame(s1,index=dates,columns=['smb'])
-tskin_df=pd.DataFrame(t1,index=dates)
+smbdata = {'date':dates,'smb':s1}
+tskindata = {'date':dates,'tskin':t1}
 
-smb_df['smb'].groupby([smb_df.index.year, smb_df.index.month])#.unstack()
+smb_df=pd.DataFrame(smbdata,columns=['date','smb'])
+tskin_df=pd.DataFrame(tskindata,columns=['date','tskin'])
+# tskin_df=pd.DataFrame(t1,index=dates)
+
+smb_df = smb_df.set_index([smb_df.date.dt.year, smb_df.date.dt.month]).smb.unstack()
+tskin_df = tskin_df.set_index([tskin_df.date.dt.year, tskin_df.date.dt.month]).tskin.unstack()
+
+
+
+# df['smb'].groupby([smb_df.index.year, smb_df.index.month])#.unstack()
 # racmo=pd.DataFrame({'SMB':smb_ind,'TSKIN':tskin_ind})
+
+# df = pd.DataFrame(
+#          dict(date=pd.date_range('2013-01-01', periods=42, freq='M'),
+#               pb=np.random.rand(42)))
+
+# df.set_index([df.date.dt.month, df.date.dt.year]).pb.unstack()
