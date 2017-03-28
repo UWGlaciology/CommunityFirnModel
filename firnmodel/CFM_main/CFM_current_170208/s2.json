@@ -1,11 +1,11 @@
 {
 "InputFileFolder": "modelInput",
-"InputFileNameTemp": "Summit_spin_temp_base.csv",
+"InputFileNameTemp": "Summit_spin_temp_05.csv",
 "InputFileNamebdot": "Summit_spin_smb_base.csv",
 "InputFileNameIso": "CFM_age_isotope.csv",
 "InputFileNamesrho": "Summit_spin_rho_base.csv",
-"resultsFolder": "S0",
-"physRho": "HLdynamic",
+"resultsFolder": "S2",
+"physRho": "KuipersMunneke2015",
 "TWriteInt": 1,
 "TAmp":10.0,
 "bdot0": 0.01,
@@ -18,8 +18,8 @@
 "r2s0": 1.0e-8,
 "yearSpin": 20,
 "stpsPerYearSpin": 12.0,
-"H": 3000,
-"HbaseSpin": 2700.0,
+"H": 1500,
+"HbaseSpin": 1200.0,
 "years": 100.0,
 "stpsPerYear": 12.0,
 "D_surf": 1.0,
@@ -36,7 +36,7 @@
 "writehdf5": true,
 "strain": false,
 "du_dx": 1e-5,
-"resultsFileName": "S0.hdf5",
-"spinFileName": "S0spin.hdf5"
+"resultsFileName": "S2.hdf5",
+"spinFileName": "S2spin.hdf5"
 }
 

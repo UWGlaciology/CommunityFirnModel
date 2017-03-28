@@ -94,6 +94,7 @@ class FirnDensityNoSpin:
         if input_temp[0] < 0.0:
             input_temp = input_temp + K_TO_C
         input_bdot, input_year_bdot = read_input(self.c['InputFileNamebdot'])
+        input_bdot[input_bdot<=0.0] = 0.01
         input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
         ### set up time stepping
@@ -113,10 +114,10 @@ class FirnDensityNoSpin:
         ### Temperature
         self.Ts         = np.interp(self.modeltime, input_year_temp, input_temp) # surface temperature interpolated to model time
         # print len(self.Ts)
-        print self.Ts[0:13]
+        # print self.Ts[0:13]
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp)))
-            print self.Ts[0:13]
+            # print self.Ts[0:13]
 
         ### Accumulation
         self.bdot       = np.interp(self.modeltime, input_year_bdot, input_bdot) # interpolate accumulation rate to model time ???Should this be nearest?
@@ -153,7 +154,9 @@ class FirnDensityNoSpin:
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
         # set up vector of times data will be written
-        self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
+        Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
+
+        self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
@@ -445,7 +448,7 @@ class FirnDensityNoSpin:
                 # print ind
                 # print self.TWrite[ind]
                 mtime_plus1 = self.TWrite[ind] #+ (self.TWrite[1]-self.TWrite[0])
-                print mtime_plus1
+                # print mtime_plus1
                 # print mtime_plus1
             # if [True for ii in self.TWrite if ii == mtime] == [True]:
                 # print self.WTracker
