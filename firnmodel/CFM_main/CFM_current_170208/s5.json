@@ -5,7 +5,7 @@
 "InputFileNameIso": "CFM_age_isotope.csv",
 "InputFileNamesrho": "Summit_spin_rho_base.csv",
 "resultsFolder": "S5",
-"physRho": "KuipersMunneke2015",
+"physRho": "HLdynamic",
 "TWriteInt": 1,
 "TAmp":10.0,
 "bdot0": 0.01,
