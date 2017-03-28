@@ -95,7 +95,8 @@ class FirnDensityNoSpin:
             input_temp = input_temp + K_TO_C
         input_bdot, input_year_bdot = read_input(self.c['InputFileNamebdot'])
         input_bdot[input_bdot<=0.0] = 0.01
-        input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
+        # if self.c['variable_srho']:
+        #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
         ### set up time stepping
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
@@ -146,17 +147,18 @@ class FirnDensityNoSpin:
                 # self.del_s = self.del_s + 5 * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         ###########################
  
-        # self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
-        self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+        self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+        # if self.c['variable_srho']:
+        #     self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
 
         self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
         # set up vector of times data will be written
-        Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
+        # Tind = np.nonzero(selfself.modeltime>=1958.0)[0][0]
 
-        self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
+        self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
