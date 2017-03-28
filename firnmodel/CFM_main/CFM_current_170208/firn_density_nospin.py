@@ -94,6 +94,7 @@ class FirnDensityNoSpin:
         if input_temp[0] < 0.0:
             input_temp = input_temp + K_TO_C
         input_bdot, input_year_bdot = read_input(self.c['InputFileNamebdot'])
+        input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
         ### set up time stepping
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
@@ -144,7 +145,9 @@ class FirnDensityNoSpin:
                 # self.del_s = self.del_s + 5 * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         ###########################
  
-        self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+        # self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+        self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+
         self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
