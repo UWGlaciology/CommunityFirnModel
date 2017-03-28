@@ -200,7 +200,7 @@ class FirnDensitySpin:
             }
 
             try:
-                dho_dt = physicsd[self.c['physRho']]()
+                drho_dt = physicsd[self.c['physRho']]()
             except KeyError:
                 print "Error at line ", info.lineno
 

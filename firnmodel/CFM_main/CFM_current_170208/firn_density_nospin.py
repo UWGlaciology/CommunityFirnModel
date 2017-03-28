@@ -2,6 +2,7 @@ from diffusion import Diffusion
 from reader import read_temp
 from reader import read_bdot
 from reader import read_init
+from reader import read_srho
 from writer import write_nospin
 from writer import write_nospin_init
 from writer import write_nospin_BCO
@@ -82,6 +83,7 @@ class FirnDensityNoSpin:
         # get temperature and accumulation rate from input file
         input_temp, input_year_temp = read_temp(self.c['InputFileNameTemp'])
         input_bdot, input_year_bdot = read_bdot(self.c['InputFileNamebdot'])
+        input_srho, input_year_srho = read_srho(self.c['InputFileNamesrho'])
 
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
@@ -106,6 +108,8 @@ class FirnDensityNoSpin:
         self.bdotSec    = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+        self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+
         self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
