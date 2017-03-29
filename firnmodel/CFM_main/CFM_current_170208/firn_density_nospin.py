@@ -370,6 +370,8 @@ class FirnDensityNoSpin:
 
             try:
                 drho_dt = physicsd[self.c['physRho']]()
+                if iii < 200:
+                    print drho_dt[0:10]
             except KeyError:
                 print "Error at line ", info.lineno
 

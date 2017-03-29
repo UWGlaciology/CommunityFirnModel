@@ -1,12 +1,12 @@
 {
-"InputFileFolder": "modelInput",
+"InputFileFolder": "",
 "InputFileNameTemp": "Summit_spin_temp_base.csv",
 "InputFileNamebdot": "Summit_spin_smb_base.csv",
 "InputFileNameIso": "CFM_age_isotope.csv",
 "InputFileNamesrho": "Summit_spin_rho_base.csv",
-"resultsFolder": "S1",
-"physRho": "HLdynamic",
-"TWriteInt": 1,
+"resultsFolder": "S1L07",
+"physRho": "KuipersMunneke2015",
+"TWriteInt": 4,
 "TAmp":10.0,
 "bdot0": 0.01,
 "_comment1": "bdot is in units of m ice equivalent. Is this strictly true? Should just make everything water...",
@@ -36,7 +36,7 @@
 "writehdf5": true,
 "strain": false,
 "du_dx": 1e-5,
-"resultsFileName": "S1.hdf5",
-"spinFileName": "S1spin.hdf5"
+"resultsFileName": "S1L.hdf5",
+"spinFileName": "S1Lspin.hdf5"
 }
 

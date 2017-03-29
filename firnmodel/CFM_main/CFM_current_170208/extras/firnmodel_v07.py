@@ -444,8 +444,9 @@ def runModel(configName,spin):
         # TWrite=TWrite[1:]
         
         wrst=1
-        inte=1 # how often the data should be written
+        inte=12 # how often the data should be written
         TWrite = modeltime[wrst::inte] # vector of times data will be written. Can customize here.
+        print 'TWrite',TWrite[0:10]
         # TWst=min(min(np.where(modeltime>1958.0)))
         # TWrite = modeltime[TWst::inte] # vector of times data will be written. Can customize here. 
         # TWrite = np.concatenate((modeltime[0:TWst:12], modeltime[TWst::inte])) # vector of times data will be written. Can customize here.
@@ -534,8 +535,8 @@ def runModel(configName,spin):
 
         
         bdotSec = bdot/sPerYear/(stp / years) #this is the accumulation rate vector at each time step (i.e. if time step is 0.5 year, it is bdot rate in m I.E./(0.5years))
-        print "Ts=",Ts[0],Ts[-1]
-        print "bdotSec0=",bdotSec[0],bdotSec[-1]
+        # print "Ts=",Ts[0],Ts[-1]
+        # print "bdotSec0=",bdotSec[0],bdotSec[-1]
         
         #3/23/15: bdotSec is ice equivalent. Any model that is water equivalent needs to be multiplied by 0.917
         
@@ -717,7 +718,9 @@ def runModel(configName,spin):
 
     for ii in xrange(stp): #start main time-stepping loop
 
-        mtime=modeltime[ii]+1 #placeholder for writing data.
+        mtime=modeltime[ii] #placeholder for writing data.
+        if ii < 10:
+            print 'mtime=',mtime
 
         if spin:
             rho_old=rho
@@ -1273,7 +1276,7 @@ def runModel(configName,spin):
         rho = rho + dt*drho_dt
         
         if ii<12:
-            print 'rho', rho[1:8] 
+            print 'drho', drho_dt[1:8] 
         # dthickness=mass/(dt*drho_dt)        
         
         ### Update the age (seconds)
@@ -1458,7 +1461,8 @@ def runModel(configName,spin):
 
         ### Non-spin loop: store results from this loop if the time is one of the specified times ###
         
-        elif not spin and [True for jj in TWrite if jj == mtime] == [True]: #write model output to file
+        elif not spin and mtime in TWrite: #write model output to file
+            # print "hello"
             # elif not spin and [True for jj in TWrite if jj == t*ii+1] == [True]:
             rho_time = np.append(mtime,rho[0::spacewriteint])
             Tz_time = np.append(mtime,Tz[0::spacewriteint])
@@ -1487,18 +1491,18 @@ def runModel(configName,spin):
             with open(depthPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(z_time)    
-            with open(depthinvPath, "a") as f:
-                writer = csv.writer(f)
-                writer.writerow(zinv_time)
-            with open(compratePath, "a") as f:
-                writer = csv.writer(f)
-                writer.writerow(comprate_time)
-            with open(DconPath, "a") as f:
-                writer = csv.writer(f)
-                writer.writerow(Dcon_time)
-            with open(stressPath, "a") as f:
-                writer = csv.writer(f)
-                writer.writerow(stress_time)
+            # with open(depthinvPath, "a") as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(zinv_time)
+            # with open(compratePath, "a") as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(comprate_time)
+            # with open(DconPath, "a") as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(Dcon_time)
+            # with open(stressPath, "a") as f:
+            #     writer = csv.writer(f)
+            #     writer.writerow(stress_time)
             with open(ClimPath, "a") as f:
                 writer = csv.writer(f)
                 writer.writerow(Clim_time)
