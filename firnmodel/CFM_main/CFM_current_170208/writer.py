@@ -4,7 +4,7 @@ from string import join
 import numpy as np
 import h5py
 
-# HI
+
 
 def write_nospin_init(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time, Hx_time):
     '''
