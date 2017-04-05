@@ -114,7 +114,7 @@ def isoDiff(self,iii):
         self.del_z = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s)
     elif self.c['iso'] == 'D':
         D = m * pz * invtau * Da_D * (1 / self.rho - 1 / RHO_I) / (R * self.Tz * alpha_D_z)
-        D[D<=0.0]=1.0e-20
+        D = D + 1.5e-15
         self.del_z = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s)
     elif self.c['iso'] == 'NoDiffusion':
         pass
