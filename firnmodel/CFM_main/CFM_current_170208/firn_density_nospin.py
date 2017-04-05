@@ -147,9 +147,15 @@ class FirnDensityNoSpin:
                 # self.del_s = self.del_s + 5 * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         ###########################
  
-        self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
-        # if self.c['variable_srho']:
-        #     self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+        try:
+            if self.c['variable_srho']:
+                self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+            else:
+                self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+        except:
+            print "you should alter the json to include variable_srho"
+            self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+
 
         self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
@@ -173,7 +179,7 @@ class FirnDensityNoSpin:
         # self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
         self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
 
-        #set up longitudinal strain rate
+        ### set up longitudinal strain rate
         if self.c['strain']:
             self.du_dx = np.zeros(self.gridLen)
             self.du_dx[1:] = self.c['du_dx']/(S_PER_YEAR)
@@ -370,8 +376,6 @@ class FirnDensityNoSpin:
 
             try:
                 drho_dt = physicsd[self.c['physRho']]()
-                if iii < 200:
-                    print drho_dt[0:10]
             except KeyError:
                 print "Error at line ", info.lineno
 
@@ -410,8 +414,9 @@ class FirnDensityNoSpin:
                 self.z_old = self.z
                 self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz = self.mass / self.rho * self.dx
+
                 if self.c['strain']:
-                	self.dz = ((-self.du_dx)*self.dt + 1)*self.dz
+                    self.dz = ((-self.du_dx)*self.dt + 1)*self.dz
                 
                 self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
                 self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
