@@ -5,7 +5,7 @@ from scipy import interpolate
 # The standard parameters that get passed are:
 # (iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T_mean, rho, sigma, dt, Ts, r2, physGrain):
 # if you want to add physics that require more parameters, you need to change the 'PhysParams' dictionary in both the spin and nospin classes.
-
+#Hello Emma!
 class FirnPhysics:
     def __init__(self,PhysParams):
         for k,v in PhysParams.items():
