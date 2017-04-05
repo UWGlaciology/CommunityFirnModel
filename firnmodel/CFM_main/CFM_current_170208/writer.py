@@ -4,6 +4,8 @@ from string import join
 import numpy as np
 import h5py
 
+# HI
+
 def write_nospin_init(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, D_time, Clim_time, bdot_time, r2_time, Hx_time):
     '''
     Writes the results of density, temperature, age, depth, Dcon, Clim, bdot, and r2 (if specified)
@@ -83,13 +85,13 @@ def write_nospin_hdf5(self):
     # timewrite = self.TWrite_out
     # timewrite = np.append(self.modeltime[0],self.TWrite_out)
 
-    # DIPwrite=np.vstack((timewrite, self.intPhiAll, self.dHOut, self.dHOutC))    
+    # DIPwrite=np.vstack((timewrite, self.intPhiAll, self.dHOut, self.dHOutC))
     f4.create_dataset('DIP',data = self.DIP_out)
 
-    # BCOwrite=np.vstack((timewrite, self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All))    
+    # BCOwrite=np.vstack((timewrite, self.bcoAgeMartAll, self.bcoDepMartAll, self.bcoAge815All, self.bcoDep815All))
     f4.create_dataset('BCO',data = self.BCO_out)
 
-    # LIZwrite=np.vstack((timewrite, self.LIZAgeAll, self.LIZDepAll))    
+    # LIZwrite=np.vstack((timewrite, self.LIZAgeAll, self.LIZDepAll))
     f4.create_dataset('LIZ',data = self.LIZ_out)
 
     f4.close()
@@ -268,4 +270,3 @@ def write_spin_hdf5(folder, spinFileName, physGrain, THist, isoDiff, rho_time, T
 #         csvwriter.writerow(intPhiAll)
 #         # csvwriter.writerow(dsurfOut)
 #         # csvwriter.writerow(dsurfOutC)
-
