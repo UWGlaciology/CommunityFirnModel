@@ -135,7 +135,7 @@ class FirnDensitySpin:
         init_Tz         = input_temp[0] * np.ones(self.gridLen)
 
         ### Accumulation rate for each time step
-        self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (per second)
+        self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (m I.E. per second)
         self.bdotSec    = self.bdotSec0 * np.ones(self.stp) # vector of accumulation at each time step
 
         ### Surface isotope values for each time step
@@ -165,7 +165,7 @@ class FirnDensitySpin:
         self.sigma      = self.mass * self.dx * GRAVITY
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.mass_sum   = self.mass.cumsum(axis = 0)
-        self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
+        self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))) * self.c['stpsPerYear'] * S_PER_YEAR
 
         ### set up longitudinal strain rate
         if self.c['strain']:
@@ -225,6 +225,7 @@ class FirnDensitySpin:
                 'bdot_type':    self.c['bdot_type'],
                 'Tz':           self.Tz,
                 'T_mean':       self.T_mean,
+                'T10m':         self.T10m,
                 'rho':          self.rho,
                 'sigma':        self.sigma,
                 'dt':           self.dt,
@@ -297,7 +298,7 @@ class FirnDensitySpin:
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
             self.mass_sum  = self.mass.cumsum(axis = 0)
-            self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I)))
+            self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
 
             # update grain radius
             if self.c['physGrain']:

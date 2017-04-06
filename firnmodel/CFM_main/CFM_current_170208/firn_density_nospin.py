@@ -55,8 +55,11 @@ class FirnDensityNoSpin:
                 (unit: ???, type: array of floats)
     : rhos0: surface accumulate rate vector
                 (unit: ???, type: array of floats)
+    : bdot_mean: mean accumulation over the lifetime of each parcel
+                (units are m I.E. per year)
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
+
     '''
 
     def __init__(self, configName):
@@ -177,7 +180,7 @@ class FirnDensityNoSpin:
 
         ### mean accumulation over the lifetime of the parcel
         # self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
-        self.bdot_mean  = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))
+        self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
 
         ### set up longitudinal strain rate
         if self.c['strain']:
@@ -341,6 +344,7 @@ class FirnDensityNoSpin:
                 'bdot_type':    self.c['bdot_type'],
                 'Tz':           self.Tz,
                 'T_mean':       self.T_mean,
+                'T10m':         self.T10m,
                 'rho':          self.rho,
                 'sigma':        self.sigma,
                 'dt':           self.dt,
@@ -443,7 +447,11 @@ class FirnDensityNoSpin:
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
             self.mass_sum  = self.mass.cumsum(axis = 0)
-            self.bdot_mean = np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I)))
+            self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
+
+            if mtime>95 and mtime<105:
+                print mtime
+                print self.bdot_mean[0:4]
 
             # update grain radius
             if self.c['physGrain']:
@@ -521,19 +529,26 @@ class FirnDensityNoSpin:
         '''
         Updates the bubble close-off depth and age based on the Martinerie criteria as well as through assuming the critical density is 815 kg/m^3
         '''
+        try:
+            bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+            bcoAgeMart = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
+            bcoDepMart = min(self.z[self.rho >= (bcoMartRho)])
+            # self.bcoAgeMartAll.append(bcoAgeMart)  # age at the 815 density horizon
+            # self.bcoDepMartAll.append(bcoDepMart)  # this is the 815 close off depth
 
-        bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
-        bcoAgeMart = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
-        bcoDepMart = min(self.z[self.rho >= (bcoMartRho)])
-        # self.bcoAgeMartAll.append(bcoAgeMart)  # age at the 815 density horizon
-        # self.bcoDepMartAll.append(bcoDepMart)  # this is the 815 close off depth
+            # bubble close-off age and depth assuming rho_crit = 815kg/m^3
+            bcoAge815 = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+            bcoDep815 = min(self.z[self.rho >= (RHO_2)])
+            # self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
+            # self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
+        except:
+            
+            bcoAgeMart = -9999
+            bcoDepMart = -9999
+            bcoAge815 = -9999
+            bcoDep815 = -9999
 
-        # bubble close-off age and depth assuming rho_crit = 815kg/m^3
-        bcoAge815 = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
-        bcoDep815 = min(self.z[self.rho >= (RHO_2)])
-        # self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
-        # self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
-
+            
         return bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815
 
     #### end update_BCO
@@ -542,14 +557,17 @@ class FirnDensityNoSpin:
         '''
         Updates the lock-in zone depth and age
         '''
-
-        bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
-        LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
-        self.LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
-        self.LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
-        # self.LIZAgeAll.append(self.LIZAgeMart)
-        # self.LIZDepAll.append(self.LIZDepMart)
-
+        try:
+            bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+            LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
+            self.LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
+            self.LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
+            # self.LIZAgeAll.append(self.LIZAgeMart)
+            # self.LIZDepAll.append(self.LIZDepMart)
+        except:
+            self.LIZDepMart = -9999
+            self.LIZAgeMart = -9999
+            
         return self.LIZAgeMart, self.LIZDepMart
     #### end update_LIZ 
 

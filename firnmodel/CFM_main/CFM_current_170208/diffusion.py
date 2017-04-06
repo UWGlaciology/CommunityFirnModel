@@ -46,8 +46,9 @@ def heatDiff(self,iii):
     phi_s = self.Tz[0]
     phi_0 = self.Tz
 
-    K_ice = 9.828 * np.exp(-0.0057 * phi_0)
-    K_firn = K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+    # K_ice = 9.828 * np.exp(-0.0057 * phi_0)
+    # K_firn = K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+    K_firn = 0.021 + 2.5 * (self.rho/1000.)**2
     c_firn = 152.5 + 7.122 * phi_0
     Gamma_P = K_firn / (c_firn * self.rho)
 

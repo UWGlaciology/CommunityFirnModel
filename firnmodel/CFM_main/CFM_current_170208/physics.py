@@ -14,6 +14,8 @@ class FirnPhysics:
     def HL_dynamic(self):
         '''
 
+        Units are m W.E. per year
+
         :param steps:
         :param gridLen:
         :param bdotSec:
@@ -110,6 +112,8 @@ class FirnPhysics:
     def Li_2011(self):
         '''
         : This uses W.E. units
+
+
         :param steps:
         :param gridLen:
         :param bdotSec:
@@ -142,6 +146,8 @@ class FirnPhysics:
 
     def Arthern_2010S(self):
         '''
+
+        Units are kg/m^2/year
 
         :param steps:
         :param gridLen:
@@ -179,6 +185,8 @@ class FirnPhysics:
 
     def Arthern_2010T(self):
         '''
+
+        Units are kg/m^2/year
 
         :param gridLen: 
         :param Tz:
@@ -283,6 +291,8 @@ class FirnPhysics:
     def Ligtenberg_2011(self):
         '''
 
+        Units are mm W.E. per year
+
         :param steps:
         :param gridLen:
         :param bdotSec:
@@ -300,8 +310,12 @@ class FirnPhysics:
         Eg = 42.4e3
 
         A_instant = self.bdotSec * self.steps * BDOT_TO_A * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
+        # A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
+        # A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
+
+        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
@@ -310,11 +324,13 @@ class FirnPhysics:
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T_mean))
         elif self.bdot_type == 'mean':
-            M_0 = 1.435 - 0.151 * np.log(self.bdot_mean[self.rho < RHO_1] * S_PER_YEAR * RHO_I)
-            M_1 = 2.366 - 0.293 * np.log(self.bdot_mean[self.rho >= RHO_1] * S_PER_YEAR * RHO_I)
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
-
+            # print A_mean_1[0:5]
+            M_0 = 1.435 - 0.151 * np.log(A_mean_1)
+            M_1 = 2.366 - 0.293 * np.log(A_mean_2)
+            # dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            # dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.Tz[self.rho < RHO_1]))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.Tz[self.rho >= RHO_1]))
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
 
@@ -411,6 +427,7 @@ class FirnPhysics:
 
     def KuipersMunneke_2015(self): #b_dot is in mm W.E. per year.
         '''
+        Units are mm W.E. per year
 
         '''
 

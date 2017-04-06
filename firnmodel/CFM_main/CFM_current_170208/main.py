@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # except KeyError:
         # sys.exit("Error")
     
-    if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']):
+    if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']) and '-n' not in sys.argv:
         print 'Skipping Spin-Up run;', c['resultsFolder']+'/'+c['spinFileName'], 'exists already'
         try:
             os.remove(c['resultsFolder']+'/'+c['resultsFileName'])
