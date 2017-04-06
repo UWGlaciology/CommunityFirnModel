@@ -26,6 +26,7 @@ import time
 import inspect
 import h5py
 
+
 class FirnDensityNoSpin:
     '''
     Parameters used in the model, for the initialization as well as the time evolution:
