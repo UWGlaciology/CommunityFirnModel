@@ -189,7 +189,7 @@ class FirnDensitySpin:
             self.r2 = None
 
         ### set up "temperature history" if using Morris physics
-        if self.c['physRho']=='Morris2013':
+        if self.c['physRho']=='Morris2014':
             # initial temperature history function (units seconds)
             self.Hx = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
             self.THist = True
@@ -250,10 +250,9 @@ class FirnDensitySpin:
                 'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
                 'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
                 'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2013':           FirnPhysics(PhysParams).Morris_HL_2013,
+                'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
                 'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
-                'Spencer2001':          FirnPhysics(PhysParams).Spencer_2001,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015
             }

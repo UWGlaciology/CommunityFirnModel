@@ -1,22 +1,31 @@
 import numpy as np
 from constants import *
 from scipy import interpolate
+import sys
 
 # The standard parameters that get passed are:
-# (iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T_mean, rho, sigma, dt, Ts, r2, physGrain):
+# (iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain):
 # if you want to add physics that require more parameters, you need to change the 'PhysParams' dictionary in both the spin and nospin classes.
 #Hello Emma!
 class FirnPhysics:
+
     def __init__(self,PhysParams):
+
+        '''
+
+        bdot_mean units are m I.E./year
+        bdotSec units are m I.E./time step
+
+        '''
         for k,v in PhysParams.items():
             setattr(self,k,v)
 
     def HL_dynamic(self):
         '''
 
-        Units are m W.E. per year
+        Accumulation units are m W.E. per year
 
-        :param steps:
+        :param steps: # of steps per year
         :param gridLen:
         :param bdotSec:
         :param Tz:
@@ -32,25 +41,25 @@ class FirnPhysics:
         aHL = 1.0
         bHL = 0.5
 
-        A = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
-        # if self.iii<6:
-        #     print 'A', A
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM # Accumulation in units m W.E. per year
+        A_mean = self.bdot_mean * RHO_I_MGM
+
         drho_dt = np.zeros(self.gridLen)
-        dr_dt = drho_dt
 
-        dr_dt[self.rho < RHO_1]   = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * np.power(A, aHL) * 1000 / S_PER_YEAR
-        drho_dt[self.rho < RHO_1] = dr_dt[self.rho < RHO_1]
+        if self.bdot_type == 'instant':
+            drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+            drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
 
-        dr_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * np.power(A, bHL) * 1000 / S_PER_YEAR
-        drho_dt[self.rho >= RHO_1] = dr_dt[self.rho >= RHO_1]
-
-        # if self.iii<6:
-        #     print 'drho', drho_dt[1:8]   
+        elif self.bdot_type == 'mean':
+            drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
+            drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
 
         return drho_dt
 
     def HL_Sigfus(self):
         '''
+
+        Accumulation units are m W.E. per year (zone 1); uses stress for zone 2
 
         :param steps:
         :param gridLen:
@@ -68,7 +77,9 @@ class FirnPhysics:
         k2  = 575.0
         aHL = 1.0
 
-        A = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean = self.bdot_mean * RHO_I_MGM
+
         drho_dt = np.zeros(self.gridLen)
         f550 = interpolate.interp1d(self.rho, self.sigma)
         sigma550 = f550(RHO_1)
@@ -76,8 +87,10 @@ class FirnPhysics:
 
         k = np.power(k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])), 2) / S_PER_YEAR
         sigmaDiff = (self.sigma[self.rho >= RHO_1] - sigma550)
-
-        drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * np.power(A, aHL) * 1000 / S_PER_YEAR
+        if self.bdot_type == 'instant':
+            drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+        elif self.bdot_type == 'mean':
+            drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
 
         drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]  = k * (sigmaDiff * rhoDiff[self.rho >= RHO_1]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
         drho_dt[(self.rho >= RHO_1) & (self.rho >= RHO_I)] = 0
@@ -88,20 +101,33 @@ class FirnPhysics:
 
     def Li_2004(self):
         '''
+        Accumulation units are m W.E. per year (?)
+        Equation from Arthern, 2010 (eq. 2): not sure where Rob got that? 
+        (Arthern implies accumulation is m I.E./year for bdot; not doing that here.)
+        Paper would lead me to believe that it is m W.E.
+        
+        ***Needs to have the vapor flux coded in if we want to use these physics properly.
 
         :param steps:
         :param gridLen:
         :param bdotSec:
-        :param T_mean:
+        :param T10m:
         :param rho:
 
         :return drho_dt:
         '''
 
-        A = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean = self.bdot_mean * RHO_I_MGM
 
         # dr_dt = np.zeros(self.gridLen)
-        dr_dt = (RHO_I - self.rho) * A * (139.21 - 0.542 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+        
+        if self.bdot_type == 'instant':
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Li and Zwally 2004 physics"
+            dr_dt = (RHO_I - self.rho) * A_instant * (139.21 - 0.542 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+        elif self.bdot_type == 'mean':
+            dr_dt = (RHO_I - self.rho) * A_mean * (139.21 - 0.542 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061   
 
         drho_dt = dr_dt / S_PER_YEAR
 
@@ -111,8 +137,8 @@ class FirnPhysics:
 
     def Li_2011(self):
         '''
-        : This uses W.E. units
-
+        Accumulation units are m W.E. per year (?)
+        Potentially beta should be calculated with the long-term mean accumulation rate
 
         :param steps:
         :param gridLen:
@@ -120,24 +146,43 @@ class FirnPhysics:
         :param bdot_mean:
         :param bdot_type:
         :param Tz:
-        :param T_mean:
+        :param T10m:
         :param rho:
 
         :return drho_dt:
         '''
 
-        A     = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
-        TmC   = self.T_mean - K_TO_C
-        beta1 = -9.788 + 8.996 * A - 0.6165 * TmC
-        beta2 = beta1 / (-2.0178 + 8.4043 * A - 0.0932 * TmC)
+        A_instant     = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean = self.bdot_mean * RHO_I_MGM
+
+
+        TmC   = self.T10m - K_TO_C
+
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
-            dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A * beta1 * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
-            dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A * beta2 * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Li and Zwally 2011 physics"
+            beta1 = -9.788 + 8.996 * A_instant - 0.6165 * TmC
+            beta2 = beta1 / (-2.0178 + 8.4043 * A_instant - 0.0932 * TmC)
+
+            dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A_instant * beta1 * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
+            dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_instant * beta2 * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
+        
         elif self.bdot_type == 'mean':
-            dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * self.bdot_mean[self.rho <= RHO_1] * self.steps * BDOT_TO_A * beta1 * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
-            dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * self.bdot_mean[self.rho > RHO_1] * self.steps * BDOT_TO_A  * beta2 * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
+
+            ### These lines are using a different beta for each node
+            # beta1 = -9.788 + 8.996 * A_mean - 0.6165 * TmC
+            # beta2 = beta1 / (-2.0178 + 8.4043 * A_mean - 0.0932 * TmC)
+
+            ### These lines are for a single value of beta based on long-term accumulation rate
+            beta1a = -9.788 + 8.996 * np.mean(A_mean) - 0.6165 * TmC
+            beta2a = beta1a / (-2.0178 + 8.4043 * np.mean(A_mean) - 0.0932 * TmC)
+            beta1 = np.ones(len(A_mean))*beta1a
+            beta2 = np.ones(len(A_mean))*beta2a
+
+            dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A_mean[self.rho <= RHO_1] * beta1[self.rho <= RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
+            dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
@@ -146,8 +191,8 @@ class FirnPhysics:
 
     def Arthern_2010S(self):
         '''
-
-        Units are kg/m^2/year
+        This is the steady-state solution described in the main text of Arthern et al. (2010)
+        Accumulation units are kg/m^2/year
 
         :param steps:
         :param gridLen:
@@ -155,7 +200,7 @@ class FirnPhysics:
         :param bdot_type:
         :param bdot_mean:
         :param Tz:
-        :param T_mean:
+        :param T10m:
         :param rho:
 
         :return drho_dt:
@@ -166,17 +211,19 @@ class FirnPhysics:
         Ec  = 60.0e3
         Eg  = 42.4e3
 
-        A_instant = self.bdotSec[self.iii] * self.steps * BDOT_TO_A * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I_MGM * 1000
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Arthern 2010 physics"
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
         elif self.bdot_type == 'mean':
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
@@ -185,8 +232,9 @@ class FirnPhysics:
 
     def Arthern_2010T(self):
         '''
+        This is the transient solution described in the appendix of Arthern et al. (2010)
 
-        Units are kg/m^2/year
+        Uses stress rather than accumulation rate.
 
         :param gridLen: 
         :param Tz:
@@ -223,6 +271,10 @@ class FirnPhysics:
 
     def Helsen_2008(self):
         '''
+        Accumulation units are m W.E. per year (?)
+        Equation is from Arthern et al. 2010 (2)
+        (Arthern implies units are m I.E.; not doing that here) 
+
 
         :param steps:
         :param bdotSec:
@@ -235,13 +287,15 @@ class FirnPhysics:
         :return drho_dt:
         '''
 
-        A_instant = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
-        A_mean = self.bdot_mean * self.steps * BDOT_TO_A
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean = self.bdot_mean * RHO_I_MGM
 
         if self.bdot_type == 'instant':
-            dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.Tz) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Helsen 2008 physics"            
+            dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
-            dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.Tz) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+            dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
@@ -250,6 +304,7 @@ class FirnPhysics:
 
     def Simonsen_2013(self):
         '''
+        Accumulation units are kg/m^2/year
 
         :param steps:
         :param gridLen:
@@ -257,7 +312,7 @@ class FirnPhysics:
         :param bdot_mean:
         :param bdot_type:
         :param Tz:
-        :param T_mean:
+        :param T10m:
         :param rho:
 
         :return drho_dt:
@@ -266,22 +321,27 @@ class FirnPhysics:
         ar2 = 0.03
         Ec  = 60.0e3
         Eg  = 42.4e3
-        F0  = 0.68
-        F1  = 1.03
+        F0  = 0.68 #firnmice value?
+        F1  = 1.03 #firnmice value?
+        # F0=0.8 # Simonsen's recommended (email correspondence)
+        # F1=1.25 # Simonsen's recommended (email correspondence)
 
-        A_instant = self.bdotSec[self.iii] * self.steps * BDOT_TO_A * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
+
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1]* RHO_I_MGM * 1000
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
-            gamma = 61.7 / ((self.bdotSec * self.steps * S_PER_YEAR * RHO_I) ** (0.5)) * np.exp(-3800. / (R * self.T_mean))
-            dr_dt[self.rho < RHO_1]  = F0 * (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = F1 * gamma * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Simonsen physics"
+            gamma = 61.7 / (A_instant ** (0.5)) * np.exp(-3800. / (R * self.T10m))
+            dr_dt[self.rho < RHO_1]  = F0 * (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = F1 * gamma * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
         elif self.bdot_type == 'mean':
-            gamma = 61.7 / ((self.bdot_mean[self.rho >= RHO_1] * self.steps * S_PER_YEAR * RHO_I) ** (0.5)) * np.exp(-3800.0 / (R * self.T_mean))
-            dr_dt[self.rho < RHO_1]  = F0 * (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = F1 * gamma * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
+            gamma = 61.7 / (A_mean_2 ** (0.5)) * np.exp(-3800.0 / (R * self.T10m))
+            dr_dt[self.rho < RHO_1]  = F0 * (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = F1 * gamma * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
@@ -299,7 +359,7 @@ class FirnPhysics:
         :param bdot_mean:
         :param bdot_type:
         :param Tz:
-        :param T_mean:
+        :param T10m:
         :param rho:
 
         :return drho_dt :
@@ -309,35 +369,38 @@ class FirnPhysics:
         Ec = 60.0e3
         Eg = 42.4e3
 
-        A_instant = self.bdotSec * self.steps * BDOT_TO_A * 1000
-        # A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
-        # A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
-
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
         A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
         A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
 
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
-            M_0 = 1.435 - 0.151 * np.log(self.bdotSec * S_PER_YEAR * RHO_I)
-            M_1 = 2.366 - 0.293 * np.log(self.bdotSec * S_PER_YEAR * RHO_I)
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T_mean))
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Ligtenberg 2011 physics"
+            M_0 = 1.435 - 0.151 * np.log(A_instant)
+            M_1 = 2.366 - 0.293 * np.log(A_instant)
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T10m))
         elif self.bdot_type == 'mean':
-            # print A_mean_1[0:5]
             M_0 = 1.435 - 0.151 * np.log(A_mean_1)
             M_1 = 2.366 - 0.293 * np.log(A_mean_2)
-            # dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
-            # dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.Tz[self.rho < RHO_1]))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.Tz[self.rho >= RHO_1]))
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
+
+
+            # dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.Tz[self.rho < RHO_1]))
+            # dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.Tz[self.rho >= RHO_1]))
         drho_dt = dr_dt / S_PER_YEAR
+
         # self.viscosity = np.ones(self.gridLen)
 
         return drho_dt
 
     def Barnola_1991(self):
         '''
+
+        uses m W.E. (zone 1) and stress (zone 2)
 
         :param steps:
         :param gridLen:
@@ -360,7 +423,7 @@ class FirnPhysics:
         QBarnola        = 60.0e3
         closeOff        = 800.0
 
-        self.rho[self.rho > RHO_I] = RHO_I #The Barnola model will go a fraction over the ice density (order 10^-3), so this stops that.
+        self.rho[self.rho > RHO_I] = RHO_I # The Barnola model will go a fraction over the ice density (order 10^-3), so this stops that.
         drho_dt = np.zeros(self.gridLen)
         D = self.rho / RHO_I
         nBa = n * np.ones(self.gridLen)
@@ -368,11 +431,16 @@ class FirnPhysics:
 
         sigmaEff = self.sigma
 
-        # zone 1
-        A = self.bdotSec * self.steps * BDOT_TO_A
-        drho_dt[self.rho < RHO_1] = dr_dt = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * np.power(A[self.iii], aHL) * 1000 / S_PER_YEAR
+        ### Zone 1 ###
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM
 
-        # zone 2
+        if self.bdot_type == 'instant':
+            drho_dt[self.rho < RHO_1] = dr_dt = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant ** aHL * 1000 / S_PER_YEAR
+        elif self.bdot_type == 'mean':
+            drho_dt[self.rho < RHO_1] = dr_dt = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_mean_1 ** aHL * 1000 / S_PER_YEAR
+
+        ### Zone 2 ###
         fe = 10.0 ** (alphaBarnola * (self.rho[self.rho <= RHO_2] / 1000) ** 3. + betaBarnola * (self.rho[self.rho <= RHO_2] / 1000) ** 2. + deltaBarnola * self.rho[self.rho <= RHO_2] / 1000 + gammaBarnola)
         drho_dt[self.rho <= RHO_2] = self.rho[self.rho <= RHO_2] * A0[self.rho <= RHO_2] * np.exp(-QBarnola / (R * self.Tz[self.rho <= RHO_2])) * fe * (sigmaEff[self.rho <= RHO_2] ** nBa[self.rho <= RHO_2])
 
@@ -383,11 +451,16 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
 
         return drho_dt
-
-
-        
-    def Morris_HL_2013(self):
+    
+    def Morris_HL_2014(self):
         '''
+
+        Uses stress instead of accumulation.
+
+        Need to choose physics for zone 2. Herron and Langway here.
+
+        4/7/17: The zone 1 physics need to be examined. We currently ignore the m term (equation 7), assuming that it is zero for a steady-state.
+        Dividing drho/dt by 100 for zone 1 gives reasonable numbers, indicating that we might need to check units of everything.
 
         :param steps:
         :param spin:
@@ -403,84 +476,93 @@ class FirnPhysics:
 
         :return drho_dt:
         '''
-        
+        if self.iii ==0:
+            print 'CAUTION: MORRIS PHYSICS ARE STILL UNDER CODE DEVELOPMENT!'
+            print 'see physics.py for more details'     
+
         QMorris = 110.e3
         kMorris = 11.0
-        rhoW    = 1000.0
 
         drho_dt = np.zeros(self.gridLen)
         # self.viscosity = np.zeros(self.gridLen)
-        
-        drho_dt[self.rho < RHO_1] = (kMorris / (rhoW * GRAVITY)) * ((RHO_I - self.rho[self.rho < RHO_1]) / self.rho[self.rho < RHO_1]) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1]
-        # self.viscosity[self.rho < RHO_1] = ((rhoW * GRAVITY) / (2*kMorris)) * (self.rho[self.rho < RHO_1] / (RHO_I - self.rho[self.rho < RHO_1])) * self.Hx [self.rho < RHO_1] * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1]))
 
+        
+        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] / 100
+        
         #Use HL Dynamic for zone 2 b/c Morris does not specify zone 2.
         Q2  = 21400.0
         k2  = 575.0
         bHL = 0.5
-        A = self.bdotSec[self.iii] * self.steps * BDOT_TO_A
-
-        drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * np.power(A, bHL) * 1000 / S_PER_YEAR
-        # self.viscosity[self.rho >= RHO_1] = -(np.power(GRAVITY, (0.5)) / 2*k2) * np.exp(Q2 / (R*self.Tz[self.rho >= RHO_1]))*((self.rho[self.rho >= RHO_1]/(RHO_I_MGM - self.rho[self.rho >= RHO_1]))) * np.power (self.sigma[self.rho >= RHO_1], 0.5) * np.power(self.age[self.rho >= RHO_1], (0.5)) * 1000 / S_PER_YEAR
+        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I_MGM
+        if self.bdot_type == 'instant':
+            drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant ** bHL * 1000 / S_PER_YEAR
+        elif self.bdot_type == 'mean':
+            drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_mean_2 ** bHL * 1000 / S_PER_YEAR
        
         return drho_dt
 
-    def KuipersMunneke_2015(self): #b_dot is in mm W.E. per year.
+    def KuipersMunneke_2015(self):
         '''
+
         Units are mm W.E. per year
 
-        '''
+        :param steps:
+        :param gridLen:
+        :param bdotSec:
+        :param bdot_mean:
+        :param bdot_type:
+        :param Tz:
+        :param T10m:
+        :param rho:
 
+        :return drho_dt :
+        '''
         ar1 = 0.07
         ar2 = 0.03
-        Ec  = 60.0e3
-        Eg  = 42.4e3
+        Ec = 60.0e3
+        Eg = 42.4e3
+
+        A_instant = self.bdotSec * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
 
         dr_dt = np.zeros(self.gridLen)
 
-        A_instant = self.bdotSec[self.iii] * self.steps * BDOT_TO_A * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * self.steps * BDOT_TO_A * 1000
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * self.steps * BDOT_TO_A * 1000
-
         if self.bdot_type == 'instant':
-            M_0 = 1.042 - 0.0916 * np.log(self.bdotSec[iii] * S_PER_YEAR * 1e3 * 0.917)
-            M_1 = 1.734 - 0.2039 * np.log(self.bdotSec[iii] * S_PER_YEAR * 1e3 * 0.917)            
-            M_0 = np.maximum(M_0,0.25)
-            M_1 = np.maximum(M_1,0.25)
+            if self.iii==0:
+                print "It is not recommended to use instant accumulation with Ligtenberg 2011 physics"
+            M_0 = 1.042 - 0.0916 * np.log(self.bdotSec * S_PER_YEAR * RHO_I)
+            M_1 = 1.734 - 0.2039 * np.log(self.bdotSec * S_PER_YEAR * RHO_I)
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T10m))
 
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))                           
-        
         elif self.bdot_type == 'mean':
-            M_0 = 1.042 - 0.0916 * np.log(self.bdot_mean[self.rho < RHO_1] * S_PER_YEAR * 917.0)
-            M_1 = 1.734 - 0.2039 * np.log(self.bdot_mean[self.rho >= RHO_1] * S_PER_YEAR * 917.0)
-            M_0 = np.maximum(M_0,0.25)
-            M_1 = np.maximum(M_1,0.25)
+            M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
+            M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
-            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean))
-            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean))
-        
         drho_dt = dr_dt / S_PER_YEAR
+        # self.viscosity = np.ones(self.gridLen)
 
         return drho_dt
 
-    def Spencer_2001(self):
-        '''
-        :return:
-        '''
-        pass
-
     def Goujon_2003(self):
         '''
+
+        Uses stress
+
         :return:
         '''
+
         global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou
-        # print "gridLen", self.gridLen
+
         atmosP = 101325.0 # Atmospheric Pressure
         dDdt        = np.zeros(self.gridLen) # Capital D is change in relative density
 
         top2m           = np.nonzero(self.z <= 1.)
-        # print 'top2', np.max(top2m)
+        
         self.rho[top2m] = self.rhos0 # top 2 meters of Goujon model are always set to surface density
         
         sigma_MPa   = self.sigma / (1.0e6)
@@ -488,19 +570,14 @@ class FirnPhysics:
         Qgj         = 60.0e3
         n           = 3.0 
 
-        rhoi2cgs    = .9165 * (1.-1.53e-4 * (self.T_mean - 273.15)) # Density of ice, temperature dependent, g/cm^3
+        rhoi2cgs    = .9165 * (1.-1.53e-4 * (self.T10m - 273.15)) # Density of ice, temperature dependent, g/cm^3
         rhoi2       = rhoi2cgs * 1000.0 # density of ice, kg/m^3
         
         D           = self.rho / rhoi2 # Relative density
-
-        # print 'rho',self.rho[0:10]
-        # print 'sigma',sigma_bar[0:10]
-        # print 'T_mean', self.T_mean
-        
         Dm23        = 0.9 #transition from zone 2 to 3
         rho23       = Dm23 * rhoi2 #density of 2/3 transition
         
-        D0          = 0.00226 * self.T_mean + 0.03 #D0 is the relative density of transition from zone 1 to 2. Here is from Arnaud et al. (2000) eq. 8, not Goujon (Goujon uses C, not K)
+        D0          = 0.00226 * self.T10m + 0.03 #D0 is the relative density of transition from zone 1 to 2. Here is from Arnaud et al. (2000) eq. 8, not Goujon (Goujon uses C, not K)
 
         if D0 > 0.59: #Model requires zone 1/2 transition to be less than D=0.6
             D0      = 0.59
@@ -511,11 +588,9 @@ class FirnPhysics:
         Dm          = D[ind1] #actual transition relative density. Use this so that the transition falls at a node
         Dmrho      = Dm * rhoi2 #density of first node, zone 2
 
-        # print 'ind1', ind1
-
-        A           = 7.89e3 * np.exp(-Qgj/(R * self.Tz)) * 1.0e-3 #A given in MPa^-3 s^-1, Goujon uses bar as pressure unit. Eq. A5 in Goujon
+        A           = 7.89e3 * np.exp(-Qgj/(R * self.Tz)) * 1.0e-3 # A given in MPa^-3 s^-1, Goujon uses bar as pressure unit. Eq. A5 in Goujon
         ccc         = 15.5 # no units given, equation A7, given as c
-        Z0g         = 110.2 * D0 ** 3.-148.594 * D0 ** 2.+87.6166 * D0-17. #from Anais' code           
+        Z0g         = 110.2 * D0 ** 3.-148.594 * D0 ** 2.+87.6166 * D0-17. # from Anais' code           
         lp          = (D/D0) ** (1.0/3.0) # A6
         Zg          = Z0g+ccc * (lp-1.0) # A7
         lpp_n       = (4.0 * Z0g * (lp-1.0) ** 2.0 * (2.0 * lp+1.0) + ccc * (lp-1.0) ** 3.0 * (3.0 * lp + 1.0)) # A8, numerator
@@ -536,40 +611,56 @@ class FirnPhysics:
         dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
         # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
         dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n         
-        gfrac       = 0.01
+        gfrac       = 0.03
         gam_div     = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
         
         ### iterate to increase gamma first if not in steady state    
         if self.iii != 0 and dDdt[ind1] <= dDdt[ind1+1] and Gamma_Gou!=Gamma_old2_Gou: #and dDdt_old[ind1]!=dDdt_old[ind1]:
+            cc = 1
             while dDdt[ind1] < dDdt[ind1 + 1]:
                 Gamma_Gou       = Gamma_Gou * (gam_div)
-                dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-                dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n
+                dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+                dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+
+                cc = cc + 1
+                if cc>10000:
+                    print 'Goujon is not converging. exiting'
+                    sys.exit()
+                # if cc>1000:
+                #     print 'cc', cc
+                #     print 'dDdt',dDdt[ind1:ind1+2]
+                #     dd = dDdt[D<=Dm]
+                #     ee = dDdt[D>Dm]
+                #     print 'dd',dd[-1]
+                #     print 'ee',ee[0]
+                #     raw_input()
+
         ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
         counter = 1
         while dDdt[ind1] >= dDdt[ind1 + 1]:
-            print 'iterating', counter
+            # print 'iterating', counter
             Gamma_Gou       = Gamma_Gou / (1 + gfrac/2.0)
-            dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-            dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n
+            dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+            dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
             counter = counter +1
+            if counter>10000:
+                print 'Goujon is not converging. exiting'
+                sys.exit()
+            # if counter >100:
+            #     print 'dDdt',dDdt[ind1:ind1+2]
+            #     print 'counter',counter
 
         # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-
+        if self.iii<10:
+            print 'dDdt',dDdt[ind1:ind1+2]
         Gamma_old2_Gou  = Gamma_old_Gou
         Gamma_old_Gou  = Gamma_Gou
-
-        # print 'iii', self.iii
-        # print 'Gamma_Gou', Gamma_Gou
-        # print 'Gamma_An', gamma_An
-        # print 'dDdt', dDdt[10:ind1+2]
         
         rhoC        = RHO_2 #should be Martinerie density
         frho2       = interpolate.interp1d(self.rho,sigma_bar)
         sigmarho2   = frho2(rhoC) #pressure at close off
 
         ind2 = np.argmax(D >= Dm23)
-        # print 'ind2', ind2
         
         # sigma_b = sigmarho2 * (D*(1-rhoC/rhoi)) / (rhoC/rhoi*(1-D))
         # sigma_b = (sigma_MPa[ind2] * (D*(1-Dm23)) / (Dm23*(1-D)))/10. #works for Ex2
@@ -580,25 +671,15 @@ class FirnPhysics:
         
         ind2 = np.argmax(D >= Dm23)
         ind3 = ind2 + 10
-        
-        # print 'Dm23', Dm23
-        # print 'T34', T34
 
         dDdt[D>Dm23] = 2.*A[D>Dm23] * ( (D[D>Dm23]*(1-D[D>Dm23])) / (1-(1-D[D>Dm23])**(1/n))**n ) * (2*sigmaEff[D>Dm23]/n)**3.0
-        # print 'dDdt23', dDdt[10:ind1+2]
         Ad              = 1.2e3 * np.exp(-Qgj / (R * self.Tz)) * 1.0e-1
         T34             = 0.98
         dDdt[D>T34] = 9/4*Ad[D>T34]*(1-D[D>T34])*sigmaEff[D>T34]
-        # print 'dDdt34', dDdt[10:ind1+2]
 
         dDdt_old        = dDdt
-        # print 'dDdtend', dDdt[10:ind1+2]
         drho_dt         = dDdt*rhoi2
         drho_dt[top2m]  = 0.0
-
-        # if self.iii<6:
-        #     print drho_dt[10:ind1+2]
-        #     raw_input('press enter')
 
         return drho_dt
 

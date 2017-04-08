@@ -251,9 +251,9 @@ class FirnDensityNoSpin:
             self.r2_out         = None
             self.r2             = None
 
-        if self.c['physRho'] == 'Morris2013':
+        if self.c['physRho'] == 'Morris2014':
             self.THist          = True
-            initHx              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
+            initHx              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'HxSpin')
             self.Hx             = initHx[1:]
             self.Hx_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             Hx_time             = np.append(self.modeltime[0], self.Hx)
@@ -313,7 +313,7 @@ class FirnDensityNoSpin:
         Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity through time
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
         '''
-        self.steps = 1 / self.t
+        self.steps = 1 / self.t # steps per year
         # if not self.c['physGrain']:
         #     r2_time = None
         # if not self.THist:
@@ -370,10 +370,9 @@ class FirnDensityNoSpin:
                 'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
                 'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
                 'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2013':           FirnPhysics(PhysParams).Morris_HL_2013,
+                'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
                 'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
-                'Spencer2001':          FirnPhysics(PhysParams).Spencer_2001,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
             }
@@ -567,7 +566,7 @@ class FirnDensityNoSpin:
         except:
             self.LIZDepMart = -9999
             self.LIZAgeMart = -9999
-            
+
         return self.LIZAgeMart, self.LIZDepMart
     #### end update_LIZ 
 
