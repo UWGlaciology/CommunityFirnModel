@@ -352,6 +352,7 @@ class FirnPhysics:
         '''
 
         Units are mm W.E. per year
+        b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
 
         :param steps:
         :param gridLen:
@@ -369,22 +370,28 @@ class FirnPhysics:
         Ec = 60.0e3
         Eg = 42.4e3
 
-        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+        
+
 
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             if self.iii==0:
                 print "It is not recommended to use instant accumulation with Ligtenberg 2011 physics"
+            A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
             M_0 = 1.435 - 0.151 * np.log(A_instant)
             M_1 = 2.366 - 0.293 * np.log(A_instant)
+            M_0 = np.max((0.25,M_0))
+            M_1 = np.max((0.25,M_1))
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T10m))
         elif self.bdot_type == 'mean':
+            A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+            A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
             M_0 = 1.435 - 0.151 * np.log(A_mean_1)
             M_1 = 2.366 - 0.293 * np.log(A_mean_2)
+            M_0 = np.max((0.25,M_0))
+            M_1 = np.max((0.25,M_1))
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
@@ -506,6 +513,7 @@ class FirnPhysics:
         '''
 
         Units are mm W.E. per year
+        b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
 
         :param steps:
         :param gridLen:
@@ -523,23 +531,32 @@ class FirnPhysics:
         Ec = 60.0e3
         Eg = 42.4e3
 
-        A_instant = self.bdotSec * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+        # yrmn = 20
+        # if self.iii<=yrmn*12:
+        #     A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+        # else:
+        #     A_instant = np.mean(self.bdotSec[self.iii-12*yrmn:self.iii+1]) * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
 
         dr_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
+            A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
             if self.iii==0:
                 print "It is not recommended to use instant accumulation with Ligtenberg 2011 physics"
-            M_0 = 1.042 - 0.0916 * np.log(self.bdotSec * S_PER_YEAR * RHO_I)
-            M_1 = 1.734 - 0.2039 * np.log(self.bdotSec * S_PER_YEAR * RHO_I)
+            M_0 = 1.042 - 0.0916 * np.log(A_instant)
+            M_1 = 1.734 - 0.2039 * np.log(A_instant)
+            M_0 = np.max((0.25,M_0))
+            M_1 = np.max((0.25,M_1))
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T10m))
 
         elif self.bdot_type == 'mean':
+            A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+            A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
             M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
             M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+            M_0 = np.max((0.25,M_0))
+            M_1 = np.max((0.25,M_1))
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
@@ -556,7 +573,7 @@ class FirnPhysics:
         :return:
         '''
 
-        global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou
+        global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
 
         atmosP = 101325.0 # Atmospheric Pressure
         dDdt        = np.zeros(self.gridLen) # Capital D is change in relative density
@@ -602,19 +619,21 @@ class FirnPhysics:
         # gamma_An=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
         gamma_An=(5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
 
-        if self.iii == 0:
+        if self.iii == 0 or ind1 != ind1_old:
             Gamma_Gou       = 0.5 / S_PER_YEAR
             Gamma_old_Gou   = Gamma_Gou
         else:
             Gamma_Gou       = Gamma_old_Gou
 
-        dDdt[D<=Dm]=Gamma_Gou*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-        # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-        dDdt[D>Dm]=5.3*A[D>Dm]* (((D[D>Dm]**2.0)*D0)**(1/3.)) * (a[D>Dm]/np.pi)**(1.0/2.0) * (sigmastar[D>Dm]/3.0)**n         
+        # Gamma_Gou = 0.5 / S_PER_YEAR
+
+        dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        # dDdt[0:ind1+1]=gamma_An*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n         
         gfrac       = 0.03
         gam_div     = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
         
-        ### iterate to increase gamma first if not in steady state    
+        ########## iterate to increase gamma first if not in steady state    
         if self.iii != 0 and dDdt[ind1] <= dDdt[ind1+1] and Gamma_Gou!=Gamma_old2_Gou: #and dDdt_old[ind1]!=dDdt_old[ind1]:
             cc = 1
             while dDdt[ind1] < dDdt[ind1 + 1]:
@@ -650,11 +669,59 @@ class FirnPhysics:
             #     print 'dDdt',dDdt[ind1:ind1+2]
             #     print 'counter',counter
 
-        # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+        # #dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
         if self.iii<10:
             print 'dDdt',dDdt[ind1:ind1+2]
         Gamma_old2_Gou  = Gamma_old_Gou
         Gamma_old_Gou  = Gamma_Gou
+        ind1_old = ind1
+        #####################
+
+
+                ########## iterate to increase gamma first if not in steady state    
+        # if dDdt[ind1] <= dDdt[ind1+1]: #and dDdt_old[ind1]!=dDdt_old[ind1]:
+        #     cc = 1
+        #     while dDdt[ind1] < dDdt[ind1 + 1]:
+        #         Gamma_Gou       = Gamma_Gou * (gam_div)
+        #         dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        #         dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+
+        #         cc = cc + 1
+        #         if cc>10000:
+        #             print 'Goujon is not converging. exiting'
+        #             sys.exit()
+        #         # if cc>1000:
+        #         #     print 'cc', cc
+        #         #     print 'dDdt',dDdt[ind1:ind1+2]
+        #         #     dd = dDdt[D<=Dm]
+        #         #     ee = dDdt[D>Dm]
+        #         #     print 'dd',dd[-1]
+        #         #     print 'ee',ee[0]
+        #         #     raw_input()
+
+        # ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
+        # counter = 1
+        # while dDdt[ind1] >= dDdt[ind1 + 1]:
+        #     # print 'iterating', counter
+        #     Gamma_Gou       = Gamma_Gou / (1 + gfrac/2.0)
+        #     dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        #     dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+        #     counter = counter +1
+        #     if counter>10000:
+        #         print 'Goujon is not converging. exiting'
+        #         sys.exit()
+        #     # if counter >100:
+        #     #     print 'dDdt',dDdt[ind1:ind1+2]
+        #     #     print 'counter',counter
+
+        # # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
+        # if self.iii<10:
+        #     print 'dDdt',dDdt[ind1:ind1+2]
+        # # Gamma_old2_Gou  = Gamma_old_Gou
+        # # Gamma_old_Gou  = Gamma_Gou
+        # # ind1_old = ind1
+        #####################
+
         
         rhoC        = RHO_2 #should be Martinerie density
         frho2       = interpolate.interp1d(self.rho,sigma_bar)
