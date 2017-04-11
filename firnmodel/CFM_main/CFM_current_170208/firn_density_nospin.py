@@ -105,8 +105,8 @@ class FirnDensityNoSpin:
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
         yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
-        
-        self.years      = (yr_end - yr_start) * 1.0 
+
+        self.years      = (yr_end - yr_start) * 1.0
         self.dt         = S_PER_YEAR / self.c['stpsPerYear']
         self.stp        = int(self.years * S_PER_YEAR/self.dt + 1)       # total number of time steps, as integer
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
@@ -128,7 +128,7 @@ class FirnDensityNoSpin:
         # self.bdotSec    = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
         self.bdotSec   = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation (per second)
         self.iceout     = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column
-        
+
 
         ##### Isotopes ###########
         if self.c['isoDiff']:
@@ -149,7 +149,7 @@ class FirnDensityNoSpin:
                 #impose seasonal isotope cycle
                 # self.del_s = self.del_s + 5 * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         ###########################
- 
+
         try:
             if self.c['variable_srho']:
                 self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
@@ -160,14 +160,15 @@ class FirnDensityNoSpin:
             self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
 
-        self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
+        self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector).
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
         # set up vector of times data will be written
         # Tind = np.nonzero(selfself.modeltime>=1958.0)[0][0]
 
-        self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
+        self.TWrite     = self.modeltime[-2:]
+        #self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
@@ -186,7 +187,7 @@ class FirnDensityNoSpin:
         if self.c['strain']:
             self.du_dx = np.zeros(self.gridLen)
             self.du_dx[1:] = self.c['du_dx']/(S_PER_YEAR)
-        
+
         # set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
         # self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:], init_del_z[1:]) # [1:] because first element is a time stamp
         # self.T_mean     = self.diffu.T10m # initially the mean temp is the same as the surface temperature
@@ -246,7 +247,7 @@ class FirnDensityNoSpin:
             self.r2_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             r2_time             = np.append(self.modeltime[0], self.r2)
             self.r2_out[0,:]    = r2_time
-            
+
         else:
             self.r2_out         = None
             self.r2             = None
@@ -257,7 +258,7 @@ class FirnDensityNoSpin:
             self.Hx             = initHx[1:]
             self.Hx_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             Hx_time             = np.append(self.modeltime[0], self.Hx)
-            self.Hx_out[0,:]    = Hx_time       
+            self.Hx_out[0,:]    = Hx_time
         else:
             self.THist          = False
             self.Hx_out         = None
@@ -291,7 +292,7 @@ class FirnDensityNoSpin:
         bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 = self.update_BCO()
         LIZAgeMart, LIZDepMart = self.update_LIZ()
         intPhi = self.update_DIP()
-        
+
         self.dHAll.append(0)
         dHOut = 0
         dHOutC = 0
@@ -304,14 +305,14 @@ class FirnDensityNoSpin:
         self.LIZ_out[0,:]       = LIZ_time
         self.DIP_out[0,:]       = DIP_time
 
-    ####################    
+    ####################
     ##### END INIT #####
     ####################
 
     def time_evolve(self):
         '''
         Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity through time
-        based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
+        based on the user specified number of timesteps in the model run. Updates the firn density using a user specified
         '''
         self.steps = 1 / self.t # steps per year
         # if not self.c['physGrain']:
@@ -325,7 +326,7 @@ class FirnDensityNoSpin:
         ####################################
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
-            
+
             # print self.Ts[iii]
             # ### set up longitudinal strain rate
             # self.du_dx = np.zeros(self.gridLen)
@@ -333,7 +334,7 @@ class FirnDensityNoSpin:
             #     self.du_dx[0:] = (0.)/(S_PER_YEAR)
             # else:
             #     self.du_dx[0:] = (10**-3.)/(S_PER_YEAR)
-               
+
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -386,7 +387,7 @@ class FirnDensityNoSpin:
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
             # print self.rho
-            
+
             self.Dcon = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
 
             if self.THist:
@@ -410,7 +411,7 @@ class FirnDensityNoSpin:
                 sys.exit()
 
             else:
-            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 
+            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)
                 ##### update model grid
                 self.dz_old = self.dz
                 self.sdz_old = np.sum(self.dz) # old total column thickness
@@ -420,8 +421,8 @@ class FirnDensityNoSpin:
 
                 if self.c['strain']:
                     self.dz = ((-self.du_dx)*self.dt + 1)*self.dz
-                
-                self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
+
+                self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added
                 self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z = self.dz.cumsum(axis = 0)
                 self.z = np.concatenate(([0], self.z[:-1]))
@@ -459,7 +460,7 @@ class FirnDensityNoSpin:
             # print 'mtime', mtime
             # write results as often as specified in the init method
             if mtime in self.TWrite:
-                
+
                 ind = np.where(self.TWrite == mtime)[0][0]
                 # print ind
                 # print self.TWrite[ind]
@@ -513,7 +514,7 @@ class FirnDensityNoSpin:
 
 
         # write_nospin_hdf5(self.c['resultsFolder'], self.c['physGrain'], self.THist, self.rho_out, self.Tz_out, self.age_out, self.z_out, self.D_out, self.Clim_out, self.bdot_out, self.r2_out, self.Hx_out)
-        
+
 
         write_nospin_hdf5(self)
 
@@ -541,13 +542,13 @@ class FirnDensityNoSpin:
             # self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
             # self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
         except:
-            
+
             bcoAgeMart = -9999
             bcoDepMart = -9999
             bcoAge815 = -9999
             bcoDep815 = -9999
 
-            
+
         return bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815
 
     #### end update_BCO
@@ -568,7 +569,7 @@ class FirnDensityNoSpin:
             self.LIZAgeMart = -9999
 
         return self.LIZAgeMart, self.LIZDepMart
-    #### end update_LIZ 
+    #### end update_LIZ
 
     def update_DIP(self):
         '''
@@ -596,7 +597,7 @@ class FirnDensityNoSpin:
         '''
 
         # self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.bdot_mean[0]*S_PER_YEAR) #
-        
+
         self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho[-1]/RHO_I))*self.t #
 
         self.dHAll.append(self.dH)
@@ -607,4 +608,3 @@ class FirnDensityNoSpin:
         # self.dHOutC.append(self.dHtot)
 
         return self.dH, self.dHtot
-
