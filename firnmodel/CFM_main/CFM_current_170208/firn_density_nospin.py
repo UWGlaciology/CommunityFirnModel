@@ -167,7 +167,7 @@ class FirnDensityNoSpin:
         # set up vector of times data will be written
         # Tind = np.nonzero(selfself.modeltime>=1958.0)[0][0]
 
-        self.TWrite     = self.modeltime[-2:]
+        self.TWrite     = self.modeltime[-1:]
         #self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
