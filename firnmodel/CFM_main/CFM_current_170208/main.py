@@ -33,6 +33,11 @@ if __name__ == '__main__':
     # firn = configSpin[spin](configName)
     # except KeyError:
         # sys.exit("Error")
+    print ""
+    print "<<<<<<<< Running the Community Firn Model (CFM), Version 1.0 >>>>>>>>"
+    print "<<<<<<<< Developed at the University of Washington           >>>>>>>>"
+    print "<<<<<<<< Please cite your use!                               >>>>>>>>"
+    print ""
     
     if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']) and '-n' not in sys.argv:
         print 'Skipping Spin-Up run;', c['resultsFolder']+'/'+c['spinFileName'], 'exists already'
