@@ -6,7 +6,7 @@ from diffusion import isoDiff
 from reader import read_input
 from reader import read_init
 # from writer import write_nospin
-from writer import write_nospin_init
+from writer import write_spin_hdf5
 # from writer import write_nospin_BCO
 # from writer import write_nospin_LIZ
 # from writer import write_nospin_DIP
@@ -101,18 +101,13 @@ class FirnDensityNoSpin:
         # if self.c['variable_srho']:
         #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
-<<<<<<< HEAD
-        ### set up time stepping
-=======
         try:
-            input_snowmelt, input_year_snowmelt = read_snowmelt(self.c['InputFileNamemelt'])
+            input_snowmelt, input_year_snowmelt = read_input(self.c['InputFileNamemelt'])
         except:
             MELT = False
             input_snowmelt = None
             input_year_snowmelt = None
 
-
->>>>>>> working on melt
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
         yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
