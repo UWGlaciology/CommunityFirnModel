@@ -101,7 +101,18 @@ class FirnDensityNoSpin:
         # if self.c['variable_srho']:
         #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
+<<<<<<< HEAD
         ### set up time stepping
+=======
+        try:
+            input_snowmelt, input_year_snowmelt = read_snowmelt(self.c['InputFileNamemelt'])
+        except:
+            MELT = False
+            input_snowmelt = None
+            input_year_snowmelt = None
+
+
+>>>>>>> working on melt
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
         yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
@@ -159,7 +170,11 @@ class FirnDensityNoSpin:
             print "you should alter the json to include variable_srho"
             self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
+        if MELT:
+            self.snowmelt = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
+            self.snowmeltSec = self.snowmelt / S_PER_YEAR / (self.stp / self.years)
 
+        self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
         self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
@@ -383,7 +398,7 @@ class FirnDensityNoSpin:
                 print "Error at line ", info.lineno
 
             # update density and age of firn
-            self.age = np.concatenate(([0], self.age[:-1])) + self.dt
+            
             self.rho = self.rho + self.dt * drho_dt
             # print self.rho
             
@@ -399,41 +414,41 @@ class FirnDensityNoSpin:
             else:
                 self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
 
+
             if self.c['isoDiff']:
                 # self.diffu.isoDiff(self.z, self.dz, self.del_s[iii], self.rho, self.c['iso'], self.dt)
                 self.del_z = isoDiff(self,iii)
                 # print 'del_z', self.del_z[0:2]
-            melt = False
 
-            if melt:
-
-                if self.bdotSec[iii] <= 0: # All melt for the time period with no accumulation
-                    self.dz_old = self.dz
-                    self.sdz_old = np.sum(self.dz) # old total column thickness
-                    self.z_old = self.z
-                    
-                    self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-                    self.dz = self.mass / self.rho * self.dx
-                    self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
-                    self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
-                    self.z = self.dz.cumsum(axis = 0)
-                    self.z = np.concatenate(([0], self.z[:-1]))
-                    self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+            if self.snowmeltSec[iii]>0 or self.bdotSec[iii]<=0:
+                self.age = self.age + self.dt
+                self.dz_old = self.dz
+                self.sdz_old = np.sum(self.dz) # old total column thickness
+                self.z_old = self.z
+                
+                # self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dz = self.mass / self.rho * self.dx
+                # self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
+                # self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
+                self.z = self.dz.cumsum(axis = 0)
+                # self.z = np.concatenate(([0], self.z[:-1]))
+                # self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
                 ##### update mass, stress, and mean accumulation rate
-                massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-                self.mass = np.concatenate(([massNew], self.mass[:-1]))
-                else #there is melt and accumulation
+                # massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                # self.mass = np.concatenate(([massNew], self.mass[:-1]))
+                # else: #there is melt and accumulation
 
 
 
 
-                print "Meltwater percolation is still under development. Run without melt for now."
-                sys.exit()
+                # print "Meltwater percolation is still under development. Run without melt for now."
+                # sys.exit()
 
             else:
             # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 
                 ##### update model grid
+                self.age = np.concatenate(([0], self.age[:-1])) + self.dt
                 self.dz_old = self.dz
                 self.sdz_old = np.sum(self.dz) # old total column thickness
                 self.z_old = self.z
