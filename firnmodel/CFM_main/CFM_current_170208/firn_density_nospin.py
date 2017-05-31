@@ -108,6 +108,14 @@ class FirnDensityNoSpin:
             input_snowmelt = None
             input_year_snowmelt = None
 
+        try:
+            input_snowmelt, input_year_snowmelt = read_snowmelt(self.c['InputFileNamemelt'])
+        except:
+            MELT = False
+            input_snowmelt = None
+            input_year_snowmelt = None
+
+
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
         yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
@@ -164,6 +172,10 @@ class FirnDensityNoSpin:
         except:
             print "you should alter the json to include variable_srho"
             self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+
+        if MELT:
+            self.snowmelt = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
+            self.snowmeltSec = self.snowmelt / S_PER_YEAR / (self.stp / self.years)
 
         if MELT:
             self.snowmelt = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
@@ -434,6 +446,24 @@ class FirnDensityNoSpin:
                 # self.mass = np.concatenate(([massNew], self.mass[:-1]))
                 # else: #there is melt and accumulation
 
+            if self.snowmeltSec[iii]>0 or self.bdotSec[iii]<=0:
+                self.age = self.age + self.dt
+                self.dz_old = self.dz
+                self.sdz_old = np.sum(self.dz) # old total column thickness
+                self.z_old = self.z
+                
+                # self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dz = self.mass / self.rho * self.dx
+                # self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
+                # self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
+                self.z = self.dz.cumsum(axis = 0)
+                # self.z = np.concatenate(([0], self.z[:-1]))
+                # self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
+                ##### update mass, stress, and mean accumulation rate
+                # massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                # self.mass = np.concatenate(([massNew], self.mass[:-1]))
+                # else: #there is melt and accumulation
 
 
 

@@ -115,6 +115,7 @@ class FirnDensitySpin:
                 pass
         else: # based on time taken to spin up in the config file.
 
+
             self.years = self.c['yearSpin'] # number of years to spin up for
         
         self.dt = S_PER_YEAR / self.c['stpsPerYearSpin']
@@ -125,6 +126,7 @@ class FirnDensitySpin:
         # self.dt         = self.years * S_PER_YEAR / self.stp # size of time steps, seconds
         # # self.dts        = self.years / self.stp # size of time step, years
         # self.t          = 1.0 / self.c['stpsPerYearSpin'] # years per time step
+
         
         # print 'dts', self.dts
         # print 't', self.t
@@ -281,6 +283,7 @@ class FirnDensitySpin:
                 self.del_z = isoDiff(self,iii)
 
             ##### update model grid
+
             dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
             self.dz = self.mass / self.rho * self.dx
             # consider additional change in box height due to longitudinal strain rate
@@ -292,6 +295,7 @@ class FirnDensitySpin:
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
 
             ##### update mass, stress, and mean accumulation rate
             if self.c['strain']:
@@ -310,11 +314,11 @@ class FirnDensitySpin:
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
 
+
                 rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
                 age_time        = np.concatenate(([self.t * iii + 1], self.age))
                 z_time          = np.concatenate(([self.t * iii + 1], self.z))
-
 
                 if self.c['physGrain']:
                     r2_time     = np.concatenate(([self.t * iii + 1], self.r2))

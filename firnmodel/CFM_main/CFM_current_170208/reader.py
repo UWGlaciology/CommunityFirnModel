@@ -102,6 +102,25 @@ def read_snowmelt(file):
 
     return input_snowmelt, input_year_snowmelt
 
+def read_snowmelt(file):
+    '''
+    Read in data for initial melt rates
+
+    :param file: name of the file which holds the accumulation rate data
+
+    :return input_bdot: accumulation rate vector from a specified csv file
+    :return input_year_bdot: corresponding time vector (in years)
+    '''
+
+    spot = os.getcwd()
+
+    FID_melt        = os.path.join(spot, file)
+    data_melt       = np.genfromtxt(FID_melt, delimiter=',')
+    input_year_melt = data_melt[0, :]
+    input_melt      = data_melt[1, :]
+
+    return input_snowmelt, input_year_snowmelt
+
 # def read_init(folder):
 #     '''
 #     Read in data for initial depth, age, density, and temperature to run the model without spin
@@ -181,8 +200,6 @@ def read_init(folder, resultsFileName, varname):
     # initAge = f5['ageSpin'][:]
     # initDepth = f5['depthSpin'][:]
     # initTemp = f5['tempSpin'][:]
-    
-
 
     # densityPath = os.path.join(folder, 'densitySpin.csv')
     # tempPath    = os.path.join(folder, 'tempSpin.csv')

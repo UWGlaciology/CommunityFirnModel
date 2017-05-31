@@ -151,9 +151,11 @@ def write_nospin_hdf5(self):
 #             csvwriter = csv.writer(f)
 #             csvwriter.writerow(Hx_time)
 
+
 # def write_spin_hdf5(folder, spinFileName, physGrain, THist, isoDiff, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time):
 
 #     f5 = h5py.File(os.path.join(folder, spinFileName), 'w')
+
 
 def write_spin_hdf5(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time):
 
@@ -170,6 +172,7 @@ def write_spin_hdf5(folder, physGrain, THist, rho_time, Tz_time, age_time, z_tim
         f5.create_dataset('HxSpin', data = Hx_time)
     if isoDiff:
         f5.create_dataset('IsoSpin', data = iso_time)
+
 
 
 # def write_spin(folder, physGrain, THist, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time):
