@@ -13,6 +13,7 @@ from writer import write_spin_hdf5
 from writer import write_nospin_hdf5
 from physics import *
 from constants import *
+from melt import *
 import numpy as np
 import csv
 import json
@@ -103,15 +104,11 @@ class FirnDensityNoSpin:
 
         try:
             input_snowmelt, input_year_snowmelt = read_input(self.c['InputFileNamemelt'])
+            MELT = True
+            print "Melt is initialized"
         except:
             MELT = False
-            input_snowmelt = None
-            input_year_snowmelt = None
-
-        try:
-            input_snowmelt, input_year_snowmelt = read_snowmelt(self.c['InputFileNamemelt'])
-        except:
-            MELT = False
+            print "No melt"
             input_snowmelt = None
             input_year_snowmelt = None
 
@@ -122,6 +119,7 @@ class FirnDensityNoSpin:
         
         self.years      = (yr_end - yr_start) * 1.0 
         self.dt         = S_PER_YEAR / self.c['stpsPerYear']
+        print 'dt', self.dt/S_PER_YEAR
         self.stp        = int(self.years * S_PER_YEAR/self.dt + 1)       # total number of time steps, as integer
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
         self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
@@ -140,9 +138,15 @@ class FirnDensityNoSpin:
         ### Accumulation
         self.bdot       = np.interp(self.modeltime, input_year_bdot, input_bdot) # interpolate accumulation rate to model time ???Should this be nearest?
         # self.bdotSec    = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
-        self.bdotSec   = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation (per second)
+        self.bdotSec   = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step(per second)
         self.iceout     = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column
         
+
+        ### Melt
+        if MELT:
+            self.snowmelt   = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
+            self.snowmeltSec   = self.snowmelt / S_PER_YEAR / self.c['stpsPerYear'] # melt for each time step (per second)
+
 
         ##### Isotopes ###########
         if self.c['isoDiff']:
@@ -326,6 +330,8 @@ class FirnDensityNoSpin:
         self.LIZ_out[0,:]       = LIZ_time
         self.DIP_out[0,:]       = DIP_time
 
+        print 'dz length', len(self.dz)
+
     ####################    
     ##### END INIT #####
     ####################
@@ -347,7 +353,7 @@ class FirnDensityNoSpin:
         ####################################
         for iii in xrange(self.stp):
             mtime = self.modeltime[iii]
-            
+            print 'iii',iii
             # print self.Ts[iii]
             # ### set up longitudinal strain rate
             # self.du_dx = np.zeros(self.gridLen)
@@ -427,50 +433,13 @@ class FirnDensityNoSpin:
                 self.del_z = isoDiff(self,iii)
                 # print 'del_z', self.del_z[0:2]
 
-            if self.snowmeltSec[iii]>0 or self.bdotSec[iii]<=0:
-                self.age = self.age + self.dt
-                self.dz_old = self.dz
-                self.sdz_old = np.sum(self.dz) # old total column thickness
-                self.z_old = self.z
-                
-                # self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-                self.dz = self.mass / self.rho * self.dx
-                # self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
-                # self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
-                self.z = self.dz.cumsum(axis = 0)
-                # self.z = np.concatenate(([0], self.z[:-1]))
-                # self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+            if self.snowmeltSec[iii]>0:
 
-                ##### update mass, stress, and mean accumulation rate
-                # massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-                # self.mass = np.concatenate(([massNew], self.mass[:-1]))
-                # else: #there is melt and accumulation
-
-            if self.snowmeltSec[iii]>0 or self.bdotSec[iii]<=0:
-                self.age = self.age + self.dt
-                self.dz_old = self.dz
-                self.sdz_old = np.sum(self.dz) # old total column thickness
-                self.z_old = self.z
-                
-                # self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-                self.dz = self.mass / self.rho * self.dx
-                # self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
-                # self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
-                self.z = self.dz.cumsum(axis = 0)
-                # self.z = np.concatenate(([0], self.z[:-1]))
-                # self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-
-                ##### update mass, stress, and mean accumulation rate
-                # massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-                # self.mass = np.concatenate(([massNew], self.mass[:-1]))
-                # else: #there is melt and accumulation
+                self.rho, self.age, self.dz, self.Tz, self.z, self.mass = percolation(self,iii)
 
 
 
-                # print "Meltwater percolation is still under development. Run without melt for now."
-                # sys.exit()
-
-            else:
+            if self.bdotSec[iii]>0:
             # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 
                 ##### update model grid
                 self.age = np.concatenate(([0], self.age[:-1])) + self.dt
