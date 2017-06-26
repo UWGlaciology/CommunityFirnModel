@@ -38,6 +38,8 @@
 "strain": false,
 "du_dx": 1e-5,
 "resultsFileName": "lig_test.hdf5",
-"spinFileName": "lig_test_spin.hdf5"
+"spinFileName": "lig_test_spin.hdf5",
+"outputs": ["density", "depth", "age"]
+"output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction_rate", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP"]
 }
 
