@@ -8,4 +8,5 @@ RHO_1_MGM  = 0.550                          # cut off density for the first zone
 GRAVITY    = 9.8                            # acceleration due to gravity on Earth
 K_TO_C     = 273.15                         # conversion from Kelvin to Celsius
 BDOT_TO_A  = S_PER_YEAR * RHO_I_MGM         # conversion for accumulation rate
-INTE       = 1                              # how often the data should be written
+# INTE       = 1                              # how often the data should be written
+RHO_W_KGM  = 1000.
