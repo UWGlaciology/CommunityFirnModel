@@ -5,9 +5,9 @@ def hl_analytic(rhos0, h, THL, AHL):
     '''
     Model steady-state firn density and age profiles and bubble close-off, uses m w.e. a^-1
 
-    :param rhos0:
-    :param h:
-    :param THL:
+    :param rhos0: surface density
+    :param h: depth
+    :param THL: 
     :param AHL:
 
     :return age: age vector of firn column with steady-state dynamics

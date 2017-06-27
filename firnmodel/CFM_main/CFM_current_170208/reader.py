@@ -83,27 +83,43 @@ def read_input(filename):
 
 #     return input_data, input_year
 
+def read_snowmelt(file):
+    '''
+    Read in data for initial melt rates
 
-# def read_srho(file):
-#     '''
-#     Read in data for initial accumulation rates
+    :param file: name of the file which holds the accumulation rate data
 
-#     :param file: name of the file which holds the accumulation rate data
+    :return input_bdot: accumulation rate vector from a specified csv file
+    :return input_year_bdot: corresponding time vector (in years)
+    '''
 
-#     :return input_bdot: accumulation rate vector from a specified csv file
-#     :return input_year_bdot: corresponding time vector (in years)
-#     '''
+    spot = os.getcwd()
 
-#     spot = os.getcwd()
+    FID_melt        = os.path.join(spot, file)
+    data_melt       = np.genfromtxt(FID_melt, delimiter=',')
+    input_year_melt = data_melt[0, :]
+    input_melt      = data_melt[1, :]
 
-#     FID_srho        = os.path.join(spot, file)
-#     data_srho       = np.genfromtxt(FID_srho, delimiter=',')
-#     input_year_srho = data_srho[0, :]
-#     input_srho      = data_srho[1, :]
+    return input_snowmelt, input_year_snowmelt
 
-#     return input_srho, input_year_srho
+def read_snowmelt(file):
+    '''
+    Read in data for initial melt rates
 
-def read_init(folder):
+    :param file: name of the file which holds the accumulation rate data
+
+    :return input_bdot: accumulation rate vector from a specified csv file
+    :return input_year_bdot: corresponding time vector (in years)
+    '''
+
+    spot = os.getcwd()
+
+    FID_melt        = os.path.join(spot, file)
+    data_melt       = np.genfromtxt(FID_melt, delimiter=',')
+    input_year_melt = data_melt[0, :]
+    input_melt      = data_melt[1, :]
+
+    return input_snowmelt, input_year_snowmelt
 
 # def read_init(folder):
 #     '''
@@ -176,6 +192,12 @@ def read_init(folder, resultsFileName, varname):
     f5 = h5py.File(os.path.join(folder, resultsFileName),'r')
     init_value = f5[varname][:]
 
+
+    # initAge = f5['ageSpin'][:]
+    # initDepth = f5['depthSpin'][:]
+    # initTemp = f5['tempSpin'][:]
+
+    # initDensity = f5['densitySpin'][:]
     # initAge = f5['ageSpin'][:]
     # initDepth = f5['depthSpin'][:]
     # initTemp = f5['tempSpin'][:]
