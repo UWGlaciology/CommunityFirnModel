@@ -39,22 +39,22 @@ def plotter(rfolder,rfile):
 
 	niter = np.shape(depth)[0]
 
-	# f2=plt.figure(2)
-	# ax2 = f2.add_subplot(111)
-	# plt.ion()
-	# for ii in xrange(niter):
-	# 	stri = '%.2f' % timesteps[ii]
-	# 	plt.clf()
-	# 	plt.plot(density[ii,:],depth[ii,:])
+	f2=plt.figure(2)
+	ax2 = f2.add_subplot(111)
+	plt.ion()
+	for ii in xrange(niter):
+		stri = '%.2f' % timesteps[ii]
+		plt.clf()
+		plt.plot(density[ii,:],depth[ii,:])
 		
-	# 	plt.ylim([0,50])
-	# 	plt.gca().invert_yaxis()
-	# 	plt.gca().text(0.2, 0.1,stri, horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)
-	# 	plt.pause(0.05)
+		plt.ylim([0,50])
+		plt.gca().invert_yaxis()
+		plt.gca().text(0.2, 0.1,stri, horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)
+		plt.pause(0.05)
 
-	# 	plt.show()
-	# while True:
-	# 	plt.pause(0.05)
+		plt.show()
+	while True:
+		plt.pause(0.05)
 
 
 
