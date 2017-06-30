@@ -388,10 +388,12 @@ class FirnDensityNoSpin:
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+                'Crocus':               FirnPhysics(PhysParams).Crocus
             }
 
             try:
-                drho_dt = physicsd[self.c['physRho']]()
+                RD = physicsd[self.c['physRho']]()
+                drho_dt = RD['drho_dt']
             except KeyError:
                 print "Error at line ", info.lineno
 
