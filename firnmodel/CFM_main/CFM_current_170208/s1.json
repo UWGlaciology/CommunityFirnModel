@@ -16,7 +16,7 @@
 "heatDiff": true,
 "rhos0": 350.0,
 "r2s0": 1.0e-8,
-"yearSpin": 20,
+"yearSpin": 1200,
 "stpsPerYearSpin": 1.0,
 "H": 1500,
 "HbaseSpin": 1200.0,

@@ -19,6 +19,7 @@ class FirnPhysics:
         '''
         for k,v in PhysParams.items():
             setattr(self,k,v)
+        self.RD = {}
 
     def HL_dynamic(self):
         '''
@@ -54,7 +55,9 @@ class FirnPhysics:
             drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
             drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
 
-        return drho_dt
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def HL_Sigfus(self):
         '''
@@ -96,8 +99,10 @@ class FirnPhysics:
         drho_dt[(self.rho >= RHO_1) & (self.rho >= RHO_I)] = 0
 
         # self.viscosity = np.ones(self.gridLen)
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
 
-        return drho_dt
+        # return drho_dt
 
     def Li_2004(self):
         '''
@@ -132,8 +137,9 @@ class FirnPhysics:
         drho_dt = dr_dt / S_PER_YEAR
 
         # self.viscosity = np.ones(self.gridLen)
-
-        return drho_dt
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def Li_2011(self):
         '''
@@ -186,8 +192,10 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
 
-        return drho_dt
+        # return drho_dt
 
     def Arthern_2010S(self):
         '''
@@ -227,8 +235,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
-
-        return drho_dt
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def Arthern_2010T(self):
         '''
@@ -266,8 +275,9 @@ class FirnPhysics:
         
         drho_dt[self.rho >= RHO_1] = kc2 * (RHO_I - self.rho[self.rho >= RHO_1]) * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])) * self.sigma[self.rho >= RHO_1] / (self.r2[self.rho >= RHO_1])
         # self.viscosity[self.rho >= RHO_1] = ((1 / (2*kc2)) * (self.rho[self.rho >= RHO_1] / (RHO_I - self.rho[self.rho >= RHO_1])) * np.exp (Ec / (R * self.Tz[self.rho >= RHO_1])) * (self.r2[self.rho >= RHO_1])) / S_PER_YEAR
-
-        return drho_dt
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def Helsen_2008(self):
         '''
@@ -299,8 +309,10 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
 
-        return drho_dt
+        # return drho_dt
 
     def Simonsen_2013(self):
         '''
@@ -345,8 +357,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
-
-        return drho_dt
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def Ligtenberg_2011(self):
         '''
@@ -401,8 +414,10 @@ class FirnPhysics:
         drho_dt = dr_dt / S_PER_YEAR
 
         # self.viscosity = np.ones(self.gridLen)
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
 
-        return drho_dt
+        # return drho_dt
 
     def Barnola_1991(self):
         '''
@@ -430,7 +445,7 @@ class FirnPhysics:
         QBarnola        = 60.0e3
         closeOff        = 800.0
 
-        self.rho[self.rho > RHO_I] = RHO_I # The Barnola model will go a fraction over the ice density (order 10^-3), so this stops that.
+        self.rho[self.rho > RHO_I] = RHO_I # The Barnola model will go a fraction over the ice density (oself.RDer 10^-3), so this stops that.
         drho_dt = np.zeros(self.gridLen)
         D = self.rho / RHO_I
         nBa = n * np.ones(self.gridLen)
@@ -456,8 +471,10 @@ class FirnPhysics:
         drho_dt[self.rho > RHO_2] = self.rho[self.rho > RHO_2] * A0[self.rho > RHO_2] * np.exp(-QBarnola / (R * self.Tz[self.rho > RHO_2])) * fs * (sigmaEff[self.rho > RHO_2] ** nBa[self.rho > RHO_2])
         
         # self.viscosity = np.ones(self.gridLen)
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
 
-        return drho_dt
+        # return drho_dt
     
     def Morris_HL_2014(self):
         '''
@@ -506,8 +523,10 @@ class FirnPhysics:
             drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant ** bHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
             drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_mean_2 ** bHL * 1000 / S_PER_YEAR
-       
-        return drho_dt
+        
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def KuipersMunneke_2015(self):
         '''
@@ -570,8 +589,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
-
-        return drho_dt
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def Goujon_2003(self):
         '''
@@ -755,10 +775,19 @@ class FirnPhysics:
         dDdt_old        = dDdt
         drho_dt         = dDdt*rhoi2
         drho_dt[top2m]  = 0.0
-
-        return drho_dt
+        
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def Crocus(self):
+        '''
+
+        Uses stress
+
+        :return:
+        '''
+
         f1 = 1.0 # unitless
         f2 = 4.0 # unitless
         nu_0 = 7.62237e6 # kg s^-1
@@ -769,9 +798,11 @@ class FirnPhysics:
         viscosity = f1 * f2 * nu_0 * self.rho / c_n * np.exp(a_n * (273.15 - self.Tz) + b_n * self.rho)
         dr_dt = self.rho * self.sigma / viscosity
 
-        drho_dt = dr_dt / S_PER_YEAR
-
-        return drho_dt
+        drho_dt = dr_dt #/ S_PER_YEAR
+        
+        self.RD['drho_dt'] = drho_dt
+        return self.RD
+        # return drho_dt
 
     def grainGrowth(self):
         '''

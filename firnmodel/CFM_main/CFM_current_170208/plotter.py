@@ -25,7 +25,7 @@ def plotter(rfolder,rfile):
 	f1=plt.figure(1)
 	ax1 = f1.add_subplot(111)
 	plt.plot(density[jj,1:],depth[jj,1:])
-	plt.ylim([0,50])
+	# plt.ylim([0,50])
 	plt.gca().invert_yaxis()
 	stri = 'date = %.6f' % timesteps[jj]
 	plt.gca().text(0.2, 0.1,stri,
@@ -64,7 +64,7 @@ def plotter(rfolder,rfile):
 
 if __name__ == '__main__':
 
-	rfolder = 'melt_test'
-	rfile = 'melt.hdf5'
+	rfolder = 'lig_test'
+	rfile = 'lig_test.hdf5'
 
 	plotter(rfolder,rfile)
