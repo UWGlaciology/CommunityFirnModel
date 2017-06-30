@@ -758,6 +758,21 @@ class FirnPhysics:
 
         return drho_dt
 
+    def Crocus(self):
+        f1 = 1.0 # unitless
+        f2 = 4.0 # unitless
+        nu_0 = 7.62237e6 # kg s^-1
+        a_n = 0.1 # K^-1
+        b_n = 0.023 # m^3 kg^-1
+        c_n = 250 # kg m^-3
+
+        viscosity = f1 * f2 * nu_0 * self.rho / c_n * np.exp(a_n * (273.15 - self.Tz) + b_n * self.rho)
+        dr_dt = self.rho * self.sigma / viscosity
+
+        drho_dt = dr_dt / S_PER_YEAR
+
+        return drho_dt
+
     def grainGrowth(self):
         '''
 

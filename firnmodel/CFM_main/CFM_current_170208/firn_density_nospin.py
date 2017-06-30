@@ -379,6 +379,7 @@ class FirnDensityNoSpin:
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+                'Crocus':               FirnPhysics(PhysParams).Crocus
             }
 
             try:

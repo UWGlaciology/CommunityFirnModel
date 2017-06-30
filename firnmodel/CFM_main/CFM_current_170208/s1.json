@@ -5,7 +5,7 @@
 "InputFileNameIso": "CFM_age_isotope.csv",
 "InputFileNamesrho": "Summit_spin_rho_base.csv",
 "resultsFolder": "lig_test",
-"physRho": "Ligtenberg2011",
+"physRho": "Crocus",
 "TWriteInt": 4,
 "TAmp":10.0,
 "bdot0": 0.01,
@@ -39,7 +39,7 @@
 "du_dx": 1e-5,
 "resultsFileName": "lig_test.hdf5",
 "spinFileName": "lig_test_spin.hdf5",
-"outputs": ["density", "depth", "age"]
+"outputs": ["density", "depth", "age"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction_rate", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP"]
 }
 
