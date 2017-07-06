@@ -28,7 +28,11 @@ class FirnDensitySpin:
     : gridLen: size of grid used in the model run
                 (unit: number of boxes, type: int)
     : dx: vector of width of each box, used for stress calculations
-                (unit: ???, type: array of ints)
+                (unit: m, type: array of ints)
+    : dz: vector of thickness of each box
+                (unit: m, type: float)
+    : z:  vector of edge locations of each box (value is the top of the box)
+                (unit: m, type: float)
     : dt: number of seconds per time step
                 (unit: seconds, type: float)
     : t: number of years per time step
@@ -108,8 +112,11 @@ class FirnDensitySpin:
                 zz          = np.min(self.z[self.rho > 850.0])
                 self.years  = int(zz / self.bdot0)
             except ValueError:
-                pass
+                print "auto spin up error; using spin up time from json"
+                self.years = self.c['yearSpin'] # number of years to spin up for
         else: # based on time taken to spin up in the config file.
+
+
             self.years = self.c['yearSpin'] # number of years to spin up for
         
         self.dt = S_PER_YEAR / self.c['stpsPerYearSpin']
@@ -120,6 +127,7 @@ class FirnDensitySpin:
         # self.dt         = self.years * S_PER_YEAR / self.stp # size of time steps, seconds
         # # self.dts        = self.years / self.stp # size of time step, years
         # self.t          = 1.0 / self.c['stpsPerYearSpin'] # years per time step
+
         
         # print 'dts', self.dts
         # print 't', self.t
@@ -214,7 +222,6 @@ class FirnDensitySpin:
         ##### START TIME-STEPPING LOOP #####
         ####################################
         for iii in xrange(self.stp):
-
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -254,11 +261,13 @@ class FirnDensitySpin:
                 'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
-                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015
+                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+                'Crocus':               FirnPhysics(PhysParams).Crocus
             }
 
             try:
-                drho_dt = physicsd[self.c['physRho']]()
+                RD = physicsd[self.c['physRho']]()
+                drho_dt = RD['drho_dt']
             except KeyError:
                 print "Error at line ", info.lineno
 
@@ -277,6 +286,7 @@ class FirnDensitySpin:
                 self.del_z = isoDiff(self,iii)
 
             ##### update model grid
+
             dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
             self.dz = self.mass / self.rho * self.dx
             # consider additional change in box height due to longitudinal strain rate
@@ -288,6 +298,7 @@ class FirnDensitySpin:
             self.z = self.dz.cumsum(axis = 0)
             self.z = np.concatenate(([0], self.z[:-1]))
             self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
 
             ##### update mass, stress, and mean accumulation rate
             if self.c['strain']:
@@ -305,10 +316,13 @@ class FirnDensitySpin:
 
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
+
+
                 rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
                 age_time        = np.concatenate(([self.t * iii + 1], self.age))
                 z_time          = np.concatenate(([self.t * iii + 1], self.z))
+
                 if self.c['physGrain']:
                     r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
                 else:
