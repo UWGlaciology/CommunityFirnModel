@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 import h5py as h5
 import os
 import sys
@@ -19,6 +19,7 @@ def plotter(rfolder,rfile):
 
 	depth = f['depth'][:,1:]
 	density = f['density'][:,1:]
+	# iso = f['iso'][:,1:]
 
 	jj=-1
 
@@ -33,7 +34,20 @@ def plotter(rfolder,rfile):
      verticalalignment='center',
      transform = ax1.transAxes)
 	# plt.text(0.2,0.1,stri)
-	plt.savefig('melt.eps')
+	plt.savefig('SPdensity.eps')
+
+	# f2=plt.figure(2)
+	# ax1 = f2.add_subplot(111)
+	# plt.plot(iso[jj,1:],depth[jj,1:])
+	# # plt.ylim([0,50])
+	# plt.gca().invert_yaxis()
+	# stri = 'date = %.6f' % timesteps[jj]
+	# plt.gca().text(0.2, 0.1,stri,
+    #  horizontalalignment='center',
+    #  verticalalignment='center',
+    #  transform = ax1.transAxes)
+	# # plt.text(0.2,0.1,stri)
+	# plt.savefig('SPiso.eps')
 
 	plt.show()
 
@@ -46,7 +60,7 @@ def plotter(rfolder,rfile):
 	# 	stri = '%.2f' % timesteps[ii]
 	# 	plt.clf()
 	# 	plt.plot(density[ii,:],depth[ii,:])
-		
+
 	# 	plt.ylim([0,50])
 	# 	plt.gca().invert_yaxis()
 	# 	plt.gca().text(0.2, 0.1,stri, horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)
@@ -64,7 +78,7 @@ def plotter(rfolder,rfile):
 
 if __name__ == '__main__':
 
-	rfolder = 'lig_test'
-	rfile = 'lig_test.hdf5'
+	rfolder = 'SP_test'
+	rfile = 'SP_test.hdf5'
 
 	plotter(rfolder,rfile)
