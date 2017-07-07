@@ -64,7 +64,7 @@ def plotter(rfolder,rfile):
 
 if __name__ == '__main__':
 
-	rfolder = 'lig_test'
-	rfile = 'lig_test.hdf5'
+	rfolder = 'melt_test'
+	rfile = 'melt.hdf5'
 
 	plotter(rfolder,rfile)
