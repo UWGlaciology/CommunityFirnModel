@@ -14,10 +14,28 @@ import matplotlib.pyplot as plt
 from dateutil import rrule
 from datetime import datetime, timedelta, date
 import pandas as pd
+import fnmatch
+from scipy.spatial import cKDTree
+
 # import datetime
+def find_indices(points,lon,lat,tree=None):
+    if tree is None:
+        # lon,lat = lon.T,lat.T
+        lonlat = np.column_stack((lon.ravel(),lat.ravel()))
+        tree = cKDTree(lonlat)
+    dist,idx = tree.query(points,k=[1])
+    ind = np.column_stack(np.unravel_index(idx,lon.shape))
+    print ind
+    for i,j in ind:
+    	ii=i
+    	jj=j
+    # return [(i,j) for i,j in ind]
+    return ii,jj #, [(i,j) for i,j in ind]
+
 
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
 print spot
+datatype = 'MAR'
 # os.chdir(spot)
 
 #def write_interp(name_t, years, intp_temp):
@@ -32,52 +50,102 @@ print spot
 
 #### Where to find the data
 # ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Kristin-RACMOv2.3-1958-2013/'
-ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/RACMO'
-####
 
-nc_fn_smb = spot + '/ZGRN11_smb_monthly_1958-2013.nc'
-# nc_fn_smb = spot + '/smb_Summit.RACMO2.3_1958-2014.nc'
-nc_fn_temp = spot + '/ZGRN11_tskin_monthly_1958-2013.nc'
-nc_fn_melt = spot + '/ZGRN11_snowmelt_monthly_1958-2013.nc'
-# nc_fn_temp = spot + '/t2m_Summit.RACMO2.3_1958-2014.nc'
-nc_s = nc.Dataset(nc_fn_smb, 'r')
-nc_t = nc.Dataset(nc_fn_temp, 'r')
-nc_m = nc.Dataset(nc_fn_melt, 'r')
+if datatype=='RACMO':
+	ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/RACMO'
+	####
 
-#smb has dimensions of (time,lat,lon)
-#temperature has dimensions of (time,lat,lon)
+	nc_fn_smb = spot + '/ZGRN11_smb_monthly_1958-2013.nc'
+	# nc_fn_smb = spot + '/smb_Summit.RACMO2.3_1958-2014.nc'
+	nc_fn_temp = spot + '/ZGRN11_tskin_monthly_1958-2013.nc'
+	nc_fn_melt = spot + '/ZGRN11_snowmelt_monthly_1958-2013.nc'
+	# nc_fn_temp = spot + '/t2m_Summit.RACMO2.3_1958-2014.nc'
+	nc_s = nc.Dataset(nc_fn_smb, 'r')
+	nc_t = nc.Dataset(nc_fn_temp, 'r')
+	nc_m = nc.Dataset(nc_fn_melt, 'r')
 
-# SMB file:
-smb_in = nc_s.variables['smb'][:] 
-lat_smb = nc_s.variables['LAT'][:]
-lon_smb = nc_s.variables['LON'][:]
-time_smb = nc_s.variables['time'][:]
+	#smb has dimensions of (time,lat,lon)
+	#temperature has dimensions of (time,lat,lon)
 
-# tskin files:
-tskin_in = nc_t.variables['tskin'][:]
-lat_tskin = nc_t.variables['LAT'][:]
-lon_tskin = nc_t.variables['LON'][:]
-time_tskin = nc_t.variables['time'][:]
+	# SMB file:
+	smb_in = nc_s.variables['smb'][:] 
+	lat_smb = nc_s.variables['LAT'][:]
+	lon_smb = nc_s.variables['LON'][:]
+	time_smb = nc_s.variables['time'][:]
 
-# melt files:
-smelt_in = nc_m.variables['snowmelt'][:]
-lat_smelt = nc_m.variables['LAT'][:]
-lon_smelt = nc_m.variables['LON'][:]
-time_smelt = nc_m.variables['time'][:]
+	# tskin files:
+	tskin_in = nc_t.variables['tskin'][:]
+	lat_tskin = nc_t.variables['LAT'][:]
+	lon_tskin = nc_t.variables['LON'][:]
+	time_tskin = nc_t.variables['time'][:]
+
+	# melt files:
+	smelt_in = nc_m.variables['snowmelt'][:]
+	lat_smelt = nc_m.variables['LAT'][:]
+	lon_smelt = nc_m.variables['LON'][:]
+	time_smelt = nc_m.variables['time'][:]
 
 
-### for a specific point of interest
-# lat_int=72.57972 #this is summit
-# lon_int=-38.50454
+	### for a specific point of interest
+	# lat_int=72.57972 #this is summit
+	# lon_int=-38.50454
 
-lat_int=66.4806 #this is DYE2
-lon_int=-46.2831
+	lat_int=66.4806 #this is DYE2
+	lon_int=-46.2831
 
-dist_lat_mat=(lat_smb-lat_int)**2.0
-dist_lon_mat=(lon_smb-lon_int)**2.0
+	dist_lat_mat=(lat_smb-lat_int)**2.0
+	dist_lon_mat=(lon_smb-lon_int)**2.0
 
-dist=(dist_lat_mat+dist_lon_mat)**(0.5)
-ii,jj=np.unravel_index(dist.argmin(),dist.shape) # indices closest to specified point
+	dist=(dist_lat_mat+dist_lon_mat)**(0.5)
+	ii,jj=np.unravel_index(dist.argmin(),dist.shape) # indices closest to specified point
+
+	s1=smb_in[:,ii,jj]*12/1000/0.917 #put into units of m IE/year
+	t1=tskin_in[:,ii,jj]
+	m1 = smelt_in[:,ii,jj]*12/1000/0.917 #put into units of m IE/year
+	m1[m1<0]=0
+
+elif datatype == 'MAR':
+	mar_dir = '/Volumes/Samsung_T1/mar2'
+
+	years = np.arange(1958,2016)
+
+	t1=np.zeros(len(years)*12)
+	s1=np.zeros(len(years)*12)
+	m1=np.zeros(len(years)*12)
+
+	for kk in xrange(len(years)):
+		year = years[kk]
+		for file in os.listdir(mar_dir):
+		    if fnmatch.fnmatch(file, 'MAR*%s.nc' %year):
+		        fn = file
+		        # print type(fn)
+		        # print file
+		fp = os.path.join(mar_dir,fn)
+		# print fp
+		rgr=nc.Dataset(fp,'r')
+
+		lat = rgr['LAT'][:,:]
+		lon = rgr['LON'][:,:]
+
+
+		if kk==0:
+
+			lat_int=72.57972 #summit
+			lon_int=-38.50454	
+			
+			# lat_int=66.4806 #this is DYE2
+			# lon_int=-46.2831
+
+			ii,jj = find_indices((lon_int,lat_int),lon,lat)
+
+			print lat[ii,jj]
+			print lon[ii,jj]
+
+		t1[12*kk:12*kk+12] = rgr['STcorr'][:,ii,jj]
+		s1[12*kk:12*kk+12] = rgr['SMBcorr'][:,ii,jj]*12/1000./0.917 #converted to m IE per year
+		m1[12*kk:12*kk+12] = rgr['MEcorr'][:,ii,jj]*12/1000./0.917 #converted to m IE per year
+		m1[m1<0]=0
+		date_end=2015
 ###
 
 # t_start = datetime(1958,1,15,12,00,00)
@@ -90,15 +158,12 @@ ii,jj=np.unravel_index(dist.argmin(),dist.shape) # indices closest to specified 
 # 	pass
 # dates = pd.date_range('1958-01-01',periods=len(time_smb),freq='MS')+pd.DateOffset(days=14)
 dates = pd.date_range('1958-01-01','1977-12-31',freq='MS')+pd.DateOffset(days=14)
-dates_all = pd.date_range('1958-01-01','2013-12-31',freq='MS')+pd.DateOffset(days=14)
-dates_years = pd.date_range('1958-01-01','2013-12-31',freq='AS')
+dates_all = pd.date_range('1958-01-01','%s-12-31' %date_end,freq='MS')+pd.DateOffset(days=14)
+dates_years = pd.date_range('1958-01-01','%s-12-31' %date_end,freq='AS')
 
 # dates = pd.date_range('1958-01',periods=len(time_smb),freq='MS')
 
-s1=smb_in[:,ii,jj]*12/1000/0.917 #put into units of m IE/year
-t1=tskin_in[:,ii,jj]
-m1 = smelt_in[:,ii,jj]*12/1000/0.917 #put into units of m IE/year
-m1[m1<0]=0
+
 # s1 = s1+m1
 
 smbdata = {'date':dates,'smb':s1[0:len(dates)]}
@@ -158,8 +223,8 @@ smelt_df['average'] = smelt_df.mean(numeric_only=True, axis=1)
 smelt_df['std'] = smelt_df.std(numeric_only=True, axis=1)
 
 ### time vector that data will be written
-years = 0
-# years = 1000
+# years = 0
+years = 1000
 
 st_year = dates.year[0] - years
 # st_date = date(st_year,1,1)
@@ -175,7 +240,7 @@ yrtile = np.tile(yrvec[...,None],[1,12])
 allspintime = yrtile + decis
 allspintime_vec = np.ndarray.flatten(allspintime)
 
-yrvec2 = np.arange(dates.year[0],2014)
+yrvec2 = np.arange(dates.year[0],date_end+1)
 yrtile2 = np.tile(yrvec2[...,None],[1,12])
 allspintime2 = yrtile2 + decis
 allspintime2_vec = np.ndarray.flatten(allspintime2)
@@ -184,7 +249,7 @@ time_out = np.concatenate((allspintime_vec,allspintime2_vec))
 #####
 
 ##### make the random time series #####
-sno = 1 # number of random time series to make
+sno = 40 # number of random time series to make
 
 for ii in xrange(sno):
 
@@ -198,8 +263,12 @@ for ii in xrange(sno):
 		filler_smb[jj,:] = randfill_smb
 		randfill_tskin = np.random.normal(tskin_df.loc[jj+1,'average'],tskin_df.loc[jj+1,'std'],years)
 		filler_tskin[jj,:] = randfill_tskin
-		randfill_smelt = np.random.normal(smelt_df.loc[jj+1,'average'],smelt_df.loc[jj+1,'std'],years)
-		filler_smelt[jj,:] = randfill_smelt
+		try:
+			randfill_smelt = np.random.normal(smelt_df.loc[jj+1,'average'],smelt_df.loc[jj+1,'std'],years)
+		except:
+			randfill_smelt = np.zeros(years)
+		
+		filler_smelt[jj,:] 
 
 	smb_spindata = np.ndarray.flatten(filler_smb,'F')
 	tskin_spindata = np.ndarray.flatten(filler_tskin,'F')
@@ -213,19 +282,19 @@ for ii in xrange(sno):
 	tskin_out = np.array([time_out,tskin_d])
 	smelt_out = np.array([time_out,smelt_d])
 
-	# sfn = 'melt_test_smb_'+str(ii)+'.csv'
-	# tfn = 'melt_test_tskin_'+str(ii)+'.csv'
-	# mfn = 'melt_test_melt_'+str(ii)+'.csv'
+	sfn = 'Summit_smb_%s_' %datatype+str(ii)+'.csv'
+	tfn = 'Summit_tskin_%s_' %datatype+str(ii)+'.csv'
+	mfn = 'Summit_melt_%s_' %datatype+str(ii)+'.csv'
 
-	sfn = 'melt_test_smb'+'.csv'
-	tfn = 'melt_test_tskin'+'.csv'
-	mfn = 'melt_test_melt'+'.csv'
+	# sfn = 'melt_test_smb_%s' %datatype +'.csv'
+	# tfn = 'melt_test_tskin_%s' %datatype +'.csv'
+	# mfn = 'melt_test_melt_%s' %datatype +'.csv'
 
 	print sfn
 
-	# np.savetxt(sfn,smb_out,delimiter=',',fmt='%1.4f')
-	# np.savetxt(tfn,tskin_out,delimiter=',',fmt='%1.4f')
-	# np.savetxt(mfn,smelt_out,delimiter=',',fmt='%1.4f')
+	np.savetxt(sfn,smb_out,delimiter=',',fmt='%1.4f')
+	np.savetxt(tfn,tskin_out,delimiter=',',fmt='%1.4f')
+	np.savetxt(mfn,smelt_out,delimiter=',',fmt='%1.4f')
 
 	# rho_vec = np.random.normal(329.4,53.0,len(smb_d))
 	# rho_out = np.array([time_out,rho_vec])
@@ -233,38 +302,38 @@ for ii in xrange(sno):
 
 
 ##### Make the looping time series
-# s_rev = np.ndarray.flatten(s_flip,'F') # this is the reversed time series
-# t_rev = np.ndarray.flatten(t_flip,'F')
-# s_loop = np.concatenate((smbdata['smb'],s_rev)) # this is the 40 - year forward-backward series
-# t_loop = np.concatenate((tskindata['tskin'],t_rev))
+s_rev = np.ndarray.flatten(s_flip,'F') # this is the reversed time series
+t_rev = np.ndarray.flatten(t_flip,'F')
+s_loop = np.concatenate((smbdata['smb'],s_rev)) # this is the 40 - year forward-backward series
+t_loop = np.concatenate((tskindata['tskin'],t_rev))
 
-# s_loop_spin = np.tile(s_loop, len(allspintime_vec)/len(s_loop))
-# t_loop_spin = np.tile(t_loop, len(allspintime_vec)/len(t_loop))
+s_loop_spin = np.tile(s_loop, len(allspintime_vec)/len(s_loop))
+t_loop_spin = np.tile(t_loop, len(allspintime_vec)/len(t_loop))
 
-# s_loop_out_d = np.concatenate((s_loop_spin,s1))
-# t_loop_out_d = np.concatenate((t_loop_spin,t1)) 
+s_loop_out_d = np.concatenate((s_loop_spin,s1))
+t_loop_out_d = np.concatenate((t_loop_spin,t1)) 
 
-# smb_loop_out = np.array([time_out,s_loop_out_d])
-# tskin_loop_out = np.array([time_out,t_loop_out_d])
+smb_loop_out = np.array([time_out,s_loop_out_d])
+tskin_loop_out = np.array([time_out,t_loop_out_d])
 
-# np.savetxt('Summit_smb_loop.csv',smb_loop_out,delimiter=',',fmt='%1.4f')
-# np.savetxt('Summit_tskin_loop.csv',tskin_loop_out,delimiter=',',fmt='%1.4f')
-#######
-
-####### make constant time series for spin up
-# s_out_con = np.concatenate((np.mean(smbdata['smb'])*np.ones_like(allspintime_vec),s1))
-# t_out_con = np.concatenate((np.mean(tskindata['tskin'])*np.ones_like(allspintime_vec),t1))
-
-# # s_out_con_d = np.concatenate((s_out_con,s1))
-# # t_out_con_d = np.concatenate((t_out_con,t1))
-
-# smb_con_out = np.array([time_out,s_out_con])
-# tskin_con_out = np.array([time_out,t_out_con]) 
-
-# np.savetxt('Summit_smb_con.csv',smb_con_out,delimiter=',',fmt='%1.4f')
-# np.savetxt('Summit_tskin_con.csv',tskin_con_out,delimiter=',',fmt='%1.4f')
-
+np.savetxt('Summit_smb_loop_%s.csv' %datatype,smb_loop_out,delimiter=',',fmt='%1.4f')
+np.savetxt('Summit_tskin_loop_%s.csv' %datatype,tskin_loop_out,delimiter=',',fmt='%1.4f')
 ######
+
+###### make constant time series for spin up
+s_out_con = np.concatenate((np.mean(smbdata['smb'])*np.ones_like(allspintime_vec),s1))
+t_out_con = np.concatenate((np.mean(tskindata['tskin'])*np.ones_like(allspintime_vec),t1))
+
+# s_out_con_d = np.concatenate((s_out_con,s1))
+# t_out_con_d = np.concatenate((t_out_con,t1))
+
+smb_con_out = np.array([time_out,s_out_con])
+tskin_con_out = np.array([time_out,t_out_con]) 
+
+np.savetxt('Summit_smb_con_%s.csv' %datatype,smb_con_out,delimiter=',',fmt='%1.4f')
+np.savetxt('Summit_tskin_con_%s.csv' %datatype,tskin_con_out,delimiter=',',fmt='%1.4f')
+
+#####
 
 
 
