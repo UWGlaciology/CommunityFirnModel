@@ -30,7 +30,7 @@ def hl_analytic(rhos0, h, THL, AHL):
     rho_h0 = (RHO_I_MGM * Z0) / (1 + Z0)
     if np.max(rho_h0) >= RHO_I_MGM:
         t0 = np.zeros(hSize)
-        for jj in xrange(hSize):
+        for jj in range(hSize):
             if rho_h0[jj] <= RHO_I_MGM - 0.001:
                 t0[jj] = (1 / (k0 * A) * np.log((RHO_I_MGM - rhos) / (RHO_I_MGM - rho_h0[jj])))
                 jj_max = jj
@@ -43,7 +43,7 @@ def hl_analytic(rhos0, h, THL, AHL):
     Z = np.concatenate((Z0[h < h0_55], Z1[h > h0_55]))
     rho_h = (RHO_I_MGM * Z) / (1 + Z)
     tp = np.ones(hSize)
-    for j in xrange(hSize):
+    for j in range(hSize):
         if rho_h[j] < RHO_I_MGM - 0.01:
             tp[j] = 1 / (k1 * np.sqrt(A)) * np.log((RHO_I_MGM - RHO_1_MGM) / (RHO_I_MGM - rho_h[j])) + t0_55
             jMax = j

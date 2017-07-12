@@ -23,7 +23,7 @@ import sys
 import math
 from shutil import rmtree
 import os
-from string import join
+# from string import join
 import shutil
 import time
 import inspect
@@ -76,8 +76,8 @@ class FirnDensityNoSpin:
         with open(configName, "r") as f:
             jsonString      = f.read()
             self.c          = json.loads(jsonString)
-        print "Main run starting"
-        print "physics are", self.c['physRho']
+        print("Main run starting")
+        print("physics are", self.c['physRho'])
 
         ### read in initial depth, age, density, temperature from spin-up results
         initDepth   = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'depthSpin')
@@ -96,12 +96,6 @@ class FirnDensityNoSpin:
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
-# <<<<<<< HEAD
-#         # get temperature and accumulation rate from input file
-#         input_temp, input_year_temp = read_temp(self.c['InputFileNameTemp'])
-#         input_bdot, input_year_bdot = read_bdot(self.c['InputFileNamebdot'])
-#         input_srho, input_year_srho = read_srho(self.c['InputFileNamesrho'])
-# =======
         ### get temperature and accumulation rate from input csv file
         input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
@@ -110,15 +104,14 @@ class FirnDensityNoSpin:
         input_bdot[input_bdot<=0.0] = 0.01
         # if self.c['variable_srho']:
         #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
-# >>>>>>> 45d0bc7c8e578d1d9f0714f792d2a3553b087a8a
 
         try:
             input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
             MELT = True
-            print "Melt is initialized"
+            print("Melt is initialized")
         except:
             MELT = False
-            print "No melt"
+            print("No melt")
             input_snowmelt = None
             input_year_snowmelt = None
 
@@ -129,7 +122,7 @@ class FirnDensityNoSpin:
         
         self.years      = (yr_end - yr_start) * 1.0 
         self.dt         = S_PER_YEAR / self.c['stpsPerYear']
-        print 'dt', self.dt/S_PER_YEAR
+        print('dt', self.dt/S_PER_YEAR)
         self.stp        = int(self.years * S_PER_YEAR/self.dt + 1)       # total number of time steps, as integer
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
         self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
@@ -141,8 +134,6 @@ class FirnDensityNoSpin:
         # self.Ts         = np.interp(self.modeltime, input_year_temp, input_temp) # surface temperature interpolated to model time
         Tsf = interpolate.interp1d(input_year_temp,input_temp,'nearest',fill_value='extrapolate')
         self.Ts = Tsf(self.modeltime)
-        # print len(self.Ts)
-        # print self.Ts[0:13]
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp)))
             # print self.Ts[0:13]
@@ -175,7 +166,7 @@ class FirnDensityNoSpin:
                 self.del_s  = np.interp(self.modeltime, input_year_iso, input_iso)
                 # del_s0 = input_iso[0]
             except:
-                print 'No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.'
+                print('No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.')
                 # del_s0 = -50.0
                 ar1 = 0.9   # red noise memory coefficient
                 std_rednoise = 2    # red noise standard deviation
@@ -193,7 +184,7 @@ class FirnDensityNoSpin:
             else:
                 self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
         except:
-            print "you should alter the json to include variable_srho"
+            print("you should alter the json to include variable_srho")
             self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
         # if MELT:
@@ -209,6 +200,7 @@ class FirnDensityNoSpin:
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
+        print('modeltime', self.modeltime[0:10], self.modeltime[-10:])
         # set up vector of times data will be written
         Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
 
@@ -242,7 +234,7 @@ class FirnDensityNoSpin:
 
         # self.output_list = ['density','depth','temperature']
         self.output_list = self.c['outputs']
-        print self.output_list
+        print(self.output_list)
         # self.RD = {}
         if 'density' in self.output_list:
             self.rho_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
@@ -269,7 +261,7 @@ class FirnDensityNoSpin:
             self.crate_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             self.crate_out[0,:]      = np.append(self.modeltime[0], np.zeros(len(self.z)))
         try:
-            print 'rho_out size (MB):', self.rho_out.nbytes/1.0e6
+            print('rho_out size (MB):', self.rho_out.nbytes/1.0e6)
         except:
             pass
         # set up initial grain growth (if specified in config file)
@@ -344,7 +336,7 @@ class FirnDensityNoSpin:
         ##### START TIME-STEPPING LOOP #####
         ####################################
         
-        for iii in xrange(self.stp):
+        for iii in range(self.stp):
             mtime = self.modeltime[iii]
                
             # the parameters that get passed to physics
@@ -395,7 +387,7 @@ class FirnDensityNoSpin:
                 RD = physicsd[self.c['physRho']]()
                 drho_dt = RD['drho_dt']
             except KeyError:
-                print "Error at line ", info.lineno
+                print("Error at line ", info.lineno)
 
             # update density and age of firn
             
@@ -419,7 +411,7 @@ class FirnDensityNoSpin:
                 # print 'del_z', self.del_z[0:2]
             try:
                 if self.snowmeltSec[iii]>0:
-                   print 'melt step; ', self.snowmeltSec[iii]
+                   print('melt step; ', self.snowmeltSec[iii])
                    self.rho, self.age, self.dz, self.Tz, self.z, self.mass = percolation(self,iii)
             
             except:

@@ -47,7 +47,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 
     phi_t = phi_0
 
-    for i_time in xrange(nt):
+    for i_time in range(nt):
         Z_P = z_P_vec
 
         dZ = np.concatenate(([1], np.diff(z_edges_vec), [1]))

@@ -15,7 +15,7 @@ import sys
 import math
 from shutil import rmtree
 import os
-from string import join
+# from string import join
 import shutil
 import time
 import h5py
@@ -69,8 +69,8 @@ class FirnDensitySpin:
             jsonString = f.read()
             self.c = json.loads(jsonString)
 
-        print 'Spin run started'
-        print "physics are", self.c['physRho']
+        print('Spin run started')
+        print("physics are", self.c['physRho'])
 
         # create directory to store results. Deletes if it exists already.
         if os.path.exists(self.c['resultsFolder']):
@@ -112,7 +112,7 @@ class FirnDensitySpin:
                 zz          = np.min(self.z[self.rho > 850.0])
                 self.years  = int(zz / self.bdot0)
             except ValueError:
-                print "auto spin up error; using spin up time from json"
+                print("auto spin up error; using spin up time from json")
                 self.years = self.c['yearSpin'] # number of years to spin up for
         else: # based on time taken to spin up in the config file.
 
@@ -152,7 +152,7 @@ class FirnDensitySpin:
                 input_iso, input_year_iso = read_input(self.c['InputFileNameIso'])
                 del_s0 = input_iso[0]
             except:
-                print 'No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.'
+                print('No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.')
                 del_s0 = -50.0
 
             self.del_s = del_s0 * np.ones(self.stp)
@@ -204,9 +204,9 @@ class FirnDensitySpin:
         else:
             self.THist = False
 
-        print 'Ts', self.Ts[-4:]
-        print 'bdot_s', self.bdotSec[-4:]
-        print 'dt', self.dt
+        print('Ts', self.Ts[-4:])
+        print('bdot_s', self.bdotSec[-4:])
+        print('dt', self.dt)
 
 
     ##### END INIT #####
@@ -221,7 +221,7 @@ class FirnDensitySpin:
         ####################################
         ##### START TIME-STEPPING LOOP #####
         ####################################
-        for iii in xrange(self.stp):
+        for iii in range(self.stp):
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -269,7 +269,7 @@ class FirnDensitySpin:
                 RD = physicsd[self.c['physRho']]()
                 drho_dt = RD['drho_dt']
             except KeyError:
-                print "Error at line ", info.lineno
+                print("Error at line ", info.lineno)
 
             ### update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
@@ -339,4 +339,4 @@ class FirnDensitySpin:
 
                 write_spin_hdf5(self.c['resultsFolder'], self.c['spinFileName'], self.c['physGrain'], self.THist, self.c['isoDiff'], rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time)
                 # write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)
-                print 'dz', self.dz[0:10]
+                print('dz', self.dz[0:10])

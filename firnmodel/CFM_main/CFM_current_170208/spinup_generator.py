@@ -63,7 +63,7 @@ def spinup_generator(ddir,latind,lonind, spintype, ss_climate_length, spin_lengt
 	###
 
 	tunits = nc_s.variables['time'].units
-	tu = map(int, re.findall('\d+',tunits))
+	tu = list(map(int, re.findall('\d+',tunits)))
 	tst = datetime(tu[0],tu[1],tu[2])
 	# print 'tst', tst
 	# tst = datetime(1958,1,15)
@@ -72,7 +72,7 @@ def spinup_generator(ddir,latind,lonind, spintype, ss_climate_length, spin_lengt
 
 	for idx, dt in enumerate(rrule.rrule(rrule.MONTHLY, dtstart=tst, count=len(time_smb))):
 		if idx<5:
-			print dt
+			print(dt)
 		dd=toYearFraction(dt)
 		decdates_main[idx]=dd
 
@@ -83,7 +83,7 @@ def spinup_generator(ddir,latind,lonind, spintype, ss_climate_length, spin_lengt
 		# print dt
 		dd=toYearFraction(dt)
 		decdates_spin[idx]=dd
-	print decdates_spin[-3:]
+	print(decdates_spin[-3:])
 
 	with open('temperature_test.csv','w') as f:
 		writer = csv.writer(f)

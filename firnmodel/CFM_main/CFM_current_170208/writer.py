@@ -1,6 +1,6 @@
 import csv
 import os
-from string import join
+# from string import join
 import numpy as np
 import h5py
 

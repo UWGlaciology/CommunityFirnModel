@@ -42,7 +42,7 @@ def plotter(rfolder,rfile):
 	f2=plt.figure(2)
 	ax2 = f2.add_subplot(111)
 	plt.ion()
-	for ii in xrange(niter):
+	for ii in range(niter):
 		stri = '%.2f' % timesteps[ii]
 		plt.clf()
 		plt.plot(density[ii,:],depth[ii,:])

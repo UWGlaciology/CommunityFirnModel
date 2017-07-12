@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from string import join
+# from string import join
 from constants import *
 import h5py
 

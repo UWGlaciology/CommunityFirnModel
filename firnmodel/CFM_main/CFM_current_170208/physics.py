@@ -17,7 +17,7 @@ class FirnPhysics:
         bdotSec units are m I.E./time step
 
         '''
-        for k,v in PhysParams.items():
+        for k,v in list(PhysParams.items()):
             setattr(self,k,v)
         self.RD = {}
 
@@ -129,7 +129,7 @@ class FirnPhysics:
         
         if self.bdot_type == 'instant':
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Li and Zwally 2004 physics"
+                print("It is not recommended to use instant accumulation with Li and Zwally 2004 physics")
             dr_dt = (RHO_I - self.rho) * A_instant * (139.21 - 0.542 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
             dr_dt = (RHO_I - self.rho) * A_mean * (139.21 - 0.542 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061   
@@ -168,7 +168,7 @@ class FirnPhysics:
 
         if self.bdot_type == 'instant':
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Li and Zwally 2011 physics"
+                print("It is not recommended to use instant accumulation with Li and Zwally 2011 physics")
             beta1 = -9.788 + 8.996 * A_instant - 0.6165 * TmC
             beta2 = beta1 / (-2.0178 + 8.4043 * A_instant - 0.0932 * TmC)
 
@@ -226,7 +226,7 @@ class FirnPhysics:
 
         if self.bdot_type == 'instant':
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Arthern 2010 physics"
+                print("It is not recommended to use instant accumulation with Arthern 2010 physics")
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
         elif self.bdot_type == 'mean':
@@ -263,7 +263,7 @@ class FirnPhysics:
         
 
         if not physGrain:
-           print "Grain growth should be on for Arthern Transient"
+           print("Grain growth should be on for Arthern Transient")
            return
 
 
@@ -302,7 +302,7 @@ class FirnPhysics:
 
         if self.bdot_type == 'instant':
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Helsen 2008 physics"            
+                print("It is not recommended to use instant accumulation with Helsen 2008 physics")            
             dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
             dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
@@ -346,7 +346,7 @@ class FirnPhysics:
 
         if self.bdot_type == 'instant':
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Simonsen physics"
+                print("It is not recommended to use instant accumulation with Simonsen physics")
             gamma = 61.7 / (A_instant ** (0.5)) * np.exp(-3800. / (R * self.T10m))
             dr_dt[self.rho < RHO_1]  = F0 * (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = F1 * gamma * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
@@ -390,7 +390,7 @@ class FirnPhysics:
 
         if self.bdot_type == 'instant':
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Ligtenberg 2011 physics"
+                print("It is not recommended to use instant accumulation with Ligtenberg 2011 physics")
             A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
             M_0 = 1.435 - 0.151 * np.log(A_instant)
             M_1 = 2.366 - 0.293 * np.log(A_instant)
@@ -501,8 +501,8 @@ class FirnPhysics:
         :return drho_dt:
         '''
         if self.iii ==0:
-            print 'CAUTION: MORRIS PHYSICS ARE STILL UNDER CODE DEVELOPMENT!'
-            print 'see physics.py for more details'     
+            print('CAUTION: MORRIS PHYSICS ARE STILL UNDER CODE DEVELOPMENT!')
+            print('see physics.py for more details')     
 
         QMorris = 110.e3
         kMorris = 11.0
@@ -561,7 +561,7 @@ class FirnPhysics:
         if self.bdot_type == 'instant':
             A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
             if self.iii==0:
-                print "It is not recommended to use instant accumulation with Ligtenberg 2011 physics"
+                print("It is not recommended to use instant accumulation with Ligtenberg 2011 physics")
             M_0 = 1.042 - 0.0916 * np.log(A_instant)
             M_1 = 1.734 - 0.2039 * np.log(A_instant)
             M_0 = np.max((0.25,M_0))
@@ -671,7 +671,7 @@ class FirnPhysics:
 
                 cc = cc + 1
                 if cc>10000:
-                    print 'Goujon is not converging. exiting'
+                    print('Goujon is not converging. exiting')
                     sys.exit()
                 # if cc>1000:
                 #     print 'cc', cc
@@ -691,7 +691,7 @@ class FirnPhysics:
             dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
             counter = counter +1
             if counter>10000:
-                print 'Goujon is not converging. exiting'
+                print('Goujon is not converging. exiting')
                 sys.exit()
             # if counter >100:
             #     print 'dDdt',dDdt[ind1:ind1+2]
@@ -699,7 +699,7 @@ class FirnPhysics:
 
         # #dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
         if self.iii<10:
-            print 'dDdt',dDdt[ind1:ind1+2]
+            print('dDdt',dDdt[ind1:ind1+2])
         Gamma_old2_Gou  = Gamma_old_Gou
         Gamma_old_Gou  = Gamma_Gou
         ind1_old = ind1

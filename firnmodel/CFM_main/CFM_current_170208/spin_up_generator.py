@@ -14,7 +14,7 @@ from dateutil import rrule
 from datetime import datetime, timedelta
 
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
-print spot
+print(spot)
 os.chdir(spot)
 
 #def write_interp(name_t, years, intp_temp):
@@ -66,4 +66,4 @@ t_start = datetime(1958,1,15,12,00,00)
 tend1 = t_start + timedelta(days=365.25*(2014-1958))
 
 for dt in rrule.rrule(rrule.MONTHLY, dtstart=t_start, until=tend1):
-    print dt
+    print(dt)
