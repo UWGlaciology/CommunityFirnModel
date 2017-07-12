@@ -1,3 +1,5 @@
+#this file is old.
+
 import netCDF4 as nc
 import numpy as np
 import scipy.io

@@ -34,9 +34,13 @@ if __name__ == '__main__':
     # except KeyError:
         # sys.exit("Error")
     print("")
+    print("---------------------------------------------------------------------")
+    print("---------------------------------------------------------------------")
     print("<<<<<<<< Running the Community Firn Model (CFM), Version 1.0 >>>>>>>>")
     print("<<<<<<<< Developed at the University of Washington           >>>>>>>>")
     print("<<<<<<<< Please cite your use!                               >>>>>>>>")
+    print("---------------------------------------------------------------------")
+    print("---------------------------------------------------------------------")
     print("")
     
     if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']) and '-n' not in sys.argv:
