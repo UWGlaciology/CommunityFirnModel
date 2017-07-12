@@ -6,7 +6,7 @@ from diffusion import isoDiff
 from reader import read_input
 from reader import read_init
 # from reader import read_srho
-from writer import write_nospin
+# from writer import write_nospin
 # from writer import write_nospin
 from writer import write_spin_hdf5
 # from writer import write_nospin_BCO
@@ -103,17 +103,17 @@ class FirnDensityNoSpin:
 #         input_srho, input_year_srho = read_srho(self.c['InputFileNamesrho'])
 # =======
         ### get temperature and accumulation rate from input csv file
-        input_temp, input_year_temp = read_input(self.c['InputFileNameTemp'])
+        input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
             input_temp = input_temp + K_TO_C
-        input_bdot, input_year_bdot = read_input(self.c['InputFileNamebdot'])
+        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
         input_bdot[input_bdot<=0.0] = 0.01
         # if self.c['variable_srho']:
         #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 # >>>>>>> 45d0bc7c8e578d1d9f0714f792d2a3553b087a8a
 
         try:
-            input_snowmelt, input_year_snowmelt = read_input(self.c['InputFileNamemelt'])
+            input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
             MELT = True
             print "Melt is initialized"
         except:
@@ -210,9 +210,9 @@ class FirnDensityNoSpin:
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
         # set up vector of times data will be written
-        # Tind = np.nonzero(selfself.modeltime>=1958.0)[0][0]
+        Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
 
-        self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
+        self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
@@ -454,11 +454,22 @@ class FirnDensityNoSpin:
             #### find the compaction rate
             zdiffnew=(self.z[1:]-self.z[1])
             zdiffold=(self.z_old[0:-1]-self.z_old[0])
+            # print 'zdiffnew', zdiffnew[0:5]
+            # print 'zdiffold', zdiffold[0:5]
+            # print 'dz', self.dz
+            # print 'dz_old', self.dz_old
+            # print self.z[0:5]
+
             zdn=self.z[1:]
             zdo=self.z_old[0:-1]
             self.strain=np.cumsum(zdo-zdn)
             self.tstrain=np.sum(zdo-zdn)
-            self.compaction_rate=(zdiffold-zdiffnew)/self.dt*S_PER_YEAR #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
+            # self.compaction_rate=np.append((zdiffold-zdiffnew)/self.dt*S_PER_YEAR,self.tstrain) #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
+            self.compaction_rate=np.append(0,np.cumsum((self.dz_old[0:-1]-self.dz[1:])/self.dt*S_PER_YEAR))
+            # print 'comprate', self.compaction_rate[0:5]
+            # print 'crate2', crate2[0:5]
+            # print 'strain', self.tstrain*-1/self.dt*S_PER_YEAR
+
             ####
 
             self.sigma = self.mass * self.dx * GRAVITY

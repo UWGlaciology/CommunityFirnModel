@@ -79,14 +79,14 @@ class FirnDensitySpin:
 
         ##### load input files #####
         ### temperature
-        input_temp, input_year_temp = read_input(self.c['InputFileNameTemp'])
+        input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
             input_temp = input_temp + K_TO_C
         self.temp0 = input_temp[0] #Make sure that this is what we want!
         # self.temp0 = mean(input_temp[0:12]) #Make sure that this is what we want!
 
         ### accumulation rate
-        input_bdot, input_year_bdot = read_input(self.c['InputFileNamebdot'])
+        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
         self.bdot0 = input_bdot[0] #Make sure that this is what we want!
         
         ### could include others, e.g. surface density
