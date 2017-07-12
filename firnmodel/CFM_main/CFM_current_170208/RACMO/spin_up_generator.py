@@ -25,7 +25,7 @@ def find_indices(points,lon,lat,tree=None):
         tree = cKDTree(lonlat)
     dist,idx = tree.query(points,k=[1])
     ind = np.column_stack(np.unravel_index(idx,lon.shape))
-    print ind
+    print(ind)
     for i,j in ind:
     	ii=i
     	jj=j
@@ -34,7 +34,7 @@ def find_indices(points,lon,lat,tree=None):
 
 
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
-print spot
+print(spot)
 datatype = 'MAR'
 # os.chdir(spot)
 
@@ -113,7 +113,7 @@ elif datatype == 'MAR':
 	s1=np.zeros(len(years)*12)
 	m1=np.zeros(len(years)*12)
 
-	for kk in xrange(len(years)):
+	for kk in range(len(years)):
 		year = years[kk]
 		for file in os.listdir(mar_dir):
 		    if fnmatch.fnmatch(file, 'MAR*%s.nc' %year):
@@ -138,8 +138,8 @@ elif datatype == 'MAR':
 
 			ii,jj = find_indices((lon_int,lat_int),lon,lat)
 
-			print lat[ii,jj]
-			print lon[ii,jj]
+			print(lat[ii,jj])
+			print(lon[ii,jj])
 
 		t1[12*kk:12*kk+12] = rgr['STcorr'][:,ii,jj]
 		s1[12*kk:12*kk+12] = rgr['SMBcorr'][:,ii,jj]*12/1000./0.917 #converted to m IE per year
@@ -251,13 +251,13 @@ time_out = np.concatenate((allspintime_vec,allspintime2_vec))
 ##### make the random time series #####
 sno = 40 # number of random time series to make
 
-for ii in xrange(sno):
+for ii in range(sno):
 
 	filler_smb = np.zeros([12,years])
 	filler_tskin = np.zeros([12,years])
 	filler_smelt = np.zeros([12,years])
 
-	for jj in xrange(12):
+	for jj in range(12):
 		# print jj
 		randfill_smb = np.random.normal(smb_df.loc[jj+1,'average'],smb_df.loc[jj+1,'std'],years)
 		filler_smb[jj,:] = randfill_smb
@@ -290,7 +290,7 @@ for ii in xrange(sno):
 	# tfn = 'melt_test_tskin_%s' %datatype +'.csv'
 	# mfn = 'melt_test_melt_%s' %datatype +'.csv'
 
-	print sfn
+	print(sfn)
 
 	np.savetxt(sfn,smb_out,delimiter=',',fmt='%1.4f')
 	np.savetxt(tfn,tskin_out,delimiter=',',fmt='%1.4f')
@@ -307,8 +307,8 @@ t_rev = np.ndarray.flatten(t_flip,'F')
 s_loop = np.concatenate((smbdata['smb'],s_rev)) # this is the 40 - year forward-backward series
 t_loop = np.concatenate((tskindata['tskin'],t_rev))
 
-s_loop_spin = np.tile(s_loop, len(allspintime_vec)/len(s_loop))
-t_loop_spin = np.tile(t_loop, len(allspintime_vec)/len(t_loop))
+s_loop_spin = np.tile(s_loop, len(allspintime_vec)//len(s_loop))
+t_loop_spin = np.tile(t_loop, len(allspintime_vec)//len(t_loop))
 
 s_loop_out_d = np.concatenate((s_loop_spin,s1))
 t_loop_out_d = np.concatenate((t_loop_spin,t1)) 
@@ -316,8 +316,8 @@ t_loop_out_d = np.concatenate((t_loop_spin,t1))
 smb_loop_out = np.array([time_out,s_loop_out_d])
 tskin_loop_out = np.array([time_out,t_loop_out_d])
 
-np.savetxt('Summit_smb_loop_%s.csv' %datatype,smb_loop_out,delimiter=',',fmt='%1.4f')
-np.savetxt('Summit_tskin_loop_%s.csv' %datatype,tskin_loop_out,delimiter=',',fmt='%1.4f')
+np.savetxt('Summit_smb_%s_loop.csv' %datatype,smb_loop_out,delimiter=',',fmt='%1.4f')
+np.savetxt('Summit_tskin_%s_loop.csv' %datatype,tskin_loop_out,delimiter=',',fmt='%1.4f')
 ######
 
 ###### make constant time series for spin up
@@ -330,8 +330,8 @@ t_out_con = np.concatenate((np.mean(tskindata['tskin'])*np.ones_like(allspintime
 smb_con_out = np.array([time_out,s_out_con])
 tskin_con_out = np.array([time_out,t_out_con]) 
 
-np.savetxt('Summit_smb_con_%s.csv' %datatype,smb_con_out,delimiter=',',fmt='%1.4f')
-np.savetxt('Summit_tskin_con_%s.csv' %datatype,tskin_con_out,delimiter=',',fmt='%1.4f')
+np.savetxt('Summit_smb_%s_con.csv' %datatype,smb_con_out,delimiter=',',fmt='%1.4f')
+np.savetxt('Summit_tskin_%s_con.csv' %datatype,tskin_con_out,delimiter=',',fmt='%1.4f')
 
 #####
 
