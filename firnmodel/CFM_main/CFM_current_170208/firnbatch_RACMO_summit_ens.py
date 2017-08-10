@@ -9,6 +9,11 @@ from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
 
+'''
+to run: parallel –a RUNID_list.txt –a physicsList.txt python firnbatch.py
+
+'''
+
 # thenames=["Barnola1991","Arthern2010T","Arthern2010S","HLdynamic","HLSigfus","Li2004","Li2011","Helsen2008","Morris2014"]
 # thenames=["HLdynamic","HLSigfus","Helsen2008","Arthern2010S","Arthern2010T","Simonsen2013","Ligtenberg2011","Barnola1991","KuipersMunneke2015","Li2011","Goujon2003"]
 # thenames=["HLSigfus","Helsen2008","Arthern2010S","Arthern2010T","Simonsen2013","Ligtenberg2011","Barnola1991","KuipersMunneke2015","Li2011"]

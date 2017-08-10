@@ -37,7 +37,7 @@
 "writehdf5": true,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "compaction_rate","DIP","BCO"],
+"outputs": ["density", "depth", "age","compaction_rate","DIP","BCO"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction_rate", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5"
