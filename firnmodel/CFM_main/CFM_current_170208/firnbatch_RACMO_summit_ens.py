@@ -10,7 +10,7 @@ import time
 import json
 
 '''
-to run: parallel –a RUNID_list.txt –a physicsList.txt python firnbatch.py
+to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
 
 '''
 
@@ -26,7 +26,7 @@ to run: parallel –a RUNID_list.txt –a physicsList.txt python firnbatch.py
 nn=sys.argv[1] # run ID
 mm=sys.argv[2] # physics
 # print nn
-connm='RACMO_Summit_config_'+nn+'_'+mm+'_ens.json'
+connm='RACMOjson/RACMO_Summit_config_'+nn+'_'+mm+'_ens.json'
 copyfile('RACMO_Summit_config_master.json', connm)
 
 # for mm in thenames:
