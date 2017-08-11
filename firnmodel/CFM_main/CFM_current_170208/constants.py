@@ -11,3 +11,5 @@ BDOT_TO_A  	= S_PER_YEAR * RHO_I_MGM         # conversion for accumulation rate
 RHO_W_KGM  	= 1000. 						# density of water
 CP_I		= 2.06 							# specific heat of ice
 LF_I		= 334.0 						# latent heat of ice
+M_AIR		= 28.97e-3 						# kg/mol
+P_0 		= 1.01325e5 					# Standard Amtmospheric Pressure, Pa

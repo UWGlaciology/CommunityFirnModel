@@ -318,6 +318,16 @@ class FirnDensityNoSpin:
             self.BCO_out = np.zeros((TWlen+1,5),dtype='float32')
             self.BCO_out[0,:]       = np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
 
+        ###### Firn Air ######
+        # try:
+        #     if self.c['FirnAir']:
+        #         self.FA = FirnAir(self)
+        # except:
+        #     print('Add FirnAir (true/false) to the config json file')
+            
+
+        ######################
+
 
     ####################    
     ##### END INIT #####
