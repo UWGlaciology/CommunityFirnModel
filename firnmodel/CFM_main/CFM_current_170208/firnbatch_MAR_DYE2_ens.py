@@ -17,12 +17,19 @@ import json
 # thefiles=["constant600","loop600","randspin600_1","randspin600_2","randspin600_3","randspin600_4","randspin600_5","randspin600_6","randspin600_7","randspin600_8","randspin600_8","randspin600_10"]
 # thefiles=["randspin600_1","randspin600_2","randspin600_3","randspin600_4","randspin600_5","randspin600_6","randspin600_7","randspin600_8","randspin600_9","randspin600_10"]
 # thefiles=["randspin600_11","randspin600_12","randspin600_13","randspin600_14","randspin600_15","randspin600_16","randspin600_17","randspin600_18","randspin600_19","randspin600_20"]
+dtype = 'MAR'
+site = 'DYE2'
 
 nn=sys.argv[1] # run ID
 mm=sys.argv[2] # physics
 # print nn
-connm='MAR_DYE2_config_'+nn+'_'+mm+'_ens.json'
-copyfile('MAR_DYE2_config_master.json', connm)
+jdir = 'jsonstore/' + dtype + '/' + site
+try:
+	os.makedirs(jdir)
+except:
+	pass
+connm=os.path.join(jdir,dtype+'_'+site+'_config_'+nn+'_'+mm+'_ens.json')
+copyfile(dtype+'_'+site+'_config_master.json', connm)
 
 # for mm in thenames:
     
@@ -32,10 +39,10 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re="MARresults_ens_all/r" + nn + "/" + mm #results folder
-tein="DYE2_tskin_MAR_" + nn + ".csv"
-smbin="DYE2_smb_MAR_" + nn + ".csv"
-meltin="DYE2_melt_MAR_" + nn + ".csv"
+re=dtype+"results_ens_all/r" + nn + "/" + mm #results folder
+tein=site+"_tskin_"+dtype+"_" + nn + ".csv"
+smbin=site+"_smb_"+dtype+"_" + nn + ".csv"
+meltin=site+"_melt_"+dtype+"_" + nn + ".csv"
 
 #     tmp = data["physRho"]
 data["physRho"] = mm
