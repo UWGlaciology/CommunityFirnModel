@@ -36,6 +36,34 @@ def find_indices(points,lon,lat,tree=None):
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
 print(spot)
 datatype = 'MAR'
+site = 'DYE2'
+
+if site = 'Summit':
+	lat_int = 72.57972 #summit
+	lon_int = -38.50454	
+elif site == 'DYE2':
+	lat_int = 66.4806 #this is DYE2
+	lon_int = -46.2831
+elif site == 'KANU':
+	lat_int = 67.000383
+	lon_int = -47.02615
+elif site == 'EKT':
+	lat_int = 66.9854
+	lon_int = -44.39465
+elif site == 'NASASE':
+	lat_int = 66.47768
+	lon_int = -42.49635
+elif site == 'SADDLE':
+	lat_int = 65.9994
+	lon_int = -44.50248
+elif site == 'CRAWFORD':
+	lat_int = 69.87615
+	lon_int = -47.03112
+elif site == 'EGRIP':
+	lat_int = 75.62556
+	lon_int = -35.97803
+
+
 # os.chdir(spot)
 
 #def write_interp(name_t, years, intp_temp):
@@ -52,7 +80,10 @@ datatype = 'MAR'
 # ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Kristin-RACMOv2.3-1958-2013/'
 
 if datatype=='RACMO':
-	ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/RACMO'
+	# ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/RACMO'
+	ddir = '/Volumes/Samsung_T1/RACMO/'
+
+	evap.KNMI-1957.FGRN11.BN_RACMO2.4_FGRN11.DD.nc
 	####
 
 	nc_fn_smb = spot + '/ZGRN11_smb_monthly_1958-2013.nc'
@@ -102,9 +133,9 @@ if datatype=='RACMO':
 	s1=smb_in[:,ii,jj]*12/1000/0.917 #put into units of m IE/year
 	t1=tskin_in[:,ii,jj]
 	m1 = smelt_in[:,ii,jj]*12/1000/0.917 #put into units of m IE/year
-	m1[m1<0]=0
+	m1[m1<0]=0 # current version of RACMO goes through end of 2016
 
-elif datatype == 'MAR':
+elif datatype == 'MAR': # current version of MAR goes through end of 2015
 	mar_dir = '/Volumes/Samsung_T1/mar2'
 
 	years = np.arange(1958,2016)
@@ -130,12 +161,6 @@ elif datatype == 'MAR':
 
 		if kk==0:
 
-			lat_int=72.57972 #summit
-			lon_int=-38.50454	
-			
-			# lat_int=66.4806 #this is DYE2
-			# lon_int=-46.2831
-
 			ii,jj = find_indices((lon_int,lat_int),lon,lat)
 
 			print(lat[ii,jj])
@@ -145,6 +170,8 @@ elif datatype == 'MAR':
 		s1[12*kk:12*kk+12] = rgr['SMBcorr'][:,ii,jj]*12/1000./0.917 #converted to m IE per year
 		m1[12*kk:12*kk+12] = rgr['MEcorr'][:,ii,jj]*12/1000./0.917 #converted to m IE per year
 		m1[m1<0]=0
+
+
 		date_end=2015
 ###
 
@@ -282,9 +309,9 @@ for ii in range(sno):
 	tskin_out = np.array([time_out,tskin_d])
 	smelt_out = np.array([time_out,smelt_d])
 
-	sfn = 'Summit_smb_%s_' %datatype+str(ii)+'.csv'
-	tfn = 'Summit_tskin_%s_' %datatype+str(ii)+'.csv'
-	mfn = 'Summit_melt_%s_' %datatype+str(ii)+'.csv'
+	sfn = site + '_smb_%s_' %datatype+str(ii)+'.csv'
+	tfn = site + '_tskin_%s_' %datatype+str(ii)+'.csv'
+	mfn = site + '_melt_%s_' %datatype+str(ii)+'.csv'
 
 	# sfn = 'melt_test_smb_%s' %datatype +'.csv'
 	# tfn = 'melt_test_tskin_%s' %datatype +'.csv'
@@ -316,8 +343,8 @@ t_loop_out_d = np.concatenate((t_loop_spin,t1))
 smb_loop_out = np.array([time_out,s_loop_out_d])
 tskin_loop_out = np.array([time_out,t_loop_out_d])
 
-np.savetxt('Summit_smb_%s_loop.csv' %datatype,smb_loop_out,delimiter=',',fmt='%1.4f')
-np.savetxt('Summit_tskin_%s_loop.csv' %datatype,tskin_loop_out,delimiter=',',fmt='%1.4f')
+np.savetxt(site+'_smb_%s_loop.csv' %datatype,smb_loop_out,delimiter=',',fmt='%1.4f')
+np.savetxt(site+'_tskin_%s_loop.csv' %datatype,tskin_loop_out,delimiter=',',fmt='%1.4f')
 ######
 
 ###### make constant time series for spin up
@@ -330,8 +357,8 @@ t_out_con = np.concatenate((np.mean(tskindata['tskin'])*np.ones_like(allspintime
 smb_con_out = np.array([time_out,s_out_con])
 tskin_con_out = np.array([time_out,t_out_con]) 
 
-np.savetxt('Summit_smb_%s_con.csv' %datatype,smb_con_out,delimiter=',',fmt='%1.4f')
-np.savetxt('Summit_tskin_%s_con.csv' %datatype,tskin_con_out,delimiter=',',fmt='%1.4f')
+np.savetxt(site + '_smb_%s_con.csv' %datatype,smb_con_out,delimiter=',',fmt='%1.4f')
+np.savetxt(site + '_tskin_%s_con.csv' %datatype,tskin_con_out,delimiter=',',fmt='%1.4f')
 
 #####
 

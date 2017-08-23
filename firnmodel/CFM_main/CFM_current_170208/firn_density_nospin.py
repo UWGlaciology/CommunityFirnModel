@@ -29,6 +29,7 @@ import time
 import inspect
 import h5py
 import scipy.interpolate as interpolate
+from firn_air import FirnAir
 
 class FirnDensityNoSpin:
     '''
@@ -106,9 +107,16 @@ class FirnDensityNoSpin:
         #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
         try:
-            input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
-            MELT = True
-            print("Melt is initialized")
+            if self.c['MELT']:
+                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
+                MELT = True
+                print("Melt is initialized")
+            else:
+                MELT = False
+                print("No melt")
+                input_snowmelt = None
+                input_year_snowmelt = None
+
         except:
             MELT = False
             print("No melt")
@@ -148,7 +156,7 @@ class FirnDensityNoSpin:
         self.iceout     = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column
         
 
-        ### Melt
+        #### Melt ###############
         if MELT:
             # self.snowmelt   = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
             ssf = interpolate.interp1d(input_year_snowmelt,input_snowmelt,'nearest',fill_value='extrapolate')
@@ -156,6 +164,7 @@ class FirnDensityNoSpin:
             self.snowmeltSec   = self.snowmelt / S_PER_YEAR / self.c['stpsPerYear'] # melt for each time step (per second)
             # print [self.modeltime, self.snowmelt]
             # raw_input()
+        ##########################
 
 
         ##### Isotopes ###########
@@ -202,9 +211,10 @@ class FirnDensityNoSpin:
 
         print('modeltime', self.modeltime[0:10], self.modeltime[-10:])
         # set up vector of times data will be written
-        Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
+        # Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
 
-        self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
+        # self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
+        self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
@@ -318,15 +328,24 @@ class FirnDensityNoSpin:
             self.BCO_out = np.zeros((TWlen+1,5),dtype='float32')
             self.BCO_out[0,:]       = np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
 
-        ###### Firn Air ######
+        ##### Firn Air ######
+        # should be able to set this up so each gas of interest gets its own instance of the class
         # try:
-        #     if self.c['FirnAir']:
-        #         self.FA = FirnAir(self)
+        if self.c['FirnAir']:
+            # from firn_air import firnairdiffusion
+            self.FA = FirnAir(self.c['AirConfigName'],input_year_temp,self.z, self.modeltime, self.Tz, self.rho, self.dz)
+            print('Firn air initialized')
+            if 'gasses' in self.output_list:
+                self.gas_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+                self.gas_out[0,:]        = np.append(self.modeltime[0], np.ones_like(self.rho))
+            else:
+                print('Gas diffusion is on but not saving to file')
         # except:
-        #     print('Add FirnAir (true/false) to the config json file')
-            
+        #     print('You should add FirnAir (true/false) to the config json file')
+        #     print('but the model will still run')
 
-        ######################
+
+        #####################
 
 
     ####################    
@@ -369,7 +388,8 @@ class FirnDensityNoSpin:
                 'physGrain':    self.c['physGrain'],
                 'calcGrainSize':self.c['calcGrainSize'],
                 'z':            self.z,
-                'rhos0':        self.rhos0[iii]
+                'rhos0':        self.rhos0[iii],
+                'dz':           self.dz
             }
 
             if self.THist: #add Hx to dictionary if physics is Morris
@@ -419,9 +439,16 @@ class FirnDensityNoSpin:
                 # self.diffu.isoDiff(self.z, self.dz, self.del_s[iii], self.rho, self.c['iso'], self.dt)
                 self.del_z = isoDiff(self,iii)
                 # print 'del_z', self.del_z[0:2]
+
+            if self.c['FirnAir']:
+
+                self.Gz = self.FA.firn_air_diffusion(PhysParams,iii)
+                # self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
+
+
             try:
                 if self.snowmeltSec[iii]>0:
-                   print('melt step; ', self.snowmeltSec[iii])
+                   # print('melt step; ', self.snowmeltSec[iii])
                    self.rho, self.age, self.dz, self.Tz, self.z, self.mass = percolation(self,iii)
             
             except:
@@ -452,15 +479,9 @@ class FirnDensityNoSpin:
                 massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass = np.concatenate(([massNew], self.mass[:-1]))
 
-
             #### find the compaction rate
             zdiffnew=(self.z[1:]-self.z[1])
             zdiffold=(self.z_old[0:-1]-self.z_old[0])
-            # print 'zdiffnew', zdiffnew[0:5]
-            # print 'zdiffold', zdiffold[0:5]
-            # print 'dz', self.dz
-            # print 'dz_old', self.dz_old
-            # print self.z[0:5]
 
             zdn=self.z[1:]
             zdo=self.z_old[0:-1]
@@ -468,11 +489,6 @@ class FirnDensityNoSpin:
             self.tstrain=np.sum(zdo-zdn)
             # self.compaction_rate=np.append((zdiffold-zdiffnew)/self.dt*S_PER_YEAR,self.tstrain) #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
             self.compaction_rate=np.append(0,np.cumsum((self.dz_old[0:-1]-self.dz[1:])/self.dt*S_PER_YEAR))
-            # print 'comprate', self.compaction_rate[0:5]
-            # print 'crate2', crate2[0:5]
-            # print 'strain', self.tstrain*-1/self.dt*S_PER_YEAR
-
-            ####
 
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)
@@ -512,6 +528,8 @@ class FirnDensityNoSpin:
                     self.Hx_out[self.WTracker,:] = np.append(mtime_plus1, self.Hx)
                 if 'isotopes' in self.output_list:
                     self.iso_out[self.WTracker,:] = np.append(mtime_plus1, self.del_z)
+                if 'gasses' in self.output_list:
+                    self.gas_out[self.WTracker,:] = np.append(mtime_plus1, self.Gz)
 
                 bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 = self.update_BCO()
                 LIZAgeMart, LIZDepMart = self.update_LIZ()

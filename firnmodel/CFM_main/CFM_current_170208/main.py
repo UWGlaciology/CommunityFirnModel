@@ -44,10 +44,10 @@ if __name__ == '__main__':
     print("")
     
     if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']) and '-n' not in sys.argv:
-        print(('Skipping Spin-Up run;', c['resultsFolder']+'/'+c['spinFileName'], 'exists already'))
+        print('Skipping Spin-Up run;', c['resultsFolder']+'/'+c['spinFileName'], 'exists already')
         try:
             os.remove(c['resultsFolder']+'/'+c['resultsFileName'])
-            print(('deleted', c['resultsFolder']+'/'+c['resultsFileName']))
+            print('deleted', c['resultsFolder']+'/'+c['resultsFileName'])
         except:
             pass
         firn = FirnDensityNoSpin(configName)

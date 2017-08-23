@@ -59,14 +59,14 @@ def percolation(self, iii):
 	melt_mass			= melt_volume_WE * 1000. #kg
 	heat_to_freeze 		= melt_mass * LF_I #amount of heat needed to refreeze the melt (J)
 
-	print('melt_mass (orig)', melt_mass)
+	# print('melt_mass (orig)', melt_mass)
 
 	ind1a = np.where(self.mass_sum<melt_mass)[0] # indicies of boxes that will be melted away
 	num_boxes_melted = len(ind1a)+1 #number of boxes that melt away, include the box with partial melt
-	print('num_boxes_melted', num_boxes_melted)
+	# print('num_boxes_melted', num_boxes_melted)
 	ind1 = np.where(self.mass_sum>melt_mass)[0][0] # index which will become the new surface
-	print('ind1a', ind1a)
-	print('ind1', ind1)
+	# print('ind1a', ind1a)
+	# print('ind1', ind1)
 	# print 'self.mass_sum[ind1-1]',self.mass_sum[ind1]
 	# print 'melt_mass', melt_mass
 
@@ -85,32 +85,32 @@ def percolation(self, iii):
 	cold_content = cold_content_0[ind1:] #just the boxes that don't melt away
 	cold_content[0]  = CP_I * pm_mass * (K_TO_C - self.Tz[ind1]) #cold content of each box, i.e. how much heat
 	cold_content_sum 	= cold_content.cumsum(axis=0)
-	print('cold_content_sum', cold_content_sum)
-	print('heat_to_freeze', heat_to_freeze)
+	# print('cold_content_sum', cold_content_sum)
+	# print('heat_to_freeze', heat_to_freeze)
 
 	ind2_rel = np.where(cold_content_sum>heat_to_freeze)[0][0] #freeze horizon index (where the wetting front freezes), index relative to ind1
 	ind2 = ind2_rel + ind1 #absolute index on real grid
 
 	
-	print('rho!', self.rho[0:ind2])
-	print('rhomin', np.min(self.rho))
+	# print('rho!', self.rho[0:ind2])
+	# print('rhomin', np.min(self.rho))
 
 	if (self.rho[ind1:ind2+1]>830.0).any():
-		print(self.rho[ind1:ind2+1])
-		print("blocking ice lens")
-		print('ind2 (old)', ind2)
+		# print(self.rho[ind1:ind2+1])
+		# print("blocking ice lens")
+		# print('ind2 (old)', ind2)
 
 		ind2_rel = np.where(self.rho[ind1:]>=830.0)[0][0]
 		ind2 = ind2_rel + ind1
 
-		print('ind2 (new)', ind2)
-		print('ind2_rel (new)', ind2_rel)
+		# print('ind2 (new)', ind2)
+		# print('ind2_rel (new)', ind2_rel)
 		cold_content_lens = cold_content_0[ind1:ind2+1].sum()
 		hh = heat_to_freeze - cold_content_lens #heat (or cold) available for refreezing
 		refreeze_mass = hh / LF_I
 
-		print('melt_mass', melt_mass)
-		print('refreeze_mass', refreeze_mass)
+		# print('melt_mass', melt_mass)
+		# print('refreeze_mass', refreeze_mass)
 
 		melt_volume_WE = refreeze_mass / 1000.
 		melt_volume_IE = melt_volume_WE / 0.917
@@ -118,10 +118,10 @@ def percolation(self, iii):
 
 	else:
 		runoff_volume_duetolens	 = 0.0
-		print('ind2 (no change)', ind2)
-		print('ind2_rel (no change)', ind2_rel)
+		# print('ind2 (no change)', ind2)
+		# print('ind2_rel (no change)', ind2_rel)
 
-	print('ind2',ind2)
+	# print('ind2',ind2)
 
 	pore_indices = np.arange(ind1,ind2+1) # indicies of the boxes that are available to fill with water
 	pore_indices_flip = np.flipud(pore_indices)
@@ -131,14 +131,14 @@ def percolation(self, iii):
 
 	porespace_0[ind1] = pm_porespace
 	porespace_0_sum		= porespace_0.cumsum(axis=0)
-	print('porespace_0_sum', porespace_0_sum)
+	# print('porespace_0_sum', porespace_0_sum)
 
 	porespace = porespace_0[ind1+1:ind2+1] #space available for the water
 	# print 	'porespace1', porespace
 	# porespace[0]=pm_porespace
 	# print 'porespace2', porespace
 	porespace_sum = porespace.cumsum(axis=0)
-	print('pss', porespace_sum)
+	# print('pss', porespace_sum)
 	porespace_sum_flip = (np.flipud(porespace)).cumsum(axis=0)
 
 	# if self.rho[ind1:ind2].any()>= 830.0:
@@ -150,12 +150,12 @@ def percolation(self, iii):
 	# print 'melt_volume', melt_volume_IE
 	available_space = porespace_0_sum[ind2]-porespace_0_sum[ind1]
 
-	print('available_space', available_space)
+	# print('available_space', available_space)
 
 	# if porespace_sum[ind2a]<melt_volume_IE:
 	if available_space < melt_volume_IE:
 
-		print('not enough pore space')
+		# print('not enough pore space')
 		runoff_volume_duetolimitedporespace = (melt_volume_IE - porespace_sum) * 0.917
 
 		self.rho[ind1:ind2+1] = 870.0
@@ -179,7 +179,7 @@ def percolation(self, iii):
 
 	# elif porespace_sum[ind2] >= melt_volume_IE: #enough pore space to accomodate the water. 
 	else:
-		print('enough pore space')
+		# print('enough pore space')
 		runoff_volume_duetolimitedporespace = 0
 
 		ind3a = np.where(porespace_sum_flip>melt_volume_IE)[0][0]
@@ -219,7 +219,7 @@ def percolation(self, iii):
 		
 		self.age = np.concatenate((self.age[ind1:ind3] , [self.age[ind3],self.age[ind3]] , self.age[ind3+1:-1] , self.age[-1]*np.ones(num_boxes_melted-1)))
 		self.dz = np.concatenate((self.dz[ind1:ind3] , [new_node_1_dz,new_node_2_dz] , self.dz[ind3+1:-1] ,self.dz[-1]/divider*np.ones(num_boxes_melted-1)))
-		print(np.min(self.dz))
+		# print(np.min(self.dz))
 		# if (self.dz<=0).any():
 		# 	print self.dz[0:ind2]
 		# 	raw_input('negative dz')
@@ -230,13 +230,13 @@ def percolation(self, iii):
 		self.z = np.concatenate(([0], self.z[:-1]))
 		self.mass = self.rho*self.dz
 
-		print('self.mass', self.mass)
+		# print('self.mass', self.mass)
 
 		# if there is an ice lens:
 			# how much water can the porous firn refreeze? the rest is runoff.
 
 
-	print('###rho###', self.rho[0:6])
+	# print('###rho###', self.rho[0:6])
 	# runoff_volume = runoff_volume_duetolimitedporespace + runoff_volume_duetolens
 	# print 'runoff_volume = ', runoff_volume
 
