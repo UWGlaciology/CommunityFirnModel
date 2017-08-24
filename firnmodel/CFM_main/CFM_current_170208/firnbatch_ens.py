@@ -78,7 +78,7 @@ firnS.time_evolve()
 firn = FirnDensityNoSpin(configName)
 firn.time_evolve()
 
-# move(connm,os.path.join(re,dtype+'_'+site+'_config_'+nn+'_'+mm+'_ens.json'))
+move(connm,os.path.join(re,dtype+'_'+site+'_config_'+nn+'_'+mm+'_ens.json'))
     
         
         
