@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import sys
-from shutil import copyfile
+from shutil import copyfile, move
 import sys
 # from string import join
 from firn_density_spin import FirnDensitySpin
@@ -77,6 +77,8 @@ firnS.time_evolve()
 
 firn = FirnDensityNoSpin(configName)
 firn.time_evolve()
+
+# move(connm,os.path.join(re,dtype+'_'+site+'_config_'+nn+'_'+mm+'_ens.json'))
     
         
         

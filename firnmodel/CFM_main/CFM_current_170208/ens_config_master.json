@@ -37,7 +37,7 @@
 "_isoOptions":["18","D","NoDiffusion"],
 "SeasonalTcycle": false,
 "AutoSpinUpTime": false,
-"spacewriteint": 1,
+"spacewriteint": 2,
 "writehdf5": true,
 "strain": false,
 "du_dx": 1e-5,

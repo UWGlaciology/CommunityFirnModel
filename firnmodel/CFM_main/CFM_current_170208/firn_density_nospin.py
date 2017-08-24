@@ -211,10 +211,10 @@ class FirnDensityNoSpin:
 
         print('modeltime', self.modeltime[0:10], self.modeltime[-10:])
         # set up vector of times data will be written
-        # Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
+        Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
+        self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
 
-        # self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
-        self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
+        # self.TWrite     = self.modeltime[0::self.c['TWriteInt']]
         # self.TWrite_out = self.TWrite
         TWlen           = len(self.TWrite) #- 1
         self.WTracker        = 1
