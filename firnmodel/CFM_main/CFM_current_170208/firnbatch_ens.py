@@ -22,11 +22,12 @@ to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_
 '''
 
 dtype = 'MAR'
-site = 'DYE2'
+# site = 'DYE2'
 
 nn=sys.argv[1] # run ID
 # nn='0'
 mm=sys.argv[2] # physics
+site = sys.argv[3]
 # mm='HLdynamic'
 # print nn
 jdir = 'jsonstore/' + dtype + '/' + site

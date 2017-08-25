@@ -79,7 +79,7 @@
     "resultsFileName": "CFMresults.hdf5",
     "resultsFolder": "MARresults_ens_all/KANU/r0/HLdynamic",
     "rhos0": 350.0,
-    "spacewriteint": 2,
+    "spacewriteint": 1,
     "spinFileName": "CFMspin.hdf5",
     "stpsPerYear": 12.0,
     "stpsPerYearSpin": 12.0,
