@@ -19,24 +19,24 @@ def plotter(rfolder,rfile):
 
 	depth = f['depth'][:,1:]
 	density = f['density'][:,1:]
-	air = f['gasses'][:,1:]
+	# air = f['gasses'][:,1:]
 
 	jj=-1
 
-	# f1=plt.figure(1)
-	# ax1 = f1.add_subplot(111)
-	# plt.plot(density[jj,1:],depth[jj,1:])
-	# # plt.ylim([0,50])
-	# plt.gca().invert_yaxis()
-	# stri = 'date = %.6f' % timesteps[jj]
-	# plt.gca().text(0.2, 0.1,stri,
- #     horizontalalignment='center',
- #     verticalalignment='center',
- #     transform = ax1.transAxes)
-	# # plt.text(0.2,0.1,stri)
+	f1=plt.figure(1)
+	ax1 = f1.add_subplot(111)
+	plt.plot(density[jj,1:],depth[jj,1:])
+	# plt.ylim([0,50])
+	plt.gca().invert_yaxis()
+	stri = 'date = %.6f' % timesteps[jj]
+	plt.gca().text(0.2, 0.1,stri,
+     horizontalalignment='center',
+     verticalalignment='center',
+     transform = ax1.transAxes)
+	# plt.text(0.2,0.1,stri)
 	# plt.savefig('melt.eps')
 
-	# plt.show()
+	plt.show()
 
 	niter = np.shape(depth)[0]
 
@@ -59,12 +59,12 @@ def plotter(rfolder,rfile):
 	# 	plt.pause(0.05)
 
 		
-	ap = (air[jj,1:]-1)*1000
+	# ap = (air[jj,1:]-1)*1000
 
-	f3, ax3 = plt.subplots()
-	ax3.plot(depth[jj,1:],ap)
+	# f3, ax3 = plt.subplots()
+	# ax3.plot(depth[jj,1:],ap)
 
-	plt.show()
+	# plt.show()
 
 
 
@@ -74,7 +74,7 @@ def plotter(rfolder,rfile):
 
 if __name__ == '__main__':
 
-	rfolder = 'air_test'
-	rfile = 'air_test.hdf5'
+	rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/MARresults_ens_all/KANU/r0/HLdynamic/'
+	rfile = 'CFMresults.hdf5'
 
 	plotter(rfolder,rfile)

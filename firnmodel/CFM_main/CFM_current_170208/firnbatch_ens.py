@@ -17,8 +17,12 @@ import json
 # thefiles=["constant600","loop600","randspin600_1","randspin600_2","randspin600_3","randspin600_4","randspin600_5","randspin600_6","randspin600_7","randspin600_8","randspin600_8","randspin600_10"]
 # thefiles=["randspin600_1","randspin600_2","randspin600_3","randspin600_4","randspin600_5","randspin600_6","randspin600_7","randspin600_8","randspin600_9","randspin600_10"]
 # thefiles=["randspin600_11","randspin600_12","randspin600_13","randspin600_14","randspin600_15","randspin600_16","randspin600_17","randspin600_18","randspin600_19","randspin600_20"]
+'''
+to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
+'''
+
 dtype = 'MAR'
-site = 'DYE2'
+site = 'KANU'
 
 nn=sys.argv[1] # run ID
 mm=sys.argv[2] # physics

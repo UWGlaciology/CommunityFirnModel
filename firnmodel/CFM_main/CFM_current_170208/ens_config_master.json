@@ -1,5 +1,5 @@
 {
-"InputFileFolder": "inputdata/MARinput",
+"InputFileFolder": "inputdata/MARinput/",
 "InputFileNameTemp": "DYE2_tskin_MAR_5.csv",
 "InputFileNamebdot": "DYE2_smb_MAR_5.csv",
 "InputFileNameIso": "CFM_age_isotope.csv",

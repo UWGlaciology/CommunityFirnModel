@@ -97,12 +97,14 @@ class FirnDensityNoSpin:
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
+        print('gridlen',self.gridLen)
+
         ### get temperature and accumulation rate from input csv file
         input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
             input_temp = input_temp + K_TO_C
         input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
-        input_bdot[input_bdot<=0.0] = 0.01
+        # input_bdot[input_bdot<=0.0] = 0.01
         # if self.c['variable_srho']:
         #     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
@@ -446,38 +448,46 @@ class FirnDensityNoSpin:
                 # self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 
 
-            try:
-                if self.snowmeltSec[iii]>0:
-                   # print('melt step; ', self.snowmeltSec[iii])
-                   self.rho, self.age, self.dz, self.Tz, self.z, self.mass = percolation(self,iii)
+            # try:
+            if self.snowmeltSec[iii]>0:
+               # print('melt step; ', self.snowmeltSec[iii])
+               self.rho, self.age, self.dz, self.Tz, self.z, self.mass = percolation(self,iii)
             
-            except:
-                pass
+            # except:
+            #     print('exception at time', mtime)
+                # pass
 
             if self.bdotSec[iii]>0:
             # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 
                 ##### update model grid
-                self.age = np.concatenate(([0], self.age[:-1])) + self.dt
-                self.dz_old = self.dz
-                self.sdz_old = np.sum(self.dz) # old total column thickness
-                self.z_old = self.z
-                self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-                self.dz = self.mass / self.rho * self.dx
+                try:
+                    self.age = np.concatenate(([0], self.age[:-1])) + self.dt
+                    self.dz_old = self.dz
+                    self.sdz_old = np.sum(self.dz) # old total column thickness
+                    self.z_old = self.z
+                    self.dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                    self.dz = self.mass / self.rho * self.dx
 
-                if self.c['strain']:
-                    self.dz = ((-self.du_dx)*self.dt + 1)*self.dz
-                
-                self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
-                self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
-                self.z = self.dz.cumsum(axis = 0)
-                self.z = np.concatenate(([0], self.z[:-1]))
-                self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+                    if self.c['strain']:
+                        self.dz = ((-self.du_dx)*self.dt + 1)*self.dz
+                    
+                    self.sdz_new = np.sum(self.dz) #total column thickness after densification, before new snow added               
+                    self.dz = np.concatenate(([self.dzNew], self.dz[:-1]))
+                    self.z = self.dz.cumsum(axis = 0)
+                    self.z = np.concatenate(([0], self.z[:-1]))
+                    self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
-                ##### update mass, stress, and mean accumulation rate
-                if self.c['strain']:
-                	self.mass = self.mass*((-self.du_dx)*self.dt + 1)
-                massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-                self.mass = np.concatenate(([massNew], self.mass[:-1]))
+                    ##### update mass, stress, and mean accumulation rate
+                    if self.c['strain']:
+                    	self.mass = self.mass*((-self.du_dx)*self.dt + 1)
+                    massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                    self.mass = np.concatenate(([massNew], self.mass[:-1]))
+                except:
+                    print('error at 484 at', mtime)
+                    print('iii',iii)
+                    print('bdotSec',self.bdotSec[iii]*S_PER_YEAR)
+                    # sys.exit()
+
 
             #### find the compaction rate
             zdiffnew=(self.z[1:]-self.z[1])
