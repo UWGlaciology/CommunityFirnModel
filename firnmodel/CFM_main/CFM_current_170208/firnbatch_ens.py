@@ -22,10 +22,12 @@ to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_
 '''
 
 dtype = 'MAR'
-site = 'KANU'
+site = 'DYE2'
 
 nn=sys.argv[1] # run ID
+# nn='0'
 mm=sys.argv[2] # physics
+# mm='HLdynamic'
 # print nn
 jdir = 'jsonstore/' + dtype + '/' + site
 try:
@@ -42,6 +44,7 @@ copyfile('ens_config_master.json', connm)
 # print connm
 jsonFile = open(connm, "r")
 data = json.load(jsonFile)
+# data = json.loads(connm)
 jsonFile.close()
 
 

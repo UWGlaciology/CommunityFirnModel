@@ -46,7 +46,7 @@ def simple_melt(self, iii):
 
 def percolation(self, iii):
 	
-	print('!!! iii ', iii)
+	# print('!!! iii ', iii)
 	porosity = 1 - self.rho/RHO_I #porosity
 
 	# print 'porosity', porosity
@@ -59,17 +59,17 @@ def percolation(self, iii):
 	melt_mass			= melt_volume_WE * 1000. #kg
 	heat_to_freeze 		= melt_mass * LF_I #amount of heat needed to refreeze the melt (J)
 
-	print('melt_mass (orig)', melt_mass)
+	# print('melt_mass (orig)', melt_mass)
 
 	ind1a = np.where(self.mass_sum<melt_mass)[0] # indicies of boxes that will be melted away
 	num_boxes_melted = len(ind1a)+1 #number of boxes that melt away, include the box that is partially melted
 	# print('num_boxes_melted', num_boxes_melted)
 	ind1 = np.where(self.mass_sum>melt_mass)[0][0] # index which will become the new surface
-	print('ind1a', ind1a)
-	print('num_boxes_melted',num_boxes_melted)
-	print('ind1', ind1)
-	print('self.mass_sum[ind1-1]',self.mass_sum[ind1])
-	print('melt_mass', melt_mass)
+	# print('ind1a', ind1a)
+	# print('num_boxes_melted',num_boxes_melted)
+	# print('ind1', ind1)
+	# print('self.mass_sum[ind1-1]',self.mass_sum[ind1])
+	# print('melt_mass', melt_mass)
 
 	# pm is the partial melt (the box/volume that has a portion melted away)
 	pm_mass = self.mass_sum[ind1] - melt_mass # the remaining mass of the PM box
@@ -77,18 +77,18 @@ def percolation(self, iii):
 	pm_porespace = (1 - self.rho[ind1]/RHO_I) * pm_dz #porespace in the PM box
 	pm_rho = self.rho[ind1] #density of the PM box
 
-	print('pm_mass', pm_mass)
-	print('pm_dz', pm_dz)
-	print('pm_porespace', pm_porespace)
-	print('pm_rho', pm_rho)
+	# print('pm_mass', pm_mass)
+	# print('pm_dz', pm_dz)
+	# print('pm_porespace', pm_porespace)
+	# print('pm_rho', pm_rho)
 
 	cold_content_0 		= CP_I * self.mass * (K_TO_C - self.Tz) #cold content of each box, i.e. how much heat to bring it to 273K
 	cold_content_0_sum = cold_content_0.cumsum(axis=0)
 	cold_content = cold_content_0[ind1:] #just the boxes that don't melt away
 	cold_content[0]  = CP_I * pm_mass * (K_TO_C - self.Tz[ind1]) # the partial melt box has its cold content reassigned.
 	cold_content_sum 	= cold_content.cumsum(axis=0)
-	print('cold_content_sum', cold_content_sum)
-	print('heat_to_freeze', heat_to_freeze)
+	# print('cold_content_sum', cold_content_sum)
+	# print('heat_to_freeze', heat_to_freeze)
 
 	ind2_rel = np.where(cold_content_sum>heat_to_freeze)[0][0] #freeze horizon index (where the wetting front freezes), index relative to ind1
 	ind2 = ind2_rel + ind1 #absolute index on real grid (we have not removed the melted boxes yet)
@@ -99,16 +99,16 @@ def percolation(self, iii):
 
 	if (self.rho[ind1:ind2+1]>830.0).any(): #if there is an ice lens somewhere between the new surface and where freezing should occur
 		# print('!!!!!  ',iii)
-		print(self.rho[ind1:ind2+1])
-		print("blocking ice lens")
-		print('ind2 (old)', ind2)
+		# print(self.rho[ind1:ind2+1])
+		# print("blocking ice lens")
+		# print('ind2 (old)', ind2)
 
 		ind2_rel = np.where(self.rho[ind1:]>=830.0)[0][0]
 		ind2 = ind2_rel + ind1 #the recalculated freezing front (water can not go past this level)
-		print('rhoind2',self.rho[ind2])
+		# print('rhoind2',self.rho[ind2])
 
-		print('ind2 (new)', ind2)
-		print('ind2_rel (new)', ind2_rel)
+		# print('ind2 (new)', ind2)
+		# print('ind2_rel (new)', ind2_rel)
 		# cold_content_lens = cold_content_0[ind1:ind2+1].sum() #cold content that is is available in space between the surface and the lens 
 		cold_content_lens = cold_content[0:ind2_rel].sum() #cold content that is is available in space between the surface and the lens 
 		hh = heat_to_freeze - cold_content_lens 
@@ -116,8 +116,8 @@ def percolation(self, iii):
 		
 		refreeze_mass = hh / LF_I # this is how much should be able to refreeze in the available pore space above the ice lens.
 
-		print('melt_mass', melt_mass)
-		print('refreeze_mass', refreeze_mass)
+		# print('melt_mass', melt_mass)
+		# print('refreeze_mass', refreeze_mass)
 
 		melt_volume_WE = refreeze_mass / 1000.
 		melt_volume_IE = melt_volume_WE / 0.917 #the volume of melt that is not runoff
@@ -133,15 +133,15 @@ def percolation(self, iii):
 	pore_indices = np.arange(ind1,ind2+1) # indicies of the boxes that are available to fill with water
 	pore_indices_flip = np.flipud(pore_indices)
 
-	print('pore_indices', pore_indices)
-	print('dz', self.dz[ind1:ind2+1])
+	# print('pore_indices', pore_indices)
+	# print('dz', self.dz[ind1:ind2+1])
 
 	porespace_0[ind1] = pm_porespace
 	porespace_0_sum		= porespace_0.cumsum(axis=0)
 	# print('porespace_0_sum', porespace_0_sum)
-	print('porespace_0',porespace_0)
-	print('ind1+1',ind1+1)
-	print('ind2+1',ind2+1)
+	# print('porespace_0',porespace_0)
+	# print('ind1+1',ind1+1)
+	# print('ind2+1',ind2+1)
 	porespace = porespace_0[ind1+1:ind2+1] #space available for the water
 
 	# print 	'porespace1', porespace
@@ -160,8 +160,8 @@ def percolation(self, iii):
 	# print 'melt_volume', melt_volume_IE
 	available_space = porespace_0_sum[ind2]-porespace_0_sum[ind1]
 
-	print('available_space', available_space)
-	print('melt_volume_IE',melt_volume_IE)
+	# print('available_space', available_space)
+	# print('melt_volume_IE',melt_volume_IE)
 
 	# if porespace_sum[ind2a]<melt_volume_IE:
 	if available_space < melt_volume_IE: # melt volume has already been recalculated based on how much can freeze with the cold content
@@ -201,9 +201,9 @@ def percolation(self, iii):
 
 	
 	elif available_space == 0.0: #the top layer is an ice lens, so the melt runs off
-		print('ice lens on top')
+		# print('ice lens on top')
 
-		print('rho',self.rho[0:ind1+4])
+		# print('rho',self.rho[0:ind1+4])
 
 				# split up last box into several
 		divider = num_boxes_melted
@@ -229,10 +229,10 @@ def percolation(self, iii):
 		# print('enough pore space')
 		# print('iii',iii)
 		runoff_volume_duetolimitedporespace = 0
-		print('porespace_sum_flip',porespace_sum_flip[0:5])
-		print('melt_volume_IE',melt_volume_IE)
+		# print('porespace_sum_flip',porespace_sum_flip[0:5])
+		# print('melt_volume_IE',melt_volume_IE)
 		ind3a = np.where(porespace_sum_flip>melt_volume_IE)[0][0]
-		print(ind3a)
+		# print(ind3a)
 		ind3 = ind2 - ind3a #the index of the node that is partially filled with water
 
 		# print 'ind3',ind3
