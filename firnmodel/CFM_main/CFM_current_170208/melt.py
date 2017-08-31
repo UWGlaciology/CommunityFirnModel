@@ -198,6 +198,8 @@ def percolation(self, iii):
 		self.z = self.dz.cumsum(axis = 0)
 		self.z = np.concatenate(([0], self.z[:-1]))
 		self.mass = self.rho*self.dz
+		if len(self.mass)!=self.gridLen:
+			print('line202')
 
 	
 	elif available_space == 0.0: #the top layer is an ice lens, so the melt runs off
@@ -220,13 +222,15 @@ def percolation(self, iii):
 		self.z = self.dz.cumsum(axis = 0)
 		self.z = np.concatenate(([0], self.z[:-1]))
 		self.mass = self.rho*self.dz
+		if len(self.mass)!=self.gridLen:
+			print('line224')
 
 
 
 	else:
 		# if self.bdotSec[iii]<0:
-		# print('iii',iii)
-		# print('enough pore space')
+		print('iii',iii)
+		print('enough pore space')
 		# print('iii',iii)
 		runoff_volume_duetolimitedporespace = 0
 		# print('porespace_sum_flip',porespace_sum_flip[0:5])
@@ -266,7 +270,24 @@ def percolation(self, iii):
 		divider = num_boxes_melted
 		# ind3 should be removed and replaced with 2 new boxes.
 		self.rho = np.concatenate((self.rho[ind1:ind3] , [new_node_1_rho,new_node_2_rho] , self.rho[ind3+1:-1] , self.rho[-1]*np.ones(num_boxes_melted-1)))
-		
+				
+		if (iii>7000 and iii<7435):
+			print('num_boxes_melted',num_boxes_melted)
+			print('ind1',ind1)
+			print('ind2',ind2)
+			print('ind3',ind3)
+			print(available_space)
+			print(melt_volume_IE)
+			print('top',len(self.rho[ind1:ind3]))
+			print('new',len([new_node_1_rho,new_node_2_rho]))
+			print('old',len(self.rho[ind3+1:-1]))
+			print('bottom',len(self.rho[-1]*np.ones(num_boxes_melted-1)))
+			print('pm_mass',pm_mass)
+			print('self.mass',self.mass[0:ind2])
+			print('melt_mass',melt_mass)
+
+		# if (iii>7429 and iii<7435):
+			# print('rholen',len(self.rho))
 		self.age = np.concatenate((self.age[ind1:ind3] , [self.age[ind3],self.age[ind3]] , self.age[ind3+1:-1] , self.age[-1]*np.ones(num_boxes_melted-1)))
 		self.dz = np.concatenate((self.dz[ind1:ind3] , [new_node_1_dz,new_node_2_dz] , self.dz[ind3+1:-1] ,self.dz[-1]/divider*np.ones(num_boxes_melted-1)))
 		# print(np.min(self.dz)
@@ -279,6 +300,8 @@ def percolation(self, iii):
 		self.z = self.dz.cumsum(axis = 0)
 		self.z = np.concatenate(([0], self.z[:-1]))
 		self.mass = self.rho*self.dz
+		if len(self.mass)!=self.gridLen:
+			print('line283')
 
 		# print('self.mass', self.mass)
 

@@ -72,7 +72,6 @@ class FirnPhysics:
         :param sigma:
 
         :return drho_dt:
-
         '''
         Q1  = 10160.0
         Q2  = 21400.0
@@ -88,15 +87,25 @@ class FirnPhysics:
         sigma550 = f550(RHO_1)
         rhoDiff = (RHO_I_MGM - self.rho / 1000)
 
-        k = np.power(k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])), 2) / S_PER_YEAR
-        sigmaDiff = (self.sigma[self.rho >= RHO_1] - sigma550)
+
+
+        k = np.power(k2 * np.exp(-Q2 / (R * self.Tz[(self.rho >= RHO_1) & (self.rho < RHO_I)])), 2) / S_PER_YEAR
+        sigmaDiff = (self.sigma[(self.rho >= RHO_1) & (self.rho < RHO_I)] - sigma550)
+        # print('sigmaDiff',len(sigmaDiff))
         if self.bdot_type == 'instant':
             drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
             drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
+        # print('rhoDiff',len(rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)]))
+        # print('drho',len(drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]))
+        # print('k',len(k))
+        drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]  = k * (sigmaDiff * rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
 
-        drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]  = k * (sigmaDiff * rhoDiff[self.rho >= RHO_1]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
         drho_dt[(self.rho >= RHO_1) & (self.rho >= RHO_I)] = 0
+
+        # drho_dt[self.rho >= RHO_1]  = k * (sigmaDiff * rhoDiff[self.rho >= RHO_1]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[self.rho >= RHO_1])))
+        
+        # drho_dt[(self.rho >= RHO_1) and (self.rho >= RHO_I)] = 0
 
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
@@ -162,7 +171,8 @@ class FirnPhysics:
         A_mean = self.bdot_mean * RHO_I_MGM
 
 
-        TmC   = self.T10m - K_TO_C
+        # TmC   = self.T10m - K_TO_C
+        TmC   = self.T_mean - K_TO_C
 
         dr_dt = np.zeros(self.gridLen)
 
@@ -303,9 +313,9 @@ class FirnPhysics:
         if self.bdot_type == 'instant':
             if self.iii==0:
                 print("It is not recommended to use instant accumulation with Helsen 2008 physics")            
-            dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+            dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
-            dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+            dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)

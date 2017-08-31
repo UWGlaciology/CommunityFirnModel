@@ -130,12 +130,14 @@ class FirnDensityNoSpin:
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
         yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
         
-        self.years      = (yr_end - yr_start) * 1.0 
+        self.years      = np.ceil((yr_end - yr_start) * 1.0) 
         self.dt         = S_PER_YEAR / self.c['stpsPerYear']
-        print('dt', self.dt/S_PER_YEAR)
-        self.stp        = int(self.years * S_PER_YEAR/self.dt + 1)       # total number of time steps, as integer
+        # print('dt', self.dt/S_PER_YEAR)
+        self.stp        = int(self.years * S_PER_YEAR/self.dt)       # total number of time steps, as integer
+
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
         self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
+        # print('steps',len(self.modeltime))
 
         # self.dt         = self.years * S_PER_YEAR / self.stp            # size of time steps, seconds
         self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
@@ -144,6 +146,7 @@ class FirnDensityNoSpin:
         # self.Ts         = np.interp(self.modeltime, input_year_temp, input_temp) # surface temperature interpolated to model time
         Tsf = interpolate.interp1d(input_year_temp,input_temp,'nearest',fill_value='extrapolate')
         self.Ts = Tsf(self.modeltime)
+        # self.T_mean     = np.mean(self.Ts)
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp)))
             # print self.Ts[0:13]
@@ -211,7 +214,7 @@ class FirnDensityNoSpin:
 
         self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
-        print('modeltime', self.modeltime[0:10], self.modeltime[-10:])
+        # print('modeltime', self.modeltime[0:14], self.modeltime[-14:])
         # set up vector of times data will be written
         Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
         self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
@@ -240,7 +243,7 @@ class FirnDensityNoSpin:
         # self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:], init_del_z[1:]) # [1:] because first element is a time stamp
         # self.T_mean     = self.diffu.T10m # initially the mean temp is the same as the surface temperature
         self.Tz         = initTemp[1:]
-        self.T_mean     = self.Tz[0]
+        self.T_mean     = np.mean(self.Tz)
         self.T10m       = self.T_mean
 
 
