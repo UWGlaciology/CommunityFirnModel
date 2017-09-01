@@ -135,7 +135,8 @@ class FirnDensitySpin:
 
         ### Surface temperature for each time step
         self.Ts         = self.temp0 * np.ones(self.stp)
-        self.T_mean     = np.mean(self.Ts) # MS 3/7/17: is this what we want?
+        # self.T_mean     = np.mean(self.Ts) # MS 3/7/17: is this what we want?
+        # self.T_mean     = np.mean(self.Tz[self.z<50])
 
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp', including coreless winter (Orsi)
             self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
@@ -183,7 +184,8 @@ class FirnDensitySpin:
         ### set up initial temperature grid as well as a class to handle heat/isotope diffusion
         # self.diffu      = Diffusion(self.z, self.stp, self.gridLen, init_Tz, init_del_z) # is this the best way to do this?
         self.Tz         = init_Tz
-        self.T_mean     = self.Tz[0]
+        # self.T_mean     = self.Tz[0]
+        self.T_mean     = np.mean(self.Tz[self.z<50])
         self.T10m       = self.T_mean
 
         ### set up initial grain growth (if specified in config file)
@@ -284,6 +286,8 @@ class FirnDensitySpin:
                 self.Tz, self.T10m = heatDiff(self,iii)
             if self.c['isoDiff']:
                 self.del_z = isoDiff(self,iii)
+
+            self.T_mean     = np.mean(self.Tz[self.z<50])
 
             ##### update model grid
 

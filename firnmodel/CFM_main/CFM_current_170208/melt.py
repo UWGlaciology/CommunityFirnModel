@@ -57,6 +57,7 @@ def percolation(self, iii):
 	melt_volume_IE  	= self.snowmeltSec[iii] * S_PER_YEAR #meters
 	melt_volume_WE		= melt_volume_IE * 0.917 #meters
 	melt_mass			= melt_volume_WE * 1000. #kg
+
 	heat_to_freeze 		= melt_mass * LF_I #amount of heat needed to refreeze the melt (J)
 
 	# print('melt_mass (orig)', melt_mass)

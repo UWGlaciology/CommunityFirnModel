@@ -310,12 +310,29 @@ class FirnPhysics:
         A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
         A_mean = self.bdot_mean * RHO_I_MGM
 
+
+
+
         if self.bdot_type == 'instant':
             if self.iii==0:
                 print("It is not recommended to use instant accumulation with Helsen 2008 physics")            
             dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
             dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+
+        # if self.iii>9800:
+        #     # print(self.iii)
+        #     print('A_mean', max(A_mean), min(A_mean))
+        #     print('Tz', max(self.Tz), min(self.Tz))
+        #     print('Tz1st10', self.Tz[0:10])
+        #     yy = np.where(self.Tz==max(self.Tz))[0][0]
+        #     print('maxTz', yy)
+        #     print('mTzdep', self.z[yy])
+        #     print('T_mean', self.T_mean)
+        #     print('rhos', max(self.rho),min(self.rho))
+        #     print('maxdr', max(dr_dt))
+        #     print('mindr', min(dr_dt))
+        #     print('!!!!!', self.iii)
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)

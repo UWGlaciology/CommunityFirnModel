@@ -243,7 +243,7 @@ class FirnDensityNoSpin:
         # self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:], init_del_z[1:]) # [1:] because first element is a time stamp
         # self.T_mean     = self.diffu.T10m # initially the mean temp is the same as the surface temperature
         self.Tz         = initTemp[1:]
-        self.T_mean     = np.mean(self.Tz)
+        self.T_mean     = np.mean(self.Tz[self.z<50])
         self.T10m       = self.T_mean
 
 
@@ -372,7 +372,7 @@ class FirnDensityNoSpin:
         
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
-               
+
             # the parameters that get passed to physics
             PhysParams = {
                 'iii':          iii,
@@ -439,6 +439,8 @@ class FirnDensityNoSpin:
                 self.Tz, self.T10m = heatDiff(self,iii)
             else:
                 self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+
+            self.T_mean     = np.mean(self.Tz[self.z<50])
 
             if self.c['isoDiff']:
                 # self.diffu.isoDiff(self.z, self.dz, self.del_s[iii], self.rho, self.c['iso'], self.dt)

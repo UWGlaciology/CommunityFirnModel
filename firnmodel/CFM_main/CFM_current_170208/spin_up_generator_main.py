@@ -44,11 +44,11 @@ def find_indices(points,lon,lat,tree=None):
 writer=True
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
 print(spot)
-# datatype = 'MAR'
-datatype = 'RACMO'
+datatype = 'MAR'
+# datatype = 'RACMO'
 print('datatype is ', datatype)
-sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
-# sites=['EKT']
+# sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
+sites=['DYE2']
 SPY = 365.25*24*3600
 
 for site in sites:
@@ -383,6 +383,7 @@ for site in sites:
 
 	smelt_df['average'] = smelt_df.mean(numeric_only=True, axis=1)
 	smelt_df['std'] = smelt_df.std(numeric_only=True, axis=1)
+	smelt_df.loc[smelt_df['average']<1.0e-3]=0
 
 	### time vector that data will be written
 	# years = 0
