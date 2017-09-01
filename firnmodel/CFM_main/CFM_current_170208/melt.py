@@ -61,7 +61,7 @@ def percolation(self, iii):
 
 	# print('melt_mass (orig)', melt_mass)
 
-	ind1a = np.where(self.mass_sum<melt_mass)[0] # indicies of boxes that will be melted away
+	ind1a = np.where(self.mass_sum<=melt_mass)[0] # indicies of boxes that will be melted away
 	num_boxes_melted = len(ind1a)+1 #number of boxes that melt away, include the box that is partially melted
 	# print('num_boxes_melted', num_boxes_melted)
 	ind1 = np.where(self.mass_sum>melt_mass)[0][0] # index which will become the new surface
@@ -229,8 +229,8 @@ def percolation(self, iii):
 
 	else:
 		# if self.bdotSec[iii]<0:
-		print('iii',iii)
-		print('enough pore space')
+		# print('iii',iii)
+		# print('enough pore space')
 		# print('iii',iii)
 		runoff_volume_duetolimitedporespace = 0
 		# print('porespace_sum_flip',porespace_sum_flip[0:5])
@@ -271,20 +271,20 @@ def percolation(self, iii):
 		# ind3 should be removed and replaced with 2 new boxes.
 		self.rho = np.concatenate((self.rho[ind1:ind3] , [new_node_1_rho,new_node_2_rho] , self.rho[ind3+1:-1] , self.rho[-1]*np.ones(num_boxes_melted-1)))
 				
-		if (iii>7000 and iii<7435):
-			print('num_boxes_melted',num_boxes_melted)
-			print('ind1',ind1)
-			print('ind2',ind2)
-			print('ind3',ind3)
-			print(available_space)
-			print(melt_volume_IE)
-			print('top',len(self.rho[ind1:ind3]))
-			print('new',len([new_node_1_rho,new_node_2_rho]))
-			print('old',len(self.rho[ind3+1:-1]))
-			print('bottom',len(self.rho[-1]*np.ones(num_boxes_melted-1)))
-			print('pm_mass',pm_mass)
-			print('self.mass',self.mass[0:ind2])
-			print('melt_mass',melt_mass)
+		# if (iii>7000 and iii<7435):
+		# 	print('num_boxes_melted',num_boxes_melted)
+		# 	print('ind1',ind1)
+		# 	print('ind2',ind2)
+		# 	print('ind3',ind3)
+		# 	print(available_space)
+		# 	print(melt_volume_IE)
+		# 	print('top',len(self.rho[ind1:ind3]))
+		# 	print('new',len([new_node_1_rho,new_node_2_rho]))
+		# 	print('old',len(self.rho[ind3+1:-1]))
+		# 	print('bottom',len(self.rho[-1]*np.ones(num_boxes_melted-1)))
+		# 	print('pm_mass',pm_mass)
+		# 	print('self.mass',self.mass[0:ind2])
+		# 	print('melt_mass',melt_mass)
 
 		# if (iii>7429 and iii<7435):
 			# print('rholen',len(self.rho))
@@ -300,8 +300,8 @@ def percolation(self, iii):
 		self.z = self.dz.cumsum(axis = 0)
 		self.z = np.concatenate(([0], self.z[:-1]))
 		self.mass = self.rho*self.dz
-		if len(self.mass)!=self.gridLen:
-			print('line283')
+		# if len(self.mass)!=self.gridLen:
+		# 	print('line283')
 
 		# print('self.mass', self.mass)
 

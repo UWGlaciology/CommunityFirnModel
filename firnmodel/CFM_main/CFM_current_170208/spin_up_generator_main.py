@@ -41,14 +41,14 @@ def find_indices(points,lon,lat,tree=None):
     # return [(i,j) for i,j in ind]
     return ii,jj #, [(i,j) for i,j in ind]
 
-writer=False
+writer=True
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
 print(spot)
-datatype = 'MAR'
-# datatype = 'RACMO'
+# datatype = 'MAR'
+datatype = 'RACMO'
 print('datatype is ', datatype)
-# sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
-sites=['DYE2']
+sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
+# sites=['EKT']
 SPY = 365.25*24*3600
 
 for site in sites:
@@ -430,14 +430,14 @@ for site in sites:
 			except:
 				randfill_smelt = np.zeros(years)
 
-			[randfill_tskin,randfill_smelt] = np.random.multivariate_normal( [tskin_df.loc[jj+1,'average'] , smelt_df.loc[jj+1,'average']],np.cov())
+			# [randfill_tskin,randfill_smelt] = np.random.multivariate_normal( [tskin_df.loc[jj+1,'average'] , smelt_df.loc[jj+1,'average']],np.cov())
 			
 			randfill_smelt[randfill_smelt<0] = 0.0
 			filler_smelt[jj,:] = randfill_smelt 
 
 		smb_spindata = np.ndarray.flatten(filler_smb,'F')
 		tskin_spindata = np.ndarray.flatten(filler_tskin,'F')
-		# smelt_spindata = np.ndarray.flatten(filler_smelt,'F')
+		smelt_spindata = np.ndarray.flatten(filler_smelt,'F')
 
 		# create model for melt/temperature relationship
 		# clf = SVR(kernel='rbf', C=1, epsilon=0.2)
@@ -446,16 +446,34 @@ for site in sites:
 		# smelt_spindata = clf.predict(tskin_spindata.reshape(-1,1))
 		# smelt_spindata[smelt_spindata<1.0e-3]=0.0
 
-		# p=np.poly1d(np.polyfit(t1,m1,30))
-		# smelt_spindata=p(tskin_spindata)
-
 		# # if clftest:
+		if datatype=='MAR':
+			thresh=-20.0
+		else:
+			thresh=273-20.0
+		mask = t1>thresh
+		mm = m1[mask]
+		tt = t1[mask]
+
+		mask2=mm>0
+
+		p=np.poly1d(np.polyfit(tt[mask2],np.log(mm[mask2]),2))
+		wm = tskin_spindata>thresh
+		cm = tskin_spindata<=thresh
+		smelt_spindata[wm]=np.exp(p(tskin_spindata[wm]))
+		smelt_spindata[cm]=0.0
+
+		if site==('EGRIP' or 'Summit'):
+			smelt_spindata[:]=0.0
+
 		# plt.scatter(t1, m1,  color='black')
+		# plt.scatter(tt,mm, color='red')
 		# plt.scatter(tskin_spindata, smelt_spindata, color='blue',marker='+')
 		# plt.show()
 
-
-
+		# plt.scatter(tt[mask2],np.log(mm[mask2]))
+		# plt.scatter(tt[mask2],p(tt[mask2]))
+		# plt.show()
 
 		smb_d = np.concatenate((smb_spindata,s1))
 		tskin_d = np.concatenate((tskin_spindata,t1))
@@ -484,7 +502,11 @@ for site in sites:
 
 		# rho_vec = np.random.normal(329.4,53.0,len(smb_d))
 		# rho_out = np.array([time_out,rho_vec])
-
+	
+	# dd=[smelt_df['average'],tskin_df['average']]
+	# ddd = pd.concat(dd,axis=1,join_axes=[tskin_df.index])
+	# print(ddd)
+	# input('press enter to continue')
 
 
 	##### Make the looping time series
@@ -561,6 +583,7 @@ for site in sites:
 		np.savetxt(resultsdir + '/' + site+'_smb_%s_mocon.csv' %datatype,smb_mocon_out,delimiter=',',fmt='%1.4f')
 		np.savetxt(resultsdir + '/' + site+'_tskin_%s_mocon.csv' %datatype,tskin_mocon_out,delimiter=',',fmt='%1.4f')
 		np.savetxt(resultsdir + '/' + site+'_melt_%s_mocon.csv' %datatype,melt_mocon_out,delimiter=',',fmt='%1.4f')
+
 
 
 
