@@ -60,6 +60,10 @@ def percolation(self, iii):
 	heat_to_freeze 		= melt_mass * LF_I #amount of heat needed to refreeze the melt (J)
 
 	# print('melt_mass (orig)', melt_mass)
+	if (self.mass_sum==melt_mass).any():
+		exactmass = True
+	else:
+		exactmass = False
 
 	ind1a = np.where(self.mass_sum<=melt_mass)[0] # indicies of boxes that will be melted away
 	num_boxes_melted = len(ind1a)+1 #number of boxes that melt away, include the box that is partially melted

@@ -79,14 +79,19 @@ jsonFile.close()
 #     print re
 #     os.mkdir(re)
 configName = connm
+try:
+	firnS = FirnDensitySpin(configName)
+	firnS.time_evolve()
 
-firnS = FirnDensitySpin(configName)
-firnS.time_evolve()
+	firn = FirnDensityNoSpin(configName)
+	firn.time_evolve()
 
-firn = FirnDensityNoSpin(configName)
-firn.time_evolve()
+	move(connm,os.path.join(re,dtype+'_'+site+'_config_'+nn+'_'+mm+'_ens.json'))
+except:
+	print('!!!!! error', site, nn, mm)
 
-move(connm,os.path.join(re,dtype+'_'+site+'_config_'+nn+'_'+mm+'_ens.json'))
+
+
     
         
         
