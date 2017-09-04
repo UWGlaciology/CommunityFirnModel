@@ -67,6 +67,11 @@ def percolation(self, iii):
 		exactmass = False
 
 	ind1a = np.where(self.mass_sum<=melt_mass)[0] # indicies of boxes that will be melted away
+	if iii>1020:
+		print(iii)
+		print(self.T_mean)
+		print('melt_mass', melt_mass)
+		print('mass_sum', self.mass_sum[0:20])
 	num_boxes_melted = len(ind1a)+1 #number of boxes that melt away, include the box that is partially melted
 	# print('num_boxes_melted', num_boxes_melted)
 	ind1 = np.where(self.mass_sum>melt_mass)[0][0] # index which will become the new surface
@@ -204,6 +209,10 @@ def percolation(self, iii):
 		self.z = np.concatenate(([0], self.z[:-1]))
 		self.mass = self.rho*self.dz
 		if len(self.mass)!=self.gridLen:
+			print('num_boxes_melted', num_boxes_melted)
+			print('divider',divider)
+			print('ind1',ind1)
+			print('ind1a',ind1a)
 			print('line202')
 
 	

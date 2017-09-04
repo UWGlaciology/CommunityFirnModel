@@ -37,7 +37,7 @@ def heatDiff(self,iii):
 
     nz_P = len(self.z)
     nz_fv = nz_P - 2
-    nt = 3
+    nt = 5
 
     z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
     z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
@@ -57,7 +57,7 @@ def heatDiff(self,iii):
 
     fT10m = interpolate.interp1d(self.z, self.Tz) 								# temp at 10m depth
     self.T10m = fT10m(10)
-    
+    self.Tz[self.Tz>273.15]=273.14
     return self.Tz, self.T10m
 
 def isoDiff(self,iii):
