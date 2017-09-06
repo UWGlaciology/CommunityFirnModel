@@ -22,8 +22,8 @@ def stdadd(n,std_old,x_new,mean_new,mean_old):
 	s=np.sqrt(s2)
 	return s
 
-# with open("missing_files.txt", "w") as tf:
-# 	tf.write('missing files are')
+with open("missing_files.txt", "w") as tf:
+	tf.write('missing files are' + '\n')
 
 for idx0, site in enumerate(thesites):
 	for idx1, name in enumerate(thenames):
@@ -38,13 +38,13 @@ for idx0, site in enumerate(thesites):
 			except:
 				nomean = True
 				with open("missing_files.txt", "a+") as tf:
-					tf.write('################')
+					tf.write('################' + '\n')
 					# tf.write('no file')
-					tf.write('site= %s' %site)
-					tf.write('name= %s' %name)
-					tf.write('file number= %s' %fil)
+					tf.write('site= %s' %site + '\n')
+					tf.write('name= %s' %name + '\n')
+					tf.write('file number= %s' %fil + '\n')
 					tf.write(fn)
-					tf.write('################')
+					tf.write('################' + '\n')
 				break
 
 			time = f['depth'][1:,0]
