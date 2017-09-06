@@ -9,9 +9,9 @@ thefiles2=['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','
 
 thefilesr=list(reversed(thefiles2))
 
-# thenames=['HLdynamic','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
+thenames=['HLdynamic','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
 
-thenames=['HLdynamic']
+# thenames=['HLdynamic']
 
 thesites= ['CRAWFORD','DYE2','EGRIP','EKT','KANU','NASASE','SADDLE','Summit']
 
@@ -22,26 +22,29 @@ def stdadd(n,std_old,x_new,mean_new,mean_old):
 	s=np.sqrt(s2)
 	return s
 
+# with open("missing_files.txt", "w") as tf:
+# 	tf.write('missing files are')
 
 for idx0, site in enumerate(thesites):
 	for idx1, name in enumerate(thenames):
 		nomean = False
 		for idx2, fil in enumerate(thefilesr):
 			try:
-				fn = '/Volumes/Samsung_T1/CFMresults/MAR_Summit/%sresults_ens_all/%s/%s/%s/CFMresults.hdf5' %(datasource, site, fil, name)
+				fn = '/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/%s/%s/CFMresults.hdf5' %(datasource, site, fil, name)
 				# fn = '%sresults_ens_all/%s/%s/%s/CFMresults.hdf5' %(datasource, site, fil, name)
 
 				f = h5.File(fn,'r')
 
 			except:
 				nomean = True
-				print('################')
-				print('no file')
-				print('site', site)
-				print('name', name)
-				print('file number', fil)
-				print(fn)
-				print('################')
+				with open("missing_files.txt", "a+") as tf:
+					tf.write('################')
+					# tf.write('no file')
+					tf.write('site', site)
+					tf.write('name', name)
+					tf.write('file number', fil)
+					tf.write(fn)
+					tf.write('################')
 				break
 
 			time = f['depth'][1:,0]
