@@ -40,9 +40,9 @@ for idx0, site in enumerate(thesites):
 				with open("missing_files.txt", "a+") as tf:
 					tf.write('################')
 					# tf.write('no file')
-					tf.write('site', site)
-					tf.write('name', name)
-					tf.write('file number', fil)
+					tf.write('site= %s' %site)
+					tf.write('name= %s' %name)
+					tf.write('file number= %s' %fil)
 					tf.write(fn)
 					tf.write('################')
 				break
