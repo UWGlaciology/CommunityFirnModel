@@ -42,13 +42,15 @@ def find_indices(points,lon,lat,tree=None):
     return ii,jj #, [(i,j) for i,j in ind]
 
 writer=True
+if not writer:
+	print('Files will not be written!')
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
 print(spot)
-datatype = 'MAR'
+datatype = 'RACMO'
 # datatype = 'RACMO'
 print('datatype is ', datatype)
 # sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
-sites=['DYE2']
+sites=['Summit','EGRIP']
 SPY = 365.25*24*3600
 
 for site in sites:
@@ -464,7 +466,8 @@ for site in sites:
 		smelt_spindata[wm]=np.exp(p(tskin_spindata[wm]))
 		smelt_spindata[cm]=0.0
 
-		if site==('EGRIP' or 'Summit'):
+		if (site=='EGRIP' or site=='Summit'):
+			# print('Zeroing!')
 			smelt_spindata[:]=0.0
 
 		# plt.scatter(t1, m1,  color='black')
@@ -496,9 +499,11 @@ for site in sites:
 
 		##########
 		if writer:
+			
 			np.savetxt(sfn,smb_out,delimiter=',',fmt='%1.4f')
 			np.savetxt(tfn,tskin_out,delimiter=',',fmt='%1.4f')
 			np.savetxt(mfn,smelt_out,delimiter=',',fmt='%1.4f')
+
 		##########
 
 		# rho_vec = np.random.normal(329.4,53.0,len(smb_d))
