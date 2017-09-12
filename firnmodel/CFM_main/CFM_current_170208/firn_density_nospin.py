@@ -492,7 +492,7 @@ class FirnDensityNoSpin:
 				# 	self.mass = self.mass*((-self.du_dx)*self.dt + 1)
 				massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
 				self.mass = np.concatenate(([massNew], self.mass[:-1]))
-				self.compaction_rate=np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1])#/self.dt*S_PER_YEAR)
+				self.compaction_rate=np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1]))#/self.dt*S_PER_YEAR)
 				# print('cr',len(self.compaction_rate))
 
 			else:
