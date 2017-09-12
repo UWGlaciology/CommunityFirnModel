@@ -246,7 +246,7 @@ class FirnDensityNoSpin:
         self.T_mean     = np.mean(self.Tz[self.z<50])
         self.T10m       = self.T_mean
 
-
+        self.compboxes = len(self.z<80)
         # self.output_list = ['density','depth','temperature']
         self.output_list = self.c['outputs']
         print(self.output_list)
@@ -273,8 +273,8 @@ class FirnDensityNoSpin:
             self.Clim_out = np.zeros((TWlen+1,3),dtype='float32')
             self.Clim_out[0,:]       = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
         if 'compaction_rate' in self.output_list:
-            self.crate_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-            self.crate_out[0,:]      = np.append(self.modeltime[0], np.zeros(len(self.z)))
+            self.crate_out = np.zeros((TWlen+1,self.compboxes+1),dtype='float32')
+            self.crate_out[0,:]      = np.append(self.modeltime[0], np.zeros(self.compboxes))
         try:
             print('rho_out size (MB):', self.rho_out.nbytes/1.0e6)
         except:
@@ -503,7 +503,8 @@ class FirnDensityNoSpin:
             self.strain=np.cumsum(zdo-zdn)
             self.tstrain=np.sum(zdo-zdn)
             # self.compaction_rate=np.append((zdiffold-zdiffnew)/self.dt*S_PER_YEAR,self.tstrain) #this is cumulative compaction rate in m/yr from 0 to the node specified in depth
-            self.compaction_rate=np.append(0,np.cumsum((self.dz_old[0:-1]-self.dz[1:])/self.dt*S_PER_YEAR))
+            if not self.snowmeltSec[iii]>0:
+                self.compaction_rate=np.append(0,np.cumsum((self.dz_old[0:compboxes]-self.dz[1:compboxes+1])/self.dt*S_PER_YEAR))
 
             self.sigma = self.mass * self.dx * GRAVITY
             self.sigma = self.sigma.cumsum(axis = 0)

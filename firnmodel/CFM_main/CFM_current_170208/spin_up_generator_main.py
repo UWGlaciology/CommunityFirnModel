@@ -46,11 +46,13 @@ if not writer:
 	print('Files will not be written!')
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
 print(spot)
+# datatype = 'MAR'
 datatype = 'RACMO'
-# datatype = 'RACMO'
 print('datatype is ', datatype)
-# sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
-sites=['Summit','EGRIP']
+sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
+# sites=['DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD']
+# sites =['DYE2']
+# sites=['Summit','EGRIP']
 SPY = 365.25*24*3600
 
 for site in sites:
@@ -107,7 +109,7 @@ for site in sites:
 	#		interp_writer.writerow(intp_temp)
 
 
-	#### Where to find the data
+	### Where to find the data
 	# ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Kristin-RACMOv2.3-1958-2013/'
 
 	if datatype=='RACMO':
@@ -188,7 +190,7 @@ for site in sites:
 			# print(ii,jj)
 			# tt = nc_s['time']
 			s1=smb_in[:,0,ii,jj]*24*3600 #put into units of kg/m^2/day
-			t1=tskin_in[:,0,ii,jj]
+			t1=tskin_in[:,0,ii,jj] - 273.15
 			m1 = smelt_in[:,0,ii,jj]*24*3600 #put into units of m IE/day
 			m1[m1<0]=0 # current version of RACMO goes through end of 2016
 
@@ -424,9 +426,9 @@ for site in sites:
 
 		for jj in range(12):
 			# print jj
-			randfill_smb = np.random.normal(smb_df.loc[jj+1,'average'],smb_df.loc[jj+1,'std'],years)
+			randfill_smb = np.random.normal(smb_df.loc[jj+1,'average'],smb_df.loc[jj+1,'std']/2,years)
 			filler_smb[jj,:] = randfill_smb
-			randfill_tskin = np.random.normal(tskin_df.loc[jj+1,'average'],tskin_df.loc[jj+1,'std'],years)
+			randfill_tskin = np.random.normal(tskin_df.loc[jj+1,'average'],tskin_df.loc[jj+1,'std']/2,years)
 			filler_tskin[jj,:] = randfill_tskin
 			try:
 				randfill_smelt = np.random.normal(smelt_df.loc[jj+1,'average'],smelt_df.loc[jj+1,'std'],years)
@@ -438,8 +440,16 @@ for site in sites:
 			randfill_smelt[randfill_smelt<0] = 0.0
 			filler_smelt[jj,:] = randfill_smelt 
 
+		smbmin = min(s1)
+		smbmax = max(s1)
 		smb_spindata = np.ndarray.flatten(filler_smb,'F')
+		smb_spindata[smb_spindata<smbmin]=smbmin
+		smb_spindata[smb_spindata>smbmax]=smbmax
+		tmin = min(t1)
+		tmax = max(t1)
 		tskin_spindata = np.ndarray.flatten(filler_tskin,'F')
+		tskin_spindata[tskin_spindata<tmin]=tmin
+		tskin_spindata[tskin_spindata>tmax]=tmax
 		smelt_spindata = np.ndarray.flatten(filler_smelt,'F')
 
 		# create model for melt/temperature relationship
@@ -450,22 +460,23 @@ for site in sites:
 		# smelt_spindata[smelt_spindata<1.0e-3]=0.0
 
 		# # if clftest:
-		if datatype=='MAR':
-			thresh=-20.0
-		else:
-			thresh=273-20.0
+		# if datatype=='MAR':
+		thresh=-20.0
+		# else:
+			# thresh=273-20.0
 		mask = t1>thresh
 		mm = m1[mask]
 		tt = t1[mask]
 
 		mask2=mm>0
+		maxmelt=max(mm)
 
 		p=np.poly1d(np.polyfit(tt[mask2],np.log(mm[mask2]),2))
 		wm = tskin_spindata>thresh
 		cm = tskin_spindata<=thresh
 		smelt_spindata[wm]=np.exp(p(tskin_spindata[wm]))
 		smelt_spindata[cm]=0.0
-
+		smelt_spindata[smelt_spindata>maxmelt]=maxmelt
 		if (site=='EGRIP' or site=='Summit'):
 			# print('Zeroing!')
 			smelt_spindata[:]=0.0

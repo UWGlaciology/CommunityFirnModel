@@ -48,7 +48,7 @@ def percolation(self, iii):
 	
 	# print('!!! iii ', iii)
 	porosity = 1 - self.rho/RHO_I #porosity
-
+	dz_old = self.dz
 	# print 'porosity', porosity
 
 	porespace_0 			= porosity * self.dz #porosity in meters of each box
@@ -303,7 +303,10 @@ def percolation(self, iii):
 		# if (iii>7429 and iii<7435):
 			# print('rholen',len(self.rho))
 		self.age = np.concatenate((self.age[ind1:ind3] , [self.age[ind3],self.age[ind3]] , self.age[ind3+1:-1] , self.age[-1]*np.ones(num_boxes_melted-1)))
+		
 		self.dz = np.concatenate((self.dz[ind1:ind3] , [new_node_1_dz,new_node_2_dz] , self.dz[ind3+1:-1] ,self.dz[-1]/divider*np.ones(num_boxes_melted-1)))
+		dz_new = np.concatenate((self.dz_old[ind1:ind3],
+		self.compactionrate = 
 		# print(np.min(self.dz)
 		# if (self.dz<=0).any():
 		# 	print self.dz[0:ind2]
