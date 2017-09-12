@@ -67,11 +67,11 @@ def percolation(self, iii):
 		exactmass = False
 
 	ind1a = np.where(self.mass_sum<=melt_mass)[0] # indicies of boxes that will be melted away
-	if iii>1020:
-		print(iii)
-		print(self.T_mean)
-		print('melt_mass', melt_mass)
-		print('mass_sum', self.mass_sum[0:20])
+	# if iii>1020:
+	# 	print(iii)
+	# 	print(self.T_mean)
+	# 	print('melt_mass', melt_mass)
+	# 	print('mass_sum', self.mass_sum[0:20])
 	num_boxes_melted = len(ind1a)+1 #number of boxes that melt away, include the box that is partially melted
 	# print('num_boxes_melted', num_boxes_melted)
 	ind1 = np.where(self.mass_sum>melt_mass)[0][0] # index which will become the new surface
@@ -200,6 +200,8 @@ def percolation(self, iii):
 		self.age = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_melted)))
 		self.dz  = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_melted)))
 		self.dz[0] = pm_dz
+		self.dzn = np.concatenate((np.zeros(num_boxes_melted), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
+		self.dzn = self.dzn[0:self.compboxes]
 		# if (self.dz<=0).any():
 		# 	print self.dz[0:ind2]
 		# 	raw_input('negative dz')
@@ -228,6 +230,8 @@ def percolation(self, iii):
 		self.age = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_melted)))
 		self.dz  = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_melted)))
 		self.dz[0] = pm_dz
+		self.dzn = np.concatenate((np.zeros(num_boxes_melted), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
+		self.dzn = self.dzn[0:self.compboxes]
 		# if (self.dz<=0).any():
 		# 	print self.dz[0:ind2]
 		# 	raw_input('negative dz')
@@ -303,10 +307,13 @@ def percolation(self, iii):
 		# if (iii>7429 and iii<7435):
 			# print('rholen',len(self.rho))
 		self.age = np.concatenate((self.age[ind1:ind3] , [self.age[ind3],self.age[ind3]] , self.age[ind3+1:-1] , self.age[-1]*np.ones(num_boxes_melted-1)))
-		
+		dzhold = self.dz[ind1+1:ind3]
+		dzhold2 = self.dz[ind3+1:-1]
 		self.dz = np.concatenate((self.dz[ind1:ind3] , [new_node_1_dz,new_node_2_dz] , self.dz[ind3+1:-1] ,self.dz[-1]/divider*np.ones(num_boxes_melted-1)))
-		dz_new = np.concatenate((self.dz_old[ind1:ind3],
-		self.compactionrate = 
+		self.dzn = np.concatenate((np.zeros(num_boxes_melted), np.append(dzhold, new_node_1_dz+new_node_2_dz), dzhold2))
+		self.dzn = self.dzn[0:self.compboxes]
+
+		
 		# print(np.min(self.dz)
 		# if (self.dz<=0).any():
 		# 	print self.dz[0:ind2]
@@ -330,7 +337,7 @@ def percolation(self, iii):
 	# runoff_volume = runoff_volume_duetolimitedporespace + runoff_volume_duetolens
 	# print 'runoff_volume = ', runoff_volume
 
-	return self.rho, self.age, self.dz, self.Tz, self.z, self.mass
+	return self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn
 
 
 
