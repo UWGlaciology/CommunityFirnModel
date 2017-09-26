@@ -14,13 +14,13 @@ thefiles2=['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','
 
 thefilesr=list(reversed(thefiles2))
 
-# thenames=['HLdynamic','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
+# thenames=['HLdynamic','HLSigfus','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
 
 thenames=['HLSigfus']
 
 thesites= ['CRAWFORD','DYE2','EGRIP','EKT','KANU','NASASE','SADDLE','Summit']
 
-datasource = 'MAR'
+datasource = 'RACMO'
 
 writer = True
 
@@ -78,7 +78,9 @@ for idx0, site in enumerate(thesites):
 				density_std = np.zeros_like(density_mean)
 				temperature_mean = temperature
 				temperature_std = np.zeros_like(temperature_mean)
-				compaction_rate_mean = compaction_rate
+				compaction_rate_mean = np.zeros_like(depth)
+				rcr,ccr=np.shape(compaction_rate)
+				compaction_rate_mean[0:rcr,0:ccr] = compaction_rate
 				compaction_rate_std = np.zeros_like(compaction_rate_mean)
 				try:
 					age_mean = age
@@ -100,6 +102,7 @@ for idx0, site in enumerate(thesites):
 				n = counter + 1
 
 				row,col = np.shape(depth_all)
+				rcr,ccr = np.shape(compaction_rate)
 				# print(r)
 				density_interp = np.zeros_like(depth_all)
 				temperature_interp = np.zeros_like(depth_all)
@@ -112,7 +115,9 @@ for idx0, site in enumerate(thesites):
 				for r in range(row):
 					density_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],density[r,:])
 					temperature_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],temperature[r,:])
-					compaction_rate_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],compaction_rate[r,:])					
+					crm = np.zeros_like(depth[r,:])
+					crm[0:ccr] = compaction_rate[r,:]
+					compaction_rate_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],crm)				
 					try:
 						age_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],age[r,:])
 					except:
