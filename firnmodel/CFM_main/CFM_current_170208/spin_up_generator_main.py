@@ -49,17 +49,17 @@ print(spot)
 # datatype = 'MAR'
 datatype = 'RACMO'
 print('datatype is ', datatype)
-sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
+# sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
 # sites=['DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD']
 # sites =['DYE2']
-# sites=['Summit','EGRIP']
+sites=['Summit']#,'EGRIP']
 SPY = 365.25*24*3600
 
 for site in sites:
 
 	# site = 'EGRIP'
 	print("site = ", site)
-	resultsdir = 'inputdata/'+ datatype + 'input/' + site
+	resultsdir = 'inputdata20170927/'+ datatype + 'input/' + site
 	try: 
 		os.makedirs(resultsdir)
 	except:
@@ -115,7 +115,7 @@ for site in sites:
 	if datatype=='RACMO':
 		yrs = ['1957','1961','1971','1981','1991','2001','2011']
 		# ddir = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/RACMO'
-		ddir = '/Volumes/Samsung_T1/RACMO/'
+		ddir = '/Volumes/Samsung_T1/RACMO/Greenland'
 		sd={}
 		td={}
 		md={}
@@ -416,7 +416,7 @@ for site in sites:
 	#####
 
 	##### make the random time series #####
-	sno = 40 # number of random time series to make
+	sno = 100 # number of random time series to make
 
 	for ii in range(sno):
 

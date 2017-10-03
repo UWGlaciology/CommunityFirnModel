@@ -106,23 +106,21 @@ class FirnDensityNoSpin:
 			input_temp = input_temp + K_TO_C
 		input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 		# input_bdot[input_bdot<=0.0] = 0.01
-		# if self.c['variable_srho']:
-		#     input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 
 		try:
 			if self.c['MELT']:
 				input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
-				MELT = True
+				self.MELT = True
 				print("Melt is initialized")
 			else:
-				MELT = False
+				self.MELT = False
 				print("No melt")
 				input_snowmelt = None
 				input_year_snowmelt = None
 
 		except:
-			MELT = False
-			print("No melt")
+			self.MELT = False
+			print("No melt; json does not include a melt field")
 			input_snowmelt = None
 			input_year_snowmelt = None
 
@@ -163,7 +161,7 @@ class FirnDensityNoSpin:
 		
 
 		#### Melt ###############
-		if MELT:
+		if self.MELT:
 			# self.snowmelt   = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
 			ssf = interpolate.interp1d(input_year_snowmelt,input_snowmelt,'nearest',fill_value='extrapolate')
 			self.snowmelt = ssf(self.modeltime)
@@ -193,8 +191,10 @@ class FirnDensityNoSpin:
 				# self.del_s = self.del_s + 5 * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
 		###########################
  
+ 		##### Variable Surface Density ###########
 		try:
 			if self.c['variable_srho']:
+				input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
 				self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
 			else:
 				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
@@ -202,20 +202,11 @@ class FirnDensityNoSpin:
 			print("you should alter the json to include variable_srho")
 			self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
-		# if MELT:
-		#     self.snowmelt = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
-		#     self.snowmeltSec = self.snowmelt / S_PER_YEAR / (self.stp / self.years)
-
-		# if MELT:
-		#     self.snowmelt = np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
-		#     self.snowmeltSec = self.snowmelt / S_PER_YEAR / (self.stp / self.years)
-
 		self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
 		self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
 
-		# print('modeltime', self.modeltime[0:14], self.modeltime[-14:])
 		# set up vector of times data will be written
 		Tind = np.nonzero(self.modeltime>=1958.0)[0][0]
 		self.TWrite     = self.modeltime[Tind::self.c['TWriteInt']]
@@ -241,7 +232,7 @@ class FirnDensityNoSpin:
 			self.du_dx = np.zeros(self.gridLen)
 			self.du_dx[1:] = self.c['du_dx']/(S_PER_YEAR)
 		
-		# set up class to handle heat/isotope diffusion using user provided data for initial temperature vector
+		# next 2 lines are old; saving for reference
 		# self.diffu      = Diffusion(self.z, self.stp, self.gridLen, initTemp[1:], init_del_z[1:]) # [1:] because first element is a time stamp
 		# self.T_mean     = self.diffu.T10m # initially the mean temp is the same as the surface temperature
 		self.Tz         = initTemp[1:]
@@ -249,7 +240,6 @@ class FirnDensityNoSpin:
 		self.T10m       = self.T_mean
 
 		self.compboxes = len(self.z[self.z<80])
-		# self.output_list = ['density','depth','temperature']
 		self.output_list = self.c['outputs']
 		print(self.output_list)
 		# self.RD = {}
@@ -465,7 +455,8 @@ class FirnDensityNoSpin:
 				self.mass = self.mass*((-self.du_dx)*self.dt + 1)
 
 			# try:
-			if self.snowmeltSec[iii]>0: #i.e. there is melt
+			
+			if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt
 			   # print('melt step; ', self.snowmeltSec[iii])
 				self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn = percolation(self,iii)
 			else:
