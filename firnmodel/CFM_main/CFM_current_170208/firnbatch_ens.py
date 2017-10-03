@@ -21,13 +21,13 @@ import json
 to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
 '''
 
-dtype = 'MAR'
-# site = 'DYE2'
+dtype = 'RACMO'
+site = 'WAISD'
 
 nn=sys.argv[1] # run ID
 # nn='0'
 mm=sys.argv[2] # physics
-site = sys.argv[3]
+# site = sys.argv[3]
 # mm='HLdynamic'
 # print nn
 jdir = 'jsonstore/' + dtype + '/' + site
