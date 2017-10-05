@@ -205,7 +205,7 @@ class FirnDensityNoSpin:
 			self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		##############
 
-		self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+		# self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
 
 		self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)

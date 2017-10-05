@@ -14,12 +14,12 @@ thefiles2=['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','
 
 thefilesr=list(reversed(thefiles2))
 
-thenames=['HLdynamic','HLSigfus','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
+# thenames=['HLdynamic','HLSigfus','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
 
-# thenames=['HLSigfus']
+thenames=['HLSigfus']
 
 # thesites= ['CRAWFORD','DYE2','EGRIP','EKT','KANU','NASASE','SADDLE','Summit']
-thesites = ['WAISD']
+thesites = ['WAISDvarden']
 
 cont = 'Antarctica'
 
@@ -46,6 +46,7 @@ for idx0, site in enumerate(thesites):
 				# fn = '%sresults_ens_all/%s/%s/%s/CFMresults.hdf5' %(datasource, site, fil, name)
 
 				f = h5.File(fn,'r')
+				print('file is %s' %fil)
 
 			except:
 				# nomean = True
