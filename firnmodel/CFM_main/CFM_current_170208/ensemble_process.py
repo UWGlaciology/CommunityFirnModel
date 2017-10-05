@@ -14,11 +14,14 @@ thefiles2=['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','
 
 thefilesr=list(reversed(thefiles2))
 
-# thenames=['HLdynamic','HLSigfus','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
+thenames=['HLdynamic','HLSigfus','Helsen2008','Arthern2010S','Arthern2010T','Simonsen2013','Ligtenberg2011','Barnola1991','KuipersMunneke2015','Li2011','Goujon2003','Crocus']
 
-thenames=['HLSigfus']
+# thenames=['HLSigfus']
 
-thesites= ['CRAWFORD','DYE2','EGRIP','EKT','KANU','NASASE','SADDLE','Summit']
+# thesites= ['CRAWFORD','DYE2','EGRIP','EKT','KANU','NASASE','SADDLE','Summit']
+thesites = ['WAISD']
+
+cont = 'Antarctica'
 
 datasource = 'RACMO'
 
@@ -39,7 +42,7 @@ for idx0, site in enumerate(thesites):
 		counter = 0
 		for idx2, fil in enumerate(thefilesr):
 			try:
-				fn = '/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/%s/%s/CFMresults.hdf5' %(datasource, site, fil, name)
+				fn = '/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/%s/%s/%s/CFMresults.hdf5' %(datasource, cont, site, fil, name)
 				# fn = '%sresults_ens_all/%s/%s/%s/CFMresults.hdf5' %(datasource, site, fil, name)
 
 				f = h5.File(fn,'r')
@@ -176,12 +179,12 @@ for idx0, site in enumerate(thesites):
 			DIP_std_out = np.c_[time,DIP_std]
 
 			# f4 = h5.File('%sresults_ens_all/%s/ensmean/%s/CFMresults_ens_mean.hdf5' %(datasource, site, name))
-			rfolder = '/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/ensmean/%s' %(datasource, site, name)
+			rfolder = '/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/%s/ensmean/%s' %(datasource, cont, site, name)
 			if os.path.exists(rfolder):
 				rmtree(rfolder)
 			os.makedirs(rfolder)
 
-			f4 = h5.File('/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/ensmean/%s/CFMresults.hdf5' %(datasource, site, name),'w')
+			f4 = h5.File('/Volumes/FirnSSD/CFMresults/%sresults_ens_all/%s/%s/ensmean/%s/CFMresults.hdf5' %(datasource, cont, site, name),'w')
 
 			f4.create_dataset('depth', data=depth_out)
 			f4.create_dataset('density',data=density_out)

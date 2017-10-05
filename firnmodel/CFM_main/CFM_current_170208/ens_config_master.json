@@ -78,7 +78,7 @@
     "r2s0": 1e-08,
     "resultsFileName": "CFMresults.hdf5",
     "resultsFolder": "MARresults_ens_all/DYE2/r0/KuipersMunneke2015",
-    "rhos0": 350.0,
+    "rhos0": 425.0,
     "spacewriteint": 1,
     "spinFileName": "CFMspin.hdf5",
     "stpsPerYear": 12.0,

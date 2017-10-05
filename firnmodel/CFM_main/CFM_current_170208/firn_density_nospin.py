@@ -198,9 +198,12 @@ class FirnDensityNoSpin:
 				self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
 			else:
 				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+				rhostd = 50
+				self.rhos0		= np.random.normal(self.c['rhos0'], rhostd, self.stp)
 		except:
 			print("you should alter the json to include variable_srho")
 			self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+		##############
 
 		self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
