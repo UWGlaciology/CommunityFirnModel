@@ -40,23 +40,23 @@ def plotter(rfolder,rfile):
 
 	niter = np.shape(depth)[0]
 
-	# f2=plt.figure(2)
-	# ax2 = f2.add_subplot(111)
-	# plt.ion()
-	# for ii in range(niter):
-	# 	stri = '%.2f' % timesteps[ii]
-	# 	plt.clf()
-	# 	# plt.plot(density[ii,:],depth[ii,:])
-	# 	plt.plot(depth[ii,:],(air[ii,:]-1)*1000)
+	f2=plt.figure(2)
+	ax2 = f2.add_subplot(111)
+	plt.ion()
+	for ii in range(niter):
+		stri = '%.2f' % timesteps[ii]
+		plt.clf()
+		plt.plot(density[ii,:],depth[ii,:])
+		# plt.plot(depth[ii,:],(air[ii,:]-1)*1000)
 		
-	# 	# plt.ylim([0,50])
-	# 	# plt.gca().invert_yaxis()
-	# 	plt.gca().text(0.2, 0.1,stri, horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)
-	# 	plt.pause(0.05)
+		# plt.ylim([0,50])
+		# plt.gca().invert_yaxis()
+		plt.gca().text(0.2, 0.1,stri, horizontalalignment='center', verticalalignment='center', transform = ax2.transAxes)
+		plt.pause(0.05)
 
-	# 	plt.show()
-	# while True:
-	# 	plt.pause(0.05)
+		plt.show()
+	while True:
+		plt.pause(0.05)
 
 		
 	# ap = (air[jj,1:]-1)*1000
@@ -74,7 +74,7 @@ def plotter(rfolder,rfile):
 
 if __name__ == '__main__':
 
-	rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/MARresults_ens_all/KANU/r0/HLdynamic/'
+	rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/melt_test'
 	rfile = 'CFMresults.hdf5'
 
 	plotter(rfolder,rfile)

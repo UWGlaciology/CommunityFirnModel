@@ -37,7 +37,7 @@ def heatDiff(self,iii):
 
     nz_P = len(self.z)
     nz_fv = nz_P - 2
-    nt = 5
+    nt = 10
 
     z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
     z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
@@ -52,13 +52,82 @@ def heatDiff(self,iii):
     c_firn = 152.5 + 7.122 * phi_0
     Gamma_P = K_firn / (c_firn * self.rho)
 
+
     self.Tz = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s)
-    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+    # if self.bdotSec[iii]>0:
+        # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
 
     fT10m = interpolate.interp1d(self.z, self.Tz) 								# temp at 10m depth
     self.T10m = fT10m(10)
-    self.Tz[self.Tz>273.15]=273.14
+    self.Tz[self.Tz>=273.15]=273.15
     return self.Tz, self.T10m
+
+def enthalpyDiff(self,iii):
+    '''
+    enthalpy diffusion function
+
+    '''
+    LWCmass     = self.LWC * RHO_W_KGM
+    tot_rho     = (self.mass + LWCmass) / self.dz # Aschwanden, eq 1
+    omega        = (LWCmass/self.dz) / tot_rho # Aschwanden, eq 2
+
+    c_firn = CP_I * 1000
+
+    Hs          = T_MELT * c_firn
+
+    enthalpy = np.zeros_like(self.dz)
+    enthalpy[self.Tz<T_MELT] = self.Tz[self.Tz<T_MELT] * c_firn # * 1000 to use Joules instead of kJ
+    enthalpy[self.Tz>=T_MELT] = Hs + omega[self.Tz>=T_MELT] * LF_I * 1000
+
+    nz_P = len(self.z)
+    nz_fv = nz_P - 2
+    nt = 10
+
+    z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
+    z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+    z_P_vec = self.z
+    # phi_s = self.Ts[iii]
+
+    phi_s = enthalpy[0]
+    phi_0 = enthalpy
+
+    # K_ice = 9.828 * np.exp(-0.0057 * phi_0)
+    # K_firn = K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+    k_i = 0.021 + 2.5 * (self.rho/1000.)**2 # J s^-1 K^-1 m^-1
+
+    # k_firn = 2.1
+    bigKi = k_i / c_firn
+    bigK_0 = 1.045e-4 # from Aschwanden
+
+    Gamma_P = np.zeros_like(self.dz)
+    Gamma_P[enthalpy<Hs] = bigKi[enthalpy<Hs]/tot_rho[enthalpy<Hs]
+    Gamma_P[enthalpy>=Hs] = bigK_0/tot_rho[enthalpy>=Hs]
+
+    enthalpy = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s)
+    # if self.bdotSec[iii]>0:
+        # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+
+    self.Tz[enthalpy < Hs] = enthalpy[enthalpy < Hs] / c_firn
+    # self.LWC = 0
+    # self.rho[[enthalpy < Hs] = tot_rho[enthalpy < Hs]
+
+    self.Tz[enthalpy>=Hs] = T_MELT
+
+
+    omega_new = np.zeros_like(omega)
+    omega_new[enthalpy>=Hs] = (enthalpy[enthalpy>=Hs] - Hs) / (LF_I*1000)
+
+    LWCmass_new = omega_new * tot_rho * self.dz 
+
+    self.mass = tot_rho*self.dz - LWCmass_new
+    self.rho = self.mass / self.dz
+
+    self.LWC  = LWCmass_new / RHO_W_KGM
+
+    fT10m = interpolate.interp1d(self.z, self.Tz)                               # temp at 10m depth
+    self.T10m = fT10m(10)
+    # self.Tz[self.Tz>=273.15]=273.15
+    return self.Tz, self.T10m, self.rho, self.mass, self.LWC 
 
 def isoDiff(self,iii):
     '''

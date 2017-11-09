@@ -152,8 +152,6 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			a_P_0 = dZ / dt
 
 
-
-
 		S_P = 0.0
 		a_P =  a_U + a_D + a_P_0 - S_P*dZ
 

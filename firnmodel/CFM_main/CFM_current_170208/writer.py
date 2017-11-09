@@ -94,6 +94,8 @@ def write_nospin_hdf5(self):
     # if self.c['isoDiff']:
     if 'isotopes' in self.output_list:    
         f4.create_dataset('isotopes',data=self.iso_out)
+    if 'LWC' in self.output_list:
+        f4.create_dataset('LWC',data=self.LWC_out)
 
     # timewrite = np.append(self.modeltime[0],self.TWrite[:len(self.intPhiAll)])
     # timewrite = self.TWrite_out
