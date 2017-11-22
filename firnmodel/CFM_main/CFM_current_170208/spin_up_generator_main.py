@@ -25,6 +25,7 @@ from scipy.spatial import cKDTree
 from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.svm import SVR
+import time
 
 # import datetime
 def find_indices(points,lon,lat,tree=None):
@@ -39,9 +40,29 @@ def find_indices(points,lon,lat,tree=None):
     	ii=i
     	jj=j
     # return [(i,j) for i,j in ind]
-    return ii,jj #, [(i,j) for i,j in ind]
+    return ii,jj #, [(i,j) for i,j in ind
 
-writer=True
+def toYearFraction(date):
+    def sinceEpoch(date): # returns seconds since epoch
+        return time.mktime(date.timetuple())
+    s = sinceEpoch
+
+    year = date.year
+    startOfThisYear = datetime(year=year, month=1, day=1)
+    startOfNextYear = datetime(year=year+1, month=1, day=1)
+
+    yearElapsed = s(date) - s(startOfThisYear)
+    yearDuration = s(startOfNextYear) - s(startOfThisYear)
+    fraction = yearElapsed/yearDuration
+
+    return date.year + fraction
+
+writer=False
+	### time vector that data will be written
+	# years = 0
+years = 100
+sno = 1 # number of random time series to make
+
 if not writer:
 	print('Files will not be written!')
 spot = os.path.dirname(os.path.realpath(__file__)) #Add Folder
@@ -51,8 +72,8 @@ datatype = 'RACMO'
 print('datatype is ', datatype)
 # sites=['Summit','DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD','EGRIP']
 # sites=['DYE2','KANU','EKT','NASASE','SADDLE','CRAWFORD']
-# sites =['DYE2']
-sites=['Summit']#,'EGRIP']
+sites =['KANU','AQUIFER','NASASE']
+# sites=['AQUIFER']#,'EGRIP']
 SPY = 365.25*24*3600
 
 for site in sites:
@@ -94,7 +115,10 @@ for site in sites:
 		lon_int = -47.03112
 	elif site == 'EGRIP':
 		lat_int = 75.62556
-		lon_int = -35.97803
+		lon_int = -35.
+	elif site == 'AQUIFER':
+		lat_int = 66.362
+		lon_int = -39.312
 
 
 	# os.chdir(spot)
@@ -189,7 +213,7 @@ for site in sites:
 			# ii,jj=np.unravel_index(dist.argmin(),dist.shape) # indices closest to specified point
 			# print(ii,jj)
 			# tt = nc_s['time']
-			s1=smb_in[:,0,ii,jj]*24*3600 #put into units of kg/m^2/day
+			s1=smb_in[:,0,ii,jj]*24*3600 #put into units of kg/m^2/day (RACMO comes as kg m^-2 s^-1)
 			t1=tskin_in[:,0,ii,jj] - 273.15
 			m1 = smelt_in[:,0,ii,jj]*24*3600 #put into units of m IE/day
 			m1[m1<0]=0 # current version of RACMO goes through end of 2016
@@ -276,7 +300,7 @@ for site in sites:
 
 		# ['2012-07-01':'2012-08-01']
 
-		##### end RACMO #########
+	##### end RACMO #########
 
 	elif datatype == 'MAR': # current version of MAR goes through end of 2015
 		'''
@@ -323,7 +347,6 @@ for site in sites:
 			m1[m1<0]=0
 
 			date_end=2015
-	###
 
 			dates = pd.date_range('1958-01-01','1977-12-31',freq='MS')+pd.DateOffset(days=14)
 			dates_all = pd.date_range('1958-01-01','%s-12-31' %date_end,freq='MS')+pd.DateOffset(days=14)
@@ -361,7 +384,7 @@ for site in sites:
 			tskin_df = tskin_df.set_index([tskin_df.date.dt.month, tskin_df.date.dt.year]).tskin.unstack()
 			smelt_df = smelt_df.set_index([smelt_df.date.dt.month, smelt_df.date.dt.year]).smelt.unstack()
 
-			###### END MAR ##########
+	###### END MAR ##########
 
 
 
@@ -389,9 +412,7 @@ for site in sites:
 	smelt_df['std'] = smelt_df.std(numeric_only=True, axis=1)
 	smelt_df.loc[smelt_df['average']<1.0e-3]=0
 
-	### time vector that data will be written
-	# years = 0
-	years = 1000
+
 
 	st_year = dates.year[0] - years
 	# st_date = date(st_year,1,1)
@@ -416,7 +437,7 @@ for site in sites:
 	#####
 
 	##### make the random time series #####
-	sno = 100 # number of random time series to make
+	
 
 	for ii in range(sno):
 
@@ -600,6 +621,25 @@ for site in sites:
 		np.savetxt(resultsdir + '/' + site+'_smb_%s_mocon.csv' %datatype,smb_mocon_out,delimiter=',',fmt='%1.4f')
 		np.savetxt(resultsdir + '/' + site+'_tskin_%s_mocon.csv' %datatype,tskin_mocon_out,delimiter=',',fmt='%1.4f')
 		np.savetxt(resultsdir + '/' + site+'_melt_%s_mocon.csv' %datatype,melt_mocon_out,delimiter=',',fmt='%1.4f')
+
+	#### Daily data
+	d_out = np.zeros(len(tskin_data_daily['date']))
+	for jj in range(len(d_out)):
+		d_out[jj] = toYearFraction(tskin_data_daily['date'][jj])
+	t_daily = tskin_data_daily['tskin'][:]
+	s_daily = smb_data_daily['smb'][:] / 917 * 365.25 # convert to m I.E. per year
+	m_daily = smelt_data_daily['smelt'][:] / 917 * 365.25 # convert to m I.E. per year
+
+	smb_daily_out = np.array([d_out,s_daily])
+	tskin_daily_out = np.array([d_out,t_daily])
+	melt_daily_out = np.array([d_out,m_daily])
+
+	# if writer:
+	np.savetxt(resultsdir + '/' + site+'_smb_%s_daily.csv' %datatype,smb_daily_out,delimiter=',',fmt='%1.4f')
+	np.savetxt(resultsdir + '/' + site+'_tskin_%s_daily.csv' %datatype,tskin_daily_out,delimiter=',',fmt='%1.4f')
+	np.savetxt(resultsdir + '/' + site+'_melt_%s_daily.csv' %datatype,melt_daily_out,delimiter=',',fmt='%1.4f')
+
+
 
 
 

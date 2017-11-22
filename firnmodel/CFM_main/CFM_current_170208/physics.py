@@ -620,7 +620,30 @@ class FirnPhysics:
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
+        elif self.bdot_type == 'stress':
+            # A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+            # A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+            A_mean_1 = self.mass[self.rho < RHO_1]*10
+            A_mean_2 = self.mass[self.rho >= RHO_1]*10
+            # print "Amean", A_mean_1[0:10]
+
+            M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
+            # print('Amean',A_mean_1[0:10])
+            # print('mass',self.mass[0:10])
+            # input()
+            M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+            # print 'M_0', M_0
+            # M_0 = np.max((0.25,M_0))
+            # M_1 = np.max((0.25,M_1))
+
+            M_0[M_0<0.25]=0.25
+            M_1[M_1<0.25]=0.25
+
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
+
         drho_dt = dr_dt / S_PER_YEAR
+        drho_dt[self.rho>=RHO_I] = 0
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
@@ -830,6 +853,8 @@ class FirnPhysics:
 
         viscosity = f1 * f2 * nu_0 * self.rho / c_n * np.exp(a_n * (273.15 - self.Tz) + b_n * self.rho)
         dr_dt = self.rho * self.sigma / viscosity
+
+        dr_dt[self.rho>=RHO_I] = 0
 
         drho_dt = dr_dt #/ S_PER_YEAR
         

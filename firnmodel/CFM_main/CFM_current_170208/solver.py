@@ -30,7 +30,7 @@ def solver(a_U, a_D, a_P, b):
 
 	return phi_t
 
-def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, airdict=None):
+def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, airdict=None):
 	'''
 	transient 1-d diffusion finite volume method
 
@@ -59,8 +59,11 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 		
 		dZ_d = np.diff(Z_P)
 		dZ_d = np.append(dZ_d, dZ_d[-1])
-
-		f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges_vec) / dZ_u[1:]))
+		try:
+			f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges_vec) / dZ_u[1:]))
+		except:
+			print('dZ_u')
+			input('enter to continue')
 		f_d = np.append(1 - (z_edges_vec - z_P_vec[0: -1]) / dZ_d[0: -1], 0)
 
 		# Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
@@ -136,11 +139,12 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
 			Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
 
-			Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U)
+			Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
 			Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
 			S_C = 0
 			S_C = S_C * np.ones(nz_P)
+
 			D_u = (Gamma_u / dZ_u)
 			D_d = (Gamma_d / dZ_d)
 
@@ -149,15 +153,17 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			a_U = D_u 
 			a_D = D_d 
 
-			a_P_0 = dZ / dt
-
+			a_P_0 = tot_rho * dZ / dt
+			# a_P_0 = tot_rho * dZ / dt
+			# a_P_0 = RHO_I * c_firn * dZ / dt
 
 		S_P = 0.0
 		a_P =  a_U + a_D + a_P_0 - S_P*dZ
 
 		bc_u_0 = phi_s # need to pay attention for gas
-		bc_type = 1.
+		bc_type = 1
 		bc_u   = np.concatenate(([ bc_u_0], [bc_type]))
+
 		bc_d_0 = 0
 		bc_type = 2
 		bc_d   = np.concatenate(([ bc_d_0 ], [ bc_type ]))
@@ -177,6 +183,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 
 		phi_t = solver(a_U, a_D, a_P, b)
 		a_P = a_U + a_D + a_P_0
+		# phi_s = phi_t[0]
 
 	return phi_t
 

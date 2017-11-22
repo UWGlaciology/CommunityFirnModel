@@ -104,6 +104,8 @@ class FirnDensityNoSpin:
 		if input_temp[0] < 0.0:
 			input_temp 		= input_temp + K_TO_C
 
+		input_temp[input_temp>T_MELT] = T_MELT
+
 		input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 		# input_bdot[input_bdot<=0.0] = 0.01
 
@@ -157,7 +159,7 @@ class FirnDensityNoSpin:
 		self.bdot 			= bsf(self.modeltime)
 
 		# self.bdotSec    	= self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
-		self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step(per second)
+		self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
 		self.iceout     	= np.mean(self.bdot) # this is the rate of ice flow advecting out of the column
 		#####################
 		
@@ -166,7 +168,8 @@ class FirnDensityNoSpin:
 			# self.snowmelt 	= np.interp(self.modeltime, input_year_snowmelt, input_snowmelt)
 			ssf 				= interpolate.interp1d(input_year_snowmelt,input_snowmelt,'nearest',fill_value='extrapolate')
 			self.snowmelt 		= ssf(self.modeltime)
-			self.snowmeltSec	= self.snowmelt / S_PER_YEAR / self.c['stpsPerYear'] # melt for each time step (per second)
+			self.snowmeltSec	= self.snowmelt / S_PER_YEAR / self.c['stpsPerYear'] # melt for each time step (meters i.e. per second)
+			# print('!!! CAUTION! MELT IS CURRENTLY INCREASED BY 100%')
 		#####################
 
 		### Isotopes ########
@@ -206,12 +209,12 @@ class FirnDensityNoSpin:
 		#####################
 
 		### Layer tracker ###
-		self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
-		self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
+		self.D_surf     = self.c['D_surf'] * np.zeros(self.stp)      # layer traking routine (time vector). 
+		self.Dcon       = self.c['D_surf'] * np.zeros(self.gridLen)  # layer tracking routine (initial depth vector)
 		#####################
 
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1958.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=1928.0)[0][0]
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
 		# self.TWrite     	= self.modeltime[0::self.c['TWriteInt']]
@@ -384,6 +387,10 @@ class FirnDensityNoSpin:
 		for iii in range(self.stp):
 			mtime = self.modeltime[iii]
 
+			# print(iii)
+			# print(mtime)
+
+
 
 			# the parameters that get passed to physics
 			PhysParams = {
@@ -397,6 +404,7 @@ class FirnDensityNoSpin:
 				'T_mean':       self.T_mean,
 				'T10m':         self.T10m,
 				'rho':          self.rho,
+				'mass':			self.mass,
 				'sigma':        self.sigma,
 				'dt':           self.dt,
 				'Ts':           self.Ts,
@@ -438,16 +446,7 @@ class FirnDensityNoSpin:
 				print("Error at line ", info.lineno)
 
 			### update density and age of firn
-			rho_pot = (self.mass + self.LWC*RHO_W_KGM)/self.dz
-			if np.any(rho_pot>917):
-				print('FirnDensityNoSpin 443')
-				input()
-
-			self.rho 					= self.rho + self.dt * drho_dt
-			rho_pot = (self.mass + self.LWC*RHO_W_KGM)/self.dz
-			if np.any(rho_pot>917):
-				print('FirnDensityNoSpin 448')
-				input()
+			self.rho 		= self.rho + self.dt * drho_dt
 
 			self.dz_old 	= self.dz
 			self.sdz_old 	= np.sum(self.dz) # old total column thickness
@@ -455,29 +454,33 @@ class FirnDensityNoSpin:
 			self.dz 		= self.mass / self.rho * self.dx
 			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, before new snow added
 
-
 			if self.THist:
 				self.Hx 			= FirnPhysics(PhysParams).THistory()
 
 
+			
+
 			if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt			   
-				self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation3(self,iii)
+				self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation4(self,iii)
+				# print('lwc',np.max(self.LWC))
 			else:
 				self.dzn 	= self.dz[0:self.compboxes] #no melt, dz after compaction
+
 
 			#### update temperature grid and isotope grid if user specifies
 			if (self.c['heatDiff'] and not self.MELT):
 				Tz_old 				= np.copy(self.Tz)
-				# print(Tz_old[self.LWC>0])
-				# input()
+				if self.Ts[iii]>T_MELT:
+					print('tskin > melt')
 				self.Tz, self.T10m 	= heatDiff(self,iii)
 			elif (self.c['heatDiff'] and self.MELT):
-				 self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+				self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
 			else:
 				self.Tz 	= np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
 
 			self.T_mean     = np.mean(self.Tz[self.z<50])
 			######
+
 
 			if self.c['isoDiff']:
 				self.del_z 	= isoDiff(self,iii)
@@ -485,24 +488,12 @@ class FirnDensityNoSpin:
 			if self.c['FirnAir']:
 				self.Gz 	= self.FA.firn_air_diffusion(PhysParams,iii)
 				
-
-			# if iii in np.arange(170,176):
-			# 	print('iii',iii)
-			# 	print('dz',self.dz[4:14])
-			# 	print('rho',self.rho[4:14])
-			# 	print('mass',self.mass[4:14])
-			# 	print('LWC',self.LWC[4:14])
-			# 	input()
-
-
-
 			if self.c['strain']:
 				self.dz 	= ((-self.du_dx)*self.dt + 1)*self.dz
 				self.mass 	= self.mass*((-self.du_dx)*self.dt + 1)
 
+			self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 #keep track of how many times the layer has had water
 			
-
-						
 			if self.bdotSec[iii]>0:
 			# MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 
 				##### update model grid
@@ -520,7 +511,6 @@ class FirnDensityNoSpin:
 				massNew 				= self.bdotSec[iii] * S_PER_YEAR * RHO_I
 				self.mass 				= np.concatenate(([massNew], self.mass[:-1]))
 				self.compaction_rate	= np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1]))#/self.dt*S_PER_YEAR)
-
 			else:
 				self.age 				= self.age + self.dt
 				self.z 					= self.dz.cumsum(axis=0)
@@ -556,6 +546,8 @@ class FirnDensityNoSpin:
 
 			# write results as often as specified in the init method
 			if mtime in self.TWrite:
+
+				# print('lwc',np.max(self.LWC))
 				
 				ind 		= np.where(self.TWrite == mtime)[0][0]
 				mtime_plus1 = self.TWrite[ind] 
