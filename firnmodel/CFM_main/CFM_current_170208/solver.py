@@ -59,11 +59,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 		
 		dZ_d = np.diff(Z_P)
 		dZ_d = np.append(dZ_d, dZ_d[-1])
-		try:
-			f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges_vec) / dZ_u[1:]))
-		except:
-			print('dZ_u')
-			input('enter to continue')
+		f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges_vec) / dZ_u[1:]))
 		f_d = np.append(1 - (z_edges_vec - z_P_vec[0: -1]) / dZ_d[0: -1], 0)
 
 		# Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
@@ -199,7 +195,7 @@ def w(airdict,z_edges_vec): # Function for downward advection of air and also ca
 	# por_tot_interface=np.interp(z_edges_vec,z_nodes,airdict['por_tot'])
 	# por_cl_interface=np.interp(z_edges_vec,z_nodes,por_cl)
 	por_op_interface=np.interp(z_edges_vec,airdict['z'],airdict['por_op'])
-	dPdz = np.gradient(airdict['air_pressure']) / airdict['dz']
+	dPdz = np.gradient(airdict['air_pressure'],airdict['dz'])
 	dPdz_interface=np.interp(z_edges_vec,airdict['z'],dPdz)
 	# teller_co=np.argmax(por_cl_interface)
 	# w_ice=Accu*rho_i/rho_interface #Check this - is there a better way?

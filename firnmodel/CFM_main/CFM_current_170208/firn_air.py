@@ -31,10 +31,8 @@ class FirnAir:
 		self.czd = 4.0
 		self.p_a = 1.0e5
 		self.air_pressure = self.p_a * np.ones_like(z)
+		self.air_pressure_0 = np.copy(self.air_pressure)
 		self.air_volume = (1 - rho / RHO_I) * dz
-
-
-
 
 	def diffusivity(self):
 
@@ -75,9 +73,7 @@ class FirnAir:
 			diffu_full = self.gam_x * self.d_0 * (2.5 * self.por_op - 0.31) * (self.Tz / 273.15)**(1.8) * P_0 / self.p_a
 		
 		diffu_full[diffu_full<0] = 1.e-40
-				  
-			
-		
+				  		
 		###### Add in high diffusivity in convective zone and low diffusivity below LIZ
 		
 		###Convective zone###
@@ -162,11 +158,13 @@ class FirnAir:
 		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity() #self.rho, self.Tz
 
 		
-		self.air_pressure_old = self.air_pressure
-		self.air_volume_old = self.air_volume
+		self.air_pressure_old = np.copy(self.air_pressure)
+		self.air_volume_old = np.copy(self.air_volume)
 
 		self.air_volume = self.por_op * self.dz
-		self.air_pressure = self.air_pressure_old * self.air_volume_old / self.air_volume 
+		self.air_pressure = self.air_pressure_0 * self.air_volume_old / self.air_volume # assume air pressure is atmos in entire column
+
+		self.pressure_grad = np.gradient(air_pressure,self.dz) 
 
 		self.z_co = min(self.z[self.rho>=(self.bcoRho)]) #close-off depth; bcoRho is close off density
 		self.LIZ = min(self.z[self.rho>=(self.LIDRho)]) #lock in depth; LIDRho is lock-in density
@@ -178,20 +176,26 @@ class FirnAir:
 
 		self.diffu, self.d_eddy = self.diffusivity()
 
-		airdict = {'d_eddy':self.d_eddy,'por_op':self.por_op,'Tz':self.Tz,'deltaM':self.deltaM,'omega':self.omega,'dz':self.dz,'rho':self.rho, 'gravity': self.cg['gravity'], 'thermal': self.cg['thermal'], 'air_pressure': self.air_pressure, 'z': self.z, 'dt': self.dt, 'z_co': self.z_co}
+		airdict = {
+			'd_eddy': 		self.d_eddy,
+			'por_op': 		self.por_op,
+			'Tz':n 			self.Tz,
+			'deltaM': 		self.deltaM,
+			'omega': 		self.omega,
+			'dz': 			self.dz,
+			'rho':			self.rho,
+			'gravity': 		self.cg['gravity'],
+			'thermal': 		self.cg['thermal'],
+			'air_pressure': self.air_pressure,
+			'pressure_grad':self.pressure_grad,
+			'z': 			self.z, 
+			'dt': 			self.dt,
+			'z_co': 		self.z_co}
 
 		self.Gz = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 		
-		
-		
-
-
 		return self.Gz
-
-
-
-
 
 def gasses(gaschoice, T, p_a):
 	
