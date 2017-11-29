@@ -16,23 +16,8 @@ if __name__ == '__main__':
         jsonString = f.read()
         c = json.loads(jsonString)
 
-    # if '-s' in sys.argv:
-    #     spin = 'on'
-    #     print "spin on"
-    # else:
-    #     spin = 'off'
-    #     print "spin off"
-
-    # configSpin = {
-    #     'on'  : FirnDensitySpin,
-    #     'off' : FirnDensityNoSpin,
-    # }
-    
     tic=time.time()
-    # try:
-    # firn = configSpin[spin](configName)
-    # except KeyError:
-        # sys.exit("Error")
+
     print("")
     print("---------------------------------------------------------------------")
     print("---------------------------------------------------------------------")

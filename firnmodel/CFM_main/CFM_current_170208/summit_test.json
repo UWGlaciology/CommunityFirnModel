@@ -1,11 +1,14 @@
 {
-"InputFileFolder": "modelInput",
+"InputFileFolder": "inputdata",
 "InputFileNameTemp": "Summit_spin_temp_base.csv",
 "InputFileNamebdot": "Summit_spin_smb_base.csv",
 "InputFileNameIso": "CFM_age_isotope.csv",
 "InputFileNamesrho": "Summit_spin_rho_base.csv",
 "resultsFolder": "S0",
 "physRho": "HLdynamic",
+"MELT": false,
+"FirnAir": false,
+"AirConfigName": "AirConfig.json",
 "TWriteInt": 1,
 "TAmp":10.0,
 "bdot0": 0.01,
@@ -36,6 +39,8 @@
 "writehdf5": true,
 "strain": false,
 "du_dx": 1e-5,
+"outputs": ["density", "depth", "compaction_rate","DIP","BCO","temperature"],
+"output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction_rate", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP","LWC"],
 "resultsFileName": "S0.hdf5",
 "spinFileName": "S0spin.hdf5"
 }

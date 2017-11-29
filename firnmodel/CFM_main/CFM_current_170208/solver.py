@@ -97,7 +97,6 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 				S_C_0   = (Gamma_d-Gamma_u) * ((-airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) + (airdict['omega'] * dTdz)) / airdict['dz'] # Check thermal - should it still work in LIZ? if so use d_eddy+diffu
 			
 			S_C         = S_C_0 * phi_t #this line might be the troublesome one! Should it be phi_0 instead?
-
 			b_0         = S_C * dZ
 
 			rho_interface = np.interp(z_edges_vec,Z_P,airdict['rho'])
@@ -105,7 +104,6 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			w_edges = w(airdict,z_edges_vec)
 			w_edges[z_edges_vec>airdict['z_co']] = 0.0
 			
-
 			w_u = np.append(w_edges[0], w_edges )
 			w_d = np.append(w_edges, w_edges[-1])
 			
@@ -126,7 +124,6 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 
 			# a_U = D_u # 8/14/17: use this for now - check on Lagrangian need for upwinding.
 			# a_D = D_d 
-
 		
 			a_P_0 = airdict['por_op'] * dZ/dt
 		#######################################

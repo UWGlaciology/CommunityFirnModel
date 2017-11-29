@@ -179,7 +179,7 @@ class FirnAir:
 		airdict = {
 			'd_eddy': 		self.d_eddy,
 			'por_op': 		self.por_op,
-			'Tz':n 			self.Tz,
+			'Tz': 			self.Tz,
 			'deltaM': 		self.deltaM,
 			'omega': 		self.omega,
 			'dz': 			self.dz,
@@ -190,7 +190,8 @@ class FirnAir:
 			'pressure_grad':self.pressure_grad,
 			'z': 			self.z, 
 			'dt': 			self.dt,
-			'z_co': 		self.z_co}
+			'z_co': 		self.z_co
+			}
 
 		self.Gz = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))

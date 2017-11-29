@@ -1,0 +1,14 @@
+{
+    "gaschoiceOptions":["d15N2","d40Ar"],
+    "gaschoice":["d15N2"],
+    "gravity":"on",
+    "thermal":"on",
+    "runtype":"transient",
+    "runtype_options": "steady, transient",
+    "StepsPerYear": 1.0,
+    "z_resolution": 0.5,
+    "UserData": false,
+    "Diffu_param": "Freitag",
+    "Diffu_options": ["Freitag","Schwander","Severinghaus","Witrant"],
+    "lockin": true
+}

@@ -64,50 +64,58 @@ class FirnDensitySpin:
 		:param configName: name of json config file containing model configurations
 		'''
 
-		# load in json config file and parses the user inputs to a dictionary
+		### load in json config file and parses the user inputs to a dictionary
 		with open(configName, "r") as f:
-			jsonString = f.read()
-			self.c = json.loads(jsonString)
+			jsonString 	= f.read()
+			self.c 		= json.loads(jsonString)
 
 		print('Spin run started')
 		print("physics are", self.c['physRho'])
 
-		# create directory to store results. Deletes if it exists already.
+		### create directory to store results. Deletes if it exists already.
 		if os.path.exists(self.c['resultsFolder']):
 			rmtree(self.c['resultsFolder'])
 		os.makedirs(self.c['resultsFolder'])
 
+		############################
 		##### load input files #####
+		############################
 		### temperature
 		input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
 		if input_temp[0] < 0.0:
-			input_temp = input_temp + K_TO_C
-		self.temp0 = np.mean(input_temp) #Make sure that this is what we want!
+			input_temp 				= input_temp + K_TO_C
+		self.temp0 					= np.mean(input_temp) #Make sure that this is what we want!
 		# self.temp0 = 270.0
 		# self.temp0 = mean(input_temp[0:12]) #Make sure that this is what we want!
 
 		### accumulation rate
 		input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
-		self.bdot0 = np.mean(input_bdot) #Make sure that this is what we want!
+		self.bdot0 					= np.mean(input_bdot) #Make sure that this is what we want!
 		
 		### could include others, e.g. surface density
-		##########
+		############################
 
-		
-		##### set up model grid
+		############################
+		### set up model grid ######
+		############################
 		self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYearSpin'])) # number of grid points
 		gridHeight      = np.linspace(self.c['H'], self.c['HbaseSpin'], self.gridLen)
 		self.z          = self.c['H'] - gridHeight
 		self.dz         = np.diff(self.z) 
 		self.dz         = np.append(self.dz, self.dz[-1])
 		self.dx         = np.ones(self.gridLen)
+		############################
 
-		##### get an initial depth/density profile based on H&L analytic solution
-		THL = input_temp[0]
-		AHL = input_bdot[0]
-		self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
+		############################
+		### get an initial depth/density profile based on H&L analytic solution
+		############################
+		THL 				= input_temp[0]
+		AHL 				= input_bdot[0]
+		self.age, self.rho 	= hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
+		############################
 
-		##### set up time stepping
+		############################
+		### set up time stepping
 		if self.c['AutoSpinUpTime']: # automatic, based on time that it will take for a parcel to get to 850 kg m^-3
 			try:
 				zz          = np.min(self.z[self.rho > 850.0])
@@ -116,36 +124,26 @@ class FirnDensitySpin:
 				print("auto spin up error; using spin up time from json")
 				self.years = self.c['yearSpin'] # number of years to spin up for
 		else: # based on time taken to spin up in the config file.
-
-
 			self.years = self.c['yearSpin'] # number of years to spin up for
 		
-		self.dt = S_PER_YEAR / self.c['stpsPerYearSpin']
-		self.stp = int(self.years*S_PER_YEAR/self.dt)
-		self.t =  1.0 / self.c['stpsPerYearSpin'] # years per time step
+		self.dt 	= S_PER_YEAR / self.c['stpsPerYearSpin']
+		self.stp 	= int(self.years*S_PER_YEAR/self.dt)
+		self.t 		=  1.0 / self.c['stpsPerYearSpin'] # years per time step
+		############################
 
-		# self.stp        = int(self.years * self.c['stpsPerYearSpin']) # total number of time steps, as integer
-		# self.dt         = self.years * S_PER_YEAR / self.stp # size of time steps, seconds
-		# # self.dts        = self.years / self.stp # size of time step, years
-		# self.t          = 1.0 / self.c['stpsPerYearSpin'] # years per time step
-
-		
-		# print 'dts', self.dts
-		# print 't', self.t
-		#####
-
+		############################
+		### Initial and boundary conditions
+		############################
 		### Surface temperature for each time step
 		self.Ts         = self.temp0 * np.ones(self.stp)
-		print('ts',self.Ts)
 		# self.T_mean     = np.mean(self.Ts) # MS 3/7/17: is this what we want?
 		# self.T_mean     = np.mean(self.Tz[self.z<50])
-
 		if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp', including coreless winter (Orsi)
 			self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
-		# initial temperature profile
+
+		### initial temperature profile
 		# init_Tz 		= input_temp[0] * np.ones(self.gridLen)
 		init_Tz         = np.mean(self.Ts) * np.ones(self.gridLen)
-		# print('ADDING TEMPERATURE IN SPINUP!!!')
 
 		### Accumulation rate for each time step
 		self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (m I.E. per second)
@@ -155,44 +153,41 @@ class FirnDensitySpin:
 		if self.c['isoDiff']:
 			try:
 				input_iso, input_year_iso = read_input(self.c['InputFileNameIso'])
-				del_s0 = input_iso[0]
+				del_s0 	= input_iso[0]
 			except:
 				print('No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.')
-				del_s0 = -50.0
+				del_s0 	= -50.0
 
-			self.del_s = del_s0 * np.ones(self.stp)
-			init_del_z = del_s0 * np.ones(self.gridLen)
-			self.del_z = init_del_z
+			self.del_s 	= del_s0 * np.ones(self.stp)
+			init_del_z	= del_s0 * np.ones(self.gridLen)
+			self.del_z 	= init_del_z
 		else:
-			self.del_s = None
-			init_del_z = None    
+			self.del_s 	= None
+			init_del_z 	= None    
 		
-
 		### Surface Density
 		self.rhos0      = self.c['rhos0'] * np.ones(self.stp)
 		# could configure this so that user specifies vector of surface elevation
 		# could add noise too
 
-		### set up initial mass, stress, and mean accumulation rate
+		### initial mass, stress, and mean accumulation rate
 		self.mass       = self.rho * self.dz
 		self.sigma      = self.mass * self.dx * GRAVITY
 		self.sigma      = self.sigma.cumsum(axis = 0)
 		self.mass_sum   = self.mass.cumsum(axis = 0)
 		self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t)))) * self.c['stpsPerYear'] * S_PER_YEAR
 
-		### set up longitudinal strain rate
+		### longitudinal strain rate
 		if self.c['strain']:
-			self.du_dx = np.zeros(self.gridLen)
-			self.du_dx[1:] = self.c['du_dx']/(S_PER_YEAR)
+			self.du_dx 		= np.zeros(self.gridLen)
+			self.du_dx[1:] 	= self.c['du_dx']/(S_PER_YEAR)
 		
-		### set up initial temperature grid as well as a class to handle heat/isotope diffusion
-		# self.diffu      = Diffusion(self.z, self.stp, self.gridLen, init_Tz, init_del_z) # is this the best way to do this?
+		### initial temperature grid 
 		self.Tz         = init_Tz
-		# self.T_mean     = self.Tz[0]
 		self.T_mean     = np.mean(self.Tz[self.z<50])
 		self.T10m       = self.T_mean
 
-		### set up initial grain growth (if specified in config file)
+		### initial grain growth (if specified in config file)
 		if self.c['physGrain']:
 			if self.c['calcGrainSize']:
 				r02     = -2.42e-9 * (self.Ts) + 9.46e-7 # where does this equation come from?
@@ -202,34 +197,32 @@ class FirnDensitySpin:
 		else:
 			self.r2 = None
 
-		### set up "temperature history" if using Morris physics
+		### "temperature history" if using Morris physics
 		if self.c['physRho']=='Morris2014':
 			# initial temperature history function (units seconds)
-			self.Hx = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
-			self.THist = True
+			self.Hx 	= np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
+			self.THist 	= True
 		else:
-			self.THist = False
+			self.THist 	= False
 
-		print('Ts', self.Ts[-4:])
-		print('bdot_s', self.bdotSec[-4:])
-		print('dt', self.dt)
-
-
-	##### END INIT #####
+	############################
+	##### END INIT #############
+	############################
 
 	def time_evolve(self):
 		'''
 		Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature through time
 		based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
 		'''
-		self.steps = 1 / self.t #this is time steps per year
+		self.steps = 1 / self.t # this is time steps per year
 
 		####################################
 		##### START TIME-STEPPING LOOP #####
 		####################################
+
 		for iii in range(self.stp):
-			# the parameters that get passed to physics
-			PhysParams = {
+			### create dictionary of the parameters that get passed to physics
+			PhysParams = {   				
 				'iii':          iii,
 				'steps':        self.steps,
 				'gridLen':      self.gridLen,
@@ -251,10 +244,11 @@ class FirnDensitySpin:
 				'z':            self.z,
 				'rhos0':        self.rhos0[iii]
 			}
-			if self.THist:
-				PhysParams['Hx']=self.Hx
 
-			# choose densification-physics based on user input
+			if self.THist:
+				PhysParams['Hx'] = self.Hx
+
+			### choose densification-physics based on user input
 			physicsd = {
 				'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
 				'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
@@ -272,60 +266,52 @@ class FirnDensitySpin:
 				'Crocus':               FirnPhysics(PhysParams).Crocus
 			}
 
-			try:
-				RD = physicsd[self.c['physRho']]()
-				drho_dt = RD['drho_dt']
-			except KeyError:
-				print("Error at line ", info.lineno)
+			RD 		= physicsd[self.c['physRho']]()
+			drho_dt = RD['drho_dt']
 
 			### update density and age of firn
 			self.age = np.concatenate(([0], self.age[:-1])) + self.dt
 			self.rho = self.rho + self.dt * drho_dt
 			
-
 			if self.THist:
 				self.Hx = FirnPhysics(PhysParams).THistory()
 
-			# update temperature grid and isotope grid if user specifies
+			### update temperature grid and isotope grid if user specifies
+			### should not need to use the diffusion here because temperature is steady state (but could be used)
 			# if self.c['heatDiff']:
 				# self.Tz, self.T10m = heatDiff(self,iii)
+
 			if self.c['isoDiff']:
-				self.del_z = isoDiff(self,iii)
+				self.del_z 	= isoDiff(self,iii)
 
 			self.T_mean     = np.mean(self.Tz[self.z<50])
 
-			##### update model grid
+			if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
+				self.dz 	= ((-self.du_dx)*self.dt + 1)*self.dz 
+				self.mass 	= self.mass*((-self.du_dx)*self.dt + 1)
 
-			dzNew = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-			self.dz = self.mass / self.rho * self.dx
-			# consider additional change in box height due to longitudinal strain rate
-			self.dz_old = self.dz    
-			# self.dz = self.du_dx*self.dt + self.dz_old
-			self.dz = np.concatenate(([dzNew], self.dz[:-1]))
-			if self.c['strain']:
-				self.dz = ((-self.du_dx)*self.dt + 1)*self.dz   
-			self.z = self.dz.cumsum(axis = 0)
-			self.z = np.concatenate(([0], self.z[:-1]))
-			self.rho  = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-
-
-			##### update mass, stress, and mean accumulation rate
-			if self.c['strain']:
-				self.mass = self.mass*((-self.du_dx)*self.dt + 1)
-			massNew = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-			self.mass = np.concatenate(([massNew], self.mass[:-1]))
-			self.sigma = self.mass * self.dx * GRAVITY
-			self.sigma = self.sigma.cumsum(axis = 0)
-			self.mass_sum  = self.mass.cumsum(axis = 0)
-			self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
+			### update model grid mass, stress, and mean accumulation rate
+			dzNew 			= self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+			self.dz 		= self.mass / self.rho * self.dx
+			self.dz_old 	= self.dz    
+			self.dz 		= np.concatenate(([dzNew], self.dz[:-1]))	  
+			self.z 			= self.dz.cumsum(axis = 0)
+			self.z 			= np.concatenate(([0], self.z[:-1]))
+			self.rho  		= np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+			self.Tz 		= np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+			massNew 		= self.bdotSec[iii] * S_PER_YEAR * RHO_I
+			self.mass 		= np.concatenate(([massNew], self.mass[:-1]))
+			self.sigma 		= self.mass * self.dx * GRAVITY
+			self.sigma 		= self.sigma.cumsum(axis = 0)
+			self.mass_sum  	= self.mass.cumsum(axis = 0)
+			self.bdot_mean 	= (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
 
 			# update grain radius
 			if self.c['physGrain']:
-				self.r2 = FirnPhysics(PhysParams).grainGrowth()
+				self.r2 	= FirnPhysics(PhysParams).grainGrowth()
 
 			# write results at the end of the time evolution
 			if (iii == (self.stp - 1)):
-
 
 				rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
 				Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
@@ -345,7 +331,8 @@ class FirnDensitySpin:
 				else:
 					iso_time    = None
 
-
 				write_spin_hdf5(self.c['resultsFolder'], self.c['spinFileName'], self.c['physGrain'], self.THist, self.c['isoDiff'], rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time)
-				# write_spin(self.c['resultsFolder'], self.c['physGrain'], rho_time, Tz_time, age_time, z_time, r2_time)
-				print('dz', self.dz[0:10])
+
+			####################################
+			##### END TIME-STEPPING LOOP #####
+			####################################
