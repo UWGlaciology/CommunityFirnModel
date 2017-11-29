@@ -21,7 +21,7 @@ def write_nospin_hdf5(self):
         f4.create_dataset('bdot',data=self.bdot_out)
     if 'climate' in self.output_list:    
         f4.create_dataset('Modelclimate',data=self.Clim_out)
-    if 'compaction_rate' in self.output_list:    
+    if 'compaction' in self.output_list:    
         f4.create_dataset('compaction_rate', data=self.crate_out)
     if 'gasses' in self.output_list:       
         f4.create_dataset('gasses', data=self.gas_out)

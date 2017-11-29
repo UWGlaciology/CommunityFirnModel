@@ -428,10 +428,10 @@ class FirnDensityNoSpin:
 
 			### update density and age of firn
 			self.rho 		= self.rho + self.dt * drho_dt
-			self.dz_old 	= self.dz
+			self.dz_old 	= np.copy(self.dz) # model volume thicknesses before the compaction
 			self.sdz_old 	= np.sum(self.dz) # old total column thickness
-			self.z_old 		= self.z
-			self.dz 		= self.mass / self.rho * self.dx
+			self.z_old 		= np.copy(self.z)
+			self.dz 		= self.mass / self.rho * self.dx # new dz after compaction
 			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, before new snow added
 
 			if self.THist:

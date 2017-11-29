@@ -17,19 +17,19 @@ def plotter(rfolder,rfile):
 
 	timesteps = f['depth'][1:,0]
 
-	with open('/Users/maxstev/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Data/CVN_DATA/core_data_dict.pkl','rb') as ff:
-		d=pickle.load(ff)
+	# with open('/Users/maxstev/Documents/Grad_School/Research/FIRN/GREENLAND_CVN/Data/CVN_DATA/core_data_dict.pkl','rb') as ff:
+	# 	d=pickle.load(ff)
 
-	core = '2016_2'
-	cdepth = d[core]['depth']/100
-	cdensity = d[core]['density']
+	# core = '2016_2'
+	# cdepth = d[core]['depth']/100
+	# cdensity = d[core]['density']
 
 	depth = f['depth'][1:,1:]
 	density = f['density'][1:,1:]
 	temperature = f['temperature'][1:,1:]
 	# air = f['gasses'][:,1:]
 
-	jj=np.where(timesteps>=2015.4)[0][0]
+	jj=np.where(timesteps>=200.0)[0][0]
 
 	f1=plt.figure(1)
 	ax1 = f1.add_subplot(111)
@@ -72,13 +72,13 @@ def plotter(rfolder,rfile):
 		
 	# ap = (air[jj,1:]-1)*1000
 
-	# n_grid = np.arange(0,np.ceil(depth[0,-1]),0.1)
-	# ro,co = np.shape(temperature)
-	# t_interp = np.zeros((ro,len(n_grid)))
-	# # f_i = sp.interpolate.interp1d()
-	# for jj in range(ro):
-	# 	yy=np.interp(n_grid,depth[jj,:],temperature[jj,:])
-	# 	t_interp[jj,:]=yy
+	n_grid = np.arange(0,np.ceil(depth[0,-1]),0.1)
+	ro,co = np.shape(temperature)
+	t_interp = np.zeros((ro,len(n_grid)))
+	# f_i = sp.interpolate.interp1d()
+	for jj in range(ro):
+		yy=np.interp(n_grid,depth[jj,:],temperature[jj,:])
+		t_interp[jj,:]=yy
 
 	# t_plot1 = t_interp[:,0:1000]
 	# t_plot = t_plot1.T
@@ -105,7 +105,8 @@ def plotter(rfolder,rfile):
 
 if __name__ == '__main__':
 
-	rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/melt_test_kanu_KP'
+	rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/CFM_current_170208/melt_test_kanu_KP' #path to the results folder
+
 	# rfolder = '/Volumes/FirnSSD/CFMresults/melt_test_kanu_KP'
 
 	rfile = 'CFMresults.hdf5'
