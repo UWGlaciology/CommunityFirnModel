@@ -24,7 +24,7 @@ def heatDiff(self,iii):
 
 	nz_P 			= len(self.z)
 	nz_fv 			= nz_P - 2
-	nt 				= 10
+	nt 				= 1
 
 	z_edges_vec 	= self.z[1:-2] + self.dz[2:-1] / 2
 	z_edges_vec 	= np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))

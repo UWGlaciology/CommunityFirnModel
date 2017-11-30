@@ -146,8 +146,9 @@ class FirnDensityNoSpin:
 		### surface boundary conditions
 		### temperature, accumulation, melt, isotopes, surface density
 		###############################
-		int_type			= 'nearest'
-		print('Interpolation method is %s' %int_type)
+		int_type			= self.c['int_type']
+		print('Climate interpolation method is %s' %int_type)
+
 
 		### Temperature #####		
 		Tsf 				= interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
@@ -438,10 +439,9 @@ class FirnDensityNoSpin:
 				self.Hx 			= FirnPhysics(PhysParams).THistory()
 
 			if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt			   
-				self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation4(self,iii)
+				self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation_bucket(self,iii)
 			else: # no melt, dz after compaction
-				self.dzn 	= self.dz[0:self.compboxes] 
-
+				self.dzn 	= self.dz[0:self.compboxes]
 
 			### heat diffusion
 			if (self.c['heatDiff'] and not self.MELT): # no melt, so use regular heat diffusion
