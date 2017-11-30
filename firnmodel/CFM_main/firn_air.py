@@ -164,7 +164,11 @@ class FirnAir:
 		self.air_volume = self.por_op * self.dz
 		self.air_pressure = self.air_pressure_0 * self.air_volume_old / self.air_volume # assume air pressure is atmos in entire column
 
-		self.pressure_grad = np.gradient(air_pressure,self.dz) 
+		print('ap shape',np.shape(self.air_pressure))
+		print('dz shape',np.shape(self.dz))
+		input()
+
+		self.pressure_grad = np.gradient(self.air_pressure,self.dz) 
 
 		self.z_co = min(self.z[self.rho>=(self.bcoRho)]) #close-off depth; bcoRho is close off density
 		self.LIZ = min(self.z[self.rho>=(self.LIDRho)]) #lock in depth; LIDRho is lock-in density
