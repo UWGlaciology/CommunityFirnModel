@@ -70,19 +70,16 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 
 		##################
 		if airdict!=None: # gas diffusion takes a bit more physics
-			Gamma_Po    = Gamma_P * airdict['por_op'] #? not here
+			Gamma_Po    = Gamma_P * airdict['por_op']
 
 			Gamma_U 	= np.append(Gamma_Po[0], Gamma_Po[0: -1] )
 			Gamma_D 	= np.append(Gamma_Po[1:], Gamma_Po[-1])
-
 			Gamma_u 	=  1 / ((1 - f_u) / Gamma_Po + f_u / Gamma_U)
 			Gamma_d 	=  1 / ((1 - f_d) / Gamma_Po + f_d / Gamma_D)
 
 			d_eddy_P    = airdict['d_eddy'] * airdict['por_op']
-
 			d_eddy_U    = np.append(d_eddy_P[0], d_eddy_P[0:-1] )
 			d_eddy_D    = np.append(d_eddy_P[1:], d_eddy_P[-1])
-		
 			d_eddy_u    =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
 			d_eddy_d    =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
 			
@@ -94,30 +91,28 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 
 			elif airdict['gravity']=='on' and airdict['thermal']=='on':
 				dTdz    = np.gradient(airdict['Tz'])/airdict['dz']
-				S_C_0   = (Gamma_d-Gamma_u) * ((-airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) + (airdict['omega'] * dTdz)) / airdict['dz'] # Check thermal - should it still work in LIZ? if so use d_eddy+diffu
+				S_C_0   = (Gamma_d-Gamma_u) * ((-airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) + (airdict['omega'] * dTdz)) / airdict['dz'] # should thermal still work in LIZ? if so use d_eddy+diffu
 			
-			S_C         = S_C_0 * phi_t #this line might be the troublesome one! Should it be phi_0 instead?
+			S_C         = S_C_0 * phi_t # Should this be phi_0 instead?
 			b_0         = S_C * dZ
 
 			rho_interface = np.interp(z_edges_vec,Z_P,airdict['rho'])
 			
-			w_edges = w(airdict,z_edges_vec)
-			w_edges[z_edges_vec>airdict['z_co']] = 0.0
-			
+			w_edges = w(airdict,z_edges_vec) # advection term (upward relative motion due to porosity changing)
+			w_edges[z_edges_vec>airdict['z_co']] = 0.0			
 			w_u = np.append(w_edges[0], w_edges )
 			w_d = np.append(w_edges, w_edges[-1])
 			
-			D_u = ((Gamma_u+d_eddy_u) / dZ_u) #check signs
-			D_d = ((Gamma_d+d_eddy_d) / dZ_d)
-		 
+			D_u = ((Gamma_u+d_eddy_u) / dZ_u)
+			D_d = ((Gamma_d+d_eddy_d) / dZ_d)		 
 			F_u =  w_u * airdict['por_op']
 			F_d =  w_d * airdict['por_op']
 
 			# F_u = 0.0 * F_u 
 			# F_d = 0.0 * F_d 
 			
-			P_u = F_u/ D_u
-			P_d = F_d/ D_d
+			P_u = F_u / D_u
+			P_d = F_d / D_d
 			
 			a_U = D_u * A( P_u ) + F_upwind(  F_u )
 			a_D = D_d * A( P_d ) + F_upwind( -F_d )
@@ -150,33 +145,32 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			# a_P_0 = tot_rho * dZ / dt
 			# a_P_0 = RHO_I * c_firn * dZ / dt
 
-		S_P = 0.0
-		a_P =  a_U + a_D + a_P_0 - S_P*dZ
+		S_P 	= 0.0
+		a_P 	= a_U + a_D + a_P_0 - S_P*dZ
 
-		bc_u_0 = phi_s # need to pay attention for gas
+		bc_u_0 	= phi_s # need to pay attention for gas
 		bc_type = 1
-		bc_u   = np.concatenate(([ bc_u_0], [bc_type]))
+		bc_u   	= np.concatenate(([ bc_u_0], [bc_type]))
 
-		bc_d_0 = 0
+		bc_d_0 	= 0
 		bc_type = 2
-		bc_d   = np.concatenate(([ bc_d_0 ], [ bc_type ]))
-		b = b_0 + a_P_0 * phi_t
+		bc_d   	= np.concatenate(([ bc_d_0 ], [ bc_type ]))
+		b 		= b_0 + a_P_0 * phi_t
 
 		#Upper boundary
-		a_P[0] = 1
-		a_U[0] = 0
-		a_D[0] = 0
-		b[0] = bc_u[0]
+		a_P[0] 	= 1
+		a_U[0] 	= 0
+		a_D[0] 	= 0
+		b[0] 	= bc_u[0]
 
 		#Down boundary
 		a_P[-1] = 1
 		a_D[-1] = 0
 		a_U[-1] = 1
-		b[-1] = dZ_u[-1] * bc_d[0]
+		b[-1] 	= dZ_u[-1] * bc_d[0]
 
 		phi_t = solver(a_U, a_D, a_P, b)
 		a_P = a_U + a_D + a_P_0
-		# phi_s = phi_t[0]
 
 	return phi_t
 
@@ -192,7 +186,9 @@ def w(airdict,z_edges_vec): # Function for downward advection of air and also ca
 	# por_tot_interface=np.interp(z_edges_vec,z_nodes,airdict['por_tot'])
 	# por_cl_interface=np.interp(z_edges_vec,z_nodes,por_cl)
 	por_op_interface=np.interp(z_edges_vec,airdict['z'],airdict['por_op'])
+
 	dPdz = np.gradient(airdict['air_pressure'],airdict['dz'])
+
 	dPdz_interface=np.interp(z_edges_vec,airdict['z'],dPdz)
 	# teller_co=np.argmax(por_cl_interface)
 	# w_ice=Accu*rho_i/rho_interface #Check this - is there a better way?
@@ -205,10 +201,10 @@ def w(airdict,z_edges_vec): # Function for downward advection of air and also ca
 	visc = 1.5e-5 #kg m^-1 s^-1, dynamic viscosity
 
 	
-	flux = -1.0 * perm / visc * dPdz_interface
+	flux = 1.0 * perm / visc * dPdz_interface
 	w_ad = flux / airdict['dt']  / por_op_interface
 	# print(por_op_interface[np.where(z_edges_vec>43.0)[0][0]])
-	# print(w_ad[np.where(z_edges_vec>5.0)[0][0]])
+	# print(w_ad[np.where(z_edges_vec>60.0)[0][0]]*S_PER_YEAR)
 	return w_ad #, bubble_pres
 
 def A(P): # Power-law scheme, Patankar eq. 5.34

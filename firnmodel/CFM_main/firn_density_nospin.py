@@ -216,7 +216,7 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1928.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=1958.0)[0][0]
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
 		# self.TWrite     	= self.modeltime[0::self.c['TWriteInt']]
@@ -491,6 +491,9 @@ class FirnDensityNoSpin:
 				self.z 			= self.z - self.z[0] # shift so zero still on top
 				self.compaction	= (self.dz_old[0:self.compboxes]-self.dzn)#/self.dt*S_PER_YEAR
 
+			# i_zrate = np.where(self.z>=60)[0][0]
+			# zrate = self.z[i_zrate+1]-self.z[i_zrate]
+			# print(zrate)
 
 			### find the compaction rate
 			### this should all be old (11/28/17)
