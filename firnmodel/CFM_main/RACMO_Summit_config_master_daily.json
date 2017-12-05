@@ -1,7 +1,7 @@
 {
 "InputFileFolder": "",
-"InputFileNameTemp": "inputdata/RACMOinput/Summit/Summit_tskin_RACMO_daily.csv",
-"InputFileNamebdot": "inputdata/RACMOinput/Summit/Summit_smb_RACMO_daily.csv",
+"InputFileNameTemp": "inputdata/RACMOinput/Summit/Summit/Summit_tskin_RACMO_daily.csv",
+"InputFileNamebdot": "inputdata/RACMOinput/Summit/Summit/Summit_smb_RACMO_daily.csv",
 "InputFileNameIso": "example_isotope.csv",
 "InputFileNamerho": "example_rhos.csv",
 "InputFileNamemelt": "example_melt.csv",

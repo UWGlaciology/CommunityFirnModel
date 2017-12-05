@@ -216,13 +216,22 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1958.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=2015.0)[0][0]
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
 		# self.TWrite     	= self.modeltime[0::self.c['TWriteInt']]
 		# self.TWrite_out 	= self.TWrite
 		TWlen           	= len(self.TWrite) #- 1
 		self.WTracker 		= 1
+
+		Tind2 				= np.nonzero(self.modeltime>=1958.0)[0][0]
+		self.TWrite2     	= self.modeltime[Tind2::self.c['TWriteInt']]
+		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
+		# self.TWrite     	= self.modeltime[0::self.c['TWriteInt']]
+		# self.TWrite_out 	= self.TWrite
+		TWlen2           	= len(self.TWrite2) #- 1
+		self.WTracker2 		= 1
+
 		###############################
 
 		### set up initial mass, stress, and mean accumulation rate
@@ -373,9 +382,14 @@ class FirnDensityNoSpin:
 		####################################
 		##### START TIME-STEPPING LOOP #####
 		####################################
-		
+		printtimes = self.modeltime[0:-1:14610]
+
 		for iii in range(self.stp):
 			mtime = self.modeltime[iii]
+
+			if mtime in printtimes:
+				print('modeltime is', mtime)
+
 
 			### dictionary of the parameters that get passed to physics
 			PhysParams = {
@@ -549,6 +563,11 @@ class FirnDensityNoSpin:
 				if 'gasses' in self.output_list:
 					self.gas_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Gz)
 
+				self.WTracker = self.WTracker + 1
+
+			if mtime in self.TWrite2:				
+				ind 		= np.where(self.TWrite2 == mtime)[0][0]
+				mtime_plus1 = self.TWrite2[ind] 
 
 				bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
 				LIZAgeMart, LIZDepMart 							= self.update_LIZ()
@@ -562,7 +581,7 @@ class FirnDensityNoSpin:
 				if 'DIP' in self.output_list:
 					self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
 
-				self.WTracker = self.WTracker + 1
+				self.WTracker2 = self.WTracker2 + 1
 
 		##################################
 		##### END TIME-STEPPING LOOP #####
