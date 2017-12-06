@@ -31,7 +31,7 @@ cont = 'Greenland'
 
 datasource = 'RACMO'
 
-rootfolder = '/wd1/wrk/maxstev/CommunityFirnModel/firnmodel/CFM_main/Volumes/Samsung_T1/CFMresults'
+rootfolder = '/wd1/wrk/maxstev/CommunityFirnModel/firnmodel/CFM_main'
 
 writer = True
 
