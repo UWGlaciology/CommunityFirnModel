@@ -26,7 +26,7 @@
 "yearSpin": 20,
 "stpsPerYearSpin": 12.0,
 "H": 3000,
-"HbaseSpin": 2750.0,
+"HbaseSpin": 2800.0,
 "stpsPerYear": 12.0,
 "D_surf": 1.0,
 "bdot_type": "mean",
