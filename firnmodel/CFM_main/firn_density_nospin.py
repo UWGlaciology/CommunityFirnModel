@@ -198,8 +198,14 @@ class FirnDensityNoSpin:
  		### Surface Density #
 		try:
 			if self.c['variable_srho']:
-				input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
-				self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+				if self.c['srho_type']=='userinput':
+					input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
+					self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+				elif self.c['srho_type']=='param':
+					self.rhos0		= 481.0 + 4.834 * (self.Ts - T_MELT) # Kuipers Munneke, 2015
+				elif self.c['srho_type']=='noise':
+					rho_stdv 		= 25 # the standard deviation of the surface density (I made up 25)
+					self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
 			else:
 				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 				# rhostd = 50
@@ -327,8 +333,8 @@ class FirnDensityNoSpin:
 
 		### DIP, DHdt, LIZ, BCO ###
 		self.dHAll   									= []
-		bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
-		LIZAgeMart, LIZDepMart 							= self.update_LIZ()
+		bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
+		# LIZAgeMart, LIZDepMart 							= self.update_LIZ()
 		intPhi 											= self.update_DIP()
 		
 		self.dHAll.append(0)
@@ -338,12 +344,12 @@ class FirnDensityNoSpin:
 		if 'DIP' in self.output_list:
 			self.DIP_out 		= np.zeros((TWlen+1,4),dtype='float32')   
 			self.DIP_out[0,:]	= np.append(self.modeltime[0], [intPhi, dHOut, dHOutC])
-		if 'LIZ' in self.output_list:
-			self.LIZ_out 		= np.zeros((TWlen+1,3),dtype='float32')
-			self.LIZ_out[0,:]	= np.append(self.modeltime[0], [LIZAgeMart, LIZDepMart])
+		# if 'LIZ' in self.output_list:
+			# self.LIZ_out 		= np.zeros((TWlen+1,3),dtype='float32')
+			# self.LIZ_out[0,:]	= np.append(self.modeltime[0], [LIZAgeMart, LIZDepMart])
 		if 'BCO' in self.output_list:
-			self.BCO_out 		= np.zeros((TWlen+1,5),dtype='float32')
-			self.BCO_out[0,:]	= np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
+			self.BCO_out 		= np.zeros((TWlen+1,9),dtype='float32')
+			self.BCO_out[0,:]	= np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
 		#####################
 
 		##### Firn Air ######
@@ -550,15 +556,15 @@ class FirnDensityNoSpin:
 					self.gas_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Gz)
 
 
-				bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
-				LIZAgeMart, LIZDepMart 							= self.update_LIZ()
+				bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
+				# LIZAgeMart, LIZDepMart 							= self.update_LIZ()
 				intPhi 											= self.update_DIP()
 				dH, dHtot 										= self.update_dH()
 
 				if 'BCO' in self.output_list:
-					self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815])
-				if 'LIZ' in self.output_list:
-					self.LIZ_out[self.WTracker,:]       = np.append(mtime_plus1, [LIZAgeMart, LIZDepMart])
+					self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
+				# if 'LIZ' in self.output_list:
+					# self.LIZ_out[self.WTracker,:]       = np.append(mtime_plus1, [LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
 				if 'DIP' in self.output_list:
 					self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
 
@@ -582,43 +588,59 @@ class FirnDensityNoSpin:
 			bcoMartRho 	= 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
 			bcoAgeMart 	= min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
 			bcoDepMart 	= min(self.z[self.rho >= (bcoMartRho)])
-			# self.bcoAgeMartAll.append(bcoAgeMart)  # age at the 815 density horizon
-			# self.bcoDepMartAll.append(bcoDepMart)  # this is the 815 close off depth
 
 			# bubble close-off age and depth assuming rho_crit = 815kg/m^3
+			bcoAge830 	= min(self.age[self.rho >= 830.0]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+			bcoDep830 	= min(self.z[self.rho >= 830.0])
 			bcoAge815 	= min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
 			bcoDep815 	= min(self.z[self.rho >= (RHO_2)])
-			# self.bcoAge815All.append(bcoAge815)  # age at the 815 density horizon
-			# self.bcoDep815All.append(bcoDep815)  # this is the 815 close off depth
+
+			bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+			LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
+			LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
+			LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
+
 		except:
 			
 			bcoAgeMart 	= -9999
 			bcoDepMart 	= -9999
+			bcoAge830 	= -9999
+			bcoDep830 	= -9999
+
+			LIZDepMart = -9999
+			LIZAgeMart = -9999
 			bcoAge815 	= -9999
 			bcoDep815 	= -9999
 
 			
-		return bcoAgeMart, bcoDepMart, bcoAge815, bcoDep815
+		return bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815
 
 	### end update_BCO ########
 	###########################
 
-	def update_LIZ(self):
-		'''
-		Updates the lock-in zone depth and age
-		'''
-		try:
-			bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
-			LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
-			self.LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
-			self.LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
-			# self.LIZAgeAll.append(self.LIZAgeMart)
-			# self.LIZDepAll.append(self.LIZDepMart)
-		except:
-			self.LIZDepMart = -9999
-			self.LIZAgeMart = -9999
+	# def update_LIZ(self):
+	# 	'''
+	# 	Updates the lock-in zone depth and age
+	# 	'''
+	# 	try:
+	# 		bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+	# 		LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
+	# 		self.LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
+	# 		self.LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
+	# 		# self.LIZAgeAll.append(self.LIZAgeMart)
+	# 		# self.LIZDepAll.append(self.LIZDepMart)
 
-		return self.LIZAgeMart, self.LIZDepMart
+	# 		# bubble close-off age and depth assuming rho_crit = 815kg/m^3
+	# 		bcoAge815 	= min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+	# 		bcoDep815 	= min(self.z[self.rho >= (RHO_2)])
+
+	# 	except:
+	# 		LIZDepMart = -9999
+	# 		LIZAgeMart = -9999
+	# 		bcoAge815 	= -9999
+	# 		bcoDep815 	= -9999
+
+	# 	return LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815
 
 	### end update_LIZ ########
 	###########################
