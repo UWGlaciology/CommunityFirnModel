@@ -20,8 +20,8 @@
 "calcGrainSize": false,
 "heatDiff": true,
 "variable_srho": true,
-"srho_type": "param"
-"srho_type_options": ["param","noise"]
+"srho_type": "param",
+"srho_type_options": ["param","noise"],
 "rhos0": 350.0,
 "r2s0": 1.0e-8,
 "AutoSpinUpTime": false,
