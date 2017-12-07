@@ -37,7 +37,7 @@
 "spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "compaction","DIP","BCO","temperature"],
+"outputs": ["density", "depth", "compaction","DIP","BCO","temperature","age"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5"
