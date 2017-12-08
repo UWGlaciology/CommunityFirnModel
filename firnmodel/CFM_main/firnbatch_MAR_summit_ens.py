@@ -33,8 +33,8 @@ data = json.load(jsonFile)
 jsonFile.close()
 
 re="MARresults_ens_all/r" + nn + "/" + mm #results folder
-tein="MARinputdata/Summit_tskin_MAR_" + nn + ".csv"
-smbin="MARinputdata/Summit_smb_MAR_" + nn + ".csv"
+tein="inputdata/MARinputdata/Summit_tskin_MAR_" + nn + ".csv"
+smbin="inputdata/MARinputdata/Summit_smb_MAR_" + nn + ".csv"
 
 #     tmp = data["physRho"]
 data["physRho"] = mm
