@@ -138,8 +138,9 @@ class FirnDensitySpin:
 		self.Ts         = self.temp0 * np.ones(self.stp)
 		# self.T_mean     = np.mean(self.Ts) # MS 3/7/17: is this what we want?
 		# self.T_mean     = np.mean(self.Tz[self.z<50])
-		if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp', including coreless winter (Orsi)
-			self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
+		if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
+			# self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp ))) #Orsi, coreless winter
+			self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) # This is basic for Greenland (for Antarctica the it should be a plus instead of minus)
 
 		### initial temperature profile
 		# init_Tz 		= input_temp[0] * np.ones(self.gridLen)
