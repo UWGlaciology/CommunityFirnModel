@@ -156,7 +156,7 @@ class FirnDensityNoSpin:
 		# self.T_mean     	= np.mean(self.Ts)
 		if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
 			# self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp))) # Orsi
-			self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) # This is basic for Greenland (for Antarctica the it should be a plus instead of minus)
+			self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Greenland (for Antarctica the it should be a plus instead of minus)
 		#####################
 
 		### Accumulation ####
