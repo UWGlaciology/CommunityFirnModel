@@ -223,13 +223,21 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1958.0)[0][0]
-		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
+		# Tind 				= np.nonzero(self.modeltime>=2015.0)[0][0]
+		# self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
-		# self.TWrite     	= self.modeltime[0::self.c['TWriteInt']]
+		self.TWrite     	= self.modeltime[-2::self.c['TWriteInt']]
 		# self.TWrite_out 	= self.TWrite
 		TWlen           	= len(self.TWrite) #- 1
 		self.WTracker 		= 1
+
+		# Tind2 				= np.nonzero(self.modeltime>=1958.0)[0][0]
+		# self.TWrite2     	= self.modeltime[Tind2::self.c['TWriteInt']]
+		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
+		self.TWrite2     	= self.modeltime[0::self.c['TWriteInt']]
+		# self.TWrite_out 	= self.TWrite
+		TWlen2           	= len(self.TWrite2) #- 1
+		self.WTracker2 		= 1
 		###############################
 
 		### set up initial mass, stress, and mean accumulation rate
@@ -343,13 +351,13 @@ class FirnDensityNoSpin:
 		dHOutC 	= 0 # cumulative surface elevation change since start of model run
 
 		if 'DIP' in self.output_list:
-			self.DIP_out 		= np.zeros((TWlen+1,4),dtype='float32')   
+			self.DIP_out 		= np.zeros((TWlen2+1,4),dtype='float32')   
 			self.DIP_out[0,:]	= np.append(self.modeltime[0], [intPhi, dHOut, dHOutC])
 		# if 'LIZ' in self.output_list:
 			# self.LIZ_out 		= np.zeros((TWlen+1,3),dtype='float32')
 			# self.LIZ_out[0,:]	= np.append(self.modeltime[0], [LIZAgeMart, LIZDepMart])
 		if 'BCO' in self.output_list:
-			self.BCO_out 		= np.zeros((TWlen+1,9),dtype='float32')
+			self.BCO_out 		= np.zeros((TWlen2+1,9),dtype='float32')
 			self.BCO_out[0,:]	= np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
 		#####################
 
@@ -556,6 +564,11 @@ class FirnDensityNoSpin:
 				if 'gasses' in self.output_list:
 					self.gas_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Gz)
 
+				self.WTracker = self.WTracker + 1
+
+			if mtime in self.TWrite2:				
+				ind 		= np.where(self.TWrite2 == mtime)[0][0]
+				mtime_plus1 = self.TWrite2[ind] 
 
 				bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
 				# LIZAgeMart, LIZDepMart 							= self.update_LIZ()
@@ -563,13 +576,13 @@ class FirnDensityNoSpin:
 				dH, dHtot 										= self.update_dH()
 
 				if 'BCO' in self.output_list:
-					self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
+					self.BCO_out[self.WTracker2,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
 				# if 'LIZ' in self.output_list:
 					# self.LIZ_out[self.WTracker,:]       = np.append(mtime_plus1, [LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
 				if 'DIP' in self.output_list:
-					self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
+					self.DIP_out[self.WTracker2,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
 
-				self.WTracker = self.WTracker + 1
+				self.WTracker2 = self.WTracker2 + 1
 
 		##################################
 		##### END TIME-STEPPING LOOP #####
