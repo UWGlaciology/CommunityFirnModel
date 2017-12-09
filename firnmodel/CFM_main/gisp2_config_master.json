@@ -1,7 +1,7 @@
 {
 "InputFileFolder": "",
 "InputFileNameTemp": "inputdata/gisp2input/GISP2temp.csv",
-"InputFileNamebdot": "inputdata/gisp2input/GSIP2bdot.csv",
+"InputFileNamebdot": "inputdata/gisp2input/GISP2bdot.csv",
 "InputFileNameIso": "example_isotope.csv",
 "InputFileNamerho": "example_rhos.csv",
 "InputFileNamemelt": "example_melt.csv",
