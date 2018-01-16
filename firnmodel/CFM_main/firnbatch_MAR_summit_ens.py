@@ -32,7 +32,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re="MARresults_ens_all/r" + nn + "/" + mm #results folder
+re="/Volumes/FirnSSD/CFMresults/MARresults_ens_all/r" + nn + "/" + mm #results folder
 tein="inputdata/MARinput/Summit/Summit_tskin_MAR_" + nn + ".csv"
 smbin="inputdata/MARinput/Summit/Summit_smb_MAR_" + nn + ".csv"
 

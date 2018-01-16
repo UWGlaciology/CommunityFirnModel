@@ -37,6 +37,7 @@ class FirnAir:
 		self.p_a 			= 1.0e5
 		# self.air_pressure 	= self.p_a * np.ones_like(z)
 		self.air_pressure 	= self.p_a * np.exp(self.M_air*GRAVITY*z/(R*self.Tz))
+		self.air_pressure_base = np.copy(self.air_pressure)
 		# self.air_pressure_0 = np.copy(self.air_pressure)
 
 		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity()
@@ -137,9 +138,9 @@ class FirnAir:
 		return self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho
 
 
-	def firn_air_diffusion(self,PhysParams,iii):
+	def firn_air_diffusion(self,AirParams,iii):
 
-		for k,v in list(PhysParams.items()):
+		for k,v in list(AirParams.items()):
 			setattr(self,k,v)
 
 		nz_P 		= len(self.z)
@@ -158,11 +159,24 @@ class FirnAir:
 
 		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity() #self.rho, self.Tz
 		
-		self.air_pressure_old 	= np.copy(self.air_pressure)
-		self.air_volume_old 	= np.copy(self.air_volume)
+		# self.air_pressure_old 	= np.copy(self.air_pressure)
+		porosity_old			= (RHO_I-self.rho_old)/RHO_I
+
+		por_co 				= 1 - self.rho_co/RHO_I # Porosity at close-off
+		alpha 				= 0.37 # constant determined in Goujon
+		por_cl 				= alpha*porosity_old*(porosity_old/por_co)**(-7.6)
+		ind 				= por_cl>porosity_old
+		por_cl[ind] 		= porosity_old[ind]
+		por_op_old 			= porosity_old - por_cl # Open Porosity
+
+
+		self.air_volume_old		= por_op_old * self.dz_old
+		# self.air_volume_old 	= np.copy(self.air_volume)
 
 		self.air_volume 		= self.por_op * self.dz
-		self.air_pressure 		= (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) * self.air_volume_old / self.air_volume # assume air pressure is atmos in entire column
+		volfrac = self.air_volume_old / self.air_volume
+		# volfrac = np.concatenate(([volfrac[0]],volfrac))
+		self.air_pressure 		= (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) * volfrac - (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) # assume air pressure is atmos in entire column
 
 		# print('ap shape',np.shape(self.air_pressure))
 		# print('dz shape',np.shape(self.dz))
@@ -188,13 +202,19 @@ class FirnAir:
 			'pressure_grad':	self.pressure_grad,
 			'z': 				self.z, 
 			'dt': 				self.dt,
-			'z_co': 			self.z_co
+			'z_co': 			self.z_co,
+			'M_air':			self.M_air
 			}
 
-		self.Gz = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
+		msk = np.where(self.z>self.z_co)[0][0]
+		# volfrac = self.air_volume_old/self.air_volume
+		# print(self.air_pressure[msk-10:msk+1])
+		# print(volfrac[msk-10:msk+1])
+		# print(self.z[msk-10:msk+1])
+		self.Gz, w_p = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 		
-		return self.Gz
+		return self.Gz, self.diffu, w_p
 
 def gasses(gaschoice, T, p_a, M_air):
 	

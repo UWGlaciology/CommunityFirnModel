@@ -99,13 +99,14 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			rho_interface = np.interp(z_edges_vec,Z_P,airdict['rho'])
 			
 			w_edges = w(airdict,z_edges_vec) # advection term (upward relative motion due to porosity changing)
+			w_p = np.interp(Z_P,z_edges_vec,w_edges) # Units m/s
 			w_edges[z_edges_vec>airdict['z_co']] = 0.0			
 			w_u = np.append(w_edges[0], w_edges )
 			w_d = np.append(w_edges, w_edges[-1])
 			
-			D_u = ((Gamma_u+d_eddy_u) / dZ_u)
+			D_u = ((Gamma_u+d_eddy_u) / dZ_u) # Units m/s
 			D_d = ((Gamma_d+d_eddy_d) / dZ_d)		 
-			F_u =  w_u * airdict['por_op']
+			F_u =  w_u * airdict['por_op'] # Units m/s
 			F_d =  w_d * airdict['por_op']
 
 			# F_u = 0.0 * F_u 
@@ -120,7 +121,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			# a_U = D_u # 8/14/17: use this for now - check on Lagrangian need for upwinding.
 			# a_D = D_d 
 		
-			a_P_0 = airdict['por_op'] * dZ/dt
+			a_P_0 = airdict['por_op'] * dZ / dt
 		#######################################
 
 		else: #just for heat, isotope diffusion
@@ -172,7 +173,10 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 		phi_t = solver(a_U, a_D, a_P, b)
 		a_P = a_U + a_D + a_P_0
 
-	return phi_t
+	if airdict!=None:
+		return phi_t, w_p
+	else:
+		return phi_t
 
 '''
 Functions below are for firn air
@@ -186,23 +190,30 @@ def w(airdict,z_edges_vec): # Function for downward advection of air and also ca
 	# por_tot_interface=np.interp(z_edges_vec,z_nodes,airdict['por_tot'])
 	# por_cl_interface=np.interp(z_edges_vec,z_nodes,por_cl)
 	por_op_interface=np.interp(z_edges_vec,airdict['z'],airdict['por_op'])
+	T_interfcace = np.interp(z_edges_vec,airdict['z'],airdict['Tz'])
 
-	dPdz = np.gradient(airdict['air_pressure'],airdict['dz'])
+	p_star = por_op_interface * np.exp(airdict['M_air'] *GRAVITY*z_edges_vec/(R*T_interfcace))
+	# dPdz = np.gradient(airdict['air_pressure'],airdict['dz'])
+	dPdz = np.gradient(airdict['air_pressure'],airdict['z'])
+	# print(dPdz[0:10])
 
 	dPdz_interface=np.interp(z_edges_vec,airdict['z'],dPdz)
 	# teller_co=np.argmax(por_cl_interface)
 	# w_ice=Accu*rho_i/rho_interface #Check this - is there a better way?
 	# w_ice=1*w_ice
-	
-	# elif ad_method = 'UW':
-	perm = 10.0**(-7.29) * por_op_interface**3.71 # Adolph and Albert, 2014, eq. 5
-	# print('perm',perm[100])
 
-	visc = 1.5e-5 #kg m^-1 s^-1, dynamic viscosity
+	# perm = 10.0**(-7.29) * por_op_interface**3.71 # Adolph and Albert, 2014, eq. 5, units m^2
+	# perm = 10.0**(-7.7) * por_op_interface**3.4 #Freitag, 2002 
+	perm = 10.0**(-7.7) * p_star**3.4 #Freitag, 2002 
 
+	visc = 1.5e-5 #kg m^-1 s^-1, dynamic viscosity, source?
+	# visc = 1.5
+
+	flux = -1.0 * perm / visc * dPdz_interface # units m/s
+	# w_ad = flux / airdict['dt']  / por_op_interface # where did I get this?
+	w_ad = flux / p_star #*1.0e-5 #
+	w_ad = 0 * w_ad
 	
-	flux = 1.0 * perm / visc * dPdz_interface
-	w_ad = flux / airdict['dt']  / por_op_interface
 	# print(por_op_interface[np.where(z_edges_vec>43.0)[0][0]])
 	# print(w_ad[np.where(z_edges_vec>60.0)[0][0]]*S_PER_YEAR)
 	return w_ad #, bubble_pres

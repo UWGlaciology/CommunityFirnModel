@@ -25,6 +25,9 @@ def write_nospin_hdf5(self):
         f4.create_dataset('compaction_rate', data=self.crate_out)
     if 'gasses' in self.output_list:       
         f4.create_dataset('gasses', data=self.gas_out)
+        f4.create_dataset('diffusivity', data=self.diffu_out)
+        f4.create_dataset('w_air', data=self.w_air_out)
+        f4.create_dataset('w_firn', data=self.w_firn_out)
     if 'grainsize' in self.output_list:
         f4.create_dataset('r2',data=self.r2_out)
     if 'temp_Hx' in self.output_list:    
@@ -34,7 +37,8 @@ def write_nospin_hdf5(self):
     if 'LWC' in self.output_list:
         f4.create_dataset('LWC',data=self.LWC_out)
     if 'DIP' in self.output_list:
-        f4.create_dataset('DIP',data = self.DIP_out)  
+        f4.create_dataset('DIP',data = self.DIP_out)
+        f4.create_dataset('DIPc', data = self.DIPc_out)
     if 'BCO' in self.output_list:
         f4.create_dataset('BCO',data = self.BCO_out) 
     if 'LIZ' in self.output_list:
@@ -42,7 +46,7 @@ def write_nospin_hdf5(self):
 
     f4.close()
 
-def write_spin_hdf5(folder, spinFileName, physGrain, THist, isoDiff, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time):
+def write_spin_hdf5(folder, spinFileName, physGrain, THist, isoDiff, doublegrid, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time, grid_time):
 
     f5 = h5py.File(os.path.join(folder, spinFileName), 'w')
 
@@ -56,4 +60,6 @@ def write_spin_hdf5(folder, spinFileName, physGrain, THist, isoDiff, rho_time, T
         f5.create_dataset('HxSpin', data = Hx_time)
     if isoDiff:
         f5.create_dataset('IsoSpin', data = iso_time)
+    if doublegrid:
+        f5.create_dataset('gridSpin', data = grid_time)
     f5.close()

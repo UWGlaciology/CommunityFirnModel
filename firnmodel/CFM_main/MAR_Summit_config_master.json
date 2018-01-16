@@ -36,7 +36,7 @@
 "isoDiff": false,
 "iso": "NoDiffusion",
 "_isoOptions":["18","D","NoDiffusion"],
-"spacewriteint": 2,
+"spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
 "outputs": ["density", "depth", "compaction","DIP","BCO","temperature","age"],
