@@ -1,10 +1,7 @@
-# from diffusion import Diffusion
 from diffusion import heatDiff
 from diffusion import isoDiff
 from hl_analytic import hl_analytic
-# from reader import read_temp
 from reader import read_input
-# from writer import write_spin
 from writer import write_spin_hdf5
 from physics import *
 from constants import *
@@ -15,10 +12,10 @@ import sys
 import math
 from shutil import rmtree
 import os
-# from string import join
 import shutil
 import time
 import h5py
+from regrid import *
 
 class FirnDensitySpin:
 	'''
@@ -85,12 +82,14 @@ class FirnDensitySpin:
 		if input_temp[0] < 0.0:
 			input_temp 				= input_temp + K_TO_C
 		self.temp0 					= np.mean(input_temp) #Make sure that this is what we want!
+		# self.temp0					= input_temp[0]
 		# self.temp0 = 270.0
 		# self.temp0 = mean(input_temp[0:12]) #Make sure that this is what we want!
 
 		### accumulation rate
 		input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 		self.bdot0 					= np.mean(input_bdot) #Make sure that this is what we want!
+		# self.bdot0 					= input_bdot[0]
 		
 		### could include others, e.g. surface density
 		############################
@@ -104,7 +103,20 @@ class FirnDensitySpin:
 		self.dz         = np.diff(self.z) 
 		self.dz         = np.append(self.dz, self.dz[-1])
 		self.dx         = np.ones(self.gridLen)
+		print('Grid length is', self.gridLen)
 		############################
+
+		############################
+		### if the regridding module is being used, do the
+		### initial regridding
+		############################
+		try:
+			if self.c['doublegrid']:
+				self.doublegrid = self.c['doublegrid']
+				self.nodestocombine, self.z, self.dz, self.gridLen, self.dx, self.gridtrack = init_regrid(self)
+		except:
+			self.doublegrid = False
+			print('you should add "doublegrid" to the json')
 
 		############################
 		### get an initial depth/density profile based on H&L analytic solution
@@ -136,10 +148,9 @@ class FirnDensitySpin:
 		############################
 		### Surface temperature for each time step
 		self.Ts         = self.temp0 * np.ones(self.stp)
-		# self.T_mean     = np.mean(self.Ts) # MS 3/7/17: is this what we want?
-		# self.T_mean     = np.mean(self.Tz[self.z<50])
-		if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp', including coreless winter (Orsi)
-			self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
+		if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
+			# self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp ))) #Orsi, coreless winter
+			self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Greenland (for Antarctica the it should be a plus instead of minus)
 
 		### initial temperature profile
 		# init_Tz 		= input_temp[0] * np.ones(self.gridLen)
@@ -190,8 +201,9 @@ class FirnDensitySpin:
 		### initial grain growth (if specified in config file)
 		if self.c['physGrain']:
 			if self.c['calcGrainSize']:
-				r02     = -2.42e-9 * (self.Ts) + 9.46e-7 # where does this equation come from?
+				r02     = -2.42e-9 * (np.mean(self.Ts)) + 9.46e-7 # where does this equation come from?
 				self.r2 = r02 * np.ones(self.gridLen)
+
 			else:
 				self.r2 = np.linspace(self.c['r2s0'], (6 * self.c['r2s0']), self.gridLen)
 		else:
@@ -205,6 +217,7 @@ class FirnDensitySpin:
 		else:
 			self.THist 	= False
 
+		self.LWC = np.zeros_like(self.z)
 	############################
 	##### END INIT #############
 	############################
@@ -305,10 +318,15 @@ class FirnDensitySpin:
 			self.sigma 		= self.sigma.cumsum(axis = 0)
 			self.mass_sum  	= self.mass.cumsum(axis = 0)
 			self.bdot_mean 	= (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
-
+				
 			# update grain radius
 			if self.c['physGrain']:
 				self.r2 	= FirnPhysics(PhysParams).grainGrowth()
+
+			if self.doublegrid:
+				self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
+				if self.gridtrack[-1]==2:
+					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack = regrid(self)
 
 			# write results at the end of the time evolution
 			if (iii == (self.stp - 1)):
@@ -331,7 +349,12 @@ class FirnDensitySpin:
 				else:
 					iso_time    = None
 
-				write_spin_hdf5(self.c['resultsFolder'], self.c['spinFileName'], self.c['physGrain'], self.THist, self.c['isoDiff'], rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time)
+				if self.doublegrid:
+					grid_time	= np.concatenate(([self.t * iii + 1], self.gridtrack))
+				else:
+					grid_time 	= None
+
+				write_spin_hdf5(self.c['resultsFolder'], self.c['spinFileName'], self.c['physGrain'], self.THist, self.c['isoDiff'], self.doublegrid, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time, grid_time)
 
 			####################################
 			##### END TIME-STEPPING LOOP #####

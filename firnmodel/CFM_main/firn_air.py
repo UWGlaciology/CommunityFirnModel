@@ -7,6 +7,7 @@ from reader import read_input
 import json
 import scipy.interpolate as interpolate
 from constants import *
+import os
 
 class FirnAir:
 	def __init__(self,AirconfigName,input_year_gas,z,modeltime,Tz, rho, dz):
@@ -22,17 +23,26 @@ class FirnAir:
 
 		# self.gaschoice = self.cg["gaschoice"]
 		# input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
-		input_gas = np.ones_like(input_year_gas)
-		Gsf = interpolate.interp1d(input_year_gas,input_gas,'nearest',fill_value='extrapolate')
-		self.Gs = Gsf(modeltime)
-		self.Gz	= self.Gs[0]*np.ones_like(z)
+		input_gas 			= np.ones_like(input_year_gas)
+		Gsf			 		= interpolate.interp1d(input_year_gas,input_gas,'nearest',fill_value='extrapolate')
+		self.Gs 			= Gsf(modeltime)
+		self.Gz				= self.Gs[0]*np.ones_like(z)
+		self.Tz 			= Tz
+		self.rho 			= rho
+		self.M_air 			= 28.97e-3 #kg/mol
+
+		self.gam_x, self.M, self.deltaM, self.d_0, self.omega = gasses(self.cg['gaschoice'], Tz[0], P_0, self.M_air)
+
+		self.czd 			= self.cg['ConvectiveZoneDepth']
+		self.p_a 			= 1.0e5
+		# self.air_pressure 	= self.p_a * np.ones_like(z)
+		self.air_pressure 	= self.p_a * np.exp(self.M_air*GRAVITY*z/(R*self.Tz))
+		self.air_pressure_base = np.copy(self.air_pressure)
+		# self.air_pressure_0 = np.copy(self.air_pressure)
+
+		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity()
 		
-		self.gam_x, self.M, self.deltaM, self.d_0, self.omega = gasses(self.cg['gaschoice'], Tz[0], P_0)
-		self.czd = 4.0
-		self.p_a = 1.0e5
-		self.air_pressure = self.p_a * np.ones_like(z)
-		self.air_pressure_0 = np.copy(self.air_pressure)
-		self.air_volume = (1 - rho / RHO_I) * dz
+		self.air_volume 	= self.por_op * dz
 
 	def diffusivity(self):
 
@@ -43,7 +53,6 @@ class FirnAir:
 		'''
 		## Constants
 		d_eddy_sc	= self.d_0 #Eddy diffusivity in the convective zone
-
 		d_ind		= np.min(np.where(self.z>self.z_co)) #indices of nodes past close-off depth
 		
 		##### Parameterizations for diffusivity #####
@@ -71,139 +80,148 @@ class FirnAir:
 			
 		elif self.cg['Diffu_param']=="Witrant":    ### Use Witrant, 2012
 			diffu_full = self.gam_x * self.d_0 * (2.5 * self.por_op - 0.31) * (self.Tz / 273.15)**(1.8) * P_0 / self.p_a
+
+		elif self.cg['Diffu_param']=="Christo":
+			pp 				= "/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/gasmodel/DataImport"
+			diffu_data 		= np.loadtxt(os.path.join(pp,'c_diffu_NEEM.txt'))
+			h 				= diffu_data[:,0]
+			diffu_full_data = self.gam_x*self.d_0*diffu_data[:,1]
+
+			diffu_full 		= np.interp(self.z,h,diffu_full_data)
 		
 		diffu_full[diffu_full<0] = 1.e-40
-				  		
-		###### Add in high diffusivity in convective zone and low diffusivity below LIZ
-		
-		###Convective zone###
+						
+		###### Add in high diffusivity in convective zone and low diffusivity below LIZ		
+		### Convective zone###
 		d_eddy 			= np.zeros(np.size(diffu_full))
 		ind 			= np.nonzero(self.z<self.czd)
 		d_eddy_surf		= 2.426405E-5 #Kawamura, 2006
 		# H_scale 		= czd
 		d_eddy_up 		= d_eddy_surf * np.exp(-1*self.z/self.czd)
 		
-		#### Lock-in zone physics###
+		#### Lock-in zone physics ###
 		if self.cg['lockin']:
 			ind 			= np.flatnonzero(self.z>self.LIZ)
 			ind2 			= np.flatnonzero(self.z<self.z_co)
 			ind3 			= np.intersect1d(ind,ind2)
-			d_eddy[ind3] 	= diffu_full[ind] #set eddy diffusivity in LIZ equal to diffusivity at LIZ
-			diffu_full[ind]	= 1e-40 #set molecular diffusivity equal to zero for "main" diffusivity after LIZ - eddy diffusivity term drives diffusion below
+			d_eddy[ind3] 	= diffu_full[ind3] 		# set eddy diffusivity in LIZ equal to diffusivity at LIZ
+			diffu_full[ind]	= 1e-40 				# set molecular diffusivity equal to zero for "main" diffusivity after LIZ - eddy diffusivity term drives diffusion below
 			d_eddy 			= d_eddy + d_eddy_up #make eddy diffusivity vector have convective and lock-in zone values
 			
 		else:
-			diffu_full[np.flatnonzero(self.z>self.z_co)] = 1.0e-40
+			# diffu_full[np.flatnonzero(self.z>self.z_co)] = 1.0e-40
 			d_eddy 			= d_eddy_up #eddy diffusivity includes only convective zone
 		 
 		diffu=diffu_full
-
-		
-		# dd={}
-		# dd['Fre']=diffu_full_fre
-		# dd['Sev']=diffu_full_sev
-		# dd['Sch']=diffu_full_sch
-		# dd['Wit']=diffu_full_wit
-		# dd['data']=diffu_full_data
-		# dd['eddy']=d_eddy
-		# dd['porop']=por_op
-		# dd['porcl']=por_cl
-		# dd['portot']=por_tot  
 		
 		return diffu , d_eddy #, dd
 
 	def porosity(self): #,rho,T
 		
-		self.bcoRho = 1/( 1/(RHO_I) + self.Tz[100]*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
-		self.LIDRho = self.bcoRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)
-		## Porosity, from Goujon et al., 2003, equations 9 and 10
-		self.por_tot = 1-self.rho/RHO_I # Total porosity
+		self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[100]*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+		self.LIDRho 		= self.bcoRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)
 
-		# rho_co = 910.0
-		self.rho_co = self.bcoRho #use Martinerie close-off criteria
-		#rho_co = 0.815 # User chosen close off-density (put in site-specific in sites?)
+		### Porosity, from Goujon et al., 2003, equations 9 and 10
+		self.por_tot 		= 1-self.rho/RHO_I # Total porosity
+		self.rho_co 		= self.bcoRho #use Martinerie close-off criteria
+		#rho_co 			= 0.815 # User chosen close off-density (put in site-specific in sites?)
 
-		self.por_co = 1 - self.rho_co/RHO_I # Porosity at close-off
-		alpha = 0.37 # constant determined in Goujon
-		self.por_cl = alpha*self.por_tot*(self.por_tot/self.por_co)**(-7.6)
-		ind=self.por_cl>self.por_tot
-		self.por_cl[ind]=self.por_tot[ind]
-		
-		#por_cl[por_cl>1]=1
-		#por_cl = por_cl*por_tot # Final closed porosity
-		self.por_op = self.por_tot - self.por_cl # Open Porosity
+		self.por_co 		= 1 - self.rho_co/RHO_I # Porosity at close-off
+		alpha 				= 0.37 # constant determined in Goujon
+		self.por_cl 		= alpha*self.por_tot*(self.por_tot/self.por_co)**(-7.6)
+		ind 				= self.por_cl>self.por_tot
+		self.por_cl[ind] 	= self.por_tot[ind]
+		self.por_op 		= self.por_tot - self.por_cl # Open Porosity
+
 		self.por_op[self.por_op<=0] = 1.0e-25
 		
 		return self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho
 
 
-	def firn_air_diffusion(self,PhysParams,iii):
+	def firn_air_diffusion(self,AirParams,iii):
 
-		for k,v in list(PhysParams.items()):
+		for k,v in list(AirParams.items()):
 			setattr(self,k,v)
 
-		nz_P = len(self.z)
-		nz_fv = nz_P - 2
-		nt = 1
+		nz_P 		= len(self.z)
+		nz_fv 		= nz_P - 2
+		nt 			= 1
 
 		z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
 		z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
-		z_P_vec = self.z
-		# phi_s = self.Ts[iii]
-		phi_s = self.Gz[0]
-		phi_0 = self.Gz
+		z_P_vec 	= self.z
+		# phi_s 	= self.Ts[iii]
+		phi_s 		= self.Gz[0]
+		phi_0 		= self.Gz
 
-		# K_ice = 9.828 * np.exp(-0.0057 * phi_0)
-		# K_firn = K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+		# K_ice 	= 9.828 * np.exp(-0.0057 * phi_0)
+		# K_firn 	= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+
 		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity() #self.rho, self.Tz
-
 		
-		self.air_pressure_old = np.copy(self.air_pressure)
-		self.air_volume_old = np.copy(self.air_volume)
+		# self.air_pressure_old 	= np.copy(self.air_pressure)
+		porosity_old			= (RHO_I-self.rho_old)/RHO_I
 
-		self.air_volume = self.por_op * self.dz
-		self.air_pressure = self.air_pressure_0 * self.air_volume_old / self.air_volume # assume air pressure is atmos in entire column
+		por_co 				= 1 - self.rho_co/RHO_I # Porosity at close-off
+		alpha 				= 0.37 # constant determined in Goujon
+		por_cl 				= alpha*porosity_old*(porosity_old/por_co)**(-7.6)
+		ind 				= por_cl>porosity_old
+		por_cl[ind] 		= porosity_old[ind]
+		por_op_old 			= porosity_old - por_cl # Open Porosity
 
-		self.pressure_grad = np.gradient(air_pressure,self.dz) 
 
-		self.z_co = min(self.z[self.rho>=(self.bcoRho)]) #close-off depth; bcoRho is close off density
-		self.LIZ = min(self.z[self.rho>=(self.LIDRho)]) #lock in depth; LIDRho is lock-in density
+		self.air_volume_old		= por_op_old * self.dz_old
+		# self.air_volume_old 	= np.copy(self.air_volume)
 
-		if iii==900:
-			print(max(self.z[self.rho<(self.LIDRho)]))
-			print('z_co',self.z_co)
-			print('lockin',self.LIZ)
+		self.air_volume 		= self.por_op * self.dz
+		volfrac = self.air_volume_old / self.air_volume
+		# volfrac = np.concatenate(([volfrac[0]],volfrac))
+		self.air_pressure 		= (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) * volfrac - (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) # assume air pressure is atmos in entire column
+
+		# print('ap shape',np.shape(self.air_pressure))
+		# print('dz shape',np.shape(self.dz))
+		# input()
+
+		self.pressure_grad 		= np.gradient(self.air_pressure,self.z) 
+		self.z_co 				= min(self.z[self.rho>=(self.bcoRho)]) #close-off depth; bcoRho is close off density
+		self.LIZ 				= min(self.z[self.rho>=(self.LIDRho)]) #lock in depth; LIDRho is lock-in density
 
 		self.diffu, self.d_eddy = self.diffusivity()
 
 		airdict = {
-			'd_eddy': 		self.d_eddy,
-			'por_op': 		self.por_op,
-			'Tz': 			self.Tz,
-			'deltaM': 		self.deltaM,
-			'omega': 		self.omega,
-			'dz': 			self.dz,
-			'rho':			self.rho,
-			'gravity': 		self.cg['gravity'],
-			'thermal': 		self.cg['thermal'],
-			'air_pressure': self.air_pressure,
-			'pressure_grad':self.pressure_grad,
-			'z': 			self.z, 
-			'dt': 			self.dt,
-			'z_co': 		self.z_co
+			'd_eddy': 			self.d_eddy,
+			'por_op': 			self.por_op,
+			'Tz': 				self.Tz,
+			'deltaM': 			self.deltaM,
+			'omega': 			self.omega,
+			'dz': 				self.dz,
+			'rho':				self.rho,
+			'gravity': 			self.cg['gravity'],
+			'thermal': 			self.cg['thermal'],
+			'air_pressure': 	self.air_pressure,
+			'pressure_grad':	self.pressure_grad,
+			'z': 				self.z, 
+			'dt': 				self.dt,
+			'z_co': 			self.z_co,
+			'M_air':			self.M_air
 			}
 
-		self.Gz = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, airdict)
+		msk = np.where(self.z>self.z_co)[0][0]
+		# volfrac = self.air_volume_old/self.air_volume
+		# print(self.air_pressure[msk-10:msk+1])
+		# print(volfrac[msk-10:msk+1])
+		# print(self.z[msk-10:msk+1])
+		self.Gz, w_p = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 		
-		return self.Gz
+		return self.Gz, self.diffu, w_p
 
-def gasses(gaschoice, T, p_a):
+def gasses(gaschoice, T, p_a, M_air):
 	
 
 	#d_0 = 5.e2 # Free air diffusivity, CO2, m**2/yr Schwander, 1988 reports 7.24 mm**2/s =379 m**2/yr
 	d_0 = 1.6e-5 # m^2/s :wikipedia value. changed 9/27/13  Schwander, 1988 reports 7.24 mm**2/s = 7.24e-6 m**2/yr
-	M_air = 28.97e-3 #kg/mol
+
 	D_ref_CO2 = 5.75E-10*T**1.81*(101325/p_a) #Christo Thesis, appendix A3
 	print('gas choice is ', gaschoice)
 	
@@ -352,7 +370,7 @@ def gasses(gaschoice, T, p_a):
 #     else:
 #         conc1=-9999
 			
-	deltaM = (M-M_air) #delta molecular mass from CO2.
+	deltaM = (M - M_air) #delta molecular mass from CO2.
 	#gam_x = D_gas #* D_ref_CO2
 	d_0=D_ref_CO2
 				   
