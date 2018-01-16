@@ -40,6 +40,8 @@
 "outputs": ["density", "depth", "compaction","DIP","BCO","temperature","LWC","gasses"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
-"spinFileName": "CFMspin.hdf5"
+"spinFileName": "CFMspin.hdf5",
+"doublegrid": false,
+"nodestocombine": 50,
+"grid1bottom": 10.0
 }
-
