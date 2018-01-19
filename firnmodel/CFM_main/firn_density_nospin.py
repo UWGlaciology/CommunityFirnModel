@@ -76,11 +76,12 @@ class FirnDensityNoSpin:
 		initTemp    = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'tempSpin')
 
 		try:
-			if self.c['doublegrid']:
-				self.doublegrid = self.c['doublegrid']
+			self.doublegrid = self.c['doublegrid']
+			if self.doublegrid:
 				initGrid = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'gridSpin')
 				self.gridtrack = initGrid[1:]
 				self.nodestocombine = self.c['nodestocombine']
+
 		except:
 			self.doublegrid = False
 			print('you should add "doublegrid" to the json')
