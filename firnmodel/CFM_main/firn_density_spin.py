@@ -111,8 +111,8 @@ class FirnDensitySpin:
 		### initial regridding
 		############################
 		try:
+			self.doublegrid = self.c['doublegrid']
 			if self.c['doublegrid']:
-				self.doublegrid = self.c['doublegrid']
 				self.nodestocombine, self.z, self.dz, self.gridLen, self.dx, self.gridtrack = init_regrid(self)
 		except:
 			self.doublegrid = False
