@@ -201,9 +201,8 @@ class FirnDensitySpin:
 		### initial grain growth (if specified in config file)
 		if self.c['physGrain']:
 			if self.c['calcGrainSize']:
-				r02     = -2.42e-9 * (np.mean(self.Ts)) + 9.46e-7 # where does this equation come from?
+				r02     = self.c['r2s0']
 				self.r2 = r02 * np.ones(self.gridLen)
-
 			else:
 				self.r2 = np.linspace(self.c['r2s0'], (6 * self.c['r2s0']), self.gridLen)
 		else:
@@ -218,6 +217,7 @@ class FirnDensitySpin:
 			self.THist 	= False
 
 		self.LWC = np.zeros_like(self.z)
+		self.MELT = False
 	############################
 	##### END INIT #############
 	############################
@@ -235,7 +235,7 @@ class FirnDensitySpin:
 
 		for iii in range(self.stp):
 			### create dictionary of the parameters that get passed to physics
-			PhysParams = {   				
+			PhysParams = {
 				'iii':          iii,
 				'steps':        self.steps,
 				'gridLen':      self.gridLen,
@@ -246,7 +246,7 @@ class FirnDensitySpin:
 				'T_mean':       self.T_mean,
 				'T10m':         self.T10m,
 				'rho':          self.rho,
-				'mass':         self.mass,
+				'mass':			self.mass,
 				'sigma':        self.sigma,
 				'dt':           self.dt,
 				'Ts':           self.Ts,
@@ -254,8 +254,13 @@ class FirnDensitySpin:
 				'age':          self.age,
 				'physGrain':    self.c['physGrain'],
 				'calcGrainSize':self.c['calcGrainSize'],
+				'r2s0':			self.c['r2s0'],
+				'GrGrowPhysics':self.c['GrGrowPhysics'],
 				'z':            self.z,
-				'rhos0':        self.rhos0[iii]
+				'rhos0':        self.rhos0[iii],
+				'dz':           self.dz,
+				'LWC':			self.LWC,
+				'melt':			self.melt,
 			}
 
 			if self.THist:
@@ -321,7 +326,7 @@ class FirnDensitySpin:
 				
 			# update grain radius
 			if self.c['physGrain']:
-				self.r2 	= FirnPhysics(PhysParams).grainGrowth()
+				self.r2, self.dr2_dt 	= FirnPhysics(PhysParams).grainGrowth()
 
 			if self.doublegrid:
 				self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))

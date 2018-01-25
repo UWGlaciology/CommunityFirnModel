@@ -6,7 +6,7 @@ import sys
 # The standard parameters that get passed are:
 # (iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain):
 # if you want to add physics that require more parameters, you need to change the 'PhysParams' dictionary in both the spin and nospin classes.
-#Hello Emma!
+
 class FirnPhysics:
 
     def __init__(self,PhysParams):
@@ -523,9 +523,9 @@ class FirnPhysics:
         # self.viscosity = np.zeros(self.gridLen)
 
         
-        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] / 100
+        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * -1 * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1]
         
-        #Use HL Dynamic for zone 2 b/c Morris does not specify zone 2.
+        # Use HL Dynamic for zone 2 b/c Morris does not specify zone 2.
         Q2  = 21400.0
         k2  = 575.0
         bHL = 0.5
@@ -854,18 +854,39 @@ class FirnPhysics:
 
         kgr = 1.3e-7 															# grain growth rate from Arthern (2010)
         Eg  = 42.4e3
-        
 
-        dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
+        if self.melt:
+            porosity = 1 - self.rho / RHO_I 
+            porespace = porosity * self.dz # meters
+            sat = self.LWC / porespace 
+
+            if self.GrGrowPhysics == 'Katsushima':
+                dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
+            elif self.GrGrowPhysics == 'Arthern':
+                dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
+
+        else: # no melt
+            dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth
+
         r2 = self.r2 + dr2_dt * self.dt
-    #     r2_time = np.concatenate(([t * iii + 1], r2))
 
-        if self.calcGrainSize:												# uses surface temperature to get an initial grain size
-            r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1]))
-        else:
-            r2 = np.concatenate(([(0.1e-3) ** 2], r2[:-1]))
+        if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
+            # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
 
-        return r2
+            b0Lnw = 0.781
+            b1Lnw = 0.0085
+            b2Lnw = -0.279
+            
+            r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
+            r2 = np.concatenate(([r2_surface], r2[:-1]))
+
+            # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
+
+        else: # use a fixed surface value, r2s0.
+
+            r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+
+        return r2, dr2_dt
 
     def THistory(self):
         self.Hx = self.Hx + np.exp(-110.0e3 / (R * self.Tz)) * self.dt

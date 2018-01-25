@@ -309,13 +309,18 @@ class FirnDensityNoSpin:
 			initr2              	= read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
 			self.r2             	= initr2[1:]
 			r20                 	= self.r2
+			self.dr2_dt             = np.zeros_like(self.z)
 			if 'grainsize' in self.output_list:
 				self.r2_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.r2_out[0,:]    = np.append(self.modeltime[0], self.r2)
+				self.dr2_dt_out     = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+				self.dr2_dt_out[0,:]= np.append(self.modeltime[0], self.dr2_dt)
 			else:
-				self.r2_out         = None            
+				self.r2_out         = None
+				self.dr2_dt_out		= None            
 		else:            
 			self.r2             	= None
+			self.dr2_dt 			= None
 		#######################
 
 		### temperature history for Morris physics
@@ -419,10 +424,13 @@ class FirnDensityNoSpin:
 				'age':          self.age,
 				'physGrain':    self.c['physGrain'],
 				'calcGrainSize':self.c['calcGrainSize'],
+				'r2s0':			self.c['r2s0'],
+				'GrGrowPhysics':self.c['GrGrowPhysics'],
 				'z':            self.z,
 				'rhos0':        self.rhos0[iii],
 				'dz':           self.dz,
-				'LWC':			self.LWC
+				'LWC':			self.LWC,
+				'melt':			self.melt,
 			}
 
 			if self.THist: #add Hx to dictionary if physics is Morris
@@ -553,7 +561,7 @@ class FirnDensityNoSpin:
 			self.bdot_mean 	= (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
 			
 			if self.c['physGrain']: # update grain radius
-				self.r2 	= FirnPhysics(PhysParams).grainGrowth()
+				self.r2, self.dr2_dt 	= FirnPhysics(PhysParams).grainGrowth()
 
 			### write results as often as specified in the init method
 			if mtime in self.TWrite:				
@@ -580,6 +588,7 @@ class FirnDensityNoSpin:
 					self.LWC_out[self.WTracker,:] 	= np.append(mtime_plus1, self.LWC)
 				if 'grainsize' in self.output_list:
 					self.r2_out[self.WTracker,:] 	= np.append(mtime_plus1, self.r2)
+					self.dr2_dt_out[self.WTracker,:]= np.append(mtime_plus1, self.dr2_dt)
 				if 'temp_Hx' in self.output_list:
 					self.Hx_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Hx)
 				if 'isotopes' in self.output_list:
