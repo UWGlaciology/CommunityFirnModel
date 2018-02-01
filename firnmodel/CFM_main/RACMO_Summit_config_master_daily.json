@@ -1,5 +1,5 @@
 {
-"InputFileFolder": "CFMinput",
+"InputFileFolder": "inputdata/RACMOinput/Summit",
 "InputFileNameTemp": "Summit_tskin_RACMO_daily.csv",
 "InputFileNamebdot": "Summit_smb_RACMO_daily.csv",
 "InputFileNameIso": "example_isotope.csv",
