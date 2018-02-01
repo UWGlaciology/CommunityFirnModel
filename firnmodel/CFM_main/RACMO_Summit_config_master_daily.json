@@ -18,6 +18,7 @@
 "TAmp":10.0,
 "physGrain": true,
 "calcGrainSize": false,
+"GrGrowPhysics": "Arthern",
 "heatDiff": true,
 "variable_srho": false,
 "rhos0": 350.0,
