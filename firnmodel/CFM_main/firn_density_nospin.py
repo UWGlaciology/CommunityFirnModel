@@ -430,7 +430,7 @@ class FirnDensityNoSpin:
 				'rhos0':        self.rhos0[iii],
 				'dz':           self.dz,
 				'LWC':			self.LWC,
-				'melt':			self.melt,
+				'melt':			self.MELT,
 			}
 
 			if self.THist: #add Hx to dictionary if physics is Morris

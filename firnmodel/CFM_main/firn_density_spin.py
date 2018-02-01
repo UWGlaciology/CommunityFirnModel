@@ -260,7 +260,7 @@ class FirnDensitySpin:
 				'rhos0':        self.rhos0[iii],
 				'dz':           self.dz,
 				'LWC':			self.LWC,
-				'melt':			self.melt,
+				'MELT':			self.MELT,
 			}
 
 			if self.THist:

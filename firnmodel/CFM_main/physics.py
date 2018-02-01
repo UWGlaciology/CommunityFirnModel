@@ -855,7 +855,7 @@ class FirnPhysics:
         kgr = 1.3e-7 															# grain growth rate from Arthern (2010)
         Eg  = 42.4e3
 
-        if self.melt:
+        if self.MELT:
             porosity = 1 - self.rho / RHO_I 
             porespace = porosity * self.dz # meters
             sat = self.LWC / porespace 
@@ -865,7 +865,7 @@ class FirnPhysics:
             elif self.GrGrowPhysics == 'Arthern':
                 dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
 
-        else: # no melt
+        else: # no MELT
             dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth
 
         r2 = self.r2 + dr2_dt * self.dt
