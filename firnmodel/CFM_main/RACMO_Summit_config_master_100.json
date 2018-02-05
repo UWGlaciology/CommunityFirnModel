@@ -18,10 +18,11 @@
 "TAmp":10.0,
 "physGrain": false,
 "calcGrainSize": false,
+"GrGrowPhysics": "Arthern",
 "heatDiff": true,
 "variable_srho": false,
 "rhos0": 350.0,
-"r2s0": 1.0e-8,
+"r2s0": 0.1e-3,
 "AutoSpinUpTime": false,
 "yearSpin": 20,
 "stpsPerYearSpin": 12.0,
@@ -34,12 +35,15 @@
 "isoDiff": false,
 "iso": "NoDiffusion",
 "_isoOptions":["18","D","NoDiffusion"],
-"spacewriteint": 2,
+"spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
 "outputs": ["density", "depth", "compaction","DIP","BCO","temperature"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
-"spinFileName": "CFMspin.hdf5"
+"spinFileName": "CFMspin.hdf5",
+"doublegrid": false,
+"grid1bottom": 15.0,
+"nodestocombine": 50
 }
 

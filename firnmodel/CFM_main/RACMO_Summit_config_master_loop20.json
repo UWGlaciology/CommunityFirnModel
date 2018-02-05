@@ -21,7 +21,7 @@
 "heatDiff": true,
 "variable_srho": false,
 "rhos0": 350.0,
-"r2s0": 1.0e-8,
+"r2s0": 0.1e-3,
 "AutoSpinUpTime": false,
 "yearSpin": 2000,
 "stpsPerYearSpin": 12,

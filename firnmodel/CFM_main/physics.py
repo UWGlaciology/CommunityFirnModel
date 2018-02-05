@@ -852,8 +852,8 @@ class FirnPhysics:
         :return r2:
         '''
 
-        kgr = 1.3e-7 															# grain growth rate from Arthern (2010)
-        Eg  = 42.4e3
+        kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s
+        Eg  = 42.4e3 # kJ/mol
 
         if self.MELT:
             porosity = 1 - self.rho / RHO_I 
@@ -866,7 +866,7 @@ class FirnPhysics:
                 dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
 
         else: # no MELT
-            dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth
+            dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth, units are m^2/s
 
         r2 = self.r2 + dr2_dt * self.dt
 
