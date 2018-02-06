@@ -331,7 +331,7 @@ class FirnDensitySpin:
 			if self.doublegrid:
 				self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
 				if self.gridtrack[-1]==2:
-					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack = regrid(self)
+					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 
 			# write results at the end of the time evolution
 			if (iii == (self.stp - 1)):

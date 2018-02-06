@@ -619,7 +619,7 @@ class FirnDensityNoSpin:
 
 			if self.doublegrid:
 				if self.gridtrack[-1]==2:
-					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack = regrid(self)
+					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 
 		##################################
 		##### END TIME-STEPPING LOOP #####
