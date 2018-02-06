@@ -211,7 +211,7 @@ class FirnDensityNoSpin:
 				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
 		except:
-			print("you should alter the json to include variable_srho")
+			print("you should alter the json to include all variable surface rho fields")
 			self.rhos0      	= self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		#####################
 

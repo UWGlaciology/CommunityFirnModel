@@ -18,6 +18,7 @@
 "TAmp":10.0,
 "physGrain": false,
 "calcGrainSize": false,
+"GrGrowPhysics": "Arthern",
 "heatDiff": true,
 "variable_srho": false,
 "srho_type": "param",
@@ -42,6 +43,9 @@
 "outputs": ["density", "depth", "compaction","DIP","BCO","temperature"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
-"spinFileName": "CFMspin.hdf5"
+"spinFileName": "CFMspin.hdf5",
+"doublegrid": false,
+"grid1bottom": 15.0,
+"nodestocombine": 50
 }
 
