@@ -22,7 +22,7 @@ nn=sys.argv[1] # run ID
 mm=sys.argv[2] # physics
 # print nn
 connm='MARjson/MAR_Summit_config_'+nn+'_'+mm+'_ens.json'
-copyfile('MAR_Summit_config_master.json', connm)
+copyfile('MAR_Summit_config_master_loop20.json', connm)
 
 # for mm in thenames:
     
