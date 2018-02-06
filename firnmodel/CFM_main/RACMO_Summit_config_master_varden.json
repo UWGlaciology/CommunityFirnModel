@@ -1,7 +1,7 @@
 {
 "InputFileFolder": "",
-"InputFileNameTemp": "inputdata/MARinput/Summit/Summit_tskin_MAR_loop20.csv",
-"InputFileNamebdot": "inputdata/MARinput/Summit/Summit_smb_MAR_loop20.csv",
+"InputFileNameTemp": "inputdata/MARinput/Summit/Summit_tskin_RACMO_loop20.csv",
+"InputFileNamebdot": "inputdata/MARinput/Summit/Summit_smb_RACMO_loop20.csv",
 "InputFileNameIso": "example_isotope.csv",
 "InputFileNamerho": "example_rhos.csv",
 "InputFileNamemelt": "example_melt.csv",
@@ -39,7 +39,7 @@
 "spacewriteint": 2,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "compaction","DIP","BCO","temperature","age"],
+"outputs": ["density", "depth", "compaction","DIP","BCO","temperature"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5"

@@ -10,7 +10,7 @@ import time
 import json
 
 '''
-to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
+to run: parallel –a varden.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
 
 '''
 
@@ -24,7 +24,7 @@ to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_
 # thefiles=["randspin600_11","randspin600_12","randspin600_13","randspin600_14","randspin600_15","randspin600_16","randspin600_17","randspin600_18","randspin600_19","randspin600_20"]
 
 nn=sys.argv[1] # variable density choice
-mm=sys.argv[2] # physics
+mm=sys.argv[2] # physics/model choice
 # print nn
 connm='RACMOjson/RACMO_Summit_config_'+nn+'_'+mm+'_ens.json'
 copyfile('RACMO_Summit_config_master_varden.json', connm)

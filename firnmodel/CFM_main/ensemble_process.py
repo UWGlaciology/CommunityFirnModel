@@ -11,11 +11,11 @@ import numpy as np
 from shutil import rmtree
 
 # thefiles2=['r0','r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','r13','r14','r15','r16','r17','r18','r19','r20','r21','r22','r23','r24','r25','r26','r27','r28','r29','r30','r31','r32','r33','r34','r35','r36','r37','r38','r39']
-thefiles2 = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'r16', 'r17', 'r18', 'r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r30', 'r31', 'r32', 'r33', 'r34', 'r35', 'r36', 'r37', 'r38', 'r39', 'r40', 'r41', 'r42', 'r43', 'r44', 'r45', 'r46', 'r47', 'r48', 'r49', 'r50', 'r51', 'r52', 'r53', 'r54', 'r55', 'r56', 'r57', 'r58', 'r59', 'r60', 'r61', 'r62', 'r63', 'r64', 'r65', 'r66', 'r67', 'r68', 'r69', 'r70', 'r71', 'r72', 'r73', 'r74', 'r75', 'r76', 'r77', 'r78', 'r79', 'r80', 'r81', 'r82', 'r83', 'r84', 'r85', 'r86', 'r87', 'r88', 'r89', 'r90', 'r91', 'r92', 'r93', 'r94', 'r95', 'r96', 'r97', 'r98', 'r99']
+# thefiles2 = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'r16', 'r17', 'r18', 'r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r30', 'r31', 'r32', 'r33', 'r34', 'r35', 'r36', 'r37', 'r38', 'r39', 'r40', 'r41', 'r42', 'r43', 'r44', 'r45', 'r46', 'r47', 'r48', 'r49', 'r50', 'r51', 'r52', 'r53', 'r54', 'r55', 'r56', 'r57', 'r58', 'r59', 'r60', 'r61', 'r62', 'r63', 'r64', 'r65', 'r66', 'r67', 'r68', 'r69', 'r70', 'r71', 'r72', 'r73', 'r74', 'r75', 'r76', 'r77', 'r78', 'r79', 'r80', 'r81', 'r82', 'r83', 'r84', 'r85', 'r86', 'r87', 'r88', 'r89', 'r90', 'r91', 'r92', 'r93', 'r94', 'r95', 'r96', 'r97', 'r98', 'r99']
 
 # thefiles2 = ['r0', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'r16', 'r17', 'r18', 'r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r30', 'r31', 'r32', 'r33', 'r34', 'r35', 'r36', 'r37', 'r38', 'r39', 'r40', 'r41', 'r42', 'r43', 'r44', 'r45', 'r46', 'r47', 'r48', 'r49']
 
-# thefiles2 = ['r50', 'r51', 'r52', 'r53', 'r54', 'r55', 'r56', 'r57', 'r58', 'r59', 'r60', 'r61', 'r62', 'r63', 'r64', 'r65', 'r66', 'r67', 'r68', 'r69', 'r70', 'r71', 'r72', 'r73', 'r74', 'r75', 'r76', 'r77', 'r78', 'r79', 'r80', 'r81', 'r82', 'r83', 'r84', 'r85', 'r86', 'r87', 'r88', 'r89', 'r90', 'r91', 'r92', 'r93', 'r94', 'r95', 'r96', 'r97', 'r98', 'r99']
+thefiles2 = ['r50', 'r51', 'r52', 'r53', 'r54', 'r55', 'r56', 'r57', 'r58', 'r59', 'r60', 'r61', 'r62', 'r63', 'r64', 'r65', 'r66', 'r67', 'r68', 'r69', 'r70', 'r71', 'r72', 'r73', 'r74', 'r75', 'r76', 'r77', 'r78', 'r79', 'r80', 'r81', 'r82', 'r83', 'r84', 'r85', 'r86', 'r87', 'r88', 'r89', 'r90', 'r91', 'r92', 'r93', 'r94', 'r95', 'r96', 'r97', 'r98', 'r99']
 
 thefilesr=list(reversed(thefiles2))
 
@@ -31,7 +31,8 @@ cont = 'Greenland'
 
 datasource = 'RACMO'
 
-rootfolder = '/wd1/wrk/maxstev/CommunityFirnModel/firnmodel/CFM_main'
+# rootfolder = '/wd1/wrk/maxstev/CommunityFirnModel/firnmodel/CFM_main'
+rootfolder = '/Volumes/FirnSSD/CFMresults'
 
 writer = True
 
@@ -74,6 +75,7 @@ for idx0, site in enumerate(thesites):
 			density = f['density'][1:,1:]
 			temperature = f['temperature'][1:,1:]
 			compaction_rate = f['compaction_rate'][1:,1:]
+			DIPc = f['DIPc'][1:,1:]
 			try:
 				age = f['age'][1:,1:]
 			except:
@@ -88,6 +90,8 @@ for idx0, site in enumerate(thesites):
 				depth_all = depth
 				density_mean = density
 				density_std = np.zeros_like(density_mean)
+				DIPc_mean = DIPc
+				DIPc_std = np.zeros_like(DIPc_mean)
 				temperature_mean = temperature
 				temperature_std = np.zeros_like(temperature_mean)
 				compaction_rate_mean = np.zeros_like(depth)
@@ -117,6 +121,7 @@ for idx0, site in enumerate(thesites):
 				rcr,ccr = np.shape(compaction_rate)
 				# print(r)
 				density_interp = np.zeros_like(depth_all)
+				DIPc_interp = np.zeros_like(depth_all)
 				temperature_interp = np.zeros_like(depth_all)
 				compaction_rate_interp = np.zeros_like(depth_all)
 				try:
@@ -126,6 +131,7 @@ for idx0, site in enumerate(thesites):
 
 				for r in range(row):
 					density_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],density[r,:])
+					DIPc_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],DIPc[r,:])
 					temperature_interp[r,:] = np.interp(depth_all[r,:],depth[r,:],temperature[r,:])
 					crm = np.zeros_like(depth[r,:])
 					crm[0:ccr] = compaction_rate[r,:]
@@ -138,6 +144,10 @@ for idx0, site in enumerate(thesites):
 				d_mean_old = density_mean
 				density_mean = density_mean + (density_interp - density_mean)/(n)
 				density_std = stdadd(n, density_std, density_interp, density_mean, d_mean_old)
+
+				DIPc_mean_old = DIPc_mean
+				DIPc_mean = DIPc_mean + (DIPc_interp - DIPc_mean)/(n)
+				DIPc_std = stdadd(n, DIPc_std, DIPc_interp, DIPc_mean, DIPc_mean_old)
 
 				t_mean_old = temperature_mean
 				temperature_mean = temperature_mean + (temperature_interp - temperature_mean)/(n)
@@ -172,6 +182,8 @@ for idx0, site in enumerate(thesites):
 			depth_out = np.c_[time,depth_all]
 			density_out = np.c_[time,density_mean]
 			density_std_out = np.c_[time,density_std]
+			DIPc_out = np.c_[time,DIPc_mean]
+			DIPc_std_out = np.c_[time,DIPc_std]
 			temperature_out = np.c_[time,temperature_mean]
 			temperature_std_out = np.c_[time,temperature_std]			
 			compaction_rate_out = np.c_[time,compaction_rate_mean]
@@ -188,16 +200,18 @@ for idx0, site in enumerate(thesites):
 			DIP_std_out = np.c_[time,DIP_std]
 
 			# f4 = h5.File('%sresults_ens_all/%s/ensmean/%s/CFMresults_ens_mean.hdf5' %(datasource, site, name))
-			rfolder = rootfolder + '/%sresults_ens_all/%s/%s/ensmean/%s' %(datasource, cont, site, name)
+			rfolder = rootfolder + '/%sresults_ens_all/%s/%s/ensmean5099/%s' %(datasource, cont, site, name)
 			if os.path.exists(rfolder):
 				rmtree(rfolder)
 			os.makedirs(rfolder)
 
-			f4 = h5.File(rootfolder + '/%sresults_ens_all/%s/%s/ensmean/%s/CFMresults.hdf5' %(datasource, cont, site, name),'w')
+			f4 = h5.File(rootfolder + '/%sresults_ens_all/%s/%s/ensmean5099/%s/CFMresults.hdf5' %(datasource, cont, site, name),'w')
 
 			f4.create_dataset('depth', data=depth_out)
 			f4.create_dataset('density',data=density_out)
 			f4.create_dataset('density_std',data=density_std_out)
+			f4.create_dataset('DIPc',data=DIPc_out)
+			f4.create_dataset('DIPc_std',data=DIPc_std_out)
 			f4.create_dataset('temperature',data=temperature_out)
 			f4.create_dataset('temperature_std',data=temperature_std_out)			
 			f4.create_dataset('compaction_rate',data=compaction_rate_out)
