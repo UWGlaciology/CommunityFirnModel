@@ -20,7 +20,8 @@ def regrid(self):
 	g2dz 	= np.array([np.sum(self.dz[ind1])])
 	g2mass 	= np.sum(self.mass[ind1])
 	g2rho 	= g2mass/g2dz
-	g2Tz 	= np.sum(self.Tz[ind1]*self.mass[ind1])/g2mass # Use a weighted average for temperature (effectively the enthalpy)
+	g2Tz0 	= np.sum(self.Tz[ind1]*self.mass[ind1])
+	g2Tz 	= np.array([g2Tz0 / g2mass]) # Use a weighted average for temperature (effectively the enthalpy)
 	g2gt 	= 2 #gridtrack
 	g2age 	= np.mean(self.age[ind1])
 	g2bm 	= np.mean(self.bdot_mean[ind1])
@@ -52,7 +53,7 @@ def regrid(self):
 	self.gridtrack 	= np.concatenate((self.gridtrack[0:ind1a],[g2gt],self.gridtrack[ind1b+1:-1],g3gt))
 
 	if self.c['physGrain']:
-		g2r2 	= np.mean(self.r2)
+		g2r2 	= np.array([np.mean(self.r2)])
 		g3r2 	= self.r2[-1]* np.ones(self.nodestocombine)
 		self.r2 = np.concatenate((self.r2[0:ind1a],g2r2,self.r2[ind1b+1:-1],g3r2)) 
 
