@@ -16,7 +16,7 @@
 "int_type_options": ["nearest","linear"],
 "SeasonalTcycle": false,
 "TAmp":10.0,
-"physGrain": true,
+"physGrain": false,
 "calcGrainSize": false,
 "GrGrowPhysics": "Arthern",
 "heatDiff": true,
