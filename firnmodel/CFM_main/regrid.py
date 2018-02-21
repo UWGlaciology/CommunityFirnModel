@@ -24,7 +24,9 @@ def regrid(self):
 	g2Tz 	= np.array([g2Tz0 / g2mass]) # Use a weighted average for temperature (effectively the enthalpy)
 	g2gt 	= 2 #gridtrack
 	g2age 	= np.mean(self.age[ind1])
-	g2bm 	= np.mean(self.bdot_mean[ind1])
+	# g2bm 	= np.mean(self.bdot_mean[ind1])
+	g2bm0	= np.sum(self.bdot_mean[ind1]*self.mass[ind1])
+	g2bm 	= np.array([g2bm0 / g2mass])
 	g2lwc 	= np.sum(self.LWC[ind1])
 
 	### split up the last node in grid 2 into NTC nodes. Each node retains the density, age, etc of the old subgrid 2 node. 
@@ -48,7 +50,7 @@ def regrid(self):
 	self.sigma 		= self.sigma.cumsum(axis = 0)
 	self.mass_sum  	= self.mass.cumsum(axis = 0)
 	self.age 		= np.concatenate((self.age[0:ind1a],[g2age],self.age[ind1b+1:-1],g3age))
-	self.bdot_mean 	= np.concatenate((self.bdot_mean[0:ind1a],[g2bm],self.bdot_mean[ind1b+1:-1],g3bm))
+	self.bdot_mean 	= np.concatenate((self.bdot_mean[0:ind1a],g2bm,self.bdot_mean[ind1b+1:-1],g3bm))
 	self.LWC 		= np.concatenate((self.LWC[0:ind1a],[g2lwc],self.LWC[ind1b+1:-1],g3lwc))
 	self.gridtrack 	= np.concatenate((self.gridtrack[0:ind1a],[g2gt],self.gridtrack[ind1b+1:-1],g3gt))
 

@@ -1,5 +1,5 @@
 {
-"InputFileFolder": "inputdata/RACMOinput/Summit",
+"InputFileFolder": "inputdata/RACMOinput",
 "InputFileNameTemp": "Summit_tskin_RACMO_daily.csv",
 "InputFileNamebdot": "Summit_smb_RACMO_daily.csv",
 "InputFileNameIso": "example_isotope.csv",
@@ -8,7 +8,7 @@
 "resultsFolder": "KPdailySummitbdotchange",
 "physRho": "KuipersMunneke2015",
 "_physRhoOptions":["HLdynamic","HLSigfus","Li2004","Li2011","Helsen2008","Arthern2010S","Arthern2010T","Spencer2001","Goujon2003","Barnola1991","Morris2013","KuipersMunneke2015","Crocus"],
-"MELT": false,
+"MELT": true,
 "FirnAir": false,
 "AirConfigName": "AirConfig.json",
 "TWriteInt": 1,
@@ -27,7 +27,7 @@
 "yearSpin": 200,
 "stpsPerYearSpin": 365.0,
 "H": 3000,
-"HbaseSpin": 2800.0,
+"HbaseSpin": 2900.0,
 "stpsPerYear": 365.0,
 "D_surf": 1.0,
 "bdot_type": "mean",
@@ -38,11 +38,11 @@
 "spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "compaction","DIP","BCO","temperature","LWC","gasses"],
+"outputs": ["density", "depth", "compaction","DIP","BCO","temperature","LWC"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5",
 "doublegrid": true,
-"grid1bottom": 15.0,
-"nodestocombine": 50
+"grid1bottom": 20.0,
+"nodestocombine": 30
 }

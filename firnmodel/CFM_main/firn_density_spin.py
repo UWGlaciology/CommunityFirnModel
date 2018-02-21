@@ -62,6 +62,7 @@ class FirnDensitySpin:
 		'''
 
 		### load in json config file and parses the user inputs to a dictionary
+		self.spin=False
 		with open(configName, "r") as f:
 			jsonString 	= f.read()
 			self.c 		= json.loads(jsonString)
@@ -295,9 +296,8 @@ class FirnDensitySpin:
 				self.Hx = FirnPhysics(PhysParams).THistory()
 
 			### update temperature grid and isotope grid if user specifies
-			### should not need to use the diffusion here because temperature is steady state (but could be used)
-			# if self.c['heatDiff']:
-				# self.Tz, self.T10m = heatDiff(self,iii)
+			if self.c['heatDiff']:
+				self.Tz, self.T10m = heatDiff(self,iii)
 
 			if self.c['isoDiff']:
 				self.del_z 	= isoDiff(self,iii)

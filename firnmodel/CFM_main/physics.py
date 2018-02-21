@@ -679,7 +679,6 @@ class FirnPhysics:
         a           = (np.pi/(3.0 * Zg * lp ** 2.0)) * (3.0 * (lpp ** 2.0 - 1.0) * Z0g + lpp ** 2.0 * ccc * (2.0 * lpp-3.0)+ccc) # A9
         sigmastar   = (4.0 * np.pi * sigma_bar)/(a * Zg * D) # A4
 
-        # gamma_An=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
         gamma_An=(5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
 
         if self.iii == 0 or ind1 != ind1_old:
@@ -688,10 +687,7 @@ class FirnPhysics:
         else:
             Gamma_Gou       = Gamma_old_Gou
 
-        # Gamma_Gou = 0.5 / S_PER_YEAR
-
         dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        # dDdt[0:ind1+1]=gamma_An*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
         dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n         
         gfrac       = 0.03
         gam_div     = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
@@ -708,14 +704,6 @@ class FirnPhysics:
                 if cc>10000:
                     print('Goujon is not converging. exiting')
                     sys.exit()
-                # if cc>1000:
-                #     print 'cc', cc
-                #     print 'dDdt',dDdt[ind1:ind1+2]
-                #     dd = dDdt[D<=Dm]
-                #     ee = dDdt[D>Dm]
-                #     print 'dd',dd[-1]
-                #     print 'ee',ee[0]
-                #     raw_input()
 
         ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
         counter = 1
@@ -728,63 +716,13 @@ class FirnPhysics:
             if counter>10000:
                 print('Goujon is not converging. exiting')
                 sys.exit()
-            # if counter >100:
-            #     print 'dDdt',dDdt[ind1:ind1+2]
-            #     print 'counter',counter
 
-        # #dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
         if self.iii<10:
             print('dDdt',dDdt[ind1:ind1+2])
         Gamma_old2_Gou  = Gamma_old_Gou
         Gamma_old_Gou  = Gamma_Gou
         ind1_old = ind1
         #####################
-
-
-                ########## iterate to increase gamma first if not in steady state    
-        # if dDdt[ind1] <= dDdt[ind1+1]: #and dDdt_old[ind1]!=dDdt_old[ind1]:
-        #     cc = 1
-        #     while dDdt[ind1] < dDdt[ind1 + 1]:
-        #         Gamma_Gou       = Gamma_Gou * (gam_div)
-        #         dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        #         dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
-
-        #         cc = cc + 1
-        #         if cc>10000:
-        #             print 'Goujon is not converging. exiting'
-        #             sys.exit()
-        #         # if cc>1000:
-        #         #     print 'cc', cc
-        #         #     print 'dDdt',dDdt[ind1:ind1+2]
-        #         #     dd = dDdt[D<=Dm]
-        #         #     ee = dDdt[D>Dm]
-        #         #     print 'dd',dd[-1]
-        #         #     print 'ee',ee[0]
-        #         #     raw_input()
-
-        # ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
-        # counter = 1
-        # while dDdt[ind1] >= dDdt[ind1 + 1]:
-        #     # print 'iterating', counter
-        #     Gamma_Gou       = Gamma_Gou / (1 + gfrac/2.0)
-        #     dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        #     dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
-        #     counter = counter +1
-        #     if counter>10000:
-        #         print 'Goujon is not converging. exiting'
-        #         sys.exit()
-        #     # if counter >100:
-        #     #     print 'dDdt',dDdt[ind1:ind1+2]
-        #     #     print 'counter',counter
-
-        # # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-        # if self.iii<10:
-        #     print 'dDdt',dDdt[ind1:ind1+2]
-        # # Gamma_old2_Gou  = Gamma_old_Gou
-        # # Gamma_old_Gou  = Gamma_Gou
-        # # ind1_old = ind1
-        #####################
-
         
         rhoC        = RHO_2 #should be Martinerie density
         frho2       = interpolate.interp1d(self.rho,sigma_bar)
@@ -813,7 +751,6 @@ class FirnPhysics:
         
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
 
     def Crocus(self):
         '''

@@ -36,6 +36,7 @@ def heatDiff(self,iii):
 	K_firn 			= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
 	# K_firn 			= 0.021 + 2.5 * (self.rho/1000.)**2 #Anderson (1976), from Brandt (1997)
 	c_firn 			= 152.5 + 7.122 * phi_0
+
 	Gamma_P 		= K_firn / (c_firn) #* self.rho)
 	tot_rho 		= self.rho
 
@@ -114,7 +115,6 @@ def enthalpyDiff(self,iii):
 	Gamma_P[e_great] 	= bigKi[e_great] #/tot_rho[e_great]
 
 	enthalpy = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
-	# enthalpy = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, self.rho)
 
 	e_less 				= np.where(enthalpy<Hs)[0]
 	e_great 			= np.where(enthalpy>=Hs)[0]
