@@ -51,6 +51,13 @@ data["InputFileNamebdot"] = smbin
 # try:
 data["InputFileNamemelt"] = meltin
 data["MELT"] = True
+
+if nn=='daily':
+	data["stpsPerYearSpin"]=365.0
+	data["stpsPerYear"]=365.0
+else:
+	data["stpsPerYearSpin"]=12.0
+	data["stpsPerYear"]=12.0
 # except:
 # 	print("cannot find melt; model runs without melt")
 # 	data["MELT"] = False
