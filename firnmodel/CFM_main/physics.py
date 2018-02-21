@@ -725,7 +725,7 @@ class FirnPhysics:
         #####################
         
         rhoC        = RHO_2 #should be Martinerie density
-        frho2       = interpolate.interp1d(self.rho,sigma_bar)
+        frho2       = interpolate.interp1d(self.rho,sigma_bar,bounds_error=False,fill_value='extrapolate')
         sigmarho2   = frho2(rhoC) #pressure at close off
 
         ind2 = np.argmax(D >= Dm23)
