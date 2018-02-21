@@ -223,8 +223,8 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=958.0)[0][0]
-		print('Caution: writing all data')
+		Tind 				= np.nonzero(self.modeltime>=1978.0)[0][0]
+		# print('Caution: writing all data')
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
 		# self.TWrite     	= self.modeltime[-2::self.c['TWriteInt']]
