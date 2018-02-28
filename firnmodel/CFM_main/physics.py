@@ -19,7 +19,7 @@ class FirnPhysics:
         '''
         for k,v in list(PhysParams.items()):
             setattr(self,k,v)
-        self.RD = {}
+        self.RD = {} # RD = Return Dictionary, set up this way so that more things can be returned easily if needed.
 
     def HL_dynamic(self):
         '''
