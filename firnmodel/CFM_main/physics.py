@@ -6,7 +6,7 @@ import sys
 # The standard parameters that get passed are:
 # (iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain):
 # if you want to add physics that require more parameters, you need to change the 'PhysParams' dictionary in both the spin and nospin classes.
-#Hello Emma!
+
 class FirnPhysics:
 
     def __init__(self,PhysParams):
@@ -19,7 +19,7 @@ class FirnPhysics:
         '''
         for k,v in list(PhysParams.items()):
             setattr(self,k,v)
-        self.RD = {}
+        self.RD = {} # RD = Return Dictionary, set up this way so that more things can be returned easily if needed.
 
     def HL_dynamic(self):
         '''
@@ -310,35 +310,14 @@ class FirnPhysics:
         A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
         A_mean = self.bdot_mean * RHO_I_MGM
 
-
-        trigger = False
-
         if self.bdot_type == 'instant':
             if self.iii==0:
                 print("It is not recommended to use instant accumulation with Helsen 2008 physics")            
             dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
             dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
-            if (dr_dt<0).any():
-                print('negative dr_dt at ', self.iii)
-                print('depth:', self.z[dr_dt<0])
-                trigger = True
-        
-        if (self.iii>1015 or trigger == True):
-            print(self.iii)
-            print('A_mean', max(A_mean), min(A_mean))
-            print('Tz', max(self.Tz), min(self.Tz))
-            print('Tz1st10', self.Tz[0:10])
-            yy = np.where(self.Tz==max(self.Tz))[0][0]
 
-            print('maxTz', yy)
-            print('mTzdep', self.z[yy])
-            print('T_mean', self.T_mean)
-            print('rhos', max(self.rho),min(self.rho))
-            print('maxdr', max(dr_dt))
-            print('mindr', min(dr_dt))
-            print('dr_dt', dr_dt[0:20])
-            print('!!!!!', self.iii)
+        
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
@@ -544,9 +523,9 @@ class FirnPhysics:
         # self.viscosity = np.zeros(self.gridLen)
 
         
-        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] / 100
+        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * -1 * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1]
         
-        #Use HL Dynamic for zone 2 b/c Morris does not specify zone 2.
+        # Use HL Dynamic for zone 2 b/c Morris does not specify zone 2.
         Q2  = 21400.0
         k2  = 575.0
         bHL = 0.5
@@ -700,7 +679,6 @@ class FirnPhysics:
         a           = (np.pi/(3.0 * Zg * lp ** 2.0)) * (3.0 * (lpp ** 2.0 - 1.0) * Z0g + lpp ** 2.0 * ccc * (2.0 * lpp-3.0)+ccc) # A9
         sigmastar   = (4.0 * np.pi * sigma_bar)/(a * Zg * D) # A4
 
-        # gamma_An=(5.3*A[ind1] * (Dms**2*Dms)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
         gamma_An=(5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
 
         if self.iii == 0 or ind1 != ind1_old:
@@ -709,10 +687,7 @@ class FirnPhysics:
         else:
             Gamma_Gou       = Gamma_old_Gou
 
-        # Gamma_Gou = 0.5 / S_PER_YEAR
-
         dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        # dDdt[0:ind1+1]=gamma_An*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
         dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n         
         gfrac       = 0.03
         gam_div     = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
@@ -729,14 +704,6 @@ class FirnPhysics:
                 if cc>10000:
                     print('Goujon is not converging. exiting')
                     sys.exit()
-                # if cc>1000:
-                #     print 'cc', cc
-                #     print 'dDdt',dDdt[ind1:ind1+2]
-                #     dd = dDdt[D<=Dm]
-                #     ee = dDdt[D>Dm]
-                #     print 'dd',dd[-1]
-                #     print 'ee',ee[0]
-                #     raw_input()
 
         ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
         counter = 1
@@ -749,66 +716,16 @@ class FirnPhysics:
             if counter>10000:
                 print('Goujon is not converging. exiting')
                 sys.exit()
-            # if counter >100:
-            #     print 'dDdt',dDdt[ind1:ind1+2]
-            #     print 'counter',counter
 
-        # #dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
         if self.iii<10:
             print('dDdt',dDdt[ind1:ind1+2])
         Gamma_old2_Gou  = Gamma_old_Gou
         Gamma_old_Gou  = Gamma_Gou
         ind1_old = ind1
         #####################
-
-
-                ########## iterate to increase gamma first if not in steady state    
-        # if dDdt[ind1] <= dDdt[ind1+1]: #and dDdt_old[ind1]!=dDdt_old[ind1]:
-        #     cc = 1
-        #     while dDdt[ind1] < dDdt[ind1 + 1]:
-        #         Gamma_Gou       = Gamma_Gou * (gam_div)
-        #         dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        #         dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
-
-        #         cc = cc + 1
-        #         if cc>10000:
-        #             print 'Goujon is not converging. exiting'
-        #             sys.exit()
-        #         # if cc>1000:
-        #         #     print 'cc', cc
-        #         #     print 'dDdt',dDdt[ind1:ind1+2]
-        #         #     dd = dDdt[D<=Dm]
-        #         #     ee = dDdt[D>Dm]
-        #         #     print 'dd',dd[-1]
-        #         #     print 'ee',ee[0]
-        #         #     raw_input()
-
-        # ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
-        # counter = 1
-        # while dDdt[ind1] >= dDdt[ind1 + 1]:
-        #     # print 'iterating', counter
-        #     Gamma_Gou       = Gamma_Gou / (1 + gfrac/2.0)
-        #     dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        #     dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
-        #     counter = counter +1
-        #     if counter>10000:
-        #         print 'Goujon is not converging. exiting'
-        #         sys.exit()
-        #     # if counter >100:
-        #     #     print 'dDdt',dDdt[ind1:ind1+2]
-        #     #     print 'counter',counter
-
-        # # dDdt[D<=Dm]=gamma_An*(sigma_bar[D<=Dm])*(1.0-(5.0/3.0)*D[D<=Dm])/((D[D<=Dm])**2.0)
-        # if self.iii<10:
-        #     print 'dDdt',dDdt[ind1:ind1+2]
-        # # Gamma_old2_Gou  = Gamma_old_Gou
-        # # Gamma_old_Gou  = Gamma_Gou
-        # # ind1_old = ind1
-        #####################
-
         
         rhoC        = RHO_2 #should be Martinerie density
-        frho2       = interpolate.interp1d(self.rho,sigma_bar)
+        frho2       = interpolate.interp1d(self.rho,sigma_bar,bounds_error=False,fill_value='extrapolate')
         sigmarho2   = frho2(rhoC) #pressure at close off
 
         ind2 = np.argmax(D >= Dm23)
@@ -834,7 +751,6 @@ class FirnPhysics:
         
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
 
     def Crocus(self):
         '''
@@ -873,20 +789,41 @@ class FirnPhysics:
         :return r2:
         '''
 
-        kgr = 1.3e-7 															# grain growth rate from Arthern (2010)
-        Eg  = 42.4e3
-        
+        kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s
+        Eg  = 42.4e3 # kJ/mol
 
-        dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
+        if self.MELT:
+            porosity = 1 - self.rho / RHO_I 
+            porespace = porosity * self.dz # meters
+            sat = self.LWC / porespace 
+
+            if self.GrGrowPhysics == 'Katsushima':
+                dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
+            elif self.GrGrowPhysics == 'Arthern':
+                dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
+
+        else: # no MELT
+            dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth, units are m^2/s
+
         r2 = self.r2 + dr2_dt * self.dt
-    #     r2_time = np.concatenate(([t * iii + 1], r2))
 
-        if self.calcGrainSize:												# uses surface temperature to get an initial grain size
-            r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1]))
-        else:
-            r2 = np.concatenate(([(0.1e-3) ** 2], r2[:-1]))
+        if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
+            # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
 
-        return r2
+            b0Lnw = 0.781
+            b1Lnw = 0.0085
+            b2Lnw = -0.279
+            
+            r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
+            r2 = np.concatenate(([r2_surface], r2[:-1]))
+
+            # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
+
+        else: # use a fixed surface value, r2s0.
+
+            r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+
+        return r2, dr2_dt
 
     def THistory(self):
         self.Hx = self.Hx + np.exp(-110.0e3 / (R * self.Tz)) * self.dt

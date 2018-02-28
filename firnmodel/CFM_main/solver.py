@@ -142,9 +142,10 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			a_U = D_u 
 			a_D = D_d 
 
-			a_P_0 = tot_rho * dZ / dt
 			# a_P_0 = tot_rho * dZ / dt
+			a_P_0 = tot_rho * dZ / dt
 			# a_P_0 = RHO_I * c_firn * dZ / dt
+			
 
 		S_P 	= 0.0
 		a_P 	= a_U + a_D + a_P_0 - S_P*dZ
@@ -156,6 +157,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 		bc_d_0 	= 0
 		bc_type = 2
 		bc_d   	= np.concatenate(([ bc_d_0 ], [ bc_type ]))
+
 		b 		= b_0 + a_P_0 * phi_t
 
 		#Upper boundary

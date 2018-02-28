@@ -32,10 +32,11 @@ def heatDiff(self,iii):
 	phi_s 			= self.Tz[0]
 	phi_0 			= self.Tz
 
-	# K_ice 		= 9.828 * np.exp(-0.0057 * phi_0)
-	# K_firn 		= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
-	K_firn 			= 0.021 + 2.5 * (self.rho/1000.)**2
+	K_ice 			= 9.828 * np.exp(-0.0057 * phi_0)
+	K_firn 			= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+	# K_firn 			= 0.021 + 2.5 * (self.rho/1000.)**2 #Anderson (1976), from Brandt (1997)
 	c_firn 			= 152.5 + 7.122 * phi_0
+
 	Gamma_P 		= K_firn / (c_firn) #* self.rho)
 	tot_rho 		= self.rho
 
@@ -96,10 +97,12 @@ def enthalpyDiff(self,iii):
 	
 	### conductivity. Choose your favorite!
 	# k_i 		= (1-porosity)*2.1 # Meyer and Hewitt, 2017
-	# k_i 		= 0.021 + 2.5 * (self.rho/1000.)**2 #reference?
+	# k_i 		= 0.021 + 2.5 * (self.rho/1000.)**2 # Brandt, 1997
 	# k_i 		= 2.22362 * (self.rho/1000.)**1.885 # Yen (1981), also in van der Veen (2013)
 	# k_i 		= 0.0784 + 2.697 * (self.rho/1000.)**2 # Jiawen (1991)
-	k_i 		= 3.e-6*self.rho**2 - 1.06e-5*self.rho + 0.024 #Riche and Schneebeli (2013)
+	# k_i 		= 3.e-6*self.rho**2 - 1.06e-5*self.rho + 0.024 #Riche and Schneebeli (2013)
+	k_ice 			= 9.828 * np.exp(-0.0057 * self.Tz)
+	k_i 			= k_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
 	
 	bigKi 					= k_i / CP_I
 	bigKi[enthalpy>=Hs] 	= bigKi[enthalpy>=Hs] / 20 # from Aschwanden
@@ -112,7 +115,6 @@ def enthalpyDiff(self,iii):
 	Gamma_P[e_great] 	= bigKi[e_great] #/tot_rho[e_great]
 
 	enthalpy = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
-	# enthalpy = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, self.rho)
 
 	e_less 				= np.where(enthalpy<Hs)[0]
 	e_great 			= np.where(enthalpy>=Hs)[0]

@@ -62,6 +62,7 @@ class FirnDensitySpin:
 		'''
 
 		### load in json config file and parses the user inputs to a dictionary
+		self.spin=False
 		with open(configName, "r") as f:
 			jsonString 	= f.read()
 			self.c 		= json.loads(jsonString)
@@ -201,9 +202,8 @@ class FirnDensitySpin:
 		### initial grain growth (if specified in config file)
 		if self.c['physGrain']:
 			if self.c['calcGrainSize']:
-				r02     = -2.42e-9 * (np.mean(self.Ts)) + 9.46e-7 # where does this equation come from?
+				r02     = self.c['r2s0']
 				self.r2 = r02 * np.ones(self.gridLen)
-
 			else:
 				self.r2 = np.linspace(self.c['r2s0'], (6 * self.c['r2s0']), self.gridLen)
 		else:
@@ -218,6 +218,7 @@ class FirnDensitySpin:
 			self.THist 	= False
 
 		self.LWC = np.zeros_like(self.z)
+		self.MELT = False
 	############################
 	##### END INIT #############
 	############################
@@ -235,7 +236,7 @@ class FirnDensitySpin:
 
 		for iii in range(self.stp):
 			### create dictionary of the parameters that get passed to physics
-			PhysParams = {   				
+			PhysParams = {
 				'iii':          iii,
 				'steps':        self.steps,
 				'gridLen':      self.gridLen,
@@ -246,7 +247,7 @@ class FirnDensitySpin:
 				'T_mean':       self.T_mean,
 				'T10m':         self.T10m,
 				'rho':          self.rho,
-				'mass':         self.mass,
+				'mass':			self.mass,
 				'sigma':        self.sigma,
 				'dt':           self.dt,
 				'Ts':           self.Ts,
@@ -254,8 +255,13 @@ class FirnDensitySpin:
 				'age':          self.age,
 				'physGrain':    self.c['physGrain'],
 				'calcGrainSize':self.c['calcGrainSize'],
+				'r2s0':			self.c['r2s0'],
+				'GrGrowPhysics':self.c['GrGrowPhysics'],
 				'z':            self.z,
-				'rhos0':        self.rhos0[iii]
+				'rhos0':        self.rhos0[iii],
+				'dz':           self.dz,
+				'LWC':			self.LWC,
+				'MELT':			self.MELT,
 			}
 
 			if self.THist:
@@ -290,9 +296,8 @@ class FirnDensitySpin:
 				self.Hx = FirnPhysics(PhysParams).THistory()
 
 			### update temperature grid and isotope grid if user specifies
-			### should not need to use the diffusion here because temperature is steady state (but could be used)
-			# if self.c['heatDiff']:
-				# self.Tz, self.T10m = heatDiff(self,iii)
+			if self.c['heatDiff']:
+				self.Tz, self.T10m = heatDiff(self,iii)
 
 			if self.c['isoDiff']:
 				self.del_z 	= isoDiff(self,iii)
@@ -321,12 +326,12 @@ class FirnDensitySpin:
 				
 			# update grain radius
 			if self.c['physGrain']:
-				self.r2 	= FirnPhysics(PhysParams).grainGrowth()
+				self.r2, self.dr2_dt 	= FirnPhysics(PhysParams).grainGrowth()
 
 			if self.doublegrid:
 				self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
 				if self.gridtrack[-1]==2:
-					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack = regrid(self)
+					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 
 			# write results at the end of the time evolution
 			if (iii == (self.stp - 1)):

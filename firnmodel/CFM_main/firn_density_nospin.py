@@ -63,6 +63,7 @@ class FirnDensityNoSpin:
 		:param configName: name of json config file containing model configurations
 		'''
 		### load in json config file and parses the user inputs to a dictionary
+		self.spin = True
 		with open(configName, "r") as f:
 			jsonString      = f.read()
 			self.c          = json.loads(jsonString)
@@ -164,7 +165,7 @@ class FirnDensityNoSpin:
 		self.bdot 			= bsf(self.modeltime)
 		# self.bdotSec    	= self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 		self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
-		self.iceout     	= np.mean(self.bdot) # this is the rate of ice flow advecting out of the column
+		self.iceout     	= np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 		#####################
 		
 		### Melt ############
@@ -211,7 +212,7 @@ class FirnDensityNoSpin:
 				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
 		except:
-			print("you should alter the json to include variable_srho")
+			print("you should alter the json to include all variable surface rho fields")
 			self.rhos0      	= self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		#####################
 
@@ -222,7 +223,8 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1958.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=1978.0)[0][0]
+		# print('Caution: writing all data')
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
 		# self.TWrite     	= self.modeltime[-2::self.c['TWriteInt']]
@@ -309,13 +311,18 @@ class FirnDensityNoSpin:
 			initr2              	= read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
 			self.r2             	= initr2[1:]
 			r20                 	= self.r2
+			self.dr2_dt             = np.zeros_like(self.z)
 			if 'grainsize' in self.output_list:
 				self.r2_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.r2_out[0,:]    = np.append(self.modeltime[0], self.r2)
+				self.dr2_dt_out     = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+				self.dr2_dt_out[0,:]= np.append(self.modeltime[0], self.dr2_dt)
 			else:
-				self.r2_out         = None            
+				self.r2_out         = None
+				self.dr2_dt_out		= None            
 		else:            
 			self.r2             	= None
+			self.dr2_dt 			= None
 		#######################
 
 		### temperature history for Morris physics
@@ -419,10 +426,13 @@ class FirnDensityNoSpin:
 				'age':          self.age,
 				'physGrain':    self.c['physGrain'],
 				'calcGrainSize':self.c['calcGrainSize'],
+				'r2s0':			self.c['r2s0'],
+				'GrGrowPhysics':self.c['GrGrowPhysics'],
 				'z':            self.z,
 				'rhos0':        self.rhos0[iii],
 				'dz':           self.dz,
-				'LWC':			self.LWC
+				'LWC':			self.LWC,
+				'MELT':			self.MELT,
 			}
 
 			if self.THist: #add Hx to dictionary if physics is Morris
@@ -450,14 +460,13 @@ class FirnDensityNoSpin:
 			drho_dt = RD['drho_dt']
 
 			### update density and age of firn
-			self.rho_old			= np.copy(self.rho)
+			self.rho_old	= np.copy(self.rho)
 			self.rho 		= self.rho + self.dt * drho_dt
 			self.dz_old 	= np.copy(self.dz) # model volume thicknesses before the compaction
 			self.sdz_old 	= np.sum(self.dz) # old total column thickness
 			self.z_old 		= np.copy(self.z)
 			self.dz 		= self.mass / self.rho * self.dx # new dz after compaction
-			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, before new snow added
-
+			
 			if self.THist:
 				self.Hx 	= FirnPhysics(PhysParams).THistory()
 
@@ -476,7 +485,6 @@ class FirnDensityNoSpin:
 				pass # box gets added below
 
 			self.T_mean     = np.mean(self.Tz[self.z<50])
-			######
 			
 			if self.c['FirnAir']: # Update firn air
 				AirParams = {
@@ -498,6 +506,8 @@ class FirnDensityNoSpin:
 			if self.c['strain']: #update horizontal strain
 				self.dz 	= ((-self.du_dx)*self.dt + 1)*self.dz
 				self.mass 	= self.mass*((-self.du_dx)*self.dt + 1)
+
+			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
 			### Dcon: user-specific code goes here. 
 			self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
@@ -553,7 +563,7 @@ class FirnDensityNoSpin:
 			self.bdot_mean 	= (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
 			
 			if self.c['physGrain']: # update grain radius
-				self.r2 	= FirnPhysics(PhysParams).grainGrowth()
+				self.r2, self.dr2_dt 	= FirnPhysics(PhysParams).grainGrowth()
 
 			### write results as often as specified in the init method
 			if mtime in self.TWrite:				
@@ -580,6 +590,7 @@ class FirnDensityNoSpin:
 					self.LWC_out[self.WTracker,:] 	= np.append(mtime_plus1, self.LWC)
 				if 'grainsize' in self.output_list:
 					self.r2_out[self.WTracker,:] 	= np.append(mtime_plus1, self.r2)
+					self.dr2_dt_out[self.WTracker,:]= np.append(mtime_plus1, self.dr2_dt)
 				if 'temp_Hx' in self.output_list:
 					self.Hx_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Hx)
 				if 'isotopes' in self.output_list:
@@ -610,7 +621,10 @@ class FirnDensityNoSpin:
 
 			if self.doublegrid:
 				if self.gridtrack[-1]==2:
-					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack = regrid(self)
+					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
+					if iii<100:
+						tdep = np.where(self.gridtrack==1)[0][-1]
+						print('transition at:', self.z[tdep])
 
 		##################################
 		##### END TIME-STEPPING LOOP #####
@@ -691,7 +705,7 @@ class FirnDensityNoSpin:
 		
 		# self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho_old[-1]/RHO_I))*self.t #
 
-		self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout*self.t) #
+		self.dH = (self.sdz_new - self.sdz_old) + self.dzNew - (self.iceout*self.t) # iceout has units m ice/year, t is years per time step. 
 
 		self.dHAll.append(self.dH)
 
