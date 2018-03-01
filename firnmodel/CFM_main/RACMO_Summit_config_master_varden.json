@@ -1,9 +1,9 @@
 {
 "InputFileFolder": "",
-"InputFileNameTemp": "inputdata20170927/RACMOinput/Summit/Summit_tskin_RACMO_loop20.csv",
-"InputFileNamebdot": "inputdata20170927/RACMOinput/Summit/Summit_smb_RACMO_loop20.csv",
+"InputFileNameTemp": "inputdata/RACMOinput/Summit/Summit_tskin_RACMO_loop20.csv",
+"InputFileNamebdot": "inputdata/RACMOinput/Summit/Summit_smb_RACMO_loop20.csv",
 "InputFileNameIso": "example_isotope.csv",
-"InputFileNamerho": "example_rhos.csv",
+"InputFileNamerho": "inputdata/RACMOinput/Summit/Summit_rhos_RACMO_param.csv",
 "InputFileNamemelt": "example_melt.csv",
 "resultsFolder": "l20_noise_AT",
 "physRho": "Arthern2010T",
