@@ -47,7 +47,7 @@ data["physRho"] = mm
 data["resultsFolder"] = re
 # data["InputFileNameTemp"] = tein
 # data["InputFileNamebdot"] = smbin
-data["srho_type"] = 'userinput'
+# data["srho_type"] = 'userinput'
 
 if mm=="Arthern2010T":
     data["physGrain"] = True
