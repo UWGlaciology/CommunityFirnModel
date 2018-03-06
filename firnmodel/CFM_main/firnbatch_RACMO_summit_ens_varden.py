@@ -24,10 +24,11 @@ to run: parallel –a varden.txt –a modellist_ens.txt python firnbatch_RACMO_s
 # thefiles=["randspin600_11","randspin600_12","randspin600_13","randspin600_14","randspin600_15","randspin600_16","randspin600_17","randspin600_18","randspin600_19","randspin600_20"]
 
 # nn=sys.argv[1] # variable density choice
-nn='param'
-mm=sys.argv[1] # physics/model choice (changed from [2])
+nn='noise'
+mm=sys.argv[2] # physics/model choice (changed from [2])
+oo=sys.argv[1] 
 # print nn
-connm='RACMOjson/RACMO_Summit_config_'+nn+'_'+mm+'_ens.json'
+connm='RACMOjson/RACMO_Summit_config_'+nn+oo+'_'+mm+'_ens.json'
 copyfile('RACMO_Summit_config_master_varden.json', connm)
 
 # for mm in thenames:
@@ -38,7 +39,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re="RACMOresults_ens_all/r" + nn + "/" + mm #results folder
+re="RACMOresults_ens_all/ensnoise/r" + nn + oo + "/" + mm #results folder
 # tein="inputdata/RACMOinput/Summit/Summit_tskin_RACMO_" + nn + ".csv"
 # smbin="inputdata/RACMOinput/Summit/Summit_smb_RACMO_" + nn + ".csv"
 
@@ -48,6 +49,14 @@ data["resultsFolder"] = re
 # data["InputFileNameTemp"] = tein
 # data["InputFileNamebdot"] = smbin
 data["srho_type"] = nn
+
+if int(oo)<30:
+	data["rhos0"] = 350.0
+elif int(oo)>59:
+	data["rhos0"] = 340.0
+else:
+	data["rhos0"] = 360.0
+
 
 if mm=="Arthern2010T":
     data["physGrain"] = True
