@@ -24,7 +24,7 @@ to run: parallel –a varden.txt –a modellist_ens.txt python firnbatch_RACMO_s
 # thefiles=["randspin600_11","randspin600_12","randspin600_13","randspin600_14","randspin600_15","randspin600_16","randspin600_17","randspin600_18","randspin600_19","randspin600_20"]
 
 # nn=sys.argv[1] # variable density choice
-nn='noise'
+nn='param'
 mm=sys.argv[1] # physics/model choice (changed from [2])
 # print nn
 connm='RACMOjson/RACMO_Summit_config_'+nn+'_'+mm+'_ens.json'
@@ -47,7 +47,7 @@ data["physRho"] = mm
 data["resultsFolder"] = re
 # data["InputFileNameTemp"] = tein
 # data["InputFileNamebdot"] = smbin
-# data["srho_type"] = 'userinput'
+data["srho_type"] = nn
 
 if mm=="Arthern2010T":
     data["physGrain"] = True
