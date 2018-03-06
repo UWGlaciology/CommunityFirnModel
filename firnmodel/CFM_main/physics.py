@@ -345,10 +345,10 @@ class FirnPhysics:
         ar2 = 0.03
         Ec  = 60.0e3
         Eg  = 42.4e3
-        F0  = 0.68 #firnmice value?
-        F1  = 1.03 #firnmice value?
-        # F0=0.8 # Simonsen's recommended (email correspondence)
-        # F1=1.25 # Simonsen's recommended (email correspondence)
+        # F0  = 0.68 #firnmice value?
+        # F1  = 1.03 #firnmice value?
+        F0=0.8 # Simonsen's recommended (email correspondence)
+        F1=1.25 # Simonsen's recommended (email correspondence)
 
 
         A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000

@@ -33,7 +33,7 @@ def heatDiff(self,iii):
 	phi_0 			= self.Tz
 
 	K_ice 			= 9.828 * np.exp(-0.0057 * phi_0)
-	K_firn 			= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+	K_firn 			= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000)) #Reference?
 	# K_firn 			= 0.021 + 2.5 * (self.rho/1000.)**2 #Anderson (1976), from Brandt (1997)
 	c_firn 			= 152.5 + 7.122 * phi_0
 
@@ -102,7 +102,7 @@ def enthalpyDiff(self,iii):
 	# k_i 		= 0.0784 + 2.697 * (self.rho/1000.)**2 # Jiawen (1991)
 	# k_i 		= 3.e-6*self.rho**2 - 1.06e-5*self.rho + 0.024 #Riche and Schneebeli (2013)
 	k_ice 			= 9.828 * np.exp(-0.0057 * self.Tz)
-	k_i 			= k_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+	k_i 			= k_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000)) # Reference?
 	
 	bigKi 					= k_i / CP_I
 	bigKi[enthalpy>=Hs] 	= bigKi[enthalpy>=Hs] / 20 # from Aschwanden
