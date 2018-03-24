@@ -31,6 +31,9 @@ except:
 
 connm=os.path.join(jdir,dtype+'_'+site+'_config_'+nn+'_'+mm+'.json')
 # copyfile(dtype+'_'+site+'_config_master.json', connm)
+# if nn=='daily':
+# 	copyfile('RACMO_firncover_config_master_daily.json', connm)
+# else:
 copyfile('RACMO_firncover_config_master.json', connm)
 
 jsonFile = open(connm, "r")
@@ -55,9 +58,11 @@ data["MELT"] = True
 if nn=='daily':
 	data["stpsPerYearSpin"]=365.0
 	data["stpsPerYear"]=365.0
+	data["HbaseSpin"]=2950.0
 else:
 	data["stpsPerYearSpin"]=12.0
 	data["stpsPerYear"]=12.0
+	data["HbaseSpin"]=2800.0
 # except:
 # 	print("cannot find melt; model runs without melt")
 # 	data["MELT"] = False

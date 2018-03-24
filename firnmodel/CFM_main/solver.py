@@ -69,7 +69,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 		# Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
 		##################
-		if airdict!=None: # gas diffusion takes a bit more physics
+		if airdict!=None: # this part for gas diffusion, which takes a bit more physics
 			Gamma_Po    = Gamma_P * airdict['por_op']
 
 			Gamma_U 	= np.append(Gamma_Po[0], Gamma_Po[0: -1] )
@@ -142,7 +142,7 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 			a_U = D_u 
 			a_D = D_d 
 
-			# a_P_0 = tot_rho * dZ / dt
+			# a_P_0 = dZ / dt
 			a_P_0 = tot_rho * dZ / dt
 			# a_P_0 = RHO_I * c_firn * dZ / dt
 			

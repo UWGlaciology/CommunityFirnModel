@@ -218,12 +218,12 @@ class FirnDensityNoSpin:
 
 		### Layer tracker ###
 		self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
-		self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
+		self.Dcon       = self.c['D_surf'] * np.zeros(self.gridLen)  # layer tracking routine (initial depth vector)
 		#####################
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1958.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=2000.0)[0][0]
 		# print('Caution: writing all data')
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
@@ -249,6 +249,7 @@ class FirnDensityNoSpin:
 		self.mass_sum   	= self.mass.cumsum(axis = 0)
 		### mean accumulation over the lifetime of the parcel:
 		self.bdot_mean  	= (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
+		### It is the mass of the overlying firn divided by the age of the parcel.
 		#######################
 
 		### set up longitudinal strain rate
@@ -405,7 +406,7 @@ class FirnDensityNoSpin:
 		for iii in range(self.stp):
 			mtime = self.modeltime[iii]
 			# print(iii,mtime)
-
+			self.D_surf[iii] = iii
 			### dictionary of the parameters that get passed to physics
 			PhysParams = {
 				'iii':          iii,
@@ -459,6 +460,10 @@ class FirnDensityNoSpin:
 			RD 		= physicsd[self.c['physRho']]()
 			drho_dt = RD['drho_dt']
 
+
+
+
+
 			### update density and age of firn
 			self.rho_old	= np.copy(self.rho)
 			self.rho 		= self.rho + self.dt * drho_dt
@@ -510,7 +515,7 @@ class FirnDensityNoSpin:
 			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
 			### Dcon: user-specific code goes here. 
-			self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
+			# self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
 			
 			### update model grid, mass, stress, and mean accumulation rate
 			if self.bdotSec[iii]>0: # there is accumulation at this time step
@@ -621,6 +626,7 @@ class FirnDensityNoSpin:
 
 			if self.doublegrid:
 				if self.gridtrack[-1]==2:
+					# print('regridding now at ', iii)
 					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 					if iii<100:
 						tdep = np.where(self.gridtrack==1)[0][-1]

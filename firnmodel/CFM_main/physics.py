@@ -152,8 +152,11 @@ class FirnPhysics:
 
     def Li_2011(self):
         '''
-        Accumulation units are m W.E. per year (?)
-        Potentially beta should be calculated with the long-term mean accumulation rate
+        Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
+        Temperature in the equation for beta is in C.
+        Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)
+
+        beta should be calculated with the long-term mean accumulation rate
 
         :param steps:
         :param gridLen:
@@ -348,7 +351,7 @@ class FirnPhysics:
         # F0  = 0.68 #firnmice value?
         # F1  = 1.03 #firnmice value?
         F0=0.8 # Simonsen's recommended (email correspondence)
-        F1=1.25 # Simonsen's recommended (email correspondence)
+        F1=1.25 # Simonsen's recommended (email correspondence) (See email from 4/7/15)
 
 
         A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
