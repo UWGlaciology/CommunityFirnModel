@@ -11,7 +11,7 @@ import json
 
 
 '''
-to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
+to run: parallel –a inputlist_ens_short.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
 '''
 
 dtype = 'RACMO'

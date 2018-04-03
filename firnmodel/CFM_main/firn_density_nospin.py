@@ -223,7 +223,7 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=2000.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=1980.0)[0][0]
 		# print('Caution: writing all data')
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
@@ -436,6 +436,8 @@ class FirnDensityNoSpin:
 				'MELT':			self.MELT,
 			}
 
+
+			
 			if self.THist: #add Hx to dictionary if physics is Morris
 				PhysParams['Hx']=self.Hx
 

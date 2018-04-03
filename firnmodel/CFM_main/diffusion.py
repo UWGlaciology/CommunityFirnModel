@@ -26,9 +26,14 @@ def heatDiff(self,iii):
 	nz_fv 			= nz_P - 2
 	nt 				= 1
 
-	z_edges_vec 	= self.z[1:-2] + self.dz[2:-1] / 2
-	z_edges_vec 	= np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
-	z_P_vec 		= self.z
+	# z_edges_vec 	= self.z[1:-2] + self.dz[2:-1] / 2
+	# z_edges_vec 	= np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+	# z_P_vec 		= self.z
+
+	z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+	z_P_vec 	= self.z
+	
 	phi_s 			= self.Tz[0]
 	phi_0 			= self.Tz
 
@@ -89,10 +94,28 @@ def enthalpyDiff(self,iii):
 	nz_fv 	= nz_P - 2
 	nt 		= 1
 
-	z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
-	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+	## this is the older, (semi) working bit.
+	z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
 	z_P_vec 	= self.z
-	z_diff 		= np.diff(z_P_vec)
+	
+	##
+
+	# z_edges_vec = self.z
+	# z_edges_vec = np.concatenate(([z_edges_vec[0]], z_edges_vec, [z_edges_vec[-1]]))
+	# z_P_vec 	= z_edges_vec[0:-1] + np.diff(z_edges_vec) / 2
+	# z_P_vec = np.concatenate(([z_edges_vec[0]], z_P_vec1, [z_edges_vec[-1]]))
+	
+	# print(iii)
+	# print('z',self.z[0:6])
+	# print('dz',self.dz[0:6])
+	# print('sum dz', np.cumsum(self.dz[0:6]))
+	# print('z_edges_vec', z_edges_vec[0:6])
+	# print('z_P_vec', z_P_vec[0:6])
+	# # print('z_diff',z_diff[0:6])
+	# print('len z_edges_vec', len(z_edges_vec))
+	# print('len z_P_vec', len(z_P_vec))
+	# print('len rho:', len(self.rho))
 
 	phi_s 		= enthalpy[0] # phi surface; upper boundary condition
 	phi_0 		= enthalpy # initial guess

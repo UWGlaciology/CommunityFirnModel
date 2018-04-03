@@ -52,15 +52,36 @@ def transient_solve_TR(z_edges_vec, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv
 	for i_time in range(nt):
 		Z_P = z_P_vec
 
-		dZ = np.concatenate(([1], np.diff(z_edges_vec), [1]))
+		# dZ = np.concatenate(([1], np.diff(z_edges_vec), [1]))
+
+		# dzev = np.diff(z_edges_vec)
+		# dZ = np.concatenate(([dzev[0]], dzev, [dzev[-1]]))
+
+		dZ = np.diff(z_edges_vec)
+		# print('dZ:', dZ)
+		# print('len dZ:', len(dZ))
+
+
+		# if (dZ<=0).any():
+		# 	ind10 = np.where(dZ<=0)[0]
+		# 	print('!!!!!!')
+		# 	print('ind10:',ind10)
+		# 	print('z ind', Z_P[0:ind10[0]+3])
+		# 	print('z z_edges_vec', z_edges_vec[0:ind10[0]+3])
+		# 	print('dz ind', dZ[0:ind10[0]+3])
+		# 	input('enter to continue')
 
 		dZ_u = np.diff(Z_P)
 		dZ_u = np.append(dZ_u[0], dZ_u)
 		
 		dZ_d = np.diff(Z_P)
 		dZ_d = np.append(dZ_d, dZ_d[-1])
-		f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges_vec) / dZ_u[1:]))
-		f_d = np.append(1 - (z_edges_vec - z_P_vec[0: -1]) / dZ_d[0: -1], 0)
+
+		# f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges_vec) / dZ_u[1:]))
+		# f_d = np.append(1 - (z_edges_vec - z_P_vec[0: -1]) / dZ_d[0: -1], 0)
+
+		f_u = 1 - (z_P_vec[:] - z_edges_vec[0:-1]) / dZ_u[:]
+		f_d = 1 - (z_edges_vec[1:] - z_P_vec[:]) / dZ_d[:]
 
 		# Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
 		# Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])

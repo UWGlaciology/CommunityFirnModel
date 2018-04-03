@@ -21,8 +21,8 @@ import json
 # nn=sys.argv[1] # run ID
 mm=sys.argv[1] # physics
 # print nn
-connm='GISP2json/gisp2_config_'+mm+'.json'
-copyfile('gisp2_config_master.json', connm)
+connm='jsonstore/SP50/SP50_config_'+mm+'.json'
+copyfile('jsonstore/SP50_config_master.json', connm)
 
 # for mm in thenames:
     
@@ -32,7 +32,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re="gisp2results_all/" + mm #results folder
+re="SP50results_all/" + mm #results folder
 # tein="inputdata/gisp2input/Summit_tskin_MAR_" + nn + ".csv"
 # smbin="inputdata/gisp2input/Summit_smb_MAR_" + nn + ".csv"
 
