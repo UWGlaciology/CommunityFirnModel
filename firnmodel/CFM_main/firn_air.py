@@ -10,33 +10,35 @@ from constants import *
 import os
 
 class FirnAir:
-	def __init__(self,AirconfigName,input_year_gas,z,modeltime,Tz, rho, dz):
+	def __init__(self,air_config,input_year_gas,z,modeltime,Tz, rho, dz, gaschoice):
 		'''
 		Initialize Firn Air class
 		'''
-		with open(AirconfigName, "r") as f:
-			jsonString 		= f.read()
-			self.cg         = json.loads(jsonString)
+		# with open(AirconfigName, "r") as f:
+		# 	jsonString 		= f.read()
+		# 	self.cg         = json.loads(jsonString)
 
 		# self.gaschoice_all=self.cg["gaschoice"]
 		# nogas=len(gaschoice_all)
 
+		self.cg = air_config
 		# self.gaschoice = self.cg["gaschoice"]
 		# input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 		input_gas 			= np.ones_like(input_year_gas)
-		Gsf			 		= interpolate.interp1d(input_year_gas,input_gas,'nearest',fill_value='extrapolate')
+		Gsf			 		= interpolate.interp1d(input_year_gas,input_gas,'linear',fill_value='extrapolate')
 		self.Gs 			= Gsf(modeltime)
 		self.Gz				= self.Gs[0]*np.ones_like(z)
 		self.Tz 			= Tz
+		self.z 				= z
 		self.rho 			= rho
-		self.M_air 			= 28.97e-3 #kg/mol
 
-		self.gam_x, self.M, self.deltaM, self.d_0, self.omega = gasses(self.cg['gaschoice'], Tz[0], P_0, self.M_air)
+		# self.gam_x, self.M, self.deltaM, self.d_0, self.omega = gasses(self.cg['gaschoice'], Tz[0], P_0, M_AIR)
+		self.gam_x, self.M, self.deltaM, self.d_0, self.omega = gasses(gaschoice, Tz[0], P_0, M_AIR)
 
 		self.czd 			= self.cg['ConvectiveZoneDepth']
 		self.p_a 			= 1.0e5
 		# self.air_pressure 	= self.p_a * np.ones_like(z)
-		self.air_pressure 	= self.p_a * np.exp(self.M_air*GRAVITY*z/(R*self.Tz))
+		self.air_pressure 	= self.p_a * np.exp(M_AIR*GRAVITY*z/(R*self.Tz))
 		self.air_pressure_base = np.copy(self.air_pressure)
 		# self.air_pressure_0 = np.copy(self.air_pressure)
 
@@ -59,7 +61,8 @@ class FirnAir:
 		if self.cg['Diffu_param'] == "Severinghaus": # Use Severinghaus relationship from Cuffey and Paterson
 			
 			# d_0			= d_0*1.7
-			diffu_full 		= 0.1 * self.gam_x * self.d_0 * ((P_0/self.p_a) * (self.Tz/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))    
+			# diffu_full 		= 0.1 * self.gam_x * self.d_0 * ((P_0/self.p_a) * (self.Tz/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))
+			diffu_full 		= self.gam_x * self.d_0 * ((P_0/self.p_a) * (self.Tz/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))        
 			# diffu_full 	= diffu_full - diffu_full[d_ind]
 			# iind 			= np.nonzero(diffu_full == np.min(diffu_full[diffu_full>0.0]))
 			# diffu_full[diffu_full<=0] = diffu_full[iind]
@@ -67,11 +70,8 @@ class FirnAir:
 		
 		elif self.cg['Diffu_param'] == "Schwander": # Use Schwander 1988, Eq. 2 Diffusivity (does not work very well) use 4e2 for d_0
 			k_sch 			= P_0 / self.p_a * (self.Tz / 253.16)**1.85 # Constant given in Schwander
-			# diffu_full 	= 3.72 * 0.5 * k_sch * (23.7 * por_tot-2.84) * 31.5 # Schwander' diffusivity relationship (for CO2). 31.5 is unit conversion. Added extra 3.72* 9/12/13
-			diffu_full 		= 2.0 * k_sch * (23.7 * self.por_tot - 2.84) / (1000**2) # Schwander' diffusivity relationship (for CO2). 1/1000**2 is unit conversion. Added extra 3.72* 9/12/13
-			# ind 			= np.nonzero(z>LIZ)
-			# diffu_full[ind] = 0.001
-			# diffu_full 	= diffu_full - diffu_full[d_ind]
+			diffu_full 		= self.gam_x * k_sch * (23.7 * self.por_tot - 2.84) / (1000**2) # 1/1000**2 is unit conversion.
+
 					
 		elif self.cg['Diffu_param'] == "Freitag": # Use Freitag, 2002, Eq 15 Diffusivity use 9e2 for d_0
 			# d_0 			= d_0*4.9    
@@ -104,6 +104,11 @@ class FirnAir:
 			ind 			= np.flatnonzero(self.z>self.LIZ)
 			ind2 			= np.flatnonzero(self.z<self.z_co)
 			ind3 			= np.intersect1d(ind,ind2)
+			ind4 = np.where(self.z<=self.LIZ)[0]
+			# ind5 = np.where(self.z>=self.LIZ)[0][0]
+
+			# diffu_full[ind4] = diffu_full[ind4]-diffu_full[ind4[-1]] #re-scale diffusivity so it becomes zero at LIZ
+
 			d_eddy[ind3] 	= diffu_full[ind3] 		# set eddy diffusivity in LIZ equal to diffusivity at LIZ
 			diffu_full[ind]	= 1e-40 				# set molecular diffusivity equal to zero for "main" diffusivity after LIZ - eddy diffusivity term drives diffusion below
 			d_eddy 			= d_eddy + d_eddy_up #make eddy diffusivity vector have convective and lock-in zone values
@@ -118,7 +123,9 @@ class FirnAir:
 
 	def porosity(self): #,rho,T
 		
-		self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[100]*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+		indT=np.where(self.z>20)[0][0]
+		
+		self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[indT]*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
 		self.LIDRho 		= self.bcoRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)
 
 		### Porosity, from Goujon et al., 2003, equations 9 and 10
@@ -128,7 +135,10 @@ class FirnAir:
 
 		self.por_co 		= 1 - self.rho_co/RHO_I # Porosity at close-off
 		alpha 				= 0.37 # constant determined in Goujon
-		self.por_cl 		= alpha*self.por_tot*(self.por_tot/self.por_co)**(-7.6)
+		self.por_cl 		= np.zeros_like(self.por_tot)
+		self.por_cl[self.por_tot>0] 		= alpha*self.por_tot[self.por_tot>0]*(self.por_tot[self.por_tot>0]/self.por_co)**(-7.6)
+		# print(self.por_co)
+		# print(self.por_tot)
 		ind 				= self.por_cl>self.por_tot
 		self.por_cl[ind] 	= self.por_tot[ind]
 		self.por_op 		= self.por_tot - self.por_cl # Open Porosity
@@ -147,8 +157,8 @@ class FirnAir:
 		nz_fv 		= nz_P - 2
 		nt 			= 1
 
-		z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
-		z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+		z_edges1 = self.z[0:-1] + np.diff(self.z) / 2
+		z_edges = np.concatenate(([self.z[0]], z_edges1, [self.z[-1]]))
 		z_P_vec 	= self.z
 		# phi_s 	= self.Ts[iii]
 		phi_s 		= self.Gz[0]
@@ -164,19 +174,20 @@ class FirnAir:
 
 		por_co 				= 1 - self.rho_co/RHO_I # Porosity at close-off
 		alpha 				= 0.37 # constant determined in Goujon
-		por_cl 				= alpha*porosity_old*(porosity_old/por_co)**(-7.6)
+		por_cl 				= np.zeros_like(porosity_old)
+		por_cl[porosity_old>0] 				= alpha*porosity_old[porosity_old>0]*(porosity_old[porosity_old>0]/por_co)**(-7.6)
 		ind 				= por_cl>porosity_old
 		por_cl[ind] 		= porosity_old[ind]
 		por_op_old 			= porosity_old - por_cl # Open Porosity
 
-
+		# print('porcl',len(por_cl))
 		self.air_volume_old		= por_op_old * self.dz_old
 		# self.air_volume_old 	= np.copy(self.air_volume)
 
 		self.air_volume 		= self.por_op * self.dz
 		volfrac = self.air_volume_old / self.air_volume
 		# volfrac = np.concatenate(([volfrac[0]],volfrac))
-		self.air_pressure 		= (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) * volfrac - (self.p_a*np.exp(self.M_air*GRAVITY*self.z/(R*self.Tz))) # assume air pressure is atmos in entire column
+		self.air_pressure 		= (self.p_a*np.exp(M_AIR*GRAVITY*self.z/(R*self.Tz))) * volfrac - (self.p_a*np.exp(M_AIR*GRAVITY*self.z/(R*self.Tz))) # assume air pressure is atmos in entire column
 
 		# print('ap shape',np.shape(self.air_pressure))
 		# print('dz shape',np.shape(self.dz))
@@ -203,17 +214,26 @@ class FirnAir:
 			'z': 				self.z, 
 			'dt': 				self.dt,
 			'z_co': 			self.z_co,
-			'M_air':			self.M_air
+			'p_a':				self.p_a,
+			'por_tot':			self.por_tot,
+			'por_cl':			self.por_cl,
+			'w_firn':			self.w_firn,
+			'advection_type':	self.cg['advection_type']
 			}
 
+		# if iii<5:
+		# 	print(self.dt)
 		msk = np.where(self.z>self.z_co)[0][0]
 		# volfrac = self.air_volume_old/self.air_volume
 		# print(self.air_pressure[msk-10:msk+1])
 		# print(volfrac[msk-10:msk+1])
 		# print(self.z[msk-10:msk+1])
-		self.Gz, w_p = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
+		self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
-		
+		# if ((iii>500) & (iii<510)):
+		# 	print(iii)
+		# 	bb=((self.z>60) & (self.z<80))
+		# 	print('w_p',w_p[bb])
 		return self.Gz, self.diffu, w_p
 
 def gasses(gaschoice, T, p_a, M_air):
@@ -252,7 +272,7 @@ def gasses(gaschoice, T, p_a, M_air):
 		decay = 0.
 		omega = 0.
 
-	elif gaschoice == ['d15N2']:
+	elif gaschoice == 'd15N2':
 		
 		gam_x = 1.275*0.9912227 # not sure of the origin here... Christo's model?
 		#gam_x = 

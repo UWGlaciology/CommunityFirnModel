@@ -47,9 +47,17 @@ class FirnPhysics:
 
         drho_dt = np.zeros(self.gridLen)
 
+        A_instant = 0.07
+        Tcon = (273.15 - 47.5)*np.ones_like(self.Tz)
+
+        # if self.bdot_type == 'instant':
+        #     drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+        #     drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+
         if self.bdot_type == 'instant':
-            drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
-            drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+
+            drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * Tcon[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+            drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * Tcon[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
 
         elif self.bdot_type == 'mean':
             drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR

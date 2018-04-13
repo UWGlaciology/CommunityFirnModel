@@ -19,7 +19,7 @@ def makeplots(plotting,Z_P,phi,gas_meas,meas_depth,meas_conc,ResultsPlace,
         pass
     
     if plotting == 'off':
-        print "Plotting is turned off."
+        print("Plotting is turned off.")
     
     elif plotting == 'on':
         

@@ -12,7 +12,7 @@ def write_nospin_hdf5(self):
     if 'temperature' in self.output_list:
         f4.create_dataset('temperature',data = self.Tz_out)
     if 'age' in self.output_list:
-        f4.create_dataset('age',data = self.age_out)
+        f4.create_dataset('age',data = self.age_out[-1,:])
     if 'depth' in self.output_list:    
         f4.create_dataset('depth',data = self.z_out)
     if 'dcon' in self.output_list:    
@@ -23,11 +23,15 @@ def write_nospin_hdf5(self):
         f4.create_dataset('Modelclimate',data = self.Clim_out)
     if 'compaction' in self.output_list:    
         f4.create_dataset('compaction_rate', data = self.crate_out)
-    if 'gasses' in self.output_list:       
-        f4.create_dataset('gasses', data = self.gas_out)
-        f4.create_dataset('diffusivity', data = self.diffu_out)
-        f4.create_dataset('w_air', data = self.w_air_out)
-        f4.create_dataset('w_firn', data = self.w_firn_out)
+    if self.c['FirnAir']:
+        if "gasses" in self.cg['outputs']:
+            for gas in self.cg['gaschoice']:       
+                f4.create_dataset(gas, data = self.gas_out[gas])
+        if "diffusivity" in self.cg['outputs']:
+            f4.create_dataset('diffusivity', data = self.diffu_out)
+        if "advection_rate" in self.cg['outputs']:
+            f4.create_dataset('w_air', data = self.w_air_out)
+            f4.create_dataset('w_firn', data = self.w_firn_out)
     if 'grainsize' in self.output_list:
         f4.create_dataset('r2', data = self.r2_out)
         f4.create_dataset('dr2_dt', data = self.dr2_dt_out)

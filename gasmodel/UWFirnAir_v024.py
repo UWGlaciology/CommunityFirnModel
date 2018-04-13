@@ -23,10 +23,11 @@ import ModelParameters.Diffusivity as MPD
 import ModelParameters.density as MPRHO
 import csv
 import json
+import imp
 
 # Set path to find all files to import and set output location
 spot = os.path.dirname(sys.argv[0]) #Add Folder
-print spot 
+print(spot) 
 # os.chdir(spot) #change pwd to location of firnmodel.py
 sys.path.insert(1,spot)
 ResultsPlace=os.path.join(spot,'Results')
@@ -50,12 +51,12 @@ g=9.8 #m/s^2
 # Downward Advection (of air)        
 def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,dz): # Function for downward advection of air and also calculates total air content. 
     
-    global teller_co, por_cl_interface
+    global index_co, por_cl_interface
     
     por_tot_interface=np.interp(z_edges,z_nodes,por_tot)
     por_cl_interface=np.interp(z_edges,z_nodes,por_cl)
     por_op_interface=np.interp(z_edges,z_nodes,por_op)
-    teller_co=np.argmax(por_cl_interface)
+    index_co=np.argmax(por_cl_interface)
     w_ice=Accu*rho_i/rho_interface #Check this - is there a better way?
     w_ice=1*w_ice
     
@@ -68,32 +69,39 @@ def w(z_edges,Accu,rho_interface,por_op,T,p_a,por_tot,por_cl,z_nodes,ad_method,d
     ### Christo's Method from his thesis (chapter 5). This (maybe) could be vectorized to speed it up.
     
         bubble_pres = np.zeros_like(z_edges)
-        dscl = np.append(0, np.diff(por_cl)/dz)    
+        dscl = np.append(0, np.diff(por_cl)/dz)
+        # print(len(z_edges))
+        # print(len(z_nodes))
+        # print(T)
+
+        # input('enter to ocntinue')  
         C=np.exp(M_air*g*z_edges/(R*T))
         strain = np.gradient(np.log(w_ice),dz )
         s=por_op_interface+por_cl_interface
         
-        for teller1 in range (0,teller_co+1): 
-            integral = np.zeros(teller1+1)
-            integral2 = np.zeros(teller1+1)
+        for index1 in range (0,index_co+1): # index1 is z (actual depth)
+            integral = np.zeros(index1+1)
+            integral2 = np.zeros(index1+1)
             
-            for teller2 in range(0,teller1+1):
-                integral[teller2] = dscl[teller2]*C[teller2]*(s[teller2]/s[teller1])/(1+np.trapz(strain[teller2:teller1+1],dx=dz)) #need to get this indexing correct 6/19/14: I think it is fine.
-                if dscl[teller2]==0:
-                    dscl[teller2]=1e-14
-                integral2[teller2] = dscl[teller2]
+            for index2 in range(0,index1+1): # index2 is z' (trapping depth)
+                integral[index2] = dscl[index2]*C[index2]*(s[index2]/s[index1])/(1+np.trapz(strain[index2:index1+1],dx=dz)) #need to get this indexing correct 6/19/14: I think it is fine.
+                if dscl[index2]==0:
+                    dscl[index2]=1e-14
+                integral2[index2] = dscl[index2]
                 
-            bubble_pres[teller1] = (dz*np.sum(integral))/(dz*np.sum(integral2))
+            bubble_pres[index1] = (dz*np.sum(integral))/(dz*np.sum(integral2))
         
-        bubble_pres[teller_co+1:] = bubble_pres[teller_co]*(s[teller_co]/s[teller_co+1:])/(w_ice[teller_co+1:]/w_ice[teller_co])
+        bubble_pres[index_co+1:] = bubble_pres[index_co]*(s[index_co]/s[index_co+1:])/(w_ice[index_co+1:]/w_ice[index_co])
         
         bubble_pres[0] = 1
         #print 'bubble pressure = %s' % bubble_pres
         
-        flux= w_ice[teller_co]*bubble_pres[teller_co]*por_cl[teller_co]
+        flux= w_ice[index_co]*bubble_pres[index_co]*por_cl[index_co]
         velocity = np.minimum(w_ice ,((flux+(1e-10)-w_ice*bubble_pres*por_cl_interface)/((por_op_interface+1e-10)*C)))
         #velocity = velocity * 2   
         w_ad=velocity
+        print(len(w_ad))
+        input()
 
     return w_ad, bubble_pres
 
@@ -154,7 +162,7 @@ def FirnAir_SS(cc,gaschoice):
     rho_co, por_co, por_tot, por_cl, por_op, bcoRho, LIDRho = porosity(rhoHL,T)
     
     mart_co=np.min(z_nodes[rhoHL>830.0])
-    print 'mart co = ', mart_co
+    print('mart co = ', mart_co)
     #if sitechoice=='SCENARIO': 
     #    z_co = min(z_nodes[rhoHL>=(bcoRho)]) #close-off depth; bcoRho is close off density
     #    LIZ = min(z_nodes[rhoHL>=(LIDRho)]) #lock in depth; LIDRho is lock-in density
@@ -166,7 +174,7 @@ def FirnAir_SS(cc,gaschoice):
     gas=np.interp(model_time,time_yr_s,gas_org) #interpolate atmospheric gas history to model time.
     bc_u, bc_d, bc_u_0 = boundaries(gas_org) #set boundary and initial conditions: bc_u is atmospheric condition, bc_d is zero gradient.
     
-    phi_0 = np.zeros(nz_P) #phi is mixing ratio of gas.
+    phi_0 = np.zeros(int(nz_P)) #phi is mixing ratio of gas.
     phi_0[:]=bc_u_0
     
     ConcPath = os.path.join(ResultsPlace, 'concentration.csv') #Save location.
@@ -203,7 +211,7 @@ def FirnAir_SS(cc,gaschoice):
     S_P=1.*S_P
     
     if cc['gravity']=="off" and cc['thermal']=="off":
-        print 'gravity and thermal are off'
+        print('gravity and thermal are off')
         S_C_0=0.0
     
     elif cc['gravity']=='on' and cc['thermal']=='off':
@@ -212,11 +220,11 @@ def FirnAir_SS(cc,gaschoice):
         elif gaschoice=="d40Ar":
             S_C_0=(-diffu_d+diffu_u)*(np.exp(deltaM*g/(R*T))-1)/dz #S_C is independent source term in Patankar
         else:
-            print "!!!!"
+            print("!!!!")
             S_C_O=(-diffu_d+diffu_u)*(deltaM*g/(R*T))/dz
             
     elif cc['gravity']=='on' and cc['thermal']=='on':
-        print 'thermal on'
+        print('thermal on')
         dTdz=np.zeros(np.size(diffu_d))
         dTdz[0:100]=-0.0 #K/m. Negative gradient here means that it is colder deep (z is positive down)
         S_C_0=(diffu_d-diffu_u)*((-deltaM*g/(R*T))+(omega*dTdz))/dz #S_C is independent source term in Patankar
@@ -246,7 +254,8 @@ def FirnAir_SS(cc,gaschoice):
 
     a_P_0 = por_op*dZ/dt
     
-    s=(nt,nz_P)
+    s=(int(nt),int(nz_P))
+
     phi=np.zeros(s)
     a_P_out=np.zeros(s)
     
@@ -322,7 +331,7 @@ def FirnAir_TR(cc,gaschoice,jj):
         #f_LID=np.loadtxt(os.path.join(DataPathUser,'LID.csv'),delimiter=',',skiprows=0)
         #f_gas=np.loadtxt(os.path.join(DataPathUser,'GasHistory.csv'),delimiter=',',skiprows=0)
         
-        print "Gasses Loaded"
+        print("Gasses Loaded")
         
         #Accu_vec=f_clim[:,1]
         #T_vec=f_clim[:,2]
@@ -349,7 +358,7 @@ def FirnAir_TR(cc,gaschoice,jj):
         time_yr_s=time_yr*sPerYear
         #gas_org=f_gas[jj+1,:] #this needs to match up with the order of gasses specified in the config.
         gas_org=f_gas #this needs to match up with the order of gasses specified in the config.
-        print 'gas_org1=',gas_org[0:6]
+        print('gas_org1=',gas_org[0:6])
         z_res=cc['z_resolution']
         yrs=time_yr[-1]-time_yr[0]
         time_total=yrs*sPerYear #total model run time in seconds
@@ -357,13 +366,13 @@ def FirnAir_TR(cc,gaschoice,jj):
         #t_steps=np.int(yrs*stpsperyear)
         t_steps=yrs*stpsperyear
         dt=time_total/t_steps #time step size.
-        print 'dt = ', dt
+        print('dt = ', dt)
         #model_time=np.arange(np.around(time_yr[0]*sPerYear),np.around(time_yr[-1]*sPerYear),dt) #set model time steps
         model_time=np.arange(time_yr[0]*sPerYear,time_yr[-1]*sPerYear+dt,dt) #set model time steps
         
         model_time_years=model_time/sPerYear
         nt=np.size(model_time) #number of time steps
-        print 'nt = ', nt
+        print('nt = ', nt)
 
         if nt>len(time_yr): #this is because occasionally np.arrange will include end points.
             model_time=np.arange(time_yr[0]*sPerYear,time_yr[-1]*sPerYear,dt)
@@ -402,7 +411,7 @@ def FirnAir_TR(cc,gaschoice,jj):
         time_yr_s=time_yr*sPerYear
     
         gas_org=conc1[:,1] # Atmospheric measurement concentrations
-        print 'gas_org1=',gas_org[0:6]
+        print('gas_org1=',gas_org[0:6])
         #Space and time. Time is in seconds!
         z_res=cc['z_resolution'] #resolution of grid, m
         
@@ -720,7 +729,7 @@ def diffusivity(cc, rho_co, por_co, por_tot, por_cl, por_op, z_co, czd, LIZ,d_0,
         ind = np.flatnonzero(z_nodes>LIZ)
         ind2 = np.flatnonzero(z_nodes<z_co)
         ind3 = np.intersect1d(ind,ind2)
-        d_eddy[ind3] = diffu_full[ind] #set eddy diffusivity in LIZ equal to diffusivity
+        d_eddy[ind3] = diffu_full[ind3] #set eddy diffusivity in LIZ equal to diffusivity
         diffu_full[ind]=1e-15 #set molecular diffusivity equal to zero for "main" diffusivity after LIZ - eddy diffusivity term drives diffusion below
         d_eddy=d_eddy+d_eddy_up #make eddy diffusivity vector have convective and lock-in zone values
         
@@ -765,27 +774,27 @@ def firnairmodel(airconfig):
     d={}
     zz={}
     
-    for jj in xrange(nogas):
-        print jj
+    for jj in range(nogas):
+        print(jj)
         
         gaschoice=gaschoice_all[jj]
         
-        print jj, gaschoice
+        print(jj, gaschoice)
         
         runtype = cc["runtype"] #this line chooses transient or steady-state
         
         if runtype == 'transient':
             phi, diffu_hold, rho_hold, z_nodes, dd = FirnAir_TR(cc,gaschoice,jj)
-            print 'maximum = %s' % np.max(phi)
-            print 'phi size=',np.shape(phi)
+            print('maximum = %s' % np.max(phi))
+            print('phi size=',np.shape(phi))
             
         elif runtype == 'steady':
             phi, a_P_out, bubble_pres,z_nodes, dd =FirnAir_SS(cc,gaschoice)
-            print 'maximum = %s' % np.max(phi)
-            print 'phi size=',np.shape(phi)
+            print('maximum = %s' % np.max(phi))
+            print('phi size=',np.shape(phi))
     
         d[gaschoice]=phi
-        print '%s done' % gaschoice
+        print('%s done' % gaschoice)
         d['nodes']=z_nodes
             
     return d, dd
@@ -873,11 +882,11 @@ def firnairmodel(airconfig):
     
 if __name__ == "__main__":
     
-    reload(MPG)
-    reload(MPS)
-    reload(MPD)
-    reload(plots)
-    reload(MPRHO)
+    imp.reload(MPG)
+    imp.reload(MPS)
+    imp.reload(MPD)
+    imp.reload(plots)
+    imp.reload(MPRHO)
     import time
     
     tic=time.time()
@@ -953,7 +962,7 @@ if __name__ == "__main__":
     #ax2.errorbar(meas_depth2,meas_conc2,yerr=meas_uncert2,xerr=None,fmt='.',color='r')
     ##plt.ax2.xlabel(r'\textbf{Depth (m)}')
     #ax2.set_ylabel(r'{\textbf{CO$_2$}}')    
-    svloc='/Users/maxstev/Documents/Grad_School/PIRE/CFM/CommunityFirnModel/code/gasmodel/results/'
+    # svloc='/Users/maxstev/Documents/Grad_School/PIRE/CFM/CommunityFirnModel/code/gasmodel/results/'
     
     fig=plt.figure()
     plt.clf()
@@ -973,7 +982,7 @@ if __name__ == "__main__":
     #fig = plt.gcf()
     fig.set_size_inches(14,8)
     
-    plt.savefig('d15N_PIRE.png')
+    # plt.savefig('d15N_PIRE.png')
     
     plt.show()
     
@@ -1000,11 +1009,11 @@ if __name__ == "__main__":
     #plt.ylabel(r'\textbf{Porosity}')
     #plt.legend(loc='upper right') 
     
-    plt.show()
+    # plt.show()
                 
     elapsed=time.time()-tic
     elapsed_min=elapsed/60.
     mins=np.floor(elapsed_min)
     secs=(elapsed_min-mins)*60
-    print mins, 'min', secs, 'sec elapsed'
+    print(mins, 'min', secs, 'sec elapsed')
         
