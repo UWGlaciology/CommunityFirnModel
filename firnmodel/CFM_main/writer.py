@@ -8,34 +8,39 @@ def write_nospin_hdf5(self):
     f4 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']),'w')
     
     if 'density' in self.output_list:
-        f4.create_dataset('density',data=self.rho_out)
+        f4.create_dataset('density',data = self.rho_out)
     if 'temperature' in self.output_list:
-        f4.create_dataset('temperature',data=self.Tz_out)
+        f4.create_dataset('temperature',data = self.Tz_out)
     if 'age' in self.output_list:
-        f4.create_dataset('age',data=self.age_out)
+        f4.create_dataset('age',data = self.age_out[-1,:])
     if 'depth' in self.output_list:    
-        f4.create_dataset('depth',data=self.z_out)
+        f4.create_dataset('depth',data = self.z_out)
     if 'dcon' in self.output_list:    
-        f4.create_dataset('Dcon',data=self.D_out)
+        f4.create_dataset('Dcon',data = self.D_out)
     if 'bdot_mean' in self.output_list:    
-        f4.create_dataset('bdot',data=self.bdot_out)
+        f4.create_dataset('bdot',data = self.bdot_out)
     if 'climate' in self.output_list:    
-        f4.create_dataset('Modelclimate',data=self.Clim_out)
+        f4.create_dataset('Modelclimate',data = self.Clim_out)
     if 'compaction' in self.output_list:    
-        f4.create_dataset('compaction_rate', data=self.crate_out)
-    if 'gasses' in self.output_list:       
-        f4.create_dataset('gasses', data=self.gas_out)
-        f4.create_dataset('diffusivity', data=self.diffu_out)
-        f4.create_dataset('w_air', data=self.w_air_out)
-        f4.create_dataset('w_firn', data=self.w_firn_out)
+        f4.create_dataset('compaction_rate', data = self.crate_out)
+    if self.c['FirnAir']:
+        if "gasses" in self.cg['outputs']:
+            for gas in self.cg['gaschoice']:       
+                f4.create_dataset(gas, data = self.gas_out[gas])
+        if "diffusivity" in self.cg['outputs']:
+            f4.create_dataset('diffusivity', data = self.diffu_out)
+        if "advection_rate" in self.cg['outputs']:
+            f4.create_dataset('w_air', data = self.w_air_out)
+            f4.create_dataset('w_firn', data = self.w_firn_out)
     if 'grainsize' in self.output_list:
-        f4.create_dataset('r2',data=self.r2_out)
+        f4.create_dataset('r2', data = self.r2_out)
+        f4.create_dataset('dr2_dt', data = self.dr2_dt_out)
     if 'temp_Hx' in self.output_list:    
-        f4.create_dataset('Hx',data=self.Hx_out)
+        f4.create_dataset('Hx',data = self.Hx_out)
     if 'isotopes' in self.output_list:    
-        f4.create_dataset('isotopes',data=self.iso_out)
+        f4.create_dataset('isotopes',data = self.iso_out)
     if 'LWC' in self.output_list:
-        f4.create_dataset('LWC',data=self.LWC_out)
+        f4.create_dataset('LWC',data = self.LWC_out)
     if 'DIP' in self.output_list:
         f4.create_dataset('DIP',data = self.DIP_out)
         f4.create_dataset('DIPc', data = self.DIPc_out)

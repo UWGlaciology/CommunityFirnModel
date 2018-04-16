@@ -26,14 +26,19 @@ def heatDiff(self,iii):
 	nz_fv 			= nz_P - 2
 	nt 				= 1
 
-	z_edges_vec 	= self.z[1:-2] + self.dz[2:-1] / 2
-	z_edges_vec 	= np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
-	z_P_vec 		= self.z
+	# z_edges_vec 	= self.z[1:-2] + self.dz[2:-1] / 2
+	# z_edges_vec 	= np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+	# z_P_vec 		= self.z
+
+	z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+	z_P_vec 	= self.z
+	
 	phi_s 			= self.Tz[0]
 	phi_0 			= self.Tz
 
 	K_ice 			= 9.828 * np.exp(-0.0057 * phi_0)
-	K_firn 			= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+	K_firn 			= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000)) #Reference?
 	# K_firn 			= 0.021 + 2.5 * (self.rho/1000.)**2 #Anderson (1976), from Brandt (1997)
 	c_firn 			= 152.5 + 7.122 * phi_0
 
@@ -83,14 +88,34 @@ def enthalpyDiff(self,iii):
 
 	enthalpy_h = np.copy(enthalpy)
 
+	# enthalpy = enthalpy*tot_rho
+
 	nz_P 	= len(self.z)
 	nz_fv 	= nz_P - 2
 	nt 		= 1
 
-	z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2
-	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+	## this is the older, (semi) working bit.
+	z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
 	z_P_vec 	= self.z
-	z_diff 		= np.diff(z_P_vec)
+	
+	##
+
+	# z_edges_vec = self.z
+	# z_edges_vec = np.concatenate(([z_edges_vec[0]], z_edges_vec, [z_edges_vec[-1]]))
+	# z_P_vec 	= z_edges_vec[0:-1] + np.diff(z_edges_vec) / 2
+	# z_P_vec = np.concatenate(([z_edges_vec[0]], z_P_vec1, [z_edges_vec[-1]]))
+	
+	# print(iii)
+	# print('z',self.z[0:6])
+	# print('dz',self.dz[0:6])
+	# print('sum dz', np.cumsum(self.dz[0:6]))
+	# print('z_edges_vec', z_edges_vec[0:6])
+	# print('z_P_vec', z_P_vec[0:6])
+	# # print('z_diff',z_diff[0:6])
+	# print('len z_edges_vec', len(z_edges_vec))
+	# print('len z_P_vec', len(z_P_vec))
+	# print('len rho:', len(self.rho))
 
 	phi_s 		= enthalpy[0] # phi surface; upper boundary condition
 	phi_0 		= enthalpy # initial guess
@@ -102,7 +127,7 @@ def enthalpyDiff(self,iii):
 	# k_i 		= 0.0784 + 2.697 * (self.rho/1000.)**2 # Jiawen (1991)
 	# k_i 		= 3.e-6*self.rho**2 - 1.06e-5*self.rho + 0.024 #Riche and Schneebeli (2013)
 	k_ice 			= 9.828 * np.exp(-0.0057 * self.Tz)
-	k_i 			= k_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
+	k_i 			= k_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000)) # Reference?
 	
 	bigKi 					= k_i / CP_I
 	bigKi[enthalpy>=Hs] 	= bigKi[enthalpy>=Hs] / 20 # from Aschwanden
@@ -113,6 +138,27 @@ def enthalpyDiff(self,iii):
 	Gamma_P 			= np.zeros_like(self.dz)
 	Gamma_P[e_less] 	= bigKi[e_less] #/tot_rho[e_less]
 	Gamma_P[e_great] 	= bigKi[e_great] #/tot_rho[e_great]
+
+	# if (iii>30 and iii<40):
+	# 	print(iii)
+	# 	print('max rho ',np.max(self.rho))
+	# 	print('min rho ',np.min(self.rho))
+	# 	# print('max drho ',np.max(drho_dt))
+	# 	print('min T',np.min(self.Tz))
+	# 	print('max T ',np.max(self.Tz))
+	# 	# ind1 = np.where(drho_dt==np.max(drho_dt))[0][0]
+	# 	ind1 = np.where(self.dz>2.0)[0][0]
+	# 	print('ind1, ', ind1)
+	# 	print('depth', self.z[ind1-3:ind1+4])
+	# 	print('temp', self.Tz[ind1])
+	# 	print('tempr', self.Tz[ind1-3:ind1+4])
+	# 	print('lwc', self.LWC[ind1])
+	# 	print('lwcr', self.LWC[ind1-3:ind1+4])
+	# 	print('rho', self.rho[ind1])
+	# 	print('rhor', self.rho[ind1-3:ind1+4])				
+	# 	# print('min drho ',np.min(drho_dt))
+	# 	print('tot_rho',tot_rho[ind1-3:ind1+4])
+	# 	input()
 
 	enthalpy = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
 

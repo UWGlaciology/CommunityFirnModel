@@ -166,6 +166,7 @@ class FirnDensityNoSpin:
 		# self.bdotSec    	= self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 		self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
 		self.iceout     	= np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+		self.w_firn 		= np.mean(self.bdot) * RHO_I / self.rho 
 		#####################
 		
 		### Melt ############
@@ -206,8 +207,11 @@ class FirnDensityNoSpin:
 				elif self.c['srho_type']=='param':
 					self.rhos0		= 481.0 + 4.834 * (self.Ts - T_MELT) # Kuipers Munneke, 2015
 				elif self.c['srho_type']=='noise':
-					rho_stdv 		= 25 # the standard deviation of the surface density (I made up 25)
+					rho_stdv 		= 100 # the standard deviation of the surface density (I made up 25)
 					self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
+					self.rhos0[self.rhos0>600]=600
+					self.rhos0[self.rhos0<300]=300
+
 			else:
 				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
@@ -218,12 +222,12 @@ class FirnDensityNoSpin:
 
 		### Layer tracker ###
 		self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
-		self.Dcon       = self.c['D_surf'] * np.ones(self.gridLen)  # layer tracking routine (initial depth vector)
+		self.Dcon       = self.c['D_surf'] * np.zeros(self.gridLen)  # layer tracking routine (initial depth vector)
 		#####################
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=1978.0)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=-25000)[0][0]
 		# print('Caution: writing all data')
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
@@ -249,6 +253,7 @@ class FirnDensityNoSpin:
 		self.mass_sum   	= self.mass.cumsum(axis = 0)
 		### mean accumulation over the lifetime of the parcel:
 		self.bdot_mean  	= (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
+		### It is the mass of the overlying firn divided by the age of the parcel.
 		#######################
 
 		### set up longitudinal strain rate
@@ -369,21 +374,28 @@ class FirnDensityNoSpin:
 		#####################
 
 		##### Firn Air ######
-		# Note: should be able to set this up so each gas of interest gets its own instance of the class
+		### each gas of interest gets its own instance of the class
 		if self.c['FirnAir']:
-			self.FA 		= FirnAir(self.c['AirConfigName'],input_year_temp,self.z, self.modeltime, self.Tz, self.rho, self.dz)
 			print('Firn air initialized')
-			if 'gasses' in self.output_list:
-				self.gas_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-				self.gas_out[0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))
+			with open(self.c['AirConfigName'], "r") as f:
+				jsonString 		= f.read()
+				self.cg         = json.loads(jsonString)
+			self.FA = {}
+			self.gas_out = {}
+			self.Gz = {}
+			for gas in self.cg['gaschoice']:
+				self.FA[gas] = FirnAir(self.cg,input_year_temp,self.z, self.modeltime, self.Tz, self.rho, self.dz, gas)
+				if "gasses" in self.cg['outputs']:
+					self.gas_out[gas] 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+					self.gas_out[gas][0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))
+			if "diffusivity" in self.cg['outputs']:
 				self.diffu_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.diffu_out[0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))
+			if "advection_rate" in self.cg['outputs']:
 				self.w_air_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.w_air_out[0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))				
 				self.w_firn_out 		= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.w_firn_out[0,:]	= np.append(self.modeltime[0], np.ones_like(self.rho))
-			else:
-				print('Gas diffusion is on but not saving to file')
 		#####################
 
 	####################    
@@ -405,7 +417,7 @@ class FirnDensityNoSpin:
 		for iii in range(self.stp):
 			mtime = self.modeltime[iii]
 			# print(iii,mtime)
-
+			self.D_surf[iii] = iii
 			### dictionary of the parameters that get passed to physics
 			PhysParams = {
 				'iii':          iii,
@@ -434,7 +446,7 @@ class FirnDensityNoSpin:
 				'LWC':			self.LWC,
 				'MELT':			self.MELT,
 			}
-
+			
 			if self.THist: #add Hx to dictionary if physics is Morris
 				PhysParams['Hx']=self.Hx
 
@@ -495,9 +507,11 @@ class FirnDensityNoSpin:
 					'rhos0':        self.rhos0[iii],
 					'dz_old':		self.dz_old,
 					'dz':           self.dz,
-					'rho_old':		self.rho_old
-				}			
-				self.Gz, self.diffu, w_p 	= self.FA.firn_air_diffusion(AirParams,iii)
+					'rho_old':		self.rho_old,
+					'w_firn':		self.w_firn
+				}
+				for gas in self.cg['gaschoice']:		
+					self.Gz[gas], self.diffu, w_p 	= self.FA[gas].firn_air_diffusion(AirParams,iii)
 
 			if self.c['isoDiff']: # Update isotopes
 				self.del_z 	= isoDiff(self,iii)
@@ -510,7 +524,7 @@ class FirnDensityNoSpin:
 			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
 			### Dcon: user-specific code goes here. 
-			self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
+			# self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
 			
 			### update model grid, mass, stress, and mean accumulation rate
 			if self.bdotSec[iii]>0: # there is accumulation at this time step
@@ -538,7 +552,11 @@ class FirnDensityNoSpin:
 				self.z 			= self.z - self.z[0] # shift so zero still on top
 				self.compaction	= (self.dz_old[0:self.compboxes]-self.dzn)#/self.dt*S_PER_YEAR
 
-			w_firn = (znew - self.z_old) / self.dt # advection rate of the firn, m/s
+			self.w_firn = (znew - self.z_old) / self.dt # advection rate of the firn, m/s
+			# if ((iii>500) & (iii<510)):
+			# 	print(iii)
+			# 	bb=((self.z>60) & (self.z<80))
+			# 	print('w_firn',w_firn[bb])
 			# i_zrate = np.where(self.z>=60)[0][0]
 			# zrate = self.z[i_zrate+1]-self.z[i_zrate]
 			# print(zrate)
@@ -595,11 +613,15 @@ class FirnDensityNoSpin:
 					self.Hx_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Hx)
 				if 'isotopes' in self.output_list:
 					self.iso_out[self.WTracker,:] 	= np.append(mtime_plus1, self.del_z)
-				if 'gasses' in self.output_list:
-					self.gas_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Gz)
-					self.diffu_out[self.WTracker,:] = np.append(mtime_plus1, self.diffu)
-					self.w_air_out[self.WTracker,:] = np.append(mtime_plus1, w_p)
-					self.w_firn_out[self.WTracker,:] = np.append(mtime_plus1, w_firn)
+				if self.c['FirnAir']:
+					if "gasses" in self.cg['outputs']:
+						for gas in self.cg['gaschoice']:						
+							self.gas_out[gas][self.WTracker,:] 	= np.append(mtime_plus1, self.Gz[gas])
+					if "diffusivity" in self.cg['outputs']:
+						self.diffu_out[self.WTracker,:] = np.append(mtime_plus1, self.diffu)
+					if "advection_rate" in self.cg['outputs']:
+						self.w_air_out[self.WTracker,:] = np.append(mtime_plus1, w_p)
+						self.w_firn_out[self.WTracker,:] = np.append(mtime_plus1, self.w_firn)
 
 				# self.WTracker = self.WTracker + 1
 
@@ -621,6 +643,7 @@ class FirnDensityNoSpin:
 
 			if self.doublegrid:
 				if self.gridtrack[-1]==2:
+					# print('regridding now at ', iii)
 					self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 					if iii<100:
 						tdep = np.where(self.gridtrack==1)[0][-1]

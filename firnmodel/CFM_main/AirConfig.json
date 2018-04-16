@@ -1,6 +1,6 @@
 {
+    "gaschoice":["d15N2","d40Ar"],
     "gaschoiceOptions":["d15N2","d40Ar"],
-    "gaschoice":["d15N2"],
     "gravity":"on",
     "thermal":"on",
     "runtype":"transient",
@@ -8,7 +8,11 @@
     "StepsPerYear": 1.0,
     "z_resolution": 0.5,
     "UserData": false,
-    "Diffu_param": "Freitag",
+    "Diffu_param": "Schwander",
     "Diffu_options": ["Freitag","Schwander","Severinghaus","Witrant"],
-    "lockin": true
+    "lockin": false,
+    "ConvectiveZoneDepth": 4.0,
+    "advection_type": "Christo",
+    "advection_type_options": ["Christo","Darcy","zero"],
+    "outputs": ["gasses","diffusivity","advection_rate"]
 }
