@@ -31,7 +31,7 @@
 "HbaseSpin": 200.0,
 "stpsPerYear": 1.0,
 "D_surf": 1.0,
-"bdot_type": "instant",
+"bdot_type": "mean",
 "bdot_options": ["instant","mean","stress"],
 "isoDiff": false,
 "iso": "NoDiffusion",
