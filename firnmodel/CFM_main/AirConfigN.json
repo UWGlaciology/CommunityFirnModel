@@ -12,7 +12,7 @@
     "Diffu_options": ["Freitag","Schwander","Severinghaus","Witrant"],
     "lockin": true,
     "ConvectiveZoneDepth": 4.0,
-    "advection_type": "zero",
+    "advection_type": "Christo",
     "advection_type_options": ["Christo","Darcy","zero"],
     "outputs": ["gasses"],
     "output_options": ["gasses","diffusivity","advection_rate"]
