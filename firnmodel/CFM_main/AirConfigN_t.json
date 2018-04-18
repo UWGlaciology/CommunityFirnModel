@@ -3,7 +3,7 @@
     "gaschoice":["d15N2","d40Ar"],
     "gravity":"on",
     "thermal":"on",
-    "runtype":"steady",
+    "runtype":"transient",
     "runtype_options": ["steady", "transient"],
     "steady_T": 225.6,
     "steady_bdot": 0.07,

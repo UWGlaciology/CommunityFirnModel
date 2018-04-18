@@ -14,16 +14,9 @@ class FirnAir:
 		'''
 		Initialize Firn Air class
 		'''
-		# with open(AirconfigName, "r") as f:
-		# 	jsonString 		= f.read()
-		# 	self.cg         = json.loads(jsonString)
-
-		# self.gaschoice_all=self.cg["gaschoice"]
-		# nogas=len(gaschoice_all)
 
 		self.cg = air_config
-		# self.gaschoice = self.cg["gaschoice"]
-		# input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
+
 		input_gas 			= np.ones_like(input_year_gas)
 		Gsf			 		= interpolate.interp1d(input_year_gas,input_gas,'linear',fill_value='extrapolate')
 		self.Gs 			= Gsf(modeltime)
@@ -56,20 +49,24 @@ class FirnAir:
 		## Constants
 		d_eddy_sc	= self.d_0 #Eddy diffusivity in the convective zone
 		d_ind		= np.min(np.where(self.z>self.z_co)) #indices of nodes past close-off depth
+		if self.cg['runtype']=='steady':
+			Tz_d = self.cg['steady_T'] * np.ones_like(self.Tz)
+		else:
+			Tz_d = self.Tz
 		
 		##### Parameterizations for diffusivity #####
 		if self.cg['Diffu_param'] == "Severinghaus": # Use Severinghaus relationship from Cuffey and Paterson
 			
 			# d_0			= d_0*1.7
-			# diffu_full 		= 0.1 * self.gam_x * self.d_0 * ((P_0/self.p_a) * (self.Tz/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))
-			diffu_full 		= self.gam_x * self.d_0 * ((P_0/self.p_a) * (self.Tz/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))        
+			# diffu_full 		= 0.1 * self.gam_x * self.d_0 * ((P_0/self.p_a) * (Tz_d/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))
+			diffu_full 		= self.gam_x * self.d_0 * ((P_0/self.p_a) * (Tz_d/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))        
 			# diffu_full 	= diffu_full - diffu_full[d_ind]
 			# iind 			= np.nonzero(diffu_full == np.min(diffu_full[diffu_full>0.0]))
 			# diffu_full[diffu_full<=0] = diffu_full[iind]
 			# diffu_full 	= diffu_full * 10.0
 		
 		elif self.cg['Diffu_param'] == "Schwander": # Use Schwander 1988, Eq. 2 Diffusivity (does not work very well) use 4e2 for d_0
-			k_sch 			= P_0 / self.p_a * (self.Tz / 253.16)**1.85 # Constant given in Schwander
+			k_sch 			= P_0 / self.p_a * (Tz_d / 253.16)**1.85 # Constant given in Schwander
 			diffu_full 		= self.gam_x * k_sch * (23.7 * self.por_tot - 2.84) / (1000**2) # 1/1000**2 is unit conversion.
 
 					
@@ -79,7 +76,7 @@ class FirnAir:
 			# diffu_full 	= diffu_full - diffu_full[d_ind]
 			
 		elif self.cg['Diffu_param']=="Witrant":    ### Use Witrant, 2012
-			diffu_full = self.gam_x * self.d_0 * (2.5 * self.por_op - 0.31) * (self.Tz / 273.15)**(1.8) * P_0 / self.p_a
+			diffu_full = self.gam_x * self.d_0 * (2.5 * self.por_op - 0.31) * (Tz_d / 273.15)**(1.8) * P_0 / self.p_a
 
 		elif self.cg['Diffu_param']=="Christo":
 			pp 				= "/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/gasmodel/DataImport"
@@ -124,8 +121,10 @@ class FirnAir:
 	def porosity(self): #,rho,T
 		
 		indT=np.where(self.z>20)[0][0]
-		
-		self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[indT]*6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+		if self.cg['runtype']=='steady':
+			self.bcoRho 		= 1/( 1/(RHO_I) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert 
+		else:
+			self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[indT] * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
 		self.LIDRho 		= self.bcoRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)
 
 		### Porosity, from Goujon et al., 2003, equations 9 and 10
@@ -167,7 +166,7 @@ class FirnAir:
 		# K_ice 	= 9.828 * np.exp(-0.0057 * phi_0)
 		# K_firn 	= K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000))
 
-		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity() #self.rho, self.Tz
+		self.rho_co, self.por_co, self.por_tot, self.por_cl, self.por_op, self.bcoRho, self.LIDRho = self.porosity()
 		
 		# self.air_pressure_old 	= np.copy(self.air_pressure)
 		porosity_old			= (RHO_I-self.rho_old)/RHO_I

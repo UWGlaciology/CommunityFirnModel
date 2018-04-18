@@ -396,6 +396,14 @@ class FirnDensityNoSpin:
 				self.w_air_out[0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))				
 				self.w_firn_out 		= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.w_firn_out[0,:]	= np.append(self.modeltime[0], np.ones_like(self.rho))
+			if self.cg['runtype']=='steady':
+				print('Only use steady-state firn air with Herron and Langway physics, instant accumulation mode')
+				self.bdot 			= self.cg['steady_bdot']*np.ones_like(self.bdot)
+				self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
+				self.iceout     	= np.mean(self.bdot)  # units m I.E. per year.
+				self.w_firn 		= np.mean(self.bdot) * RHO_I / self.rho 
+		else:
+			self.cg = None
 		#####################
 
 	####################    
@@ -445,10 +453,15 @@ class FirnDensityNoSpin:
 				'dz':           self.dz,
 				'LWC':			self.LWC,
 				'MELT':			self.MELT,
+				'FirnAir':		self.c['FirnAir']
 			}
 			
 			if self.THist: #add Hx to dictionary if physics is Morris
-				PhysParams['Hx']=self.Hx
+				PhysParams['Hx'] = self.Hx
+
+			if self.c['FirnAir']:
+				PhysParams['AirRunType'] = self.cg['runtype']
+				PhysParams['steady_T'] = self.cg['steady_T']
 
 			### choose densification-physics based on user input
 			physicsd = {
@@ -470,6 +483,7 @@ class FirnDensityNoSpin:
 
 			RD 		= physicsd[self.c['physRho']]()
 			drho_dt = RD['drho_dt']
+			
 
 			### update density and age of firn
 			self.rho_old	= np.copy(self.rho)
@@ -478,6 +492,8 @@ class FirnDensityNoSpin:
 			self.sdz_old 	= np.sum(self.dz) # old total column thickness
 			self.z_old 		= np.copy(self.z)
 			self.dz 		= self.mass / self.rho * self.dx # new dz after compaction
+
+			# print(self.rho[0:10])
 			
 			if self.THist:
 				self.Hx 	= FirnPhysics(PhysParams).THistory()
@@ -529,7 +545,7 @@ class FirnDensityNoSpin:
 			### update model grid, mass, stress, and mean accumulation rate
 			if self.bdotSec[iii]>0: # there is accumulation at this time step
 			# MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.) 				
-				self.age 		= np.concatenate(([0], self.age[:-1])) + self.dt                     
+				self.age 		= np.concatenate(([0], self.age[:-1])) + self.dt      
 				self.dzNew 		= self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
 				self.dz 		= np.concatenate(([self.dzNew], self.dz[:-1]))
 				self.z 			= self.dz.cumsum(axis = 0)
@@ -664,7 +680,11 @@ class FirnDensityNoSpin:
 		Updates the bubble close-off depth and age based on the Martinerie criteria as well as through assuming the critical density is 815 kg/m^3
 		'''
 		try:
-			bcoMartRho 	= 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+			if (self.c['FirnAir'] and self.cg['runtype']=='steady'):
+				bcoMartRho 	= 1 / (1 / (917.0) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off
+			else:
+				bcoMartRho 	= 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+
 			bcoAgeMart 	= min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
 			bcoDepMart 	= min(self.z[self.rho >= (bcoMartRho)])
 
@@ -674,7 +694,6 @@ class FirnDensityNoSpin:
 			bcoAge815 	= min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
 			bcoDep815 	= min(self.z[self.rho >= (RHO_2)])
 
-			bcoMartRho = 1 / (1 / (917.0) + self.T10m * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
 			LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
 			LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
 			LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth

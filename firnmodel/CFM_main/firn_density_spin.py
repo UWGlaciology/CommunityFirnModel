@@ -262,6 +262,7 @@ class FirnDensitySpin:
 				'dz':           self.dz,
 				'LWC':			self.LWC,
 				'MELT':			self.MELT,
+				'FirnAir':		False
 			}
 
 			if self.THist:
