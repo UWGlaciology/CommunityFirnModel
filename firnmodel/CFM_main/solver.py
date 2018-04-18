@@ -113,7 +113,7 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
 
             elif airdict['gravity']=='on' and airdict['thermal']=='on':
                 # dTdz    = np.gradient(airdict['Tz'])/airdict['dz']
-                dTdz    = -1 * np.gradient(airdict['Tz'], Z_P)
+                dTdz    = np.gradient(airdict['Tz'], Z_P)
                 S_C_0   = (Gamma_d-Gamma_u) * ((-airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) + (airdict['omega'] * dTdz)) / airdict['dz'] # should thermal still work in LIZ? if so use d_eddy+diffu
             
             S_C         = S_C_0 * phi_t # Should this be phi_0 instead?

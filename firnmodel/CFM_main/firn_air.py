@@ -277,7 +277,7 @@ def gasses(gaschoice, T, p_a, M_air):
 		#gam_x = 
 		M = 1.E-3 + M_air
 		decay = 0.
-		omega = 0.0147/1000
+		omega = 0.0147/1000 # Grachev and Severinghaus, 2003 
 
 	elif gaschoice == 'SF6':
 		gam_x = 0.554
@@ -360,7 +360,7 @@ def gasses(gaschoice, T, p_a, M_air):
 		gam_x = 1.21
 		M = 4.e-3 + M_air
 		decay = 0.
-		omega = 0.0985/1000.
+		omega = 0.00985/1000.
 
 	elif gaschoice == 'FOG':
 		gam_x = 1.0
