@@ -5,7 +5,7 @@
     "thermal":"on",
     "runtype":"steady",
     "runtype_options": ["steady", "transient"],
-    "steady_T": 223.15,
+    "steady_T": 225.65,
     "steady_bdot": 0.07,
     "StepsPerYear": 1.0,
     "z_resolution": 0.5,
