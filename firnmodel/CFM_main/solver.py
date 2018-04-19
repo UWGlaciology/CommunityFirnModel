@@ -238,12 +238,13 @@ def w(airdict, z_edges, rho_edges, Z_P, dZ): # Function for downward advection o
         # Xi = Xi_up / Xi_down
 
         op_ind              = np.where(z_edges<=airdict['z_co'])[0]
+        op_ind2              = np.where(z_edges<=airdict['z_co']+20)[0]
         co_ind              = op_ind[-1]
         cl_ind              = np.where(z_edges>airdict['z_co'])[0]
 
-        Xi                  = np.zeros((len(op_ind),len(op_ind)))
-        Xi_up               = por_op_edges[op_ind]/np.reshape(por_op_edges[op_ind], (-1,1))
-        Xi_down             = (1 + np.log( np.reshape(w_firn_edges[op_ind], (-1,1))/ w_firn_edges[op_ind] ))
+        Xi                  = np.zeros((len(op_ind2),len(op_ind2)))
+        Xi_up               = por_op_edges[op_ind2]/np.reshape(por_op_edges[op_ind2], (-1,1))
+        Xi_down             = (1 + np.log( np.reshape(w_firn_edges[op_ind2], (-1,1))/ w_firn_edges[op_ind2] ))
         Xi                  = Xi_up / Xi_down # Equation 5.10 in Christo's thesis; Xi[i,j] is the pressure increase (ratio) for bubbles at depth[i] that were trapped at depth[j]
 
         # Xi                  = np.zeros((len(z_edges),len(z_edges)))
@@ -251,14 +252,15 @@ def w(airdict, z_edges, rho_edges, Z_P, dZ): # Function for downward advection o
         # Xi_down             = (1 + np.log( np.reshape(w_firn_edges, (-1,1))/ w_firn_edges ))
         # Xi                  = Xi_up / Xi_down # Equation 5.10 in Christo's thesis; Xi[i,j] is the pressure increase (ratio) for bubbles at depth[i] that were trapped at depth[j]
 
-        integral_matrix     = (Xi.T*dscl[op_ind]*C[op_ind]).T 
+        integral_matrix     = (Xi.T*dscl[op_ind2]*C[op_ind2]).T 
         integral_matrix_sum = integral_matrix.sum(axis=1)
 
+        p_ratio_t   = np.zeros_like(op_ind2)
         p_ratio             = np.zeros_like(z_edges)
 
-        p_ratio[op_ind]     = integral_matrix_sum#[op_ind]   #5.11
-        # p_ratio[cl_ind]     = p_ratio[co_ind]*Xi[cl_ind, co_ind] # 5.12
-        p_ratio[cl_ind]     = integral_matrix_sum[-1] #*Xi[cl_ind, co_ind] # 5.12
+        p_ratio_t[op_ind]     = integral_matrix_sum[op_ind]   #5.11
+        p_ratio[cl_ind]     = p_ratio[co_ind]*Xi[cl_ind, co_ind] # 5.12
+        # p_ratio[cl_ind]     = integral_matrix_sum[-1] #*Xi[cl_ind, co_ind] # 5.12
 
         flux                = w_firn_edges[co_ind] * p_ratio[co_ind] * por_cl_edges[co_ind]
         # velocity            = np.minimum(w_firn_edges ,((flux + 1e-10 - w_firn_edges * p_ratio * por_cl_edges) / ((por_op_edges + 1e-10 * C))/airdict['dt']))

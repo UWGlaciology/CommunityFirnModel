@@ -56,27 +56,19 @@ class FirnAir:
 		
 		##### Parameterizations for diffusivity #####
 		if self.cg['Diffu_param'] == "Severinghaus": # Use Severinghaus relationship from Cuffey and Paterson
-			
-			# d_0			= d_0*1.7
-			# diffu_full 		= 0.1 * self.gam_x * self.d_0 * ((P_0/self.p_a) * (Tz_d/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))
-			diffu_full 		= self.gam_x * self.d_0 * ((P_0/self.p_a) * (Tz_d/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))        
-			# diffu_full 	= diffu_full - diffu_full[d_ind]
-			# iind 			= np.nonzero(diffu_full == np.min(diffu_full[diffu_full>0.0]))
-			# diffu_full[diffu_full<=0] = diffu_full[iind]
-			# diffu_full 	= diffu_full * 10.0
-		
+			diffu_full 		= self.gam_x * self.d_0 * ((P_0/self.p_a) * (Tz_d/273.15)**1.85 * (2.00 * (1-(self.rho/RHO_I))-0.167))        		
 		elif self.cg['Diffu_param'] == "Schwander": # Use Schwander 1988, Eq. 2 Diffusivity (does not work very well) use 4e2 for d_0
 			k_sch 			= P_0 / self.p_a * (Tz_d / 253.16)**1.85 # Constant given in Schwander
 			diffu_full 		= self.gam_x * k_sch * (23.7 * self.por_tot - 2.84) / (1000**2) # 1/1000**2 is unit conversion.
-
 					
 		elif self.cg['Diffu_param'] == "Freitag": # Use Freitag, 2002, Eq 15 Diffusivity use 9e2 for d_0
-			# d_0 			= d_0*4.9    
 			diffu_full 		= 1.0 * self.gam_x * self.d_0 * self.por_op ** 2.1
-			# diffu_full 	= diffu_full - diffu_full[d_ind]
 			
 		elif self.cg['Diffu_param']=="Witrant":    ### Use Witrant, 2012
 			diffu_full = self.gam_x * self.d_0 * (2.5 * self.por_op - 0.31) * (Tz_d / 273.15)**(1.8) * P_0 / self.p_a
+
+		elif self.cg['Diffu_param']=="Battle":
+			diffu_full = self.gam_x * 1.16 / (24*3600) * (23.7 * self.por_op - 2.84)
 
 		elif self.cg['Diffu_param']=="Christo":
 			pp 				= "/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/gasmodel/DataImport"
@@ -136,8 +128,6 @@ class FirnAir:
 		alpha 				= 0.37 # constant determined in Goujon
 		self.por_cl 		= np.zeros_like(self.por_tot)
 		self.por_cl[self.por_tot>0] 		= alpha*self.por_tot[self.por_tot>0]*(self.por_tot[self.por_tot>0]/self.por_co)**(-7.6)
-		# print(self.por_co)
-		# print(self.por_tot)
 		ind 				= self.por_cl>self.por_tot
 		self.por_cl[ind] 	= self.por_tot[ind]
 		self.por_op 		= self.por_tot - self.por_cl # Open Porosity
@@ -179,7 +169,6 @@ class FirnAir:
 		por_cl[ind] 		= porosity_old[ind]
 		por_op_old 			= porosity_old - por_cl # Open Porosity
 
-		# print('porcl',len(por_cl))
 		self.air_volume_old		= por_op_old * self.dz_old
 		# self.air_volume_old 	= np.copy(self.air_volume)
 
@@ -188,9 +177,6 @@ class FirnAir:
 		# volfrac = np.concatenate(([volfrac[0]],volfrac))
 		self.air_pressure 		= (self.p_a*np.exp(M_AIR*GRAVITY*self.z/(R*self.Tz))) * volfrac - (self.p_a*np.exp(M_AIR*GRAVITY*self.z/(R*self.Tz))) # assume air pressure is atmos in entire column
 
-		# print('ap shape',np.shape(self.air_pressure))
-		# print('dz shape',np.shape(self.dz))
-		# input()
 
 		self.pressure_grad 		= np.gradient(self.air_pressure,self.z) 
 		self.z_co 				= min(self.z[self.rho>=(self.bcoRho)]) #close-off depth; bcoRho is close off density
@@ -220,19 +206,11 @@ class FirnAir:
 			'advection_type':	self.cg['advection_type']
 			}
 
-		# if iii<5:
-		# 	print(self.dt)
+
 		msk = np.where(self.z>self.z_co)[0][0]
-		# volfrac = self.air_volume_old/self.air_volume
-		# print(self.air_pressure[msk-10:msk+1])
-		# print(volfrac[msk-10:msk+1])
-		# print(self.z[msk-10:msk+1])
 		self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
-		# if ((iii>500) & (iii<510)):
-		# 	print(iii)
-		# 	bb=((self.z>60) & (self.z<80))
-		# 	print('w_p',w_p[bb])
+
 		return self.Gz, self.diffu, w_p
 
 def gasses(gaschoice, T, p_a, M_air):
@@ -250,21 +228,6 @@ def gasses(gaschoice, T, p_a, M_air):
 		decay = 0.
 		omega = 0.0
 		
-		#if hemisphere == 'SOUTH':
-		#    conc1=loadtxt(os.path.join(DataPath,'CO2_NH_history.txt'),skiprows=2) #load data: atmospheric CO2 history.
-		#    
-		#    firn_meas=loadtxt(os.path.join(DataPath,'CO2_samples_NEEM.txt'),skiprows=2)
-		#
-		#elif hemisphere == 'NORTH':
-		#    conc1=loadtxt(os.path.join(DataPath,'CO2_SH_history.txt'),skiprows=2) #load data: atmospheric CO2 history.
-		#    firn_meas=loadtxt(os.path.join(DataPath,'CO2_samples_WAIS.txt'),skiprows=2)   
-		#
-		#elif hemisphere == 'SCENARIO':
-		#    conc1=loadtxt(os.path.join(DataPath,'RampUp2.txt'),skiprows=2) #load data: atmospheric CO2 history.
-		#    firn_meas=loadtxt(os.path.join(DataPath,'CO2samples_WAIS.txt'),skiprows=2)   
-		#    #conc1=conc1[0:1996,:] # May or may not need this to get time to work...
-		
-			
 	elif gaschoice == ['CH4']:
 		gam_x = 1.367
 		M = 16.04e-3
@@ -360,34 +323,13 @@ def gasses(gaschoice, T, p_a, M_air):
 		gam_x = 1.21
 		M = 4.e-3 + M_air
 		decay = 0.
-		omega = 0.00985/1000.
+		omega = 0.00985/1000. # Grachev and Severinghaus, 2003
 
 	elif gaschoice == 'FOG':
 		gam_x = 1.0
 		M = 44e-3
 		decay = 1./100.
 		omega = 0.
-		
-		
-	
-				
-	
-	### Load gas history. The file must be located in the correct folder, and have the correct naming convention.
-	### If you want to compare to measured samples, make sure that measurements is on.    
-	
-#     if loadgas:
-#         gas_string=gaschoice+'_history_'+hemisphere+'.txt'
-#         meas_string=gaschoice+'_samples_'+sitechoice+'.txt'
-	
-#         conc1=loadtxt(os.path.join(DataPath,gas_string),skiprows=2) #load data: atmospheric CO2 history.
-	
-# #     if measurements=='on':
-# #         firn_meas=loadtxt(os.path.join(DataPath,meas_string),skiprows=2)
-# #     else:
-# #         firn_meas='None'
-	
-#     else:
-#         conc1=-9999
 			
 	deltaM = (M - M_air) #delta molecular mass from CO2.
 	#gam_x = D_gas #* D_ref_CO2

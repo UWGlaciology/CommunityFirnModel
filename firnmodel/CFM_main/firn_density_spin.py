@@ -82,15 +82,30 @@ class FirnDensitySpin:
 		input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
 		if input_temp[0] < 0.0:
 			input_temp 				= input_temp + K_TO_C
-		self.temp0 					= np.mean(input_temp) #Make sure that this is what we want!
-		# self.temp0					= input_temp[0]
+		try:
+			if c['spinup_climate_type']=='initial':
+				self.temp0					= input_temp[0]
+			elif c['spinup_climate_type']=='mean':
+				self.temp0 					= np.mean(input_temp)
+		except:
+			print("You should add key 'spinup_climate_type' to the config .json file")
+			print("spinup is based on mean climate of input")
+			self.temp0 					= np.mean(input_temp)
+		
 		# self.temp0 = 270.0
 		# self.temp0 = mean(input_temp[0:12]) #Make sure that this is what we want!
 
 		### accumulation rate
 		input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
-		self.bdot0 					= np.mean(input_bdot) #Make sure that this is what we want!
-		# self.bdot0 					= input_bdot[0]
+		
+		try:
+			if c['spinup_climate_type']=='initial':
+				self.bdot0 		= input_bdot[0]
+			elif c['spinup_climate_type']=='mean':
+				self.bdot0 		= np.mean(input_bdot)
+		except:
+			self.bdot0 		= np.mean(input_temp)
+
 		
 		### could include others, e.g. surface density
 		############################

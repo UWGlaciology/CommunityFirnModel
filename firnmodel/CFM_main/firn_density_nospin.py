@@ -397,11 +397,14 @@ class FirnDensityNoSpin:
 				self.w_firn_out 		= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.w_firn_out[0,:]	= np.append(self.modeltime[0], np.ones_like(self.rho))
 			if self.cg['runtype']=='steady':
-				print('Only use steady-state firn air with Herron and Langway physics, instant accumulation mode')
+				print('Steady-state firn air works only with Herron and Langway physics, instant accumulation mode')
+				print('This is automatically changed for you')
 				self.bdot 			= self.cg['steady_bdot']*np.ones_like(self.bdot)
 				self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
 				self.iceout     	= np.mean(self.bdot)  # units m I.E. per year.
 				self.w_firn 		= np.mean(self.bdot) * RHO_I / self.rho 
+				self.c['physRho']   = 'HLdynamic'
+				self.c['bdot_type'] = 'instant'
 		else:
 			self.cg = None
 		#####################
@@ -483,7 +486,7 @@ class FirnDensityNoSpin:
 
 			RD 		= physicsd[self.c['physRho']]()
 			drho_dt = RD['drho_dt']
-			
+
 
 			### update density and age of firn
 			self.rho_old	= np.copy(self.rho)
