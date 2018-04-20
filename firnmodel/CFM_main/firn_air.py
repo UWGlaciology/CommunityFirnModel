@@ -29,7 +29,7 @@ class FirnAir:
 		self.gam_x, self.M, self.deltaM, self.d_0, self.omega = gasses(gaschoice, Tz[0], P_0, M_AIR)
 
 		self.czd 			= self.cg['ConvectiveZoneDepth']
-		self.p_a 			= 1.0e5
+		self.p_a 			= 7.0e4
 		# self.air_pressure 	= self.p_a * np.ones_like(z)
 		self.air_pressure 	= self.p_a * np.exp(M_AIR*GRAVITY*z/(R*self.Tz))
 		self.air_pressure_base = np.copy(self.air_pressure)
@@ -119,7 +119,7 @@ class FirnAir:
 			self.bcoRho 		= 1/( 1/(RHO_I) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert 
 		else:
 			self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[indT] * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
-		self.LIDRho 		= self.bcoRho - 14.0 #LIZ depth (Blunier and Schwander, 2000)
+		self.LIDRho 		= self.bcoRho - 5.0 #LIZ depth (Blunier and Schwander, 2000)
 
 		### Porosity, from Goujon et al., 2003, equations 9 and 10
 		self.por_tot 		= 1-self.rho/RHO_I # Total porosity
@@ -332,7 +332,7 @@ def gasses(gaschoice, T, p_a, M_air):
 		gam_x = 1.21
 		M = 4.e-3 + M_air
 		decay = 0.
-		omega = 0.00985/1000. # Grachev and Severinghaus, 2003
+		omega = 0.00985/1000. * 4 # Grachev and Severinghaus, 2003
 
 	elif gaschoice == 'FOG':
 		gam_x = 1.0

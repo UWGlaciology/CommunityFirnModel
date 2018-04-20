@@ -698,7 +698,7 @@ class FirnDensityNoSpin:
 			bcoAge815 	= min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
 			bcoDep815 	= min(self.z[self.rho >= (RHO_2)])
 
-			LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
+			LIZMartRho = bcoMartRho - 5.0  # LIZ depth (Blunier and Schwander, 2000)
 			LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
 			LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
 
