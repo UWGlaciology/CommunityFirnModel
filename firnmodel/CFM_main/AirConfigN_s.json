@@ -16,6 +16,6 @@
     "ConvectiveZoneDepth": 1.0,
     "advection_type": "zero",
     "advection_type_options": ["Christo","Darcy","zero"],
-    "outputs": ["gasses"],
+    "outputs": ["gasses","gas_age"],
     "output_options": ["gasses","diffusivity","advection_rate"]
 }
