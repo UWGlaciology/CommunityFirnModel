@@ -29,6 +29,8 @@ def write_nospin_hdf5(self):
                 f4.create_dataset(gas, data = self.gas_out[gas])
         if "diffusivity" in self.cg['outputs']:
             f4.create_dataset('diffusivity', data = self.diffu_out)
+        if "gas_age" in self.cg['outputs']:
+            f4.create_dataset('gas_age', data = self.gas_age_out)
         if "advection_rate" in self.cg['outputs']:
             f4.create_dataset('w_air', data = self.w_air_out)
             f4.create_dataset('w_firn', data = self.w_firn_out)

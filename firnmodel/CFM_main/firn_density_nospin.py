@@ -391,6 +391,9 @@ class FirnDensityNoSpin:
 			if "diffusivity" in self.cg['outputs']:
 				self.diffu_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.diffu_out[0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))
+			if "gas_age" in self.cg['outputs']:
+				self.gas_age_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+				self.gas_age_out[0,:]		= np.append(self.modeltime[0], np.zeros_like(self.rho))
 			if "advection_rate" in self.cg['outputs']:
 				self.w_air_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 				self.w_air_out[0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))				
@@ -530,7 +533,7 @@ class FirnDensityNoSpin:
 					'w_firn':		self.w_firn
 				}
 				for gas in self.cg['gaschoice']:		
-					self.Gz[gas], self.diffu, w_p 	= self.FA[gas].firn_air_diffusion(AirParams,iii)
+					self.Gz[gas], self.diffu, w_p, gas_age0	= self.FA[gas].firn_air_diffusion(AirParams,iii)
 
 			if self.c['isoDiff']: # Update isotopes
 				self.del_z 	= isoDiff(self,iii)
@@ -632,21 +635,6 @@ class FirnDensityNoSpin:
 					self.Hx_out[self.WTracker,:] 	= np.append(mtime_plus1, self.Hx)
 				if 'isotopes' in self.output_list:
 					self.iso_out[self.WTracker,:] 	= np.append(mtime_plus1, self.del_z)
-				if self.c['FirnAir']:
-					if "gasses" in self.cg['outputs']:
-						for gas in self.cg['gaschoice']:						
-							self.gas_out[gas][self.WTracker,:] 	= np.append(mtime_plus1, self.Gz[gas])
-					if "diffusivity" in self.cg['outputs']:
-						self.diffu_out[self.WTracker,:] = np.append(mtime_plus1, self.diffu)
-					if "advection_rate" in self.cg['outputs']:
-						self.w_air_out[self.WTracker,:] = np.append(mtime_plus1, w_p)
-						self.w_firn_out[self.WTracker,:] = np.append(mtime_plus1, self.w_firn)
-
-				# self.WTracker = self.WTracker + 1
-
-			# if mtime in self.TWrite2:				
-				# ind 		= np.where(self.TWrite2 == mtime)[0][0]
-				# mtime_plus1 = self.TWrite2[ind] 
 
 				bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
 				intPhi, intPhi_c 		= self.update_DIP()
@@ -657,6 +645,19 @@ class FirnDensityNoSpin:
 				if 'DIP' in self.output_list:
 					self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
 					self.DIPc_out[self.WTracker,:] 		= np.append(mtime_plus1, intPhi_c)
+
+				if self.c['FirnAir']:
+					if "gasses" in self.cg['outputs']:
+						for gas in self.cg['gaschoice']:						
+							self.gas_out[gas][self.WTracker,:] 	= np.append(mtime_plus1, self.Gz[gas])
+					if "diffusivity" in self.cg['outputs']:
+						self.diffu_out[self.WTracker,:] = np.append(mtime_plus1, self.diffu)
+					if "gas_age" in self.cg['outputs']:
+						# gas_age0 = self.age/S_PER_YEAR - LIZAgeMart 
+						self.gas_age_out[self.WTracker,:] = np.append(mtime_plus1, gas_age0)
+					if "advection_rate" in self.cg['outputs']:
+						self.w_air_out[self.WTracker,:] = np.append(mtime_plus1, w_p)
+						self.w_firn_out[self.WTracker,:] = np.append(mtime_plus1, self.w_firn)
 
 				self.WTracker = self.WTracker + 1
 

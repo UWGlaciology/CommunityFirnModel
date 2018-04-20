@@ -39,6 +39,8 @@ class FirnAir:
 		
 		self.air_volume 	= self.por_op * dz
 
+		self.gas_age = np.zeros_like(self.z)
+
 	def diffusivity(self):
 
 		'''
@@ -206,12 +208,19 @@ class FirnAir:
 			'advection_type':	self.cg['advection_type']
 			}
 
-
 		msk = np.where(self.z>self.z_co)[0][0]
 		self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
 		self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 
-		return self.Gz, self.diffu, w_p
+		ind_LIZ = np.where(self.z>=self.LIZ)[0]
+		self.gas_age[self.gas_age>0] = self.gas_age[self.gas_age>0] + self.dt/S_PER_YEAR
+		self.gas_age = np.concatenate(([0], self.gas_age[:-1]))
+		self.gas_age[ind_LIZ[0]] = 15.0
+		ii2 = np.where((self.z>self.LIZ) & (self.gas_age==0))[0]
+		self.gas_age[ii2] = 15
+
+
+		return self.Gz, self.diffu, w_p, self.gas_age
 
 def gasses(gaschoice, T, p_a, M_air):
 	
