@@ -119,7 +119,7 @@ class FirnAir:
 			self.bcoRho 		= 1/( 1/(RHO_I) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert 
 		else:
 			self.bcoRho 		= 1/( 1/(RHO_I) + self.Tz[indT] * 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
-		self.LIDRho 		= self.bcoRho - 5.0 #LIZ depth (Blunier and Schwander, 2000)
+		self.LIDRho 		= self.bcoRho - 14 #LIZ depth (Blunier and Schwander, 2000)
 
 		### Porosity, from Goujon et al., 2003, equations 9 and 10
 		self.por_tot 		= 1-self.rho/RHO_I # Total porosity
