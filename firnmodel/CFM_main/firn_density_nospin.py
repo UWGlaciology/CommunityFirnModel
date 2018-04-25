@@ -288,7 +288,10 @@ class FirnDensityNoSpin:
 			print('removed LWC from output list (melt is not on)')
 		if ((not self.c['FirnAir']) and ('gasses' in self.output_list)):
 			self.output_list.remove('gasses')
-			print('removed gasses from output list (firn air is not on)')			
+			print('removed gasses from output list (firn air is not on)')
+		if ((not self.c['isoDiff']) and ('isotopes' in self.output_list)):
+			self.output_list.remove('isotopes')
+			print('removed isotopes from output list')			
 		if 'density' in self.output_list:
 			self.rho_out 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 			self.rho_out[0,:]       = np.append(self.modeltime[0], self.rho)
@@ -551,7 +554,7 @@ class FirnDensityNoSpin:
 				### new box gets added on within isoDiff function
 				
 			if self.c['strain']: #update horizontal strain
-				strain 		= (-1 * self.du_dx[iii] * self.dt + 1) * np.ones_like(self.z)
+				strain 		= (-1 * self.du_dxSec[iii] * self.dt + 1) * np.ones_like(self.z)
 				self.dz 	= strain * self.dz
 				self.mass 	= strain * self.mass
 
