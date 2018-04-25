@@ -170,8 +170,12 @@ def isoDiff(self,iii):
 	nz_fv 		= nz_P - 2      										# number of finite volumes in z
 	nt 			= 1             										# number of time steps
 
-	z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2        				# uniform edge spacing of volume edges
-	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+	# z_edges_vec = self.z[1:-2] + self.dz[2:-1] / 2        				# uniform edge spacing of volume edges
+	# z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec, [self.z[-1]]))
+	# z_P_vec 	= self.z
+
+	z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+	z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
 	z_P_vec 	= self.z
 
 	### Node positions

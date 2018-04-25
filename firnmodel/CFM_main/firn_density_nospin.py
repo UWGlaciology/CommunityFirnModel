@@ -258,8 +258,19 @@ class FirnDensityNoSpin:
 
 		### set up longitudinal strain rate
 		if self.c['strain']:
-			self.du_dx 		= np.zeros(self.gridLen)
-			self.du_dx[1:] 	= self.c['du_dx']/(S_PER_YEAR)
+			# input units are yr^-1
+			try:
+				input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']))
+				dusf 						= interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')
+				
+				self.du_dx 		= dusf(self.modeltime)
+				self.du_dxSec 	= self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
+			except:
+				print('strain time series not found; using du_dx from json instead')
+				self.du_dx 		= np.ones_like(self.modeltime) * self.c['du_dx']
+				self.du_dxSec 	= self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
+				# self.du_dx 		= np.zeros(self.gridLen)
+				# self.du_dx[1:] 	= self.c['du_dx']/(S_PER_YEAR)
 		#######################
 		
 		self.Tz         	= initTemp[1:]
@@ -540,8 +551,9 @@ class FirnDensityNoSpin:
 				### new box gets added on within isoDiff function
 				
 			if self.c['strain']: #update horizontal strain
-				self.dz 	= ((-self.du_dx)*self.dt + 1)*self.dz
-				self.mass 	= self.mass*((-self.du_dx)*self.dt + 1)
+				strain 		= (-1 * self.du_dx[iii] * self.dt + 1) * np.ones_like(self.z)
+				self.dz 	= strain * self.dz
+				self.mass 	= strain * self.mass
 
 			self.sdz_new 	= np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
