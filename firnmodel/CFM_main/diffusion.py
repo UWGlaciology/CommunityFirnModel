@@ -209,11 +209,11 @@ def isoDiff(self,iii):
 	if self.c['iso'] == '18':
 		D 			= m * pz * invtau * Da_18 * (1 / self.rho - 1 / RHO_I) / (R * self.Tz * alpha_18_z)
 		D 			= D + 1.5e-15
-		self.del_z 	= transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s)
+		self.del_z 	= transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s, self.rho)
 	elif self.c['iso'] == 'D':
 		D 			= m * pz * invtau * Da_D * (1 / self.rho - 1 / RHO_I) / (R * self.Tz * alpha_D_z)
 		D[D<=0.0] 	= 1.0e-20
-		self.del_z 	= transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s)
+		self.del_z 	= transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s, self.rho)
 	elif self.c['iso'] == 'NoDiffusion':
 		pass
 		
