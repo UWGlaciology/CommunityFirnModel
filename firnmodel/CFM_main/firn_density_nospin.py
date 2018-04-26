@@ -259,18 +259,18 @@ class FirnDensityNoSpin:
 		### set up longitudinal strain rate
 		if self.c['strain']:
 			# input units are yr^-1
-			try:
-				input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']))
-				dusf 						= interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')
-				
-				self.du_dx 		= dusf(self.modeltime)
-				self.du_dxSec 	= self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
-			except:
-				print('strain time series not found; using du_dx from json instead')
-				self.du_dx 		= np.ones_like(self.modeltime) * self.c['du_dx']
-				self.du_dxSec 	= self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
-				# self.du_dx 		= np.zeros(self.gridLen)
-				# self.du_dx[1:] 	= self.c['du_dx']/(S_PER_YEAR)
+			# try:
+			input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']))
+			dusf 						= interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')
+			
+			self.du_dx 		= dusf(self.modeltime)
+			self.du_dxSec 	= self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
+
+			# except:
+				# print('strain time series not found; using du_dx from json instead')
+				# self.du_dx 		= np.ones_like(self.modeltime) * self.c['du_dx']
+				# self.du_dxSec 	= self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
+
 		#######################
 		
 		self.Tz         	= initTemp[1:]
