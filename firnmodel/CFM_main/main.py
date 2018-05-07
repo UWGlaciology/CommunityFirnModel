@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import os
 # from string import join
@@ -24,6 +26,7 @@ if __name__ == '__main__':
     print("<<<<<<<< Running the Community Firn Model (CFM), Version 1.0 >>>>>>>>")
     print("<<<<<<<< Developed at the University of Washington           >>>>>>>>")
     print("<<<<<<<< Please cite your use!                               >>>>>>>>")
+    print("<<<<<<<< Distributed under terms of the MIT license.         >>>>>>>>")
     print("---------------------------------------------------------------------")
     print("---------------------------------------------------------------------")
     print("")

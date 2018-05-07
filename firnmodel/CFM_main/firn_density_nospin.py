@@ -162,7 +162,7 @@ class FirnDensityNoSpin:
 
 		### Accumulation ####
 		bsf 				= interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
-		self.bdot 			= bsf(self.modeltime)
+		self.bdot 			= bsf(self.modeltime) # m ice equivalent per year
 		# self.bdotSec    	= self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
 		self.bdotSec   		= self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
 		self.iceout     	= np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.

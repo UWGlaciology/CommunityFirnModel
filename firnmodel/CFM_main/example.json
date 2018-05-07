@@ -47,5 +47,6 @@
 "spinFileName": "CFMspin.hdf5",
 "doublegrid": false,
 "nodestocombine": 50,
-"grid1bottom": 10.0
+"grid1bottom": 10.0,
+"spinup_climate_type": "initial"
 }
