@@ -134,7 +134,7 @@ class FirnDensityNoSpin:
 		yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
 		
 		self.years      = np.ceil((yr_end - yr_start) * 1.0) 
-		self.dt         = S_PER_YEAR / self.c['stpsPerYear']
+		self.dt         = S_PER_YEAR / self.c['stpsPerYear'] # seconds per time step
 		self.stp        = int(self.years * S_PER_YEAR/self.dt)       # total number of time steps, as integer
 
 		# self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
@@ -199,25 +199,29 @@ class FirnDensityNoSpin:
 		#####################
  
  		### Surface Density #
-		try:
-			if self.c['variable_srho']:
-				if self.c['srho_type']=='userinput':
-					input_srho, input_year_srho = read_input(self.c['InputFileNamesrho'])
-					self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
-				elif self.c['srho_type']=='param':
-					self.rhos0		= 481.0 + 4.834 * (self.Ts - T_MELT) # Kuipers Munneke, 2015
-				elif self.c['srho_type']=='noise':
-					rho_stdv 		= 100 # the standard deviation of the surface density (I made up 25)
-					self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
-					self.rhos0[self.rhos0>600]=600
-					self.rhos0[self.rhos0<300]=300
+		# try:
+		if self.c['variable_srho']:
+			if self.c['srho_type']=='userinput':
+				input_srho, input_year_srho = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']))
+				Rsf 			= interpolate.interp1d(input_year_srho,input_srho,'nearest',fill_value='extrapolate') # interpolation function
+				self.rhos0 		= Rsf(self.modeltime) # surface temperature interpolated to model time
+				# self.rhos0      = np.interp(self.modeltime, input_year_srho, input_srho)
+			elif self.c['srho_type']=='param':
+				self.rhos0		= 481.0 + 4.834 * (self.Ts - T_MELT) # Kuipers Munneke, 2015
+			elif self.c['srho_type']=='noise':
+				rho_stdv 		= 50 # the standard deviation of the surface density (I made up 25)
+				self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
+				self.rhos0[self.rhos0>700]=700
+				self.rhos0[self.rhos0<300]=300
+				print(np.max(self.rhos0))
+				print(np.min(self.rhos0))
 
-			else:
-				self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
+		else:
+			self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
 
-		except:
-			print("you should alter the json to include all variable surface rho fields")
-			self.rhos0      	= self.c['rhos0'] * np.ones(self.stp)       # density at surface
+		# except:
+			# print("you should alter the json to include all variable surface rho fields")
+			# self.rhos0      	= self.c['rhos0'] * np.ones(self.stp)       # density at surface
 		#####################
 
 		### Layer tracker ###
@@ -227,7 +231,7 @@ class FirnDensityNoSpin:
 
 		###############################
 		### set up vector of times data will be written
-		Tind 				= np.nonzero(self.modeltime>=-20000)[0][0]
+		Tind 				= np.nonzero(self.modeltime>=0)[0][0]
 		# print('Caution: writing all data')
 		self.TWrite     	= self.modeltime[Tind::self.c['TWriteInt']]
 		# self.TWrite 		= np.append(self.modeltime[10],self.TWrite)
@@ -371,7 +375,7 @@ class FirnDensityNoSpin:
 		### DIP, DHdt, LIZ, BCO ###
 		self.dHAll   	= []
 		bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
-		intPhi, intPhi_c = self.update_DIP()
+		intPhi, intPhi_c, z_co = self.update_DIP()
 		
 		self.dHAll.append(0)
 		dHOut 	= 0 # surface elevation change since last time step
@@ -383,22 +387,35 @@ class FirnDensityNoSpin:
 			self.DIPc_out 		= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 			self.DIPc_out[0,:]	= np.append(self.modeltime[0], intPhi_c)
 		if 'BCO' in self.output_list:
-			self.BCO_out 		= np.zeros((TWlen+1,9),dtype='float32')
-			self.BCO_out[0,:]	= np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])
+			self.BCO_out 		= np.zeros((TWlen+1,10),dtype='float32')
+			self.BCO_out[0,:]	= np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
 		#####################
 
 		##### Firn Air ######
-		### each gas of interest gets its own instance of the class
+		'''
+		each gas of interest gets its own instance of the class, each instance
+		is stored in a dictionary
+		'''
 		if self.c['FirnAir']:
 			print('Firn air initialized')
 			with open(self.c['AirConfigName'], "r") as f:
 				jsonString 		= f.read()
 				self.cg         = json.loads(jsonString)
-			self.FA = {}
-			self.gas_out = {}
-			self.Gz = {}
+			self.FA 		= {}
+			self.gas_out 	= {}
+			self.Gz 		= {}
 			for gas in self.cg['gaschoice']:
-				self.FA[gas] = FirnAir(self.cg,input_year_temp,self.z, self.modeltime, self.Tz, self.rho, self.dz, gas)
+				if (gas=='d15N2' or gas=='d40Ar'):
+					input_year_gas = input_year_temp
+					input_gas = np.ones_like(input_year_temp)
+				else:
+					input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas))
+
+				Gsf 	= interpolate.interp1d(input_year_gas,input_gas,'linear',fill_value='extrapolate')
+				Gs 		= Gsf(self.modeltime)
+
+				self.FA[gas] = FirnAir(self.cg, Gs, self.z, self.modeltime, self.Tz, self.rho, self.dz, gas, self.bdot)
+
 				if "gasses" in self.cg['outputs']:
 					self.gas_out[gas] 			= np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
 					self.gas_out[gas][0,:]		= np.append(self.modeltime[0], np.ones_like(self.rho))
@@ -444,7 +461,7 @@ class FirnDensityNoSpin:
 		
 		for iii in range(self.stp):
 			mtime = self.modeltime[iii]
-			# print(iii,mtime)
+			# print(mtime)
 			self.D_surf[iii] = iii
 			### dictionary of the parameters that get passed to physics
 			PhysParams = {
@@ -652,11 +669,12 @@ class FirnDensityNoSpin:
 					self.iso_out[self.WTracker,:] 	= np.append(mtime_plus1, self.del_z)
 
 				bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815 	= self.update_BCO()
-				intPhi, intPhi_c 		= self.update_DIP()
+				intPhi, intPhi_c, z_co 	= self.update_DIP()
 				dH, dHtot 				= self.update_dH()
 
+
 				if 'BCO' in self.output_list:
-					self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815])					
+					self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])					
 				if 'DIP' in self.output_list:
 					self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
 					self.DIPc_out[self.WTracker,:] 		= np.append(mtime_plus1, intPhi_c)
@@ -747,13 +765,17 @@ class FirnDensityNoSpin:
 		phiClosed = 0.37 * phi * (phi / phiC) ** -7.6  # Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
 
 		phiOpen = phi - phiClosed  # open porosity
+
+		ind_co = np.where(phiOpen<=1e-10)[0][0]
+		z_co = self.z[ind_co]
+
 		phiOpen[phiOpen <= 0] = 1.e-10  # don't want negative porosity.
 
 		intPhi = np.sum(phi * self.dz)  # depth-integrated porosity
 		intPhi_c = np.cumsum(phi * self.dz)
 		# self.intPhiAll.append(intPhi)
 
-		return intPhi, intPhi_c
+		return intPhi, intPhi_c, z_co
 	### end update_DIP ########
 	###########################
 
@@ -766,7 +788,9 @@ class FirnDensityNoSpin:
 		
 		# self.dH = (self.sdz_new-self.sdz_old)+self.dzNew-(self.iceout/(self.rho_old[-1]/RHO_I))*self.t #
 
-		self.dH = (self.sdz_new - self.sdz_old) + self.dzNew - (self.iceout*self.t) # iceout has units m ice/year, t is years per time step. 
+		# self.dH = (self.sdz_new - self.sdz_old) + self.dzNew - (self.iceout*self.t) # iceout has units m ice/year, t is years per time step. 
+
+		self.dH = self.z[-1] - self.z_old[-1] #- (self.iceout*self.t)
 
 		self.dHAll.append(self.dH)
 
@@ -774,6 +798,11 @@ class FirnDensityNoSpin:
 
 		# self.dHOut.append(self.dH)
 		# self.dHOutC.append(self.dHtot)
+
+		# print('iceout',self.iceout*self.t)
+		# print('dh',self.dH)
+		# print('dhtot',self.dHtot)
+		# print('z',self.z[-1])
 
 		return self.dH, self.dHtot
 

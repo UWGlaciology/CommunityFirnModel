@@ -25,7 +25,7 @@
 "srho_type": "userinput",
 "_srho_type_options": ["userinput","param","noise"],
 "rhos0": 350.0,
-"r2s0": 1.0e-4,
+"r2s0": 1.0e-8,
 "AutoSpinUpTime": false,
 "yearSpin": 20,
 "stpsPerYearSpin": 12.0,

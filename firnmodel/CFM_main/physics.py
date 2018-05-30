@@ -830,7 +830,7 @@ class FirnPhysics:
 
         else: # use a fixed surface value, r2s0.
 
-            r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+            r2 = np.concatenate(([self.r2s0], r2[:-1])) # Rob Arthern's recommended value, personal communication.
 
         return r2, dr2_dt
 
