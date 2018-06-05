@@ -140,7 +140,7 @@ class FirnAir:
         diffu_full[diffu_full<=0] = 1.e-40
 
         i4=np.where(diffu_full==1.e-40)[0][0]
-        diffu_full[i4:i4+3]=1e-40
+        diffu_full[i4:i4+3]=1e-40 # a single layer of low diffusivity is numerically unstable, so ensure that low-diffusivity is at least 3 layers thick.
 
         diffu=diffu_full
         
@@ -205,8 +205,11 @@ class FirnAir:
         z_edges1 = self.z[0:-1] + np.diff(self.z) / 2
         z_edges = np.concatenate(([self.z[0]], z_edges1, [self.z[-1]]))
         z_P_vec     = self.z
-        # print(z_P_vec[-10:])
-        # print(z_edges[-10:])
+        # if (iii>100 and iii<110):
+        #     print('z_P',z_P_vec[0:5])
+        #     print('len p', len(z_P_vec))
+        #     print('edges',z_edges[0:5])
+        #     print('len edges',len(z_edges))
         # input('enter')
         # phi_s     = self.Ts[iii]
         phi_s       = self.Gz[0]
@@ -242,6 +245,7 @@ class FirnAir:
         # self.z_co               = min(self.z[self.rho>=(self.rho_co)]) #close-off depth; bcoRho is close off density
         # self.z_co               = self.z[np.where(self.rho>=self.rho_co)[0][0]] #close-off depth; bcoRho is close off density
         self.LID                = min(self.z[self.rho>=(self.LIDRho)]) #lock in depth; LIDRho is lock-in density
+        print(self.LID)
         self.bdot_t = self.bdot[iii]
 
         self.diffu, self.d_eddy = self.diffusivity()

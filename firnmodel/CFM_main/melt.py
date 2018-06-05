@@ -146,7 +146,7 @@ def percolation_bucket(self, iii):
 	that 
 	'''
 
-	maxpore_f 				= 2.0 	# factor by which the maximum filled porespace can exceed the irreducible saturation.
+	# maxpore_f 				= 2.0 	# factor by which the maximum filled porespace can exceed the irreducible saturation.
 	impermeable_rho			= 725. 	# impermeable lens density.
 
 	if np.any(self.LWC<0):
@@ -216,7 +216,7 @@ def percolation_bucket(self, iii):
 	Wmi 					= 0.057 * (RHO_I - rho_pot) / rho_pot + 0.017 # water per snow-plus- water mass irreducible liquid water content, Langen eqn 3 unitless)
 	Swi						= Wmi / (1 - Wmi) * (rho_pot * RHO_I) / (1000 * (RHO_I - rho_pot)) 	#irreducible water saturation, volume of water per porespace volume (unitless), Colbeck 1972
 
-	maxpore 				= Swi * 2.0 # upper limit on what percentage of the porosity can be filled with water.
+	maxpore 				= 0.95 # upper limit on what percentage of the porosity can be filled with water.
 
 	maxLWC1					= porespace_vol * maxpore 	# maximum volume of water that can be stored in each node (meters)
 	maxLWC2					= ((917.0 * self.dz) - self.mass) / RHO_W_KGM # double check that the LWC does not get too large. 

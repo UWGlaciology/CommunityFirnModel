@@ -32,12 +32,12 @@ def solver(a_U, a_D, a_P, b):
 
     return phi_t
 
-def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, airdict=None):
+def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, airdict=None):
     '''
     transient 1-d diffusion finite volume method
 
     :param z_edges:
-    :param z_P_vec:
+    :param Z_P:
     :param nt:
     :param dt:
     :param Gamma_P:
@@ -52,7 +52,7 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
     phi_t = phi_0
 
     for i_time in range(nt):
-        Z_P = z_P_vec
+        
         # print(len(Z_P))
         # dZ = np.concatenate(([1], np.diff(z_edges), [1]))
 
@@ -61,22 +61,17 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
 
         dZ = np.diff(z_edges) #width of nodes
 
-        dZ_u = np.diff(Z_P)
-        dZ_u = np.append(dZ_u[0], dZ_u)
+        deltaZ_u = np.diff(Z_P)
+        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
         
-        dZ_d = np.diff(Z_P)
-        dZ_d = np.append(dZ_d, dZ_d[-1])
+        deltaZ_d = np.diff(Z_P)
+        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
 
-        # f_u = np.append(0, (1 - (z_P_vec[1:] - z_edges) / dZ_u[1:]))
-        # f_d = np.append(1 - (z_edges - z_P_vec[0: -1]) / dZ_d[0: -1], 0)
+        # f_u = np.append(0, (1 - (Z_P[1:] - z_edges) / deltaZ_u[1:]))
+        # f_d = np.append(1 - (z_edges - Z_P[0: -1]) / deltaZ_d[0: -1], 0)
 
-        ### was this
-        f_u = 1 - (z_P_vec[:] - z_edges[0:-1]) / dZ_u[:]
-        f_d = 1 - (z_edges[1:] - z_P_vec[:]) / dZ_d[:]
-
-        ### changed to this
-        # f_d = 1 - (z_P_vec[:] - z_edges[0:-1]) / dZ_d[:]
-        # f_u = 1 - (z_edges[1:] - z_P_vec[:]) / dZ_u[:]
+        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
+        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
         # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
         # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
@@ -118,7 +113,7 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
 
             
             S_C         = S_C_0 * phi_t
-            b_0         = S_C * dZ
+            b_0         = S_C * dZ 
 
             rho_edges = np.interp(z_edges,Z_P,airdict['rho'])
             
@@ -129,8 +124,9 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
             w_u = w_edges[0:-1]
             w_d = w_edges[1:]
 
-            D_u = ((Gamma_u+d_eddy_u) / dZ_u) # Units m/s
-            D_d = ((Gamma_d+d_eddy_d) / dZ_d)   
+            D_u = ((Gamma_u+d_eddy_u) / deltaZ_u) # Units m/s
+            D_d = ((Gamma_d+d_eddy_d) / deltaZ_d)
+
             F_u =  w_u * airdict['por_op'] # Units m/s
             F_d =  w_d * airdict['por_op']
             
@@ -159,9 +155,6 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
             
             a_U = D_u * A( P_u ) + F_upwind(  F_u )
             a_D = D_d * A( P_d ) + F_upwind( -F_d )
-
-            # a_U = D_u # 8/14/17: use this for now - check on Lagrangian need for upwinding.
-            # a_D = D_d 
         
             a_P_0 = airdict['por_op'] * dZ / dt
 
@@ -177,8 +170,8 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
             S_C = 0
             S_C = S_C * np.ones(nz_P)
 
-            D_u = (Gamma_u / dZ_u)
-            D_d = (Gamma_d / dZ_d)
+            D_u = (Gamma_u / deltaZ_u)
+            D_d = (Gamma_d / deltaZ_d)
 
             b_0 = S_C * dZ
 
@@ -213,26 +206,28 @@ def transient_solve_TR(z_edges, z_P_vec, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
         a_P[-1] = 1
         a_D[-1] = 0
         a_U[-1] = 1
-        b[-1]   = dZ_u[-1] * bc_d[0]
+        b[-1]   = deltaZ_u[-1] * bc_d[0]
 
-        if (airdict!=None and airdict['gaschoice']=='d15N2'):
-            if (airdict['iii']>855 and airdict['iii']<900):
-                mid = airdict['iii']-850-1
-                ll = int(mid)
+        # if (airdict!=None and airdict['gaschoice']=='d15N2'):
+        #     if (airdict['iii']>855 and airdict['iii']<900):
+        #         mid = airdict['iii']-850-1
+        #         ll = int(mid)
 
-                print(airdict['iii'])
-                print(ll)
-                # print(airdict['gaschoice'])
-                print(Z_P[ll])
-                print(airdict['rho'][mid-4:mid+5])
-                # print((Gamma_d-Gamma_u)[mid-9:mid+10])
-                # print()
-                # print(phi_t[mid-3:mid+4])
-                print('gamma_u',Gamma_u[mid-4:mid+5])
-                print('Gamma_d',Gamma_d[mid-4:mid+5])
-                print('Gamma_del',Gamma_del[mid-4:mid+5])
-                # print('Gamma_huh',Gamma_huh[mid-3:mid+4])
-                print('sco',S_C_0[mid-4:mid+5])
+        #         print(airdict['iii'])
+        #         print(ll)
+        #         # print(airdict['gaschoice'])
+        #         print(Z_P[ll])
+        #         print(airdict['rho'][mid-4:mid+5])
+        #         # print((Gamma_d-Gamma_u)[mid-9:mid+10])
+        #         # print()
+        #         # print(phi_t[mid-3:mid+4])
+        #         print('gamma_u',Gamma_u[mid-4:mid+5])
+        #         print('Gamma_d',Gamma_d[mid-4:mid+5])
+        #         print('Gamma_del',Gamma_del[mid-4:mid+5])
+        #         # print('Gamma_huh',Gamma_huh[mid-3:mid+4])
+        #         print('sco',S_C_0[mid-4:mid+5])
+        #         print('sc',S_C[mid-4:mid+5])
+
         phi_t = solver(a_U, a_D, a_P, b)
         a_P = a_U + a_D + a_P_0
 

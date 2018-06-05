@@ -32,9 +32,9 @@ except:
 connm=os.path.join(jdir,dtype+'_'+site+'_config_'+nn+'_'+mm+'.json')
 # copyfile(dtype+'_'+site+'_config_master.json', connm)
 # if nn=='daily':
-# 	copyfile('RACMO_firncover_config_master_daily.json', connm)
+copyfile('RACMO_firncover_config_master_daily.json', connm)
 # else:
-copyfile('RACMO_firncover_config_master.json', connm)
+# copyfile('RACMO_firncover_config_master.json', connm)
 
 jsonFile = open(connm, "r")
 data = json.load(jsonFile)
