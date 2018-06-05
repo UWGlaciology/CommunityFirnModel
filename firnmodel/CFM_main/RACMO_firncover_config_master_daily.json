@@ -27,7 +27,7 @@
 "yearSpin": 20,
 "stpsPerYearSpin": 365.0,
 "H": 3000,
-"HbaseSpin": 2950.0,
+"HbaseSpin": 2960.0,
 "stpsPerYear": 365.0,
 "D_surf": 1.0,
 "bdot_type": "mean",
@@ -38,11 +38,13 @@
 "spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "compaction","DIP","BCO","temperature","LWC","gasses","dcon"],
+"outputs": ["density", "depth", "compaction","DIP","BCO","temperature","LWC"],
 "output_options": ["density", "depth", "temperature", "age", "dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "LIZ", "DIP","LWC","gasses"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5",
 "doublegrid": false,
 "grid1bottom": 15.0,
-"nodestocombine": 50
+"nodestocombine": 50,
+"spinup_climate_type": "mean",
+"spinup_climate_options": ["mean","initial"]
 }

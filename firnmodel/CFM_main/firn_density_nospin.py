@@ -765,9 +765,12 @@ class FirnDensityNoSpin:
 		phiClosed = 0.37 * phi * (phi / phiC) ** -7.6  # Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
 
 		phiOpen = phi - phiClosed  # open porosity
-
-		ind_co = np.where(phiOpen<=1e-10)[0][0]
-		z_co = self.z[ind_co]
+		
+		try:
+			ind_co = np.where(phiOpen<=1e-10)[0][0]
+			z_co = self.z[ind_co]
+		except:
+			z_co = -9999
 
 		phiOpen[phiOpen <= 0] = 1.e-10  # don't want negative porosity.
 
