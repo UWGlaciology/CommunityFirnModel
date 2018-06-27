@@ -140,6 +140,10 @@ class FirnDensityNoSpin:
 		# self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
 		self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
 		self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
+		print(self.modeltime[0:5])
+		print(self.modeltime[-5:])
+		print(yr_start)
+		print(yr_end)
 		#####################
 
 		

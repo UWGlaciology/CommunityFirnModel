@@ -11,7 +11,7 @@ import json
 
 
 '''
-to run: parallel –a inputlist_ens_short.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
+to run: parallel –a inputlist_ens_short.txt –a modellist_ens.txt -a sitelist_short.txt python firnbatch_RACMO_summit_ens.py
 '''
 
 dtype = 'RACMO'
@@ -40,7 +40,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re=dtype+"results_ens_all/"+site+"/r" + nn + "/" + mm #results folder
+re=dtype+"results_ens_all2/"+site+"/r" + nn + "/" + mm #results folder
 tein=site+"_tskin_"+dtype+"_" + nn + ".csv"
 smbin=site+"_smb_"+dtype+"_" + nn + ".csv"
 meltin=site+"_melt_"+dtype+"_" + nn + ".csv"
