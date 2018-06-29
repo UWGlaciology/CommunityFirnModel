@@ -554,6 +554,14 @@ class FirnDensityNoSpin:
 				pass # box gets added below
 
 			self.T_mean     = np.mean(self.Tz[self.z<50])
+
+			'''Calculation of average surface temperature and accumulation rate #VV '''
+            # Case 1: 1 year has not passed yet -> take averages of 1st year
+            if iii < self.steps: # VV
+                T10m = np.sum(self.Ts[0:int(self.steps+1)])/self.steps # VV
+            # Case 2: at least 1 year has passed -> take averages of the last year (including the current step)
+            elif iii >= self.steps: # VV
+                T10m = np.sum(self.Ts[int(iii-(self.steps-1)):iii+1])/self.steps # VV
 			
 			if self.c['FirnAir']: # Update firn air
 				AirParams = {
