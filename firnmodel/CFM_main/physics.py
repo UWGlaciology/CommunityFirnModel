@@ -787,6 +787,33 @@ class FirnPhysics:
         return self.RD
         # return drho_dt
 
+    def Max2018(self):
+        # k0 = 0.15 # units Pa^-1 s^-1
+        # k1 = 0.05 # units Pa^-1 s^-1
+        k0 = 6.0e7
+        Q = 60000.0
+        dr_dt = np.zeros(self.gridLen)
+        Q2  = 21400.0        
+        k2  = 575.0
+        aHL = 1.0
+        bHL = 0.5
+
+        A_mean = self.bdot_mean * RHO_I_MGM
+        
+        # dr_dt[self.rho < RHO_1] = k0 * np.exp(-1*Q / (R * self.Tz[self.rho < RHO_1])) * (RHO_I - self.rho[self.rho < RHO_1]) * self.sigma[self.rho < RHO_1]
+        # dr_dt[self.rho >= RHO_1] = k1 * np.exp(-1*Q / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I - self.rho[self.rho >= RHO_1]) * self.sigma[self.rho >= RHO_1]
+
+        msk = ((self.age>0) & (self.rho < RHO_1))
+        msk2 = self.rho>=RHO_1
+        dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
+        # dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
+
+        dr_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
+
+        self.RD['drho_dt'] = dr_dt # units are (kg m^-3) s^-1
+        return self.RD
+
+
     def grainGrowth(self):
         '''
 

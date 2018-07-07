@@ -40,9 +40,9 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re=dtype+"results_ens_all2/"+site+"/r" + nn + "/" + mm #results folder
+re=dtype+"results_ens_all/"+site+"/r" + nn + "/" + mm #results folder
 tein=site+"_tskin_"+dtype+"_" + nn + ".csv"
-smbin=site+"_smb_"+dtype+"_" + nn + ".csv"
+smbin=site+"_acc_"+dtype+"_" + nn + ".csv"
 meltin=site+"_melt_"+dtype+"_" + nn + ".csv"
 
 #     tmp = data["physRho"]
@@ -71,6 +71,11 @@ if mm=="Arthern2010T":
     data["physGrain"] = True
 else:
     data["physGrain"] = False
+
+if site=='Summit':
+	data["rhos0"] = 300.0
+else:
+	data["rhos0"] = 350.0
 
 jsonFile = open(connm, "w+")
 jsonFile.write(json.dumps(data,sort_keys=True, indent=4, separators=(',', ': ')))

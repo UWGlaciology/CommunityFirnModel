@@ -68,7 +68,7 @@ def percolation_noliquid(self, iii):
 
 		runoff_volume_duetolimitedporespace = (melt_volume_IE - porespace_sum) * RHO_I_MGM
 
-		self.rho[ind1:ind2+1] 	= 870.0 #fill all of the boxes with water.
+		self.rho[ind1:ind2+1] 	= 830.0 #fill all of the boxes with water.
 		self.Tz[ind1:ind2+1] 	= T_MELT
 
 		# split up last box into several
@@ -147,7 +147,7 @@ def percolation_bucket(self, iii):
 	'''
 
 	# maxpore_f 				= 2.0 	# factor by which the maximum filled porespace can exceed the irreducible saturation.
-	impermeable_rho			= 725. 	# impermeable lens density.
+	impermeable_rho			= 800. 	# impermeable lens density.
 
 	if np.any(self.LWC<0):
 		print('ERROR: negative LWC')

@@ -519,7 +519,8 @@ class FirnDensityNoSpin:
 				'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
 				'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
 				'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
-				'Crocus':               FirnPhysics(PhysParams).Crocus
+				'Crocus':               FirnPhysics(PhysParams).Crocus,
+				'Max2018':				FirnPhysics(PhysParams).Max2018
 			}
 
 			RD 		= physicsd[self.c['physRho']]()
@@ -544,16 +545,33 @@ class FirnDensityNoSpin:
 			else: # no melt, dz after compaction
 				self.dzn 	= self.dz[0:self.compboxes]
 
+			told1= self.Tz[0:6].copy()
 			### heat diffusion
 			if (self.c['heatDiff'] and not self.MELT): # no melt, so use regular heat diffusion
 				self.Tz, self.T10m 	= heatDiff(self,iii)
 			elif (self.c['heatDiff'] and self.MELT): # there is melt, so use enthalpy method
 				self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+
 			else: # no heat diffusion, so just set the temperature of the new box on top.
-				# self.Tz 	= np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+				self.Tz 	= np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
 				pass # box gets added below
 
 			self.T_mean     = np.mean(self.Tz[self.z<50])
+
+			Tnew1 = self.Tz[0:6].copy()
+
+			if told1[1]==Tnew1[1]:
+				if told1[0]==273.15:
+					pass
+				else:
+					print(iii)
+					print(mtime)
+					print(told1)
+					print(Tnew1)
+					print(self.rho_old[0:6])
+					print(self.rho[0:6])
+					# if mtime>995:
+						# input()
 
 			'''Calculation of average surface temperature and accumulation rate #VV '''
 			# Case 1: 1 year has not passed yet -> take averages of 1st year
