@@ -201,6 +201,7 @@ class FirnPhysics:
             # beta2 = beta1 / (-2.0178 + 8.4043 * A_mean - 0.0932 * TmC)
 
             ### These lines are for a single value of beta based on long-term accumulation rate
+
             beta1a = -9.788 + 8.996 * np.mean(A_mean) - 0.6165 * TmC
             beta2a = beta1a / (-2.0178 + 8.4043 * np.mean(A_mean) - 0.0932 * TmC)
             beta1 = np.ones(len(A_mean))*beta1a
@@ -816,8 +817,8 @@ class FirnPhysics:
     def Max2018(self):
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1
-        k0 = 8.5e9
-        Q = 70000.0
+        k0 = 7.2e8
+        Q = 65000.0
         dr_dt = np.zeros(self.gridLen)
         Q2  = 21400.0        
         k2  = 575.0
@@ -832,9 +833,29 @@ class FirnPhysics:
         msk = ((self.age>0) & (self.rho < RHO_1))
         msk2 = self.rho>=RHO_1
         dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
-        # dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
 
-        dr_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
+        # Helsen
+        # dr_dt[self.rho >= RHO_1] = ((RHO_I - self.rho[self.rho >= RHO_1]) * A_mean[self.rho >= RHO_1] * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz[self.rho >= RHO_1]) ** -2.061)/S_PER_YEAR
+
+        # Li and Zwally
+        # TmC   = self.T_mean - K_TO_C
+        # beta1a = -9.788 + 8.996 * np.mean(A_mean) - 0.6165 * TmC
+        # beta2a = beta1a / (-2.0178 + 8.4043 * np.mean(A_mean) - 0.0932 * TmC)
+        # beta1 = np.ones(len(A_mean))*beta1a
+        # beta2 = np.ones(len(A_mean))*beta2a
+        # dr_dt[self.rho >= RHO_1]  = ((RHO_I - self.rho[self.rho >= RHO_1]) * A_mean[self.rho >= RHO_1] * beta2[self.rho >= RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho >= RHO_1]) ** -2.061)/S_PER_YEAR
+
+
+        #use KM physics below 550
+        ar2 = 0.03
+        Ec = 60.0e3
+        Eg = 42.4e3
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+        M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+        M_1[M_1<0.25]=0.25
+
+        dr_dt[self.rho >= RHO_1] = ((RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m)))/S_PER_YEAR
+
 
         self.RD['drho_dt'] = dr_dt # units are (kg m^-3) s^-1
         return self.RD
