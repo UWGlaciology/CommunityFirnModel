@@ -817,8 +817,8 @@ class FirnPhysics:
     def Max2018(self):
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1
-        k0 = 7.2e8
-        Q = 65000.0
+        k0 = 8.5e9
+        Q = 70000.0
         dr_dt = np.zeros(self.gridLen)
         Q2  = 21400.0        
         k2  = 575.0
