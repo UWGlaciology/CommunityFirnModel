@@ -58,7 +58,7 @@ data["InputFileNamemelt"] = meltin
 if nn=='daily':
 	data["stpsPerYearSpin"]=365.0
 	data["stpsPerYear"]=365.0
-	data["HbaseSpin"]=2950.0
+	data["HbaseSpin"]=2970.0
 else:
 	data["stpsPerYearSpin"]=12.0
 	data["stpsPerYear"]=12.0
