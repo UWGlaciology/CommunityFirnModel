@@ -40,7 +40,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re=dtype+"results_ens_all/"+site+"/r" + nn + "/" + mm #results folder
+re=dtype+"results_ens_all3/"+site+"/r" + nn + "/" + mm #results folder
 tein=site+"_tskin_"+dtype+"_" + nn + "_s.csv"
 smbin=site+"_acc_"+dtype+"_" + nn + "_s.csv"
 meltin=site+"_melt_"+dtype+"_" + nn + "_s.csv"
@@ -53,7 +53,7 @@ data["InputFileNameTemp"] = tein
 data["InputFileNamebdot"] = smbin
 # try:
 data["InputFileNamemelt"] = meltin
-data["MELT"] = True
+
 
 if nn=='daily':
 	data["stpsPerYearSpin"]=365.0
@@ -76,6 +76,11 @@ if site=='Summit':
 	data["rhos0"] = 300.0
 else:
 	data["rhos0"] = 350.0
+
+if site=='CRAWFORD':
+	data['MELT']=False
+else:
+	data["MELT"] = True
 
 jsonFile = open(connm, "w+")
 jsonFile.write(json.dumps(data,sort_keys=True, indent=4, separators=(',', ': ')))
