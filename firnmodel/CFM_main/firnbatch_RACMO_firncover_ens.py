@@ -41,9 +41,9 @@ data = json.load(jsonFile)
 jsonFile.close()
 
 re=dtype+"results_ens_all/"+site+"/r" + nn + "/" + mm #results folder
-tein=site+"_tskin_"+dtype+"_" + nn + ".csv"
-smbin=site+"_acc_"+dtype+"_" + nn + ".csv"
-meltin=site+"_melt_"+dtype+"_" + nn + ".csv"
+tein=site+"_tskin_"+dtype+"_" + nn + "_s.csv"
+smbin=site+"_acc_"+dtype+"_" + nn + "_s.csv"
+meltin=site+"_melt_"+dtype+"_" + nn + "_s.csv"
 
 #     tmp = data["physRho"]
 data["InputFileFolder"] = os.path.join("inputdata", dtype+'input',site)

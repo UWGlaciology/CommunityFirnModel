@@ -817,7 +817,7 @@ class FirnPhysics:
     def Max2018(self):
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1
-        k0 = 8.5e9
+        # k0 = 8.5e9
         Q = 70000.0
         dr_dt = np.zeros(self.gridLen)
         Q2  = 21400.0        
@@ -826,6 +826,9 @@ class FirnPhysics:
         bHL = 0.5
 
         A_mean = self.bdot_mean * RHO_I_MGM
+
+        k0 = -1.387e10 * np.nanmean(self.bdot_mean) + 1.042e10
+        # print(np.nanmean(self.bdot_mean))
         
         # dr_dt[self.rho < RHO_1] = k0 * np.exp(-1*Q / (R * self.Tz[self.rho < RHO_1])) * (RHO_I - self.rho[self.rho < RHO_1]) * self.sigma[self.rho < RHO_1]
         # dr_dt[self.rho >= RHO_1] = k1 * np.exp(-1*Q / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I - self.rho[self.rho >= RHO_1]) * self.sigma[self.rho >= RHO_1]
