@@ -72,15 +72,21 @@ if mm=="Arthern2010T":
 else:
     data["physGrain"] = False
 
+if mm=='Helsen2008':
+	data['MELT']=False
+elif mm=='Li2011':
+	data['MELT']=False
+
+
 if site=='Summit':
 	data["rhos0"] = 300.0
 else:
 	data["rhos0"] = 350.0
 
-if site=='CRAWFORD':
-	data['MELT']=False
-else:
-	data["MELT"] = True
+# if site=='CRAWFORD':
+# 	data['MELT']=False
+# else:
+# 	data["MELT"] = True
 
 jsonFile = open(connm, "w+")
 jsonFile.write(json.dumps(data,sort_keys=True, indent=4, separators=(',', ': ')))
