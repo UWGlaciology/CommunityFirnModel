@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import csv
 import os
 import numpy as np
@@ -13,6 +14,7 @@ def write_nospin_hdf5(self):
         f4.create_dataset('temperature',data = self.Tz_out)
     if 'age' in self.output_list:
         f4.create_dataset('age',data = self.age_out[-1,:])
+        # f4.create_dataset('age',data = self.age_out) # use this one if you want a matrix of ages
     if 'depth' in self.output_list:    
         f4.create_dataset('depth',data = self.z_out)
     if 'dcon' in self.output_list:    
@@ -50,23 +52,29 @@ def write_nospin_hdf5(self):
         f4.create_dataset('BCO',data = self.BCO_out) 
     if 'LIZ' in self.output_list:
         f4.create_dataset('LIZ',data = self.LIZ_out)
+    if 'refrozen' in self.output_list:
+        f4.create_dataset('refrozen',data = self.refrozen_out)
+    if 'runoff' in self.output_list:
+        f4.create_dataset('runoff',data = self.runoff_out)
 
     f4.close()
 
-def write_spin_hdf5(folder, spinFileName, physGrain, THist, isoDiff, doublegrid, rho_time, Tz_time, age_time, z_time, r2_time, Hx_time, iso_time, grid_time):
+def write_spin_hdf5(self):
 
-    f5 = h5py.File(os.path.join(folder, spinFileName), 'w')
+    f5 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['spinFileName']), 'w')
 
-    f5.create_dataset('densitySpin', data = rho_time)
-    f5.create_dataset('tempSpin', data = Tz_time)
-    f5.create_dataset('ageSpin', data = age_time)
-    f5.create_dataset('depthSpin', data = z_time)
-    if physGrain:
-        f5.create_dataset('r2Spin', data = r2_time)
-    if THist:
-        f5.create_dataset('HxSpin', data = Hx_time)
-    if isoDiff:
-        f5.create_dataset('IsoSpin', data = iso_time)
-    if doublegrid:
-        f5.create_dataset('gridSpin', data = grid_time)
+    f5.create_dataset('densitySpin', data = self.rho_time)
+    f5.create_dataset('tempSpin', data = self.Tz_time)
+    f5.create_dataset('ageSpin', data = self.age_time)
+    f5.create_dataset('depthSpin', data = self.z_time)
+    if self.c['physGrain']:
+        f5.create_dataset('r2Spin', data = self.r2_time)
+    if self.THist:
+        f5.create_dataset('HxSpin', data = self.Hx_time)
+    if self.c['isoDiff']:
+        f5.create_dataset('IsoSpin', data = self.iso_time)
+    if self.doublegrid:
+        f5.create_dataset('gridSpin', data = self.grid_time)
+    if self.c['MELT']: #VV
+        f5.create_dataset('LWCSpin', data = self.LWC_time)
     f5.close()

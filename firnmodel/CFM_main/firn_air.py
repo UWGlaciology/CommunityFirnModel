@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np 
 from solver import solver
 from solver import transient_solve_TR

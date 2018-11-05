@@ -314,5 +314,7 @@ def percolation_bucket(self, iii):
 	###################################
 
 	self.LWC[self.LWC<0] = 0
+	print('lwc:',np.sum(self.LWC))
+	
 
 	return self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC

@@ -1,3 +1,4 @@
+#!usr/bin/env python
 import os
 import numpy as np
 # from string import join

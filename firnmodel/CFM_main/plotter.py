@@ -11,7 +11,7 @@ import pickle
 '''
 Plot results from the CFM
 '''
-rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/RACMOresults_ens_all/Summit/rloop20/Max2018'
+rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/RACMOresults_ens_all/Greenland/Summit/rloop20/Max2018'
 # rfolder = '/Volumes/FirnSSD/CFMresults/melt_test_kanu_KP'
 
 rfile = 'CFMresults.hdf5'
