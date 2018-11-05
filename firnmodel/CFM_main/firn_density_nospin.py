@@ -801,7 +801,7 @@ class FirnDensityNoSpin:
         '''
 
         self.dH = (self.sdz_new - self.sdz_old) + self.dzNew - (self.iceout*self.t) # iceout has units m ice/year, t is years per time step. 
-        # self.dH = self.z[-1] - self.z_old[-1] #- (self.iceout*self.t) # alternative method. Should be the same? 
+        # self.dH2 = self.z[-1] - self.z_old[-1] #- (self.iceout*self.t) # alternative method. Should be the same? 
         
         self.dHAll.append(self.dH)
         self.dHtot = np.sum(self.dHAll)
