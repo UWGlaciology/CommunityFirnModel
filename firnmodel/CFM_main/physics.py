@@ -820,6 +820,8 @@ class FirnPhysics:
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1
         # k0 = 8.5e9
+        if self.iii == 0:
+            print('Caution: Max2018 physics are still in development.')
         Q = 70000.0
         dr_dt = np.zeros(self.gridLen)
         Q2  = 21400.0        

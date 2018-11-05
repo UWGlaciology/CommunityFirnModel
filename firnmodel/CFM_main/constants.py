@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 ''' Constants used in the CFM'''
 
-R           = 8.314                          # gas constant used to calculate Arrhenius's term
+R           = 8.314                          # gas constant used to calculate Arrhenius term
 S_PER_YEAR  = 31557600.0                     # number of seconds in a year
 RHO_1       = 550.0                          # cut off density for the first zone densification (kg/m^3)
 RHO_2       = 815.0                          # cut off density for the second zone densification (kg/m^3)

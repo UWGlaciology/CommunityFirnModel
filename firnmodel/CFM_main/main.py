@@ -10,7 +10,7 @@ import json
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annikah Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@uw.edu"
 __status__ = "Production"
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     print("")
     print("-----------------------------------------------------------------------")
     print("-----------------------------------------------------------------------")
-    print("<<<<<<<< Running the Community Firn Model (CFM), Version 1.0.0 >>>>>>>>")
+    print("<<<<<<<< Running the Community Firn Model (CFM), Version %s >>>>>>>>" %__version__)
     print("<<<<<<<< Developed at the University of Washington             >>>>>>>>")
     print("<<<<<<<< Please cite your use!                                 >>>>>>>>")
     print("<<<<<<<< Distributed under terms of the MIT license.           >>>>>>>>")

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from diffusion import *
 from reader import read_input
 from reader import read_init
@@ -157,8 +159,15 @@ class FirnDensityNoSpin:
         self.Ts             = Tsf(self.modeltime) # surface temperature interpolated to model time
         # self.T_mean       = np.mean(self.Ts)
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmpTAmp'
-            # self.Ts         = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp))) # Orsi
-            self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Greenland (for Antarctica the it should be a plus instead of minus)
+            
+            if self.c['SeasonalThemi'] == 'north':
+                self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is for Greenland
+
+            elif self.c['SeasonalThemi'] == 'south':
+                if c['coreless']:
+                    self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp))) # Coreless winter, from Orsi
+                else:
+                    self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Antarctica
         #####################
 
         ### Accumulation ####

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from constants import *
 import numpy as np
 
