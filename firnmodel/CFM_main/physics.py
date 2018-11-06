@@ -927,7 +927,7 @@ class FirnPhysics:
 
     def surfacegrain(self):
 
-        if (self.c['calcGrainSize'] == True): #VV if there is a new layer and we use Linow param
+        if self.calcGrainSize: #VV if there is a new layer and we use Linow param
             #if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
                 # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
             b0Lnw = 0.781
@@ -942,9 +942,9 @@ class FirnPhysics:
 
             # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
 
-        elif (self.c['calcGrainSize'] == False): #VV if there is a new layer but we don't use Linow param
+        else: #VV if there is a new layer but we don't use Linow param
         # use a fixed surface value, r2s0.
-            r2_surface = self.c['r2s0']
+            r2_surface = self.r2s0
 
         return r2_surface
     ### end surfacegrain ###
