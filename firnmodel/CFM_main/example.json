@@ -42,7 +42,7 @@
 "bdot_type_options": ["instant","mean","stress"],
 "isoDiff": false,
 "iso": "NoDiffusion",
-"_isoOptions":["18","D","NoDiffusion"],
+"isoOptions":["18","D","NoDiffusion"],
 "spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
