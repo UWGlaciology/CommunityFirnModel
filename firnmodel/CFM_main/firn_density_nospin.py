@@ -592,6 +592,9 @@ class FirnDensityNoSpin:
 
             ### Dcon: user-specific code goes here. 
             # self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
+
+            ### Update grain growth ###
+            self.r2 = FirnPhysics(PhysParams).graincalc() # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
             
             ### update model grid, mass, stress, and mean accumulation rate
             if self.bdotSec[iii]>0: # there is accumulation at this time step
@@ -603,6 +606,9 @@ class FirnDensityNoSpin:
                 znew = np.copy(self.z) 
                 self.z          = np.concatenate(([0], self.z[:-1]))
                 self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+                r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
+                self.r2         = np.concatenate(([r2surface], self.r2[:-1]))
+
                 self.LWC        = np.concatenate(([0], self.LWC[:-1]))
                 self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
                 self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
@@ -611,6 +617,10 @@ class FirnDensityNoSpin:
                 self.compaction = np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1]))#/self.dt*S_PER_YEAR)
                 if self.doublegrid:
                     self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
+
+            # elif self.bdotSec[iii]<0: #work in progress from VV
+            #     self.mass_sum      = self.mass.cumsum(axis = 0) #VV
+            #     self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim = sublim(self,iii) #VV keeps track of sublimated water for mass conservation            
 
             else: # no accumulation during this time step
                 self.age        = self.age + self.dt
@@ -648,8 +658,8 @@ class FirnDensityNoSpin:
             
             self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
             
-            if self.c['physGrain']: # update grain radius
-                self.r2, self.dr2_dt    = FirnPhysics(PhysParams).grainGrowth()
+            # if self.c['physGrain']: # update grain radius
+            #     self.r2, self.dr2_dt    = FirnPhysics(PhysParams).grainGrowth()
 
             ### write results as often as specified in the init method
             if mtime in self.TWrite:                

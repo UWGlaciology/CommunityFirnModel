@@ -953,7 +953,7 @@ class FirnPhysics:
     def graincalc(self):
         
         '''
-        This is the same as graongrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function      
+        This is the same as graingrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function      
         :param Tz:
         :param Ts:
         :param iii:

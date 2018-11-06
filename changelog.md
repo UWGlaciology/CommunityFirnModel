@@ -13,7 +13,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 	- V. Verjans is working on a percolation module that solves Richard's equation and includes a dual-domain approach to handle preferential flow
 	- Documentation for the CFM
 
-## [1.0.1] - 2018-11-05
+## [1.0.1] - 2018-11-06
 ### Added
 
 - User can now initialize the model using density and temperature measurements, rather than using the firn profile predicted by the spin-up climate. Two fields need to be added to the .json file. The .csv file with the input data is column-wise. The first column is depth, the second is density, and the third is temperature.
@@ -31,6 +31,10 @@ All notable changes to the Community Firn Model should be documented in this fil
 ### Fixed
 
 - There was an issue that during time steps with no accumulation self.dzNew was not set to zero, leading to the model over-predicting surface-elevation changes when there are small time steps (i.e. many with zero accumulation). Thanks to Brooke Medley for pointing this out.
+
+### Changed
+
+- *firn_density_nospin.py* The order of grain growth is changed. Now, grain growth occurs independently of adding a new layer of surface grain size, which allows for grain growth when there is not accumulation. 
 
 ## Contributor notes
 A changelog is meant to keep a record of changes that are made to software. Any changes made should be recorded here. When you are working on the code, I recommend keeping this file open and logging changes as you make them. You should (1) keep a version of changelog.md that is exclusive to your branch and (2) keep a running list at the top of what features you are working on. When you push your code to master, update this file (i.e. the version on your branch) to reflect what it should look like on the master branch.
