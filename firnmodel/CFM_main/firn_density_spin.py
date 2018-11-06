@@ -117,17 +117,15 @@ class FirnDensitySpin:
         except:
             self.bdot0      = np.mean(input_bdot)
 
-        try:
-            if self.c['initprofile']:
-                try:
-                    if self.c['singleleap'] or self.c['singlenormal']: #VV If we use the initprofile but the input forcing data does not cover an entire year
-                        self.temp0 = self.c['deepT'] #VV use deep T as mean temperature for spin up calculations (compaction,grain growth)
-                        self.bdot0 = self.c['bdot_long']*1e-3/0.917 #VV use long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
-                except Exception:
-                    print("you are using an initial profile for spinup,")
-                    print("but you do not have 'singleleap' or 'singlenormal' in the .json")
-        except Exception:
-            pass
+        if self.c['initprofile']:
+            try:
+                if self.c['singleleap'] or self.c['singlenormal']: #VV If we use the initprofile but the input forcing data does not cover an entire year
+                    self.temp0 = self.c['deepT'] #VV use deep T as mean temperature for spin up calculations (compaction,grain growth)
+                    self.bdot0 = self.c['bdot_long']*1e-3/0.917 #VV use long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
+            except Exception:
+                print("you are using an initial profile for spinup,")
+                print("but you do not have 'singleleap' or 'singlenormal' in the .json")
+
         
         print('bdot0', self.bdot0)
         ### could include others, e.g. surface density
