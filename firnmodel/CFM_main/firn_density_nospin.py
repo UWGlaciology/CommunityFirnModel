@@ -594,7 +594,8 @@ class FirnDensityNoSpin:
             # self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
 
             ### Update grain growth ###
-            self.r2 = FirnPhysics(PhysParams).graincalc() # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
+            if self.c['physGrain']: # update grain radius
+                self.r2 = FirnPhysics(PhysParams).graincalc() # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
             
             ### update model grid, mass, stress, and mean accumulation rate
             if self.bdotSec[iii]>0: # there is accumulation at this time step
@@ -606,8 +607,9 @@ class FirnDensityNoSpin:
                 znew = np.copy(self.z) 
                 self.z          = np.concatenate(([0], self.z[:-1]))
                 self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-                r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
-                self.r2         = np.concatenate(([r2surface], self.r2[:-1]))
+                if self.c['physGrain']: # update grain radius
+                    r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
+                    self.r2         = np.concatenate(([r2surface], self.r2[:-1]))
 
                 self.LWC        = np.concatenate(([0], self.LWC[:-1]))
                 self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
