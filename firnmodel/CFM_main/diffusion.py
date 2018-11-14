@@ -76,10 +76,25 @@ def enthalpyDiff(self,iii):
     H = enthalpy_s + DeltaH
     LWCmass     = self.LWC * RHO_W_KGM
     enthalpy_l = LF_I * LWCmass
+
+
     
 
     ### method from Aschwanden, 2012
-    # LWCmass     = self.LWC * RHO_W_KGM
+    LWCmass     = self.LWC * RHO_W_KGM
+    LWCrho = LWCmass / self.dz
+    solidmass = self.mass
+    solidrho = solidmass/ self.dz
+    vol_s = self.mass/self.rho
+    vol_l = self.LWC
+    vol_tot = vol_s + vol_l
+    gl = vol_l / vol_tot # fractional volumes
+    gs = vol_s / vol_tot
+    deltaH = LF_I * 1000 # equation 11 in Swaminathan
+
+    cvol = gs * RHO_I * CP_I + gl * 1000 * 4180 # equation 15 in Swaminathan
+
+
     # LWCmass_old = np.copy(LWCmass)
     # tot_rho     = (self.mass + LWCmass) / self.dz # Aschwanden, eq
 

@@ -53,6 +53,6 @@
 "doublegrid": true,
 "grid1bottom": 15.0,
 "nodestocombine": 50,
-"spinup_climate_type": "initial",
+"spinup_climate_type": "mean",
 "spinup_climate_type_options": ["mean", "initial"]
 }
