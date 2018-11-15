@@ -237,6 +237,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     '''
 
     phi_t = phi_0
+    gl_old = gl
 
     for i_time in range(nt):
         
@@ -275,7 +276,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
         Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
-        S_C = enthalpy_l
+        S_C = deltaH * (gl_old - gl)
         # S_C = S_C * np.ones(nz_P)
 
         D_u = (Gamma_u / deltaZ_u)

@@ -773,9 +773,11 @@ class FirnPhysics:
         nu_0 = 7.62237e6 # kg s^-1
         a_n = 0.1 # K^-1
         b_n = 0.023 # m^3 kg^-1
-        c_n = 250 # kg m^-3
+        # c_n = 250 # kg m^-3 # original
+        c_n = 358. # kg m^-3 #VV eq (8) van Kampenhout et al. (2017)
 
         viscosity = f1 * f2 * nu_0 * self.rho / c_n * np.exp(a_n * (273.15 - self.Tz) + b_n * self.rho)
+
         dr_dt = self.rho * self.sigma / viscosity
 
         dr_dt[self.rho>=RHO_I] = 0
