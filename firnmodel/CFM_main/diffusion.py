@@ -38,12 +38,26 @@ def heatDiff(self,iii):
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
 
-    K_ice           = 9.828 * np.exp(-0.0057 * phi_0)
-    K_firn          = K_ice * (self.rho / 1000) ** (2 - 0.5 * (self.rho / 1000)) #Reference
-    # K_firn          = K_ice * (self.rho / 1000) **1.88 #VV equation (1) Langen 2017
-    # K_firn          = 0.021 + 2.5 * (self.rho/1000.)**2 #Anderson (1976), from Brandt (1997)
-    c_firn          = 152.5 + 7.122 * phi_0
+    # thermal diffusivity: alpha = K_firn / (rho*c_firn)
 
+    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
+    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn        = CP_I # If you prefer a constant specific heat.
+
+    ### Conductivity. Choose your favorite! ###
+    # References are provided at the end of this script.
+
+    K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
+    # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
+    # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
+    # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
+    # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
+    # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
+    # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
+    # K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
+    # K_firn    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
+    # k_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
+    
     Gamma_P         = K_firn / (c_firn) #* self.rho)
     tot_rho         = self.rho
 
@@ -347,3 +361,20 @@ def isoDiff(self,iii):
     return self.del_z
 ### end isotope diffusion
 ##########################
+
+'''
+### References for conductivity parameterizations ###
+# Also can refer to Physics of Glaciers, chapter 9.2
+
+Anderson EA (1976) A point energy and mass balance model of a snow cover. (doi:10.1016/S0074-6142(99)80039-4)
+Brandt RE and Warren SG (1997) Temperature measurements and heat transfer in near-surface snow at the South Pole. J. Glaciol. 43(144), 339–351
+Jiawen R, Dahe Q and Maohuan H (1991) THERMAL PROPERTIES AND TEMPERATURE DISTRIBUTION OF SNOW/FIRN ON THE LAW DOWE ICE CAP, ANTARCTICA. Antarct. Res. 2(2), 38–46
+Lüthi MP and Funk M (2001) Modelling heat flow in a cold, high-altitude glacier: Interpretation of measurements from Colle Gnifetti, Swiss Alps. J. Glaciol. 47(157), 314–324 (doi:10.3189/172756501781832223)
+Riche F and Schneebeli M (2013) Thermal conductivity of snow measured by three independent methods and anisotropy considerations. Cryosphere 7(1), 217–227 (doi:10.5194/tc-7-217-2013)
+Schwander J, Sowers T, Barnola J-M, Blunier T, Fuchs A and Malaizé B (1997) Age scale of the air in the summit ice: Implication for glacial-interglacial temperature change. J. Geophys. Res. Atmos. 102(D16), 19483–19493 (doi:10.1029/97JD01309)
+Schwerdtfeger P (1963) Theoretical derivation of the thermal conductivity and diffusivity of snow. IAHS Publ 61, 75–81 http://iahs.info/uploads/dms/061007.pdf
+Sturm M, Holmgren J, König M and Morris K (1997) The thermal conductivity of seasonal snow. J. Glaciol. 43(143), 26–41 (doi:10.1017/S0022143000002781)
+Van Dusen MS (1929) Thermal conductivity of non-metallic solids. International critical tables of numerical data, physics, chemistry and technology. McGraw-Hill New York, 216–217
+Yen Y-C (1981) Review of Thermal Properties of Snow, Ice, and Sea Ice. CRREL Rep. 81-10, 1–27 http://acwc.sdp.sirsi.net/client/search/asset/1005644
+
+'''

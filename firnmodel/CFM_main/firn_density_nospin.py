@@ -286,7 +286,8 @@ class FirnDensityNoSpin:
         self.T_mean         = np.mean(self.Tz[self.z<50])
         self.T10m           = self.T_mean
 
-        self.compboxes      = len(self.z[self.z<80])
+        # self.compboxes      = len(self.z[self.z<80])
+        self.compboxes = len(self.z)
         #######################
 
         ### model outputs
@@ -625,12 +626,14 @@ class FirnDensityNoSpin:
             #     self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim = sublim(self,iii) #VV keeps track of sublimated water for mass conservation            
 
             else: # no accumulation during this time step
+                
                 self.age        = self.age + self.dt
                 self.z          = self.dz.cumsum(axis=0)
+                self.z          = np.concatenate(([0],self.z[:-1]))
                 self.dzNew      = 0
-                znew = np.copy(self.z)
-                self.z          = self.z - self.z[0] # shift so zero still on top
-                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)#/self.dt*S_PER_YEAR
+                znew = np.copy(self.z)              
+                
+                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
 
             self.w_firn = (znew - self.z_old) / self.dt # advection rate of the firn, m/s
             # if ((iii>500) & (iii<510)):
@@ -731,7 +734,7 @@ class FirnDensityNoSpin:
         ##################################
         ##### END TIME-STEPPING LOOP #####
         ##################################
-
+        print(self.T10m)
         write_nospin_hdf5(self)
 
     ###########################
