@@ -222,8 +222,8 @@ class FirnDensityNoSpin:
                 self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
                 self.rhos0[self.rhos0>700]=700
                 self.rhos0[self.rhos0<300]=300
-                print(np.max(self.rhos0))
-                print(np.min(self.rhos0))
+                print('Max surface density is:', np.max(self.rhos0))
+                print('Min surface density is:', np.min(self.rhos0))
         else:
             self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
         #####################
@@ -247,7 +247,7 @@ class FirnDensityNoSpin:
         TWlen               = len(self.TWrite) #- 1
         self.WTracker       = 1
 
-        ### you can choose to write certain fields at different times.
+        ### you can choose to write certain fields at different times. (Functionality not fully tested)
         # Tind2                 = np.nonzero(self.modeltime>=1958.0)[0][0]
         # self.TWrite2      = self.modeltime[Tind2::self.c['TWriteInt']]
         # self.TWrite       = np.append(self.modeltime[10],self.TWrite)
@@ -634,6 +634,7 @@ class FirnDensityNoSpin:
                 znew = np.copy(self.z)              
                 
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
+                self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
 
             self.w_firn = (znew - self.z_old) / self.dt # advection rate of the firn, m/s
             # if ((iii>500) & (iii<510)):

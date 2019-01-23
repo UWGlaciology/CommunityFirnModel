@@ -11,7 +11,7 @@ import pickle
 '''
 Plot results from the CFM
 '''
-rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/RACMOresults_ens_all/Greenland/Summit/rloop20/Max2018'
+rfolder = '/Users/maxstev/Documents/Grad_School/Research/FIRN/CFM/CommunityFirnModel/firnmodel/CFM_main/RACMOresults_ens_all/Greenland/Summit/rloop20/KPM_rho'
 # rfolder = '/Volumes/FirnSSD/CFMresults/melt_test_kanu_KP'
 
 rfile = 'CFMresults.hdf5'
@@ -32,11 +32,12 @@ stps = len(timesteps)
 depth = f['depth'][1:,1:]
 density = f['density'][1:,1:]
 temperature = f['temperature'][1:,1:]
+dip_all = f['DIP'][:,:]
 
 
-f1,a1 = plt.subplots()
-a1.plot(density[-1,:],depth[-1,:])
-a1.invert_yaxis()
+# f1,a1 = plt.subplots()
+# a1.plot(density[-1,:],depth[-1,:])
+# a1.invert_yaxis()
 
 # jj=np.where(timesteps>=980.0)[0][0]
 

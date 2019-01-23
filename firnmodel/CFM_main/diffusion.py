@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from solver import transient_solve_TR
+from solver import transient_solve_EN_old
+from solver import transient_solve_EN_new
 from constants import *
 import numpy as np
 from scipy import interpolate
@@ -47,9 +49,14 @@ def heatDiff(self,iii):
     ### Conductivity. Choose your favorite! ###
     # References are provided at the end of this script.
 
-    K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
+    # alpha_DAVIDCS_m2s = 18.3 / S_PER_YEAR
+
+    # K_firn = alpha_DAVIDCS_m2s * self.rho * c_firn
+    # K_firn[self.z>=20.0]    = K_ice[self.z>=20.0] * (self.rho[self.z>=20.0]/RHO_I) ** (2 - 0.5 * (self.rho[self.z>=20.0]/RHO_I))    # Schwander 1997, eq. A11
+
+    # K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
     # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
-    # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
+    K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
     # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
     # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
@@ -76,7 +83,7 @@ def heatDiff(self,iii):
 ### end heat diffusion
 ######################
 
-def enthalpyDiff(self,iii):
+def enthalpyDiff_new(self,iii):
     '''
     enthalpy diffusion function
     LWC is in volume (m^3)
@@ -195,36 +202,36 @@ def enthalpyDiff(self,iii):
 
 
 #### this part below is the original try at enthalpy
-# def enthalpyDiff(self,iii):
-#     '''
-#     enthalpy diffusion function
+def enthalpyDiff(self,iii):
+    '''
+    enthalpy diffusion function
 
-#     '''
-#     enthalpy = np.zeros_like(self.dz)
-#     porosity = 1 - self.rho/RHO_I
+    '''
+    enthalpy = np.zeros_like(self.dz)
+    porosity = 1 - self.rho/RHO_I
 
-#     self.Tz[self.LWC>0] = 273.15
+    self.Tz[self.LWC>0] = 273.15
 
-#     ### method from Aschwanden, 2012
-#     LWCmass     = self.LWC * RHO_W_KGM
-#     LWCmass_old = np.copy(LWCmass)
-#     tot_rho     = (self.mass + LWCmass) / self.dz # Aschwanden, eq
+    ### method from Aschwanden, 2012
+    LWCmass     = self.LWC * RHO_W_KGM
+    LWCmass_old = np.copy(LWCmass)
+    tot_rho     = (self.mass + LWCmass) / self.dz # Aschwanden, eq
 
-#     rho_h       = np.copy(self.rho)
-#     Tzold       = np.copy(self.Tz)
-#     tot_mass    = self.mass + LWCmass
-#     omega       = (LWCmass/self.dz) / tot_rho # Aschwanden, eq 2
+    rho_h       = np.copy(self.rho)
+    Tzold       = np.copy(self.Tz)
+    tot_mass    = self.mass + LWCmass
+    omega       = (LWCmass/self.dz) / tot_rho # Aschwanden, eq 2
 
-#     # c_firn      = 152.5 + 7.122 * self.Tz
-#     # Hs          = T_MELT * CP_I  # inline, page 450 second column, right before eq 76. Setting T_0 = 0.
-#     Hs          = 0 # inline, page 450 second column, right before eq 76. Setting T_0 = 0.
+    # c_firn      = 152.5 + 7.122 * self.Tz
+    # Hs          = T_MELT * CP_I  # inline, page 450 second column, right before eq 76. Setting T_0 = 0.
+    Hs          = 0 # inline, page 450 second column, right before eq 76. Setting T_0 = 0.
  
-#     enthalpy[self.Tz<T_MELT]    = (self.Tz[self.Tz<T_MELT] - T_MELT) * CP_I
-#     enthalpy[self.Tz>=T_MELT]   = (self.Tz[self.Tz>=T_MELT] - T_MELT) * CP_I + omega[self.Tz>=T_MELT] * LF_I
+    enthalpy[self.Tz<T_MELT]    = (self.Tz[self.Tz<T_MELT] - T_MELT) * CP_I
+    enthalpy[self.Tz>=T_MELT]   = (self.Tz[self.Tz>=T_MELT] - T_MELT) * CP_I + omega[self.Tz>=T_MELT] * LF_I
 
-#     enthalpy_h = np.copy(enthalpy)
+    enthalpy_h = np.copy(enthalpy)
 
-#     # enthalpy = enthalpy*tot_rho
+    # enthalpy = enthalpy*tot_rho
 
     nz_P    = len(self.z)
     nz_fv   = nz_P - 2
@@ -264,7 +271,7 @@ def enthalpyDiff(self,iii):
     Gamma_P[e_less]     = bigKi[e_less] #/tot_rho[e_less]
     Gamma_P[e_great]    = bigKi[e_great] #/tot_rho[e_great]
 
-    enthalpy = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
+    enthalpy = transient_solve_EN_old(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
 
     e_less              = np.where(enthalpy<Hs)[0]
     e_great             = np.where(enthalpy>=Hs)[0]
