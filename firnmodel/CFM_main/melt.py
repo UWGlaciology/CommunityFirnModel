@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from constants import *
 import numpy as np
 
@@ -68,7 +69,7 @@ def percolation_noliquid(self, iii):
 
 		runoff_volume_duetolimitedporespace = (melt_volume_IE - porespace_sum) * RHO_I_MGM
 
-		self.rho[ind1:ind2+1] 	= 870.0 #fill all of the boxes with water.
+		self.rho[ind1:ind2+1] 	= 830.0 #fill all of the boxes with water.
 		self.Tz[ind1:ind2+1] 	= T_MELT
 
 		# split up last box into several
@@ -146,8 +147,8 @@ def percolation_bucket(self, iii):
 	that 
 	'''
 
-	maxpore_f 				= 2.0 	# factor by which the maximum filled porespace can exceed the irreducible saturation.
-	impermeable_rho			= 725. 	# impermeable lens density.
+	# maxpore_f 				= 2.0 	# factor by which the maximum filled porespace can exceed the irreducible saturation.
+	impermeable_rho			= 800. 	# impermeable lens density.
 
 	if np.any(self.LWC<0):
 		print('ERROR: negative LWC')
@@ -216,7 +217,7 @@ def percolation_bucket(self, iii):
 	Wmi 					= 0.057 * (RHO_I - rho_pot) / rho_pot + 0.017 # water per snow-plus- water mass irreducible liquid water content, Langen eqn 3 unitless)
 	Swi						= Wmi / (1 - Wmi) * (rho_pot * RHO_I) / (1000 * (RHO_I - rho_pot)) 	#irreducible water saturation, volume of water per porespace volume (unitless), Colbeck 1972
 
-	maxpore 				= Swi * 2.0 # upper limit on what percentage of the porosity can be filled with water.
+	maxpore 				= 0.95 # upper limit on what percentage of the porosity can be filled with water.
 
 	maxLWC1					= porespace_vol * maxpore 	# maximum volume of water that can be stored in each node (meters)
 	maxLWC2					= ((917.0 * self.dz) - self.mass) / RHO_W_KGM # double check that the LWC does not get too large. 
@@ -314,5 +315,7 @@ def percolation_bucket(self, iii):
 	###################################
 
 	self.LWC[self.LWC<0] = 0
+	print('lwc:',np.sum(self.LWC))
+	
 
 	return self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC

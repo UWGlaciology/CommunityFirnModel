@@ -1,16 +1,28 @@
+#!/usr/bin/env python
+'''This file creates classes for the spin up and main runs and runs the model''' 
+
 import sys
 import os
-# from string import join
 from firn_density_spin import FirnDensitySpin
 from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
 
+__author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annikah Horlings, Jessica Lundin"
+__license__ = "MIT"
+__version__ = "1.0.1"
+__maintainer__ = "Max Stevens"
+__email__ = "maxstev@uw.edu"
+__status__ = "Production"
+
 if __name__ == '__main__':
+
     if len(sys.argv) >= 2:
         configName = os.path.join(os.path.dirname(__file__), sys.argv[1])
     else:
-        configName = os.path.join(os.path.dirname(__file__), 'generic.json')
+        print('No .json configuration file specified. Exiting.')
+        sys.exit()
+        # configName = os.path.join(os.path.dirname(__file__), 'generic.json')
 
     with open(configName, "r") as f:
         jsonString = f.read()
@@ -19,13 +31,14 @@ if __name__ == '__main__':
     tic=time.time()
 
     print("")
-    print("---------------------------------------------------------------------")
-    print("---------------------------------------------------------------------")
-    print("<<<<<<<< Running the Community Firn Model (CFM), Version 1.0 >>>>>>>>")
-    print("<<<<<<<< Developed at the University of Washington           >>>>>>>>")
-    print("<<<<<<<< Please cite your use!                               >>>>>>>>")
-    print("---------------------------------------------------------------------")
-    print("---------------------------------------------------------------------")
+    print("-----------------------------------------------------------------------")
+    print("-----------------------------------------------------------------------")
+    print("<<<<<<<< Running the Community Firn Model (CFM), Version %s >>>>>>>>" %__version__)
+    print("<<<<<<<< Developed at the University of Washington             >>>>>>>>")
+    print("<<<<<<<< Please cite your use!                                 >>>>>>>>")
+    print("<<<<<<<< Distributed under terms of the MIT license.           >>>>>>>>")
+    print("-----------------------------------------------------------------------")
+    print("-----------------------------------------------------------------------")
     print("")
     
     if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']) and '-n' not in sys.argv:

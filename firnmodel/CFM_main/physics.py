@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as np
 from constants import *
 from scipy import interpolate
@@ -10,12 +11,9 @@ import sys
 class FirnPhysics:
 
     def __init__(self,PhysParams):
-
         '''
-
         bdot_mean units are m I.E./year
         bdotSec units are m I.E./time step
-
         '''
         for k,v in list(PhysParams.items()):
             setattr(self,k,v)
@@ -34,7 +32,6 @@ class FirnPhysics:
 
         :return drho_dt:
         '''
-
         Q1  = 10160.0
         Q2  = 21400.0
         k1  = 11.0
@@ -48,8 +45,14 @@ class FirnPhysics:
         drho_dt = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
-            drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
-            drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+            if (self.FirnAir and self.AirRunType=='steady'):
+                Tcon = self.steady_T * np.ones_like(self.Tz)
+                drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * Tcon[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+                drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * Tcon[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+            else:
+
+                drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+                drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
 
         elif self.bdot_type == 'mean':
             drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
@@ -57,7 +60,8 @@ class FirnPhysics:
 
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end HL_dynamic ###
+    ######################
 
     def HL_Sigfus(self):
         '''
@@ -96,9 +100,7 @@ class FirnPhysics:
             drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
             drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
-        # print('rhoDiff',len(rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)]))
-        # print('drho',len(drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]))
-        # print('k',len(k))
+
         drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]  = k * (sigmaDiff * rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
 
         drho_dt[(self.rho >= RHO_1) & (self.rho >= RHO_I)] = 0
@@ -110,8 +112,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-
-        # return drho_dt
+    ### end HL_Sigfus ###
+    #####################
 
     def Li_2004(self):
         '''
@@ -148,12 +150,16 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end Li_2004 ###
+    ###################
 
     def Li_2011(self):
         '''
-        Accumulation units are m W.E. per year (?)
-        Potentially beta should be calculated with the long-term mean accumulation rate
+        Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
+        Temperature in the equation for beta is in C.
+        Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)
+
+        beta should be calculated with the long-term mean accumulation rate
 
         :param steps:
         :param gridLen:
@@ -192,6 +198,7 @@ class FirnPhysics:
             # beta2 = beta1 / (-2.0178 + 8.4043 * A_mean - 0.0932 * TmC)
 
             ### These lines are for a single value of beta based on long-term accumulation rate
+
             beta1a = -9.788 + 8.996 * np.mean(A_mean) - 0.6165 * TmC
             beta2a = beta1a / (-2.0178 + 8.4043 * np.mean(A_mean) - 0.0932 * TmC)
             beta1 = np.ones(len(A_mean))*beta1a
@@ -204,8 +211,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-
-        # return drho_dt
+    ### end Li_2011 ###
+    ###################
 
     def Arthern_2010S(self):
         '''
@@ -247,7 +254,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end Arthern_2010S ###
+    #########################
 
     def Arthern_2010T(self):
         '''
@@ -287,7 +295,8 @@ class FirnPhysics:
         # self.viscosity[self.rho >= RHO_1] = ((1 / (2*kc2)) * (self.rho[self.rho >= RHO_1] / (RHO_I - self.rho[self.rho >= RHO_1])) * np.exp (Ec / (R * self.Tz[self.rho >= RHO_1])) * (self.r2[self.rho >= RHO_1])) / S_PER_YEAR
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end Arthern_2010T ###
+    #########################
 
     def Helsen_2008(self):
         '''
@@ -323,8 +332,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-
-        # return drho_dt
+    ### end Helsen_2008 ###
+    #######################
 
     def Simonsen_2013(self):
         '''
@@ -345,10 +354,10 @@ class FirnPhysics:
         ar2 = 0.03
         Ec  = 60.0e3
         Eg  = 42.4e3
-        F0  = 0.68 #firnmice value?
-        F1  = 1.03 #firnmice value?
-        # F0=0.8 # Simonsen's recommended (email correspondence)
-        # F1=1.25 # Simonsen's recommended (email correspondence)
+        # F0  = 0.68 #firnmice value?
+        # F1  = 1.03 #firnmice value?
+        F0=0.8 # Simonsen's recommended (email correspondence)
+        F1=1.25 # Simonsen's recommended (email correspondence) (See email from 4/7/15)
 
 
         A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
@@ -371,11 +380,11 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end Simonsen_2013 ###
+    #########################
 
     def Ligtenberg_2011(self):
         '''
-
         Units are mm W.E. per year
         b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
 
@@ -394,9 +403,6 @@ class FirnPhysics:
         ar2 = 0.03
         Ec = 60.0e3
         Eg = 42.4e3
-
-        
-
 
         dr_dt = np.zeros(self.gridLen)
 
@@ -420,7 +426,6 @@ class FirnPhysics:
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
-
             # dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.Tz[self.rho < RHO_1]))
             # dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.Tz[self.rho >= RHO_1]))
         drho_dt = dr_dt / S_PER_YEAR
@@ -428,8 +433,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-
-        # return drho_dt
+    ### end Ligtenberg_2011 ###
+    ###########################
 
     def Barnola_1991(self):
         '''
@@ -470,13 +475,14 @@ class FirnPhysics:
         A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM
 
         if self.bdot_type == 'instant':
-            drho_dt[self.rho < RHO_1] = dr_dt = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant ** aHL * 1000 / S_PER_YEAR
+            drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant ** aHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
-            drho_dt[self.rho < RHO_1] = dr_dt = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_mean_1 ** aHL * 1000 / S_PER_YEAR
+            drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_mean_1 ** aHL * 1000 / S_PER_YEAR
 
         ### Zone 2 ###
-        fe = 10.0 ** (alphaBarnola * (self.rho[self.rho <= RHO_2] / 1000) ** 3. + betaBarnola * (self.rho[self.rho <= RHO_2] / 1000) ** 2. + deltaBarnola * self.rho[self.rho <= RHO_2] / 1000 + gammaBarnola)
-        drho_dt[self.rho <= RHO_2] = self.rho[self.rho <= RHO_2] * A0[self.rho <= RHO_2] * np.exp(-QBarnola / (R * self.Tz[self.rho <= RHO_2])) * fe * (sigmaEff[self.rho <= RHO_2] ** nBa[self.rho <= RHO_2])
+        condition_zn2 = ((self.rho >= RHO_1) & (self.rho <= RHO_2))
+        fe = 10.0 ** (alphaBarnola * (self.rho[condition_zn2] / 1000) ** 3. + betaBarnola * (self.rho[condition_zn2] / 1000) ** 2. + deltaBarnola * self.rho[condition_zn2] / 1000 + gammaBarnola)
+        drho_dt[condition_zn2] = self.rho[condition_zn2] * A0[condition_zn2] * np.exp(-QBarnola / (R * self.Tz[condition_zn2])) * fe * (sigmaEff[condition_zn2] ** nBa[condition_zn2])
 
         # zone 3
         fs = (3. / 16.) * (1 - self.rho[self.rho > RHO_2] / RHO_I) / (1 - (1 - self.rho[self.rho > RHO_2] / RHO_I) ** (1. / 3.)) ** 3.
@@ -485,8 +491,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-
-        # return drho_dt
+    ### end Barnola_1991 ###
+    ########################
     
     def Morris_HL_2014(self):
         '''
@@ -538,7 +544,8 @@ class FirnPhysics:
         
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end Morris_HL_2014 ###
+    ##########################
 
     def KuipersMunneke_2015(self):
         '''
@@ -626,7 +633,8 @@ class FirnPhysics:
         # self.viscosity = np.ones(self.gridLen)
         self.RD['drho_dt'] = drho_dt
         return self.RD
-        # return drho_dt
+    ### end KuipersMunneke_2015 ###
+    ###############################
 
     def Goujon_2003(self):
         '''
@@ -751,12 +759,12 @@ class FirnPhysics:
         
         self.RD['drho_dt'] = drho_dt
         return self.RD
+    ### end Goujon_2003 ###
+    #######################
 
     def Crocus(self):
         '''
-
         Uses stress
-
         :return:
         '''
 
@@ -765,9 +773,11 @@ class FirnPhysics:
         nu_0 = 7.62237e6 # kg s^-1
         a_n = 0.1 # K^-1
         b_n = 0.023 # m^3 kg^-1
-        c_n = 250 # kg m^-3
+        # c_n = 250 # kg m^-3 # original
+        c_n = 358. # kg m^-3 #VV eq (8) van Kampenhout et al. (2017)
 
         viscosity = f1 * f2 * nu_0 * self.rho / c_n * np.exp(a_n * (273.15 - self.Tz) + b_n * self.rho)
+
         dr_dt = self.rho * self.sigma / viscosity
 
         dr_dt[self.rho>=RHO_I] = 0
@@ -777,15 +787,95 @@ class FirnPhysics:
         self.RD['drho_dt'] = drho_dt
         return self.RD
         # return drho_dt
+    ### end Crocus ###
+    ##################
 
-    def grainGrowth(self):
+    def Max2018b(self):
+        # k0 = 0.15 # units Pa^-1 s^-1
+        # k1 = 0.05 # units Pa^-1 s^-1
+        k0 = 6.0e7
+        Q = 60000.0
+        dr_dt = np.zeros(self.gridLen)
+        Q2  = 21400.0        
+        k2  = 575.0
+        aHL = 1.0
+        bHL = 0.5
+
+        A_mean = self.bdot_mean * RHO_I_MGM
+        
+        # dr_dt[self.rho < RHO_1] = k0 * np.exp(-1*Q / (R * self.Tz[self.rho < RHO_1])) * (RHO_I - self.rho[self.rho < RHO_1]) * self.sigma[self.rho < RHO_1]
+        # dr_dt[self.rho >= RHO_1] = k1 * np.exp(-1*Q / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I - self.rho[self.rho >= RHO_1]) * self.sigma[self.rho >= RHO_1]
+
+        msk = ((self.age>0) & (self.rho < RHO_1))
+        msk2 = self.rho>=RHO_1
+        dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
+        # dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
+
+        dr_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
+
+        self.RD['drho_dt'] = dr_dt # units are (kg m^-3) s^-1
+        return self.RD
+    ### end Max2018b ###
+    ####################
+
+    def Max2018(self):
+        # k0 = 0.15 # units Pa^-1 s^-1
+        # k1 = 0.05 # units Pa^-1 s^-1
+        # k0 = 8.5e9
+        if self.iii == 0:
+            print('Caution: Max2018 physics are still in development.')
+        Q = 70000.0
+        dr_dt = np.zeros(self.gridLen)
+        Q2  = 21400.0        
+        k2  = 575.0
+        aHL = 1.0
+        bHL = 0.5
+
+        A_mean = self.bdot_mean * RHO_I_MGM
+
+        k0 = -1.387e10 * np.nanmean(self.bdot_mean) + 1.042e10
+        # print(np.nanmean(self.bdot_mean))
+        
+        # dr_dt[self.rho < RHO_1] = k0 * np.exp(-1*Q / (R * self.Tz[self.rho < RHO_1])) * (RHO_I - self.rho[self.rho < RHO_1]) * self.sigma[self.rho < RHO_1]
+        # dr_dt[self.rho >= RHO_1] = k1 * np.exp(-1*Q / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I - self.rho[self.rho >= RHO_1]) * self.sigma[self.rho >= RHO_1]
+
+        msk = ((self.age>0) & (self.rho < RHO_1))
+        msk2 = self.rho>=RHO_1
+        dr_dt[msk] = k0 * np.exp(-1*Q / (R * self.Tz[msk])) * (RHO_I - self.rho[msk]) * self.sigma[msk] / self.age[msk]
+
+        # Helsen
+        # dr_dt[self.rho >= RHO_1] = ((RHO_I - self.rho[self.rho >= RHO_1]) * A_mean[self.rho >= RHO_1] * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz[self.rho >= RHO_1]) ** -2.061)/S_PER_YEAR
+
+        # Li and Zwally
+        # TmC   = self.T_mean - K_TO_C
+        # beta1a = -9.788 + 8.996 * np.mean(A_mean) - 0.6165 * TmC
+        # beta2a = beta1a / (-2.0178 + 8.4043 * np.mean(A_mean) - 0.0932 * TmC)
+        # beta1 = np.ones(len(A_mean))*beta1a
+        # beta2 = np.ones(len(A_mean))*beta2a
+        # dr_dt[self.rho >= RHO_1]  = ((RHO_I - self.rho[self.rho >= RHO_1]) * A_mean[self.rho >= RHO_1] * beta2[self.rho >= RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho >= RHO_1]) ** -2.061)/S_PER_YEAR
+
+        #use KM physics below 550
+        ar2 = 0.03
+        Ec = 60.0e3
+        Eg = 42.4e3
+        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+        M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+        M_1[M_1<0.25]=0.25
+
+        dr_dt[self.rho >= RHO_1] = ((RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m)))/S_PER_YEAR
+
+
+        self.RD['drho_dt'] = dr_dt # units are (kg m^-3) s^-1
+        return self.RD
+    ### end Max2018 ###
+    ###################
+
+    def grainGrowth(self,iii):
         '''
-
         :param Tz:
         :param Ts:
         :param iii:
         :param dt:
-
         :return r2:
         '''
 
@@ -795,7 +885,10 @@ class FirnPhysics:
         if self.MELT:
             porosity = 1 - self.rho / RHO_I 
             porespace = porosity * self.dz # meters
-            sat = self.LWC / porespace 
+
+            # sat = self.LWC / porespace 
+            sat = np.zeros_like(self.dz) # use 0 sat if our porespace is 0
+            sat[np.where(porespace>0)[0]] = self.LWC[np.where(porespace>0)[0]] / porespace[np.where(porespace>0)[0]]
 
             if self.GrGrowPhysics == 'Katsushima':
                 dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
@@ -807,29 +900,103 @@ class FirnPhysics:
 
         r2 = self.r2 + dr2_dt * self.dt
 
-        if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
+        if ((self.calcGrainSize) and (self.bdotSec[self.iii]>0)): #VV if there is a new layer and we use Linow param
+        #if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
             # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
 
             b0Lnw = 0.781
             b1Lnw = 0.0085
             b2Lnw = -0.279
-            
-            r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
+            #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
+            #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 # More accurate to use bdot_mean[-1] as value of mean accumulation ??
+            r2_surface = ((b0Lnw+b1Lnw*(self.T_av[iii]-K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 #VV
             r2 = np.concatenate(([r2_surface], r2[:-1]))
 
             # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
 
-        else: # use a fixed surface value, r2s0.
+        elif (self.bdotSec[self.iii]>0): #VV if there is a new layer but we don't use Linow param
+        #else: # use a fixed surface value, r2s0.
 
-            r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+            #VV
+            r2 = np.concatenate(([self.r2s0], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+            #r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+        else: #VV if no new layer, no need for a new grain size at surface
+            pass
 
         return r2, dr2_dt
+    ### end grainGrowth ###
+    #######################
+
+    def surfacegrain(self):
+
+        if self.calcGrainSize: #VV if there is a new layer and we use Linow param
+            #if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
+                # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
+            b0Lnw = 0.781
+            b1Lnw = 0.0085
+            b2Lnw = -0.279
+            #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
+            #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 # More accurate to use bdot_mean[-1] as value of mean accumulation ??
+            #r2_surface = ((b0Lnw+b1Lnw*(self.T_av[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 #VV
+            r2_surface = ((b0Lnw+b1Lnw*(self.T_av[self.iii]-K_TO_C) + b2Lnw*(self.bdot_av[self.iii]*RHO_I/1000))*10**(-3))**2 #VV
+            
+            #r2 = np.concatenate(([r2_surface], r2[:-1])) #VV commented
+
+            # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
+
+        else: #VV if there is a new layer but we don't use Linow param
+        # use a fixed surface value, r2s0.
+            r2_surface = self.r2s0
+
+        return r2_surface
+    ### end surfacegrain ###
+    ########################
+        
+    def graincalc(self):
+        
+        '''
+        This is the same as graingrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function      
+        :param Tz:
+        :param Ts:
+        :param iii:
+        :param dt:
+        :return r2:
+        '''
+
+        kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s
+        Eg  = 42.4e3 # kJ/mol
+
+        if self.MELT:
+            porosity = 1 - self.rho / RHO_I 
+            porespace = porosity * self.dz # meters
+            
+            sat = np.zeros_like(self.dz) #VV use 0 sat if our porespace is 0
+            sat[np.where(porespace>0)[0]] = self.LWC[np.where(porespace>0)[0]] / porespace[np.where(porespace>0)[0]] #VV 
+
+            if self.c['GrGrowPhysics'] == 'Katsushima':
+                dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
+            elif self.c['GrGrowPhysics'] == 'Arthern':
+                dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
+
+        else: # no MELT
+            dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth, units are m^2/s
+
+        if np.any(dr2_dt<0):
+            print('Negative grain growth at layers:',np.where(dr2_dt<0)[0])
+
+        r2 = self.r2 + dr2_dt * self.dt
+
+        return r2
+    ### end GrainCalc ###
+    #####################
 
     def THistory(self):
         self.Hx = self.Hx + np.exp(-110.0e3 / (R * self.Tz)) * self.dt
         Hx_new  = np.exp(-110.0e3 / (R * self.Tz[0])) * self.dt 
         self.Hx = np.concatenate(([Hx_new],self.Hx[:-1]))
         return self.Hx
+    ### end THistory ###
+    ####################
 
 
 
