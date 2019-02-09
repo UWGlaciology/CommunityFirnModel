@@ -973,9 +973,9 @@ class FirnPhysics:
             sat = np.zeros_like(self.dz) #VV use 0 sat if our porespace is 0
             sat[np.where(porespace>0)[0]] = self.LWC[np.where(porespace>0)[0]] / porespace[np.where(porespace>0)[0]] #VV 
 
-            if self.c['GrGrowPhysics'] == 'Katsushima':
+            if self.GrGrowPhysics == 'Katsushima':
                 dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
-            elif self.c['GrGrowPhysics'] == 'Arthern':
+            elif self.GrGrowPhysics == 'Arthern':
                 dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
 
         else: # no MELT

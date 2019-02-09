@@ -33,10 +33,11 @@ def solver(a_U, a_D, a_P, b):
 
     return phi_t
 
-def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, airdict=None):
+####!!!!
+
+def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, airdict=None):
     '''
     transient 1-d diffusion finite volume method
-
     :param z_edges:
     :param Z_P:
     :param nt:
@@ -46,19 +47,12 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     :param nz_P:
     :param nz_fv:
     :param phi_s:
-
     :return phi_t:
     '''
 
     phi_t = phi_0
 
     for i_time in range(nt):
-        
-        # print(len(Z_P))
-        # dZ = np.concatenate(([1], np.diff(z_edges), [1]))
-
-        # dzev = np.diff(z_edges)
-        # dZ = np.concatenate(([dzev[0]], dzev, [dzev[-1]]))
 
         dZ = np.diff(z_edges) #width of nodes
 
@@ -68,21 +62,12 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         deltaZ_d = np.diff(Z_P)
         deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
 
-        # f_u = np.append(0, (1 - (Z_P[1:] - z_edges) / deltaZ_u[1:]))
-        # f_d = np.append(1 - (z_edges - Z_P[0: -1]) / deltaZ_d[0: -1], 0)
-
         f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
         f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
-        # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
-        # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
-
-        # Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U)
-        # Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
-
         ##################
         if airdict!=None: # this part for gas diffusion, which takes a bit more physics
-            Gamma_Po    = Gamma_P * airdict['por_op']
+            Gamma_Po    = Gamma_P * airdict['por_op'] #This is the diffusivity times the open porosity.
 
             Gamma_U     = np.append(Gamma_Po[0], Gamma_Po[0: -1] )
             Gamma_D     = np.append(Gamma_Po[1:], Gamma_Po[-1])
@@ -111,7 +96,6 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             else:
                 print('Error at in solver.py at 119')
                 sys.exit()
-
             
             S_C         = S_C_0 * phi_t
             b_0         = S_C * dZ 
@@ -137,22 +121,6 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             op_ind              = np.where(z_edges<=airdict['z_co'])[0] #indices of all nodes wiht open porosity (shallower than CO)
             op_ind2             = np.where(z_edges<=airdict['z_co']+20)[0] # a bit deeper
             co_ind              = op_ind[-1]
-
-            # w_firn_edges        = np.interp(z_edges,Z_P,airdict['w_firn']) # units m/s
-            # por_op_edges = np.interp(z_edges,Z_P,airdict['por_op']) # units m/s
-            # print('w_firn',w_firn_edges)
-            # print('w_firn_op',w_firn_edges*por_op_edges)
-            # print('D_u',D_u[co_ind-5:co_ind+5])
-            # print('F_u',F_u[co_ind-5:co_ind+5])
-            # print('P_u',P_u[co_ind-5:co_ind+5])
-            # # try:
-            # indLID = np.where(D_u<airdict['w_firn']*airdict['por_op'])[0]
-            # try:
-            #     print('zedges',z_edges[indLID[0]-1:])
-            #     print('dulid',D_u[indLID[0]-1:])
-            #     print('w_edges',(airdict['w_firn']*airdict['por_op'])[indLID[0]-1:])
-            # except:
-            #     pass
             
             a_U = D_u * A( P_u ) + F_upwind(  F_u )
             a_D = D_d * A( P_d ) + F_upwind( -F_d )
@@ -161,7 +129,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         #######################################
 
-        else: #just for heat, isotope diffusion
+        else: #just for heat, enthalpy, isotope diffusion
             Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
             Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
 
@@ -174,13 +142,14 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             D_u = (Gamma_u / deltaZ_u)
             D_d = (Gamma_d / deltaZ_d)
 
-            b_0 = S_C * dZ
+            b_0 = S_C * dZ # first term of Patankar eq. 4.41d
 
-            a_U = D_u 
-            a_D = D_d 
+            a_U = D_u # Patankar eq. 4.41a,b
+            a_D = D_d # Patankar eq. 4.41a,b
 
             # a_P_0 = dZ / dt
-            a_P_0 = tot_rho * dZ / dt
+            # a_P_0 = tot_rho * dZ / dt #  (old)
+            a_P_0 = c_vol * dZ / dt # (new) Patankar eq. 4.41c
             # a_P_0 = RHO_I * c_firn * dZ / dt
             
 
@@ -219,7 +188,130 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         return phi_t
 
 
-def transient_solve_EN_new(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, enthalpy_l=None):
+
+####!!!
+
+
+def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH):
+    '''
+    transient 1-d diffusion finite volume method
+
+    :param z_edges:
+    :param Z_P:
+    :param nt:
+    :param dt:
+    :param Gamma_P:
+    :param phi_0:
+    :param nz_P:
+    :param nz_fv:
+    :param phi_s:
+
+    :return phi_t:
+    '''
+
+    phi_t = phi_0.copy()
+    g_liq_old = g_liq.copy()
+    # print('phi_0',phi_0[0:6])
+    # print('g_liq_old',g_liq_old[0:6]) 
+    # g_ice_old = g_ice.copy() 
+
+    for i_time in range(nt):
+        phi_t = phi_0.copy()
+        dZ = np.diff(z_edges) #width of nodes
+
+        deltaZ_u = np.diff(Z_P)
+        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
+        
+        deltaZ_d = np.diff(Z_P)
+        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
+
+        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
+        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+
+        Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
+        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+
+        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
+        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
+
+        # beta_P = np.zeros_like(Gamma_P)
+        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e9
+        # S_P     = beta_P * deltaH * g_liq_old
+        # S_C = 1 * S_P * 273.15 + deltaH * g_liq_old - deltaH * g_liq 
+
+        beta_P = np.zeros_like(Gamma_P)
+        beta_P[(g_liq>=0) & (g_liq<=1)]= 1.0e12
+        S_P     = -1 * beta_P * deltaH * g_liq_old
+        S_C = 1 * S_P * 273.15 + deltaH * g_liq_old - deltaH * g_liq 
+
+        # S_C = 1 * deltaH * (g_liq_old - g_liq)
+        # print('SC', S_C[0:6])
+        # input()
+        # S_P = 0
+
+        D_u = (Gamma_u / deltaZ_u)
+        D_d = (Gamma_d / deltaZ_d)
+
+        b_0 = S_C * dZ * dt
+
+        a_U = D_u * dt
+        a_D = D_d * dt
+
+        # a_P_0 = dZ / dt
+        # a_P_0 = tot_rho * dZ / dt #  (old)
+        a_P_0 = c_vol * dZ #/ dt # (new) Patankar eq. 4.41c
+        # a_P_0 = RHO_I * c_firn * dZ / dt
+            
+        a_P     = a_U + a_D + a_P_0 - S_P*dZ*dt
+
+        bc_u_0  = phi_s # need to pay attention for gas
+        bc_type = 1
+        bc_u    = np.concatenate(([ bc_u_0], [bc_type]))
+
+        bc_d_0  = 0
+        bc_type = 2
+        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type ]))
+
+        b       = b_0 + a_P_0 * phi_t
+
+        #Upper boundary
+        a_P[0]  = 1
+        a_U[0]  = 0
+        a_D[0]  = 0
+        b[0]    = bc_u[0]
+
+        #Down boundary
+        a_P[-1] = 1
+        a_D[-1] = 0
+        a_U[-1] = 1
+        b[-1]   = deltaZ_u[-1] * bc_d[0]
+
+        #####
+        phi_t = solver(a_U, a_D, a_P, b)
+        #####
+
+        # a_P = a_U + a_D + a_P_0
+
+        g_liq_old = g_liq.copy()
+
+        # F1 = phi_t.copy()
+        # F1[g_liq>0] = T_MELT
+        # delta_gl = a_P * ((phi_t-F1)/(dZ*deltaH))
+        # print('delta_gl',delta_gl[0:6])
+        # lambd = 0.6
+        g_liq = g_liq + a_P * ((phi_t - 273.15) / (dZ * deltaH))
+        # g_liq = g_liq + lambd*delta_gl
+
+        g_liq[g_liq>1] = 1
+        g_liq[g_liq<0] = 0
+
+        # print('phi_t', phi_t[0:6])
+        # print('g_liq',g_liq[0:6])
+    # input()
+    return phi_t, g_liq
+
+
+def transient_solve_EN_new_B(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, enthalpy_l=None):
     '''
     transient 1-d diffusion finite volume method
 
@@ -237,19 +329,13 @@ def transient_solve_EN_new(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
     '''
 
     phi_t = phi_0
-    try:
-        gl_old = gl
-    except Exception:
-        pass
+
 
     for i_time in range(nt):
+
+        g_liq_old = g_liq 
+        g_ice_old = g_ice 
         
-        # print(len(Z_P))
-        # dZ = np.concatenate(([1], np.diff(z_edges), [1]))
-
-        # dzev = np.diff(z_edges)
-        # dZ = np.concatenate(([dzev[0]], dzev, [dzev[-1]]))
-
         dZ = np.diff(z_edges) #width of nodes
 
         deltaZ_u = np.diff(Z_P)
@@ -258,20 +344,8 @@ def transient_solve_EN_new(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
         deltaZ_d = np.diff(Z_P)
         deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
 
-        # f_u = np.append(0, (1 - (Z_P[1:] - z_edges) / deltaZ_u[1:]))
-        # f_d = np.append(1 - (z_edges - Z_P[0: -1]) / deltaZ_d[0: -1], 0)
-
         f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
         f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
-
-        # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
-        # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
-
-        # Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U)
-        # Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
-
-        #######################################
-
 
         Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
         Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
@@ -279,8 +353,9 @@ def transient_solve_EN_new(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
         Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
         Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
-        S_C = deltaH * (gl_old - gl)
-        # S_C = S_C * np.ones(nz_P)
+        beta_P = -1.0e9 * np.ones_like(Gamma_P)
+        S_P     = beta_P * deltaH * g_liq_old
+        S_C = -1 * S_P * 273.15 + deltaH * g_liq_old - deltaH * g_liq 
 
         D_u = (Gamma_u / deltaZ_u)
         D_d = (Gamma_d / deltaZ_d)
@@ -294,8 +369,6 @@ def transient_solve_EN_new(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
         a_P_0 = tot_rho * dZ / dt
         # a_P_0 = RHO_I * c_firn * dZ / dt
             
-
-        S_P     = 0.0
         a_P     = a_U + a_D + a_P_0 - S_P*dZ
 
         bc_u_0  = phi_s # need to pay attention for gas
@@ -323,11 +396,7 @@ def transient_solve_EN_new(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
         phi_t = solver(a_U, a_D, a_P, b)
         a_P = a_U + a_D + a_P_0
 
-
-    if airdict!=None:
-        return phi_t, w_p
-    else:
-        return phi_t
+    return phi_t
 
 #### old code below (first try at enthalpy)
 def transient_solve_EN_old(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, airdict=None):
