@@ -335,6 +335,17 @@ class FirnDensityNoSpin:
             pass
         #####################
 
+
+        ### Writing also the outputs required for retmip #VV ###
+        self.runoff = np.array([0.]) #VV total runoff which is a single value for the whole firn column
+        self.refrozen = np.zeros_like(self.dz) #VV refreezing in every layer, array of size of our grid
+        self.totalrunoff = np.array([0.]) # Might be useful to have a total final value without having to write every time step
+        self.totalrefrozen = np.zeros_like(self.dz) # Might be useful to have a total final value without having to write every time step
+        self.totwatersublim = 0. #VV Total amount of liquid water that get sublimated
+        self.lwcerror = 0. #VV
+        self.totallwcerror =0. #VV
+
+
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             initr2                  = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
@@ -467,6 +478,7 @@ class FirnDensityNoSpin:
         
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
+            # print('########################')
             # print(mtime)
             self.D_surf[iii] = iii
             ### dictionary of the parameters that get passed to physics
@@ -540,7 +552,12 @@ class FirnDensityNoSpin:
                 self.Hx     = FirnPhysics(PhysParams).THistory()
 
             if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt            
+                ### Max's bucket scheme:
                 self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation_bucket(self,iii)
+
+                ### Vincent's bucket scheme:
+                # self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror = bucketVV(self,iii)
+
             else: # no melt, dz after compaction
                 self.dzn    = self.dz[0:self.compboxes]
 
@@ -550,8 +567,10 @@ class FirnDensityNoSpin:
 
             elif (self.c['heatDiff'] and self.MELT): # there is melt, so use enthalpy method
                 self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                
+                # self.Tz, self.T10m  = heatDiff(self,iii) #Alternatively, use the heat diffusion scheme.
 
-            else: # no heat diffusion, so just set the temperature of the new box on top.
+            else: # user says no heat diffusion, so just set the temperature of the new box on top.
                 self.Tz     = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
                 pass # box gets added below
 
@@ -637,13 +656,6 @@ class FirnDensityNoSpin:
                 self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
 
             self.w_firn = (znew - self.z_old) / self.dt # advection rate of the firn, m/s
-            # if ((iii>500) & (iii<510)):
-            #   print(iii)
-            #   bb=((self.z>60) & (self.z<80))
-            #   print('w_firn',w_firn[bb])
-            # i_zrate = np.where(self.z>=60)[0][0]
-            # zrate = self.z[i_zrate+1]-self.z[i_zrate]
-            # print(zrate)
 
             ### find the compaction rate
             ### this should all be old (11/28/17)
