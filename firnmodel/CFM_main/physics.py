@@ -44,13 +44,18 @@ class FirnPhysics:
 
         drho_dt = np.zeros(self.gridLen)
 
+        if A_instant<0:
+            A_instant = 0.0
+
+
         if self.bdot_type == 'instant':
+            if A_instant<0:
+                A_instant = 0.0
             if (self.FirnAir and self.AirRunType=='steady'):
                 Tcon = self.steady_T * np.ones_like(self.Tz)
                 drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * Tcon[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
                 drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * Tcon[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
             else:
-
                 drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
                 drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
 
@@ -91,19 +96,21 @@ class FirnPhysics:
         sigma550 = f550(RHO_1)
         rhoDiff = (RHO_I_MGM - self.rho / 1000)
 
+        z1mask = (self.rho < RHO_1)
+        z2mask = ((self.rho >= RHO_1) & (self.rho < RHO_I))
+        zImask = (self.rho >= RHO_I)
 
+        kSig = (k2 * np.exp(-1 * Q2 / (R * self.Tz[z2mask])))**2 / S_PER_YEAR
+        sigmaDiff = (self.sigma[z2mask] - sigma550)
 
-        k = np.power(k2 * np.exp(-Q2 / (R * self.Tz[(self.rho >= RHO_1) & (self.rho < RHO_I)])), 2) / S_PER_YEAR
-        sigmaDiff = (self.sigma[(self.rho >= RHO_1) & (self.rho < RHO_I)] - sigma550)
-        # print('sigmaDiff',len(sigmaDiff))
         if self.bdot_type == 'instant':
-            drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+            drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
-            drho_dt[self.rho < RHO_1] = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
+            drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * (A_mean[z1mask])**aHL * 1000 / S_PER_YEAR
 
-        drho_dt[(self.rho >= RHO_1) & (self.rho < RHO_I)]  = k * (sigmaDiff * rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
+        drho_dt[z2mask]  = kSig * (sigmaDiff * rhoDiff[z2mask]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
 
-        drho_dt[(self.rho >= RHO_1) & (self.rho >= RHO_I)] = 0
+        drho_dt[zImask] = 0
 
         # drho_dt[self.rho >= RHO_1]  = k * (sigmaDiff * rhoDiff[self.rho >= RHO_1]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[self.rho >= RHO_1])))
         

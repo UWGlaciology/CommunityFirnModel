@@ -385,6 +385,7 @@ def bucketVV(self, iii):
     
     self.refrozen = np.zeros_like(self.dz)
     runoff = 0
+    
     ### First refreeze if there is any lwc already in the column ###
     lwc_before_freeze = 1*self.LWC
     lwcpres = np.where(self.LWC > 0)[0] # layers with existing lwc
@@ -392,7 +393,7 @@ def bucketVV(self, iii):
     freezinglayers = np.intersect1d(lwcpres,coldlay)
     latheat = np.zeros_like(self.dz)
     freeze = np.zeros_like(self.dz)
-#    print('run time before first for loop =' , time.time()-tic2 , 'seconds')
+
     for kk in freezinglayers:
         #if self.Tz[kk] < T_MELT: # we can proceed to the refreezing of the lwc if the layer is below melting point
         freeze[kk] = min(refreeze_vol_pot[kk],porespace_refr_vol[kk]) # m water equivalent
