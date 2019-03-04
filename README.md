@@ -2,7 +2,9 @@
 
 Welcome to the repository for the **Community Firn Model (CFM)**. 
 
-The CFM is a comprehensive firn-model framework. It is designed to be modular, which allows the user to choose which physical processes in firn she or he would like to model. Its base function is to model firn densification and heat transfer in firn. 
+The CFM is a comprehensive firn-model framework. It is designed to be modular, which allows the user to choose which physical processes in firn she or he would like to model. Its base function is to model firn densification and heat transfer in firn.
+
+The CFM is meant to be useful for a variety of applications, including ice core science and estimations of ice-sheet surface-elevation change.
 
 A few novel aspects of the CFM include:
 
@@ -45,3 +47,11 @@ MIT © C. Max Stevens
 The CFM is open-source software, but we ask that you please cite your use:
 
 Stevens, C., Waddington E.D., Conway, H., & Koutnik, M. (2018). Investigations of physical processes in polar firn through modeling and field measurements, ProQuest Dissertations and Theses.
+
+## Contributors
+C. Max Stevens
+Ed Waddington
+Brita Horlings
+Annika Horlings
+Vincent Verjans
+Jessica Lundin
