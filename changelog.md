@@ -9,11 +9,25 @@ TL;DR: Write down the changes that you made to the the model in this document an
 ## Work in progress and known issues
 
 - *Issues* 
-	- None known at this time.
+	- Morris physics do not work properly.
+	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write.
 
 - *Work in progress*
 	- V. Verjans is working on a percolation module that solves Richard's equation and includes a dual-domain approach to handle preferential flow
 	- Documentation for the CFM
+	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
+	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.0.3] - 2019-??-??
+### Changed
+- *physics.py* HLSigfus was changed slightly so that boolean masks are created for the different zones, which makes the code easier to read. HLdynamic (instant version) was changed so that in the case of negative accumulation, A_instant is set to zero.
+- *firn_density_nospin.py* Changed dH calculation to set to be zero at the first write time step.
+- *firn_density_nospin.py* Added **comp_firn** as an additional variable written with DIP. It is the total firn compaction during the previous time step, not including the ice dynamics or new accumulation (i.e. the summed thickness change of all of the layers).
+- *firn_density_nospin.py* Variable **crate_out** has been changed to **comp_out** to reflect that it is just compaction, not the rate.
+- *writer.py* Output name has changed from 'compaction_rate' to 'compaction'
+
+### Added
+- *physics.py, firn_density_nospin.py, writer.py* Added code to calculate the firn viscosity predicted by each model and optionally write that to file (Brita Horlings contribution).
 
 ## [1.0.2] - 2019-02-08
 ### Fixed

@@ -20,8 +20,8 @@ class FirnPhysics:
         self.RD = {} # RD = Return Dictionary, set up this way so that more things can be returned easily if needed.
 
     def HL_dynamic(self):
+        #HL viscosity doesn't work
         '''
-
         Accumulation units are m W.E. per year
 
         :param steps: # of steps per year
@@ -29,8 +29,10 @@ class FirnPhysics:
         :param bdotSec:
         :param Tz:
         :param rho:
+        :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
         Q1  = 10160.0
         Q2  = 21400.0
@@ -43,10 +45,10 @@ class FirnPhysics:
         A_mean = self.bdot_mean * RHO_I_MGM
 
         drho_dt = np.zeros(self.gridLen)
-
+        viscosity = np.zeros(self.gridLen)
+        
         if A_instant<0:
             A_instant = 0.0
-
 
         if self.bdot_type == 'instant':
             if A_instant<0:
@@ -58,19 +60,25 @@ class FirnPhysics:
             else:
                 drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
                 drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+                
+                viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+                viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]
 
         elif self.bdot_type == 'mean':
             drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
             drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
 
-        self.RD['drho_dt'] = drho_dt
+            viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+            viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]
+
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end HL_dynamic ###
     ######################
 
     def HL_Sigfus(self):
         '''
-
         Accumulation units are m W.E. per year (zone 1); uses stress for zone 2
 
         :param steps:
@@ -81,6 +89,7 @@ class FirnPhysics:
         :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
         Q1  = 10160.0
         Q2  = 21400.0
@@ -88,20 +97,21 @@ class FirnPhysics:
         k2  = 575.0
         aHL = 1.0
 
-        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
-        A_mean = self.bdot_mean * RHO_I_MGM
+        A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean      = self.bdot_mean * RHO_I_MGM
 
-        drho_dt = np.zeros(self.gridLen)
-        f550 = interpolate.interp1d(self.rho, self.sigma)
-        sigma550 = f550(RHO_1)
-        rhoDiff = (RHO_I_MGM - self.rho / 1000)
+        drho_dt     = np.zeros(self.gridLen)
+        viscosity   = np.zeros(self.gridLen)
+        f550        = interpolate.interp1d(self.rho, self.sigma)
+        sigma550    = f550(RHO_1)
+        rhoDiff     = (RHO_I_MGM - self.rho / 1000)
 
         z1mask = (self.rho < RHO_1)
         z2mask = ((self.rho >= RHO_1) & (self.rho < RHO_I))
         zImask = (self.rho >= RHO_I)
 
-        kSig = (k2 * np.exp(-1 * Q2 / (R * self.Tz[z2mask])))**2 / S_PER_YEAR
-        sigmaDiff = (self.sigma[z2mask] - sigma550)
+        kSig        = (k2 * np.exp(-1 * Q2 / (R * self.Tz[z2mask])))**2 / S_PER_YEAR
+        sigmaDiff   = (self.sigma[z2mask] - sigma550)
 
         if self.bdot_type == 'instant':
             drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
@@ -109,15 +119,13 @@ class FirnPhysics:
             drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * (A_mean[z1mask])**aHL * 1000 / S_PER_YEAR
 
         drho_dt[z2mask]  = kSig * (sigmaDiff * rhoDiff[z2mask]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
-
-        drho_dt[zImask] = 0
-
-        # drho_dt[self.rho >= RHO_1]  = k * (sigmaDiff * rhoDiff[self.rho >= RHO_1]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[self.rho >= RHO_1])))
+        drho_dt[zImask]  = 0
         
-        # drho_dt[(self.rho >= RHO_1) and (self.rho >= RHO_I)] = 0
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]
 
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end HL_Sigfus ###
     #####################
@@ -136,14 +144,15 @@ class FirnPhysics:
         :param bdotSec:
         :param T10m:
         :param rho:
+        :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
 
-        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
-        A_mean = self.bdot_mean * RHO_I_MGM
-
-        # dr_dt = np.zeros(self.gridLen)
+        A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean      = self.bdot_mean * RHO_I_MGM
+        viscosity   = np.zeros(self.gridLen)
         
         if self.bdot_type == 'instant':
             if self.iii==0:
@@ -153,9 +162,12 @@ class FirnPhysics:
             dr_dt = (RHO_I - self.rho) * A_mean * (139.21 - 0.542 * self.T10m) * 8.36 * (K_TO_C - self.Tz) ** -2.061   
 
         drho_dt = dr_dt / S_PER_YEAR
-
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        
+        viscosity[self.rho < RHO_1]     = (self.rho[self.rho < RHO_1] * self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]    = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
+    
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Li_2004 ###
     ###################
@@ -176,18 +188,19 @@ class FirnPhysics:
         :param Tz:
         :param T10m:
         :param rho:
+        :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
 
-        A_instant     = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
-        A_mean = self.bdot_mean * RHO_I_MGM
+        A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean      = self.bdot_mean * RHO_I_MGM
 
-
-        # TmC   = self.T10m - K_TO_C
         TmC   = self.T_mean - K_TO_C
 
-        dr_dt = np.zeros(self.gridLen)
+        dr_dt       = np.zeros(self.gridLen)
+        viscosity   = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             if self.iii==0:
@@ -215,8 +228,12 @@ class FirnPhysics:
             dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
+          
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Li_2011 ###
     ###################
@@ -234,8 +251,10 @@ class FirnPhysics:
         :param Tz:
         :param T10m:
         :param rho:
+        :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
 
         ar1 = 0.07
@@ -243,10 +262,11 @@ class FirnPhysics:
         Ec  = 60.0e3
         Eg  = 42.4e3
 
-        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I_MGM * 1000
-        dr_dt = np.zeros(self.gridLen)
+        A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+        A_mean_1    = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
+        A_mean_2    = self.bdot_mean[self.rho >= RHO_1] * RHO_I_MGM * 1000
+        dr_dt       = np.zeros(self.gridLen)
+        viscosity   = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             if self.iii==0:
@@ -258,8 +278,12 @@ class FirnPhysics:
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
         drho_dt = dr_dt / S_PER_YEAR
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]  
+          
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Arthern_2010S ###
     #########################
@@ -278,29 +302,28 @@ class FirnPhysics:
         :param physGrain:
 
         :return drho_dt:
-        :return viscosity_z1:
-        :return viscosity_z2:
+        :return viscosity:
         '''
 
         kc1 = 9.2e-9
         kc2 = 3.7e-9
-        Ec  = 60.0e3
-        
+        Ec  = 60.0e3       
 
         if not self.physGrain:
            print("Grain growth should be on for Arthern Transient")
            return
 
-
-        drho_dt = np.zeros(self.gridLen)
-        self.viscosity = np.zeros(self.gridLen)
+        drho_dt     = np.zeros(self.gridLen)
+        viscosity   = np.zeros(self.gridLen)
     
-        drho_dt[self.rho < RHO_1]  = kc1 * (RHO_I - self.rho[self.rho < RHO_1]) * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] / (self.r2[self.rho < RHO_1])
-        # self.viscosity[self.rho < RHO_1] = ((1 / (2*kc1)) * (self.rho[self.rho < RHO_1] / (RHO_I - self.rho[self.rho < RHO_1])) * np.exp (Ec / (R * self.Tz[self.rho < RHO_1])) * (self.r2[self.rho < RHO_1])) / S_PER_YEAR
-        
+        drho_dt[self.rho < RHO_1]  = kc1 * (RHO_I - self.rho[self.rho < RHO_1]) * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] / (self.r2[self.rho < RHO_1]) 
         drho_dt[self.rho >= RHO_1] = kc2 * (RHO_I - self.rho[self.rho >= RHO_1]) * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])) * self.sigma[self.rho >= RHO_1] / (self.r2[self.rho >= RHO_1])
-        # self.viscosity[self.rho >= RHO_1] = ((1 / (2*kc2)) * (self.rho[self.rho >= RHO_1] / (RHO_I - self.rho[self.rho >= RHO_1])) * np.exp (Ec / (R * self.Tz[self.rho >= RHO_1])) * (self.r2[self.rho >= RHO_1])) / S_PER_YEAR
-        self.RD['drho_dt'] = drho_dt
+       
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] )/ (2 )/drho_dt[self.rho >= RHO_1]  
+          
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Arthern_2010T ###
     #########################
@@ -319,12 +342,15 @@ class FirnPhysics:
         :param Ts:
         :param rho:
         :param bdot_type:
+        :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
 
-        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
-        A_mean = self.bdot_mean * RHO_I_MGM
+        A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
+        A_mean      = self.bdot_mean * RHO_I_MGM
+        viscosity   = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             if self.iii==0:
@@ -333,11 +359,12 @@ class FirnPhysics:
         elif self.bdot_type == 'mean':
             dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
 
-        
+        drho_dt = dr_dt / S_PER_YEAR    #To get into (kg m^3)/seconds
+      
+        viscosity = ((self.rho* self.sigma )/2)* (1/(drho_dt))  #In Pascal seconds
 
-        drho_dt = dr_dt / S_PER_YEAR
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Helsen_2008 ###
     #######################
@@ -354,8 +381,10 @@ class FirnPhysics:
         :param Tz:
         :param T10m:
         :param rho:
+        :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
         ar1 = 0.07
         ar2 = 0.03
@@ -367,10 +396,11 @@ class FirnPhysics:
         F1=1.25 # Simonsen's recommended (email correspondence) (See email from 4/7/15)
 
 
-        A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
-        A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
-        A_mean_2 = self.bdot_mean[self.rho >= RHO_1]* RHO_I_MGM * 1000
-        dr_dt = np.zeros(self.gridLen)
+        A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+        A_mean_1    = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
+        A_mean_2    = self.bdot_mean[self.rho >= RHO_1]* RHO_I_MGM * 1000
+        dr_dt       = np.zeros(self.gridLen)
+        viscosity   = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             if self.iii==0:
@@ -384,8 +414,12 @@ class FirnPhysics:
             dr_dt[self.rho >= RHO_1] = F1 * gamma * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
         drho_dt = dr_dt / S_PER_YEAR
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        
+        viscosity[self.rho < RHO_1]   = ((self.rho[self.rho < RHO_1]*(self.sigma[self.rho < RHO_1]))/2)/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = ((self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/2)/drho_dt[self.rho >= RHO_1] 
+        
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Simonsen_2013 ###
     #########################
@@ -403,15 +437,18 @@ class FirnPhysics:
         :param Tz:
         :param T10m:
         :param rho:
+        :param sigma:
 
         :return drho_dt :
+        :return viscosity:
         '''
         ar1 = 0.07
         ar2 = 0.03
-        Ec = 60.0e3
-        Eg = 42.4e3
+        Ec  = 60.0e3
+        Eg  = 42.4e3
 
-        dr_dt = np.zeros(self.gridLen)
+        dr_dt     = np.zeros(self.gridLen)
+        viscosity = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             if self.iii==0:
@@ -433,12 +470,13 @@ class FirnPhysics:
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
-            # dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.Tz[self.rho < RHO_1]))
-            # dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.Tz[self.rho >= RHO_1]))
         drho_dt = dr_dt / S_PER_YEAR
+        
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2) /drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/ (2)/drho_dt[self.rho >= RHO_1] 
 
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Ligtenberg_2011 ###
     ###########################
@@ -456,6 +494,7 @@ class FirnPhysics:
         :param sigma:
 
         :return drho_dt:
+        :return viscosity:
         '''
         Q1              = 10160.0
         k1              = 11.0
@@ -470,10 +509,11 @@ class FirnPhysics:
         closeOff        = 800.0
 
         self.rho[self.rho > RHO_I] = RHO_I # The Barnola model will go a fraction over the ice density (oself.RDer 10^-3), so this stops that.
-        drho_dt = np.zeros(self.gridLen)
-        D = self.rho / RHO_I
-        nBa = n * np.ones(self.gridLen)
-        A0 = A0b * np.ones(self.gridLen) / 1.e18 #this is for the n=3 region.
+        drho_dt     = np.zeros(self.gridLen)
+        viscosity   = np.zeros(self.gridLen)
+        D           = self.rho / RHO_I
+        nBa         = n * np.ones(self.gridLen)
+        A0          = A0b * np.ones(self.gridLen) / 1.e18 #this is for the n=3 region.
 
         sigmaEff = self.sigma
 
@@ -495,8 +535,11 @@ class FirnPhysics:
         fs = (3. / 16.) * (1 - self.rho[self.rho > RHO_2] / RHO_I) / (1 - (1 - self.rho[self.rho > RHO_2] / RHO_I) ** (1. / 3.)) ** 3.
         drho_dt[self.rho > RHO_2] = self.rho[self.rho > RHO_2] * A0[self.rho > RHO_2] * np.exp(-QBarnola / (R * self.Tz[self.rho > RHO_2])) * fs * (sigmaEff[self.rho > RHO_2] ** nBa[self.rho > RHO_2])
         
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/ (2)/drho_dt[self.rho >= RHO_1] 
+    
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Barnola_1991 ###
     ########################
@@ -524,6 +567,7 @@ class FirnPhysics:
         :param Hx:
 
         :return drho_dt:
+        :return viscosity:
         '''
         if self.iii ==0:
             print('CAUTION: MORRIS PHYSICS ARE STILL UNDER CODE DEVELOPMENT!')
@@ -532,9 +576,8 @@ class FirnPhysics:
         QMorris = 110.e3
         kMorris = 11.0
 
-        drho_dt = np.zeros(self.gridLen)
-        # self.viscosity = np.zeros(self.gridLen)
-
+        drho_dt   = np.zeros(self.gridLen)
+        viscosity = np.zeros(self.gridLen)
         
         drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * -1 * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1]
         
@@ -549,7 +592,11 @@ class FirnPhysics:
         elif self.bdot_type == 'mean':
             drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_mean_2 ** bHL * 1000 / S_PER_YEAR
         
-        self.RD['drho_dt'] = drho_dt
+        viscosity[self.rho < RHO_1]   = -(self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1]) / (2)/drho_dt[self.rho >= RHO_1] 
+        
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Morris_HL_2014 ###
     ##########################
@@ -568,21 +615,18 @@ class FirnPhysics:
         :param Tz:
         :param T10m:
         :param rho:
+        :param sigma:
 
         :return drho_dt :
+        :return viscosity:
         '''
         ar1 = 0.07
         ar2 = 0.03
-        Ec = 60.0e3
-        Eg = 42.4e3
+        Ec  = 60.0e3
+        Eg  = 42.4e3
 
-        # yrmn = 20
-        # if self.iii<=yrmn*12:
-        #     A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
-        # else:
-        #     A_instant = np.mean(self.bdotSec[self.iii-12*yrmn:self.iii+1]) * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
-
-        dr_dt = np.zeros(self.gridLen)
+        dr_dt     = np.zeros(self.gridLen)
+        viscosity = np.zeros(self.gridLen)
 
         if self.bdot_type == 'instant':
             A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
@@ -599,13 +643,8 @@ class FirnPhysics:
             A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
             A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
 
-            # print "Amean", A_mean_1[0:10]
-
             M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
             M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
-            # print 'M_0', M_0
-            # M_0 = np.max((0.25,M_0))
-            # M_1 = np.max((0.25,M_1))
 
             M_0[M_0<0.25]=0.25
             M_1[M_1<0.25]=0.25
@@ -614,31 +653,27 @@ class FirnPhysics:
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
         elif self.bdot_type == 'stress':
-            # A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
-            # A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+
             A_mean_1 = self.mass[self.rho < RHO_1]*10
             A_mean_2 = self.mass[self.rho >= RHO_1]*10
-            # print "Amean", A_mean_1[0:10]
 
             M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
-            # print('Amean',A_mean_1[0:10])
-            # print('mass',self.mass[0:10])
-            # input()
             M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
-            # print 'M_0', M_0
-            # M_0 = np.max((0.25,M_0))
-            # M_1 = np.max((0.25,M_1))
 
-            M_0[M_0<0.25]=0.25
-            M_1[M_1<0.25]=0.25
+            M_0[M_0<0.25] = 0.25
+            M_1[M_1<0.25] = 0.25
 
             dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T10m))
             dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T10m))
 
         drho_dt = dr_dt / S_PER_YEAR
         drho_dt[self.rho>=RHO_I] = 0
-        # self.viscosity = np.ones(self.gridLen)
-        self.RD['drho_dt'] = drho_dt
+        
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] )/ (2 )/drho_dt[self.rho >= RHO_1] 
+        
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end KuipersMunneke_2015 ###
     ###############################
@@ -653,10 +688,9 @@ class FirnPhysics:
 
         global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
 
-        atmosP = 101325.0 # Atmospheric Pressure
+        atmosP      = 101325.0 # Atmospheric Pressure
         dDdt        = np.zeros(self.gridLen) # Capital D is change in relative density
-
-        top2m           = np.nonzero(self.z <= 1.)
+        top2m       = np.nonzero(self.z <= 1.)
         
         self.rho[top2m] = self.rhos0 # top 2 meters of Goujon model are always set to surface density
         
@@ -681,7 +715,7 @@ class FirnPhysics:
         
         ind1        = np.argmax(D >= Dms) #first index where the density is greater than or equal to the transition
         Dm          = D[ind1] #actual transition relative density. Use this so that the transition falls at a node
-        Dmrho      = Dm * rhoi2 #density of first node, zone 2
+        Dmrho       = Dm * rhoi2 #density of first node, zone 2
 
         A           = 7.89e3 * np.exp(-Qgj/(R * self.Tz)) * 1.0e-3 # A given in MPa^-3 s^-1, Goujon uses bar as pressure unit. Eq. A5 in Goujon
         ccc         = 15.5 # no units given, equation A7, given as c
@@ -694,7 +728,7 @@ class FirnPhysics:
         a           = (np.pi/(3.0 * Zg * lp ** 2.0)) * (3.0 * (lpp ** 2.0 - 1.0) * Z0g + lpp ** 2.0 * ccc * (2.0 * lpp-3.0)+ccc) # A9
         sigmastar   = (4.0 * np.pi * sigma_bar)/(a * Zg * D) # A4
 
-        gamma_An=(5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
+        gamma_An    = (5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))); 
 
         if self.iii == 0 or ind1 != ind1_old:
             Gamma_Gou       = 0.5 / S_PER_YEAR
@@ -702,20 +736,20 @@ class FirnPhysics:
         else:
             Gamma_Gou       = Gamma_old_Gou
 
-        dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-        dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n         
-        gfrac       = 0.03
-        gam_div     = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
+        dDdt[0:ind1+1]  = Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        dDdt[ind1+1:]   = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n         
+        gfrac           = 0.03
+        gam_div         = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
         
         ########## iterate to increase gamma first if not in steady state    
-        if self.iii != 0 and dDdt[ind1] <= dDdt[ind1+1] and Gamma_Gou!=Gamma_old2_Gou: #and dDdt_old[ind1]!=dDdt_old[ind1]:
+        if self.iii != 0 and dDdt[ind1] <= dDdt[ind1+1] and Gamma_Gou!=Gamma_old2_Gou:
             cc = 1
             while dDdt[ind1] < dDdt[ind1 + 1]:
                 Gamma_Gou       = Gamma_Gou * (gam_div)
-                dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-                dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+                dDdt[0:ind1+1]  = Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+                dDdt[ind1+1:]   = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
 
-                cc = cc + 1
+                cc += 1
                 if cc>10000:
                     print('Goujon is not converging. exiting')
                     sys.exit()
@@ -723,20 +757,21 @@ class FirnPhysics:
         ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
         counter = 1
         while dDdt[ind1] >= dDdt[ind1 + 1]:
-            # print 'iterating', counter
-            Gamma_Gou       = Gamma_Gou / (1 + gfrac/2.0)
-            dDdt[0:ind1+1]=Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
-            dDdt[ind1+1:]=5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
-            counter = counter +1
+            
+            Gamma_Gou      = Gamma_Gou / (1 + gfrac/2.0)
+            dDdt[0:ind1+1] = Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+            dDdt[ind1+1:]  = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+            counter += 1
+
             if counter>10000:
                 print('Goujon is not converging. exiting')
                 sys.exit()
 
-        if self.iii<10:
-            print('dDdt',dDdt[ind1:ind1+2])
+        # if self.iii<10:
+            # print('dDdt',dDdt[ind1:ind1+2])
         Gamma_old2_Gou  = Gamma_old_Gou
-        Gamma_old_Gou  = Gamma_Gou
-        ind1_old = ind1
+        Gamma_old_Gou   = Gamma_Gou
+        ind1_old        = ind1
         #####################
         
         rhoC        = RHO_2 #should be Martinerie density
@@ -755,14 +790,16 @@ class FirnPhysics:
         ind2 = np.argmax(D >= Dm23)
         ind3 = ind2 + 10
 
-        dDdt[D>Dm23] = 2.*A[D>Dm23] * ( (D[D>Dm23]*(1-D[D>Dm23])) / (1-(1-D[D>Dm23])**(1/n))**n ) * (2*sigmaEff[D>Dm23]/n)**3.0
+        dDdt[D>Dm23]    = 2. * A[D>Dm23] * ( (D[D>Dm23] * (1 - D[D>Dm23])) / (1 - (1 - D[D>Dm23])**(1/n))**n ) * (2 * sigmaEff[D>Dm23]/n)**3.0
         Ad              = 1.2e3 * np.exp(-Qgj / (R * self.Tz)) * 1.0e-1
         T34             = 0.98
-        dDdt[D>T34] = 9/4*Ad[D>T34]*(1-D[D>T34])*sigmaEff[D>T34]
+        dDdt[D>T34]     = 9/4 * Ad[D>T34] * (1-D[D>T34]) * sigmaEff[D>T34]
 
         dDdt_old        = dDdt
         drho_dt         = dDdt*rhoi2
         drho_dt[top2m]  = 0.0
+        
+        viscosity = np.zeros(self.gridLen)
         
         self.RD['drho_dt'] = drho_dt
         return self.RD
@@ -791,12 +828,14 @@ class FirnPhysics:
 
         drho_dt = dr_dt #/ S_PER_YEAR
         
-        self.RD['drho_dt'] = drho_dt
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
+        
         return self.RD
-        # return drho_dt
     ### end Crocus ###
     ##################
 
+    ### Experimental: based on firn compaction data from FirnCover campaigns
     def Max2018b(self):
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1

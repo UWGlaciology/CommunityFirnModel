@@ -240,7 +240,10 @@ class FirnDensityNoSpin:
         except Exception:
             Tind                = np.nonzero(self.modeltime>=1980.0)[0][0] # old way
             print('You should add new variable "TWriteStart" to the json file!')
+            print('Arbitrarily starting writing at 1980.0. See line 243 in firn_density_nospin.py')
         self.TWrite         = self.modeltime[Tind::self.c['TWriteInt']]
+        if self.c['TWriteInt']!=1:
+            print('Time writing interval is not 1; dH output will not be accurate.')
         # self.TWrite       = np.append(self.modeltime[10],self.TWrite)
         # self.TWrite       = self.modeltime[-2::self.c['TWriteInt']]
         # self.TWrite_out   = self.TWrite
@@ -324,11 +327,15 @@ class FirnDensityNoSpin:
             self.Clim_out           = np.zeros((TWlen+1,3),dtype='float32')
             self.Clim_out[0,:]      = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
         if 'compaction' in self.output_list:
-            self.crate_out          = np.zeros((TWlen+1,self.compboxes+1),dtype='float32')
-            self.crate_out[0,:]     = np.append(self.modeltime[0], np.zeros(self.compboxes))
+            self.comp_out          = np.zeros((TWlen+1,self.compboxes+1),dtype='float32')
+            self.comp_out[0,:]     = np.append(self.modeltime[0], np.zeros(self.compboxes))
         if 'LWC' in self.output_list:
             self.LWC_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             self.LWC_out[0,:]       = np.append(self.modeltime[0], self.LWC)
+        if 'viscosity' in self.output_list:
+            self.viscosity          = np.zeros(self.gridLen)
+            self.viscosity_out      = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+            self.viscosity_out[0,:] = np.append(self.modeltime[0], self.viscosity)
         try:
             print('rho_out size (MB):', self.rho_out.nbytes/1.0e6) # print the size of the output for reference
         except:
@@ -397,10 +404,11 @@ class FirnDensityNoSpin:
         self.dHAll.append(0)
         dHOut   = 0 # surface elevation change since last time step
         dHOutC  = 0 # cumulative surface elevation change since start of model run
+        compOut = 0 # compaction of just the firn at each time step; no ice dynamics or accumulation
 
         if 'DIP' in self.output_list:
-            self.DIP_out        = np.zeros((TWlen+1,4),dtype='float32')   
-            self.DIP_out[0,:]   = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC])
+            self.DIP_out        = np.zeros((TWlen+1,5),dtype='float32')   
+            self.DIP_out[0,:]   = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC, compOut])
             self.DIPc_out       = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             self.DIPc_out[0,:]  = np.append(self.modeltime[0], intPhi_c)
         if 'BCO' in self.output_list:
@@ -544,7 +552,7 @@ class FirnDensityNoSpin:
             self.rho_old    = np.copy(self.rho)
             self.rho        = self.rho + self.dt * drho_dt
             self.dz_old     = np.copy(self.dz) # model volume thicknesses before the compaction
-            self.sdz_old    = np.sum(self.dz) # old total column thickness
+            self.sdz_old    = np.sum(self.dz) # old total column thickness (s for sum)
             self.z_old      = np.copy(self.z)
             self.dz         = self.mass / self.rho * self.dx # new dz after compaction
             
@@ -699,7 +707,7 @@ class FirnDensityNoSpin:
                 if 'bdot_mean' in self.output_list:   
                     self.bdot_out[self.WTracker,:]  = np.append(mtime_plus1, self.bdot_mean)
                 if 'compaction' in self.output_list:    
-                    self.crate_out[self.WTracker,:] = np.append(mtime_plus1, self.compaction)
+                    self.comp_out[self.WTracker,:] = np.append(mtime_plus1, self.compaction)
                 if 'LWC' in self.output_list:
                     self.LWC_out[self.WTracker,:]   = np.append(mtime_plus1, self.LWC)
                 if 'grainsize' in self.output_list:
@@ -709,16 +717,23 @@ class FirnDensityNoSpin:
                     self.Hx_out[self.WTracker,:]    = np.append(mtime_plus1, self.Hx)
                 if 'isotopes' in self.output_list:
                     self.iso_out[self.WTracker,:]   = np.append(mtime_plus1, self.del_z)
+                if 'viscosity' in self.output_list:
+                    self.viscosity = RD['viscosity']   
+                    self.viscosity_out[self.WTracker,:] = np.append(mtime_plus1, self.viscosity)
 
                 bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO()
                 intPhi, intPhi_c, z_co  = self.update_DIP()
-                dH, dHtot               = self.update_dH()
-
+                dH, dHtot, comp_firn    = self.update_dH()
+                if mtime==self.TWrite[0]:
+                    self.dHAll = 0 * self.dHAll
+                    dH = 0.0
+                    dHtot = 0.0
+                    comp_firn = 0.0
 
                 if 'BCO' in self.output_list:
                     self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])                    
                 if 'DIP' in self.output_list:
-                    self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
+                    self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot, comp_firn])
                     self.DIPc_out[self.WTracker,:]      = np.append(mtime_plus1, intPhi_c)
 
                 if self.c['FirnAir']:
@@ -834,10 +849,12 @@ class FirnDensityNoSpin:
         self.dHAll.append(self.dH)
         self.dHtot = np.sum(self.dHAll)
 
+        self.comp_firn = self.sdz_new - self.sdz_old #total compaction of just the firn during the previous time step
+
         # self.dHOut.append(self.dH)
         # self.dHOutC.append(self.dHtot)
 
-        return self.dH, self.dHtot
+        return self.dH, self.dHtot, self.comp_firn
 
     ###########################
 
