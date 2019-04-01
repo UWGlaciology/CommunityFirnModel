@@ -54,9 +54,9 @@ def heatDiff(self,iii):
     # K_firn = alpha_DAVIDCS_m2s * self.rho * c_firn
     # K_firn[self.z>=20.0]    = K_ice[self.z>=20.0] * (self.rho[self.z>=20.0]/RHO_I) ** (2 - 0.5 * (self.rho[self.z>=20.0]/RHO_I))    # Schwander 1997, eq. A11
 
-    # K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
+    K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
     # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
-    K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
+    # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
     # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
     # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6

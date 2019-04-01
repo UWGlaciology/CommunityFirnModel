@@ -128,6 +128,7 @@ class FirnDensitySpin:
 
         
         print('bdot0', self.bdot0)
+        print('temp0', self.temp0)
         ### could include others, e.g. surface density
         ############################
 
