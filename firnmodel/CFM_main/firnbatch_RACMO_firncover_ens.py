@@ -40,7 +40,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re=dtype+"results_ens_all3/"+site+"/r" + nn + "/" + mm #results folder
+re=dtype+"results_ens_all190402/"+site+"/r" + nn + "/" + mm #results folder
 tein=site+"_tskin_"+dtype+"_" + nn + "_s.csv"
 smbin=site+"_acc_"+dtype+"_" + nn + "_s.csv"
 meltin=site+"_melt_"+dtype+"_" + nn + "_s.csv"
@@ -82,7 +82,7 @@ elif mm=='Goujon2003':
 if site=='Summit':
 	data["rhos0"] = 300.0
 else:
-	data["rhos0"] = 350.0
+	data["rhos0"] = 330.0
 
 # if site=='CRAWFORD':
 # 	data['MELT']=False
