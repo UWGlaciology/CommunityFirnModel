@@ -84,7 +84,7 @@ data['MELT']=False
 if site=='Summit':
 	data["rhos0"] = 300.0
 else:
-	data["rhos0"] = 330.0
+	data["rhos0"] = 350.0
 
 # if site=='CRAWFORD':
 # 	data['MELT']=False
