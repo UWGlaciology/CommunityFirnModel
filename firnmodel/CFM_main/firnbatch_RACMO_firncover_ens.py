@@ -79,6 +79,8 @@ elif mm=='Li2011':
 elif mm=='Goujon2003':
 	data['MELT']=False
 
+data['MELT']=False
+
 if site=='Summit':
 	data["rhos0"] = 300.0
 else:
