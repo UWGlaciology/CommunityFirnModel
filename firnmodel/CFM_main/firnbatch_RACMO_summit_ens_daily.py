@@ -11,6 +11,7 @@ import json
 
 '''
 to run: parallel –a modellist_ens.txt python firnbatch_RACMO_summit_ens_daily.py
+updated 05/01/19
 
 '''
 

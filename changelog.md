@@ -26,6 +26,9 @@ TL;DR: Write down the changes that you made to the the model in this document an
 - *firn_density_nospin.py* Variable **crate_out** has been changed to **comp_out** to reflect that it is just compaction, not the rate.
 - *writer.py* Output name has changed from 'compaction_rate' to 'compaction'
 
+### Fixed
+- *constants.py* Latent heat and specific heat were incorrectly converted to kJ units - fixed, and values were changed to be consistent with Cuffey and Paterson. Note that specific heat changes with temperature; it can be set to reflect that in diffusion.py
+
 ### Added
 - *physics.py, firn_density_nospin.py, writer.py* Added code to calculate the firn viscosity predicted by each model and optionally write that to file (Brita Horlings contribution).
 

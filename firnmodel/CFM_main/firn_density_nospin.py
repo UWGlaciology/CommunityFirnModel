@@ -177,6 +177,12 @@ class FirnDensityNoSpin:
         self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
         self.iceout         = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
         self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
+
+        if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
+            print('ERROR: bdot_type set to "instant" in .json and input')
+            print('accumulation has at least one negative value.') 
+            print('QUITTING MODEL RUN.')
+            sys.exit()
         #####################
         
         ### Melt ############

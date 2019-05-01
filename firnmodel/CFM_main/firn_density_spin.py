@@ -17,7 +17,10 @@ import shutil
 import time
 import h5py
 from regrid import *
-# from merge import mergeall
+try:
+    from CFMmerge import mergeall
+except Exception:
+    print('CFMmerge not found; preferential flow will not work')
 try:
     import pandas as pd
 except:
@@ -79,9 +82,11 @@ class FirnDensitySpin:
         try:
             print('Merging is:',self.c["merging"])
         except Exception:
+            print('"merging" missing from .json fields')
             pass
 
         ### create directory to store results. Deletes if it exists already.
+        # Vincent says we do not want to remove existing (preferential flow?) - 4/24/19
         if os.path.exists(self.c['resultsFolder']):
             rmtree(self.c['resultsFolder'])
         os.makedirs(self.c['resultsFolder'])
@@ -98,7 +103,7 @@ class FirnDensitySpin:
                 self.temp0                  = input_temp[0]
             elif self.c['spinup_climate_type']=='mean':
                 self.temp0                  = np.mean(input_temp)
-        except:
+        except Exception:
             print("You should add key 'spinup_climate_type' to the config .json file")
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
@@ -159,7 +164,7 @@ class FirnDensitySpin:
         ############################
         ### get an initial depth/density profile based on H&L analytic solution
         ############################
-        # if self.c['initprofile'] == False: #VV
+        # if not self.c['initprofile']: #VV
         THL                 = self.temp0
         AHL                 = self.bdot0
         self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
@@ -251,7 +256,30 @@ class FirnDensitySpin:
         self.Tz         = init_Tz
         self.T_mean     = np.mean(self.Tz[self.z<50])
         self.T10m       = self.T_mean
-
+        
+        ### VV addition
+#         print('self.Tz[0:5] no Reeh:',self.Tz[0:5])
+#         
+#         ##VV Correction of temperature profile with latent heat release from meltwater, following Reeh 1991 parameterisation ##
+#         try:
+#             if self.c['Reeh91'] and self.c['MELT']:
+#                 input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
+#                 meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
+#                 meanacc  = self.bdot0 # mean annual accumulation [mIE/yr]
+#                 #SIR_step = np.minimum(input_snowmelt,0.6*meanacc) # Reeh 1991 and Reeh 2008 PMAX value is set at 0.6 melt becomes superimposed ice until it reaches 0.6 of annual acc, then runoff
+#                 #SIR = np.mean(SIR_step) # annual mean superimposed ice formation
+#                 
+#                 SIR = min(meanmelt,0.6*meanacc)
+#                     
+#                 self.Tz         = init_Tz + 26.6*SIR # Correction of temperatures taking into account latent heat, Reeh 1991 (5) Reeh 2008 (16)
+#                 self.Tz         = np.minimum(self.Tz,273.15)
+#                 self.T_mean     = np.mean(self.Tz[self.z<50])
+#                 self.T10m       = self.T_mean
+#                 print('self.Tz[0:5] Reeh:',self.Tz[0:5])
+#         except:
+#             pass
+        ### end VV addition
+        
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             if self.c['calcGrainSize']:
@@ -282,6 +310,17 @@ class FirnDensitySpin:
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
         '''
         self.steps = 1 / self.t # this is time steps per year
+        
+        ## VV For Reeh 1991 parameterised correction of temperature with latent heat release
+#         try:
+#             if self.c['Reeh91'] and self.c['MELT']:
+#                 input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
+#                 #meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
+#                 meanacc  = self.bdot0 # mean annual accumulation [mIE/yr]
+#                 SIR_step = np.minimum(input_snowmelt,0.6*meanacc) # Reeh 1991 and Reeh 2008 PMAX value is set at 0.6 melt becomes superimposed ice until it reaches 0.6 of annual acc, then runoff
+#                 SIR = np.mean(SIR_step) # annual mean superimposed ice formation
+#         except:
+#             pass
 
         ####################################
         ##### START TIME-STEPPING LOOP #####
@@ -341,6 +380,8 @@ class FirnDensitySpin:
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'Max2018':              FirnPhysics(PhysParams).Max2018
             }
+            
+            #VV note that he modified PKM to use T_av
 
             RD      = physicsd[self.c['physRho']]()
             drho_dt = RD['drho_dt']
@@ -374,6 +415,20 @@ class FirnDensitySpin:
             self.z          = np.concatenate(([0], self.z[:-1]))
             self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
             self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+            
+            ###
+            ##VV Correction of temperature profile with latent heat release from meltwater, following Reeh 1991 parameterisation ##
+#             try:
+#                 if self.c['Reeh91'] and self.c['MELT']:
+#                     self.Tz         = np.concatenate(([self.Ts[iii]]+26.6*SIR, self.Tz[:-1]))
+#                 else:
+#                     self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+#             except:
+#                 self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+            #self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+            ###
+            
+            
             massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass       = np.concatenate(([massNew], self.mass[:-1]))
             self.sigma      = self.mass * self.dx * GRAVITY
@@ -381,7 +436,9 @@ class FirnDensitySpin:
             self.mass_sum   = self.mass.cumsum(axis = 0)
             self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
                 
-            # update grain radius
+            
+            ### Update grain growth #VV ###
+            #VV calculate this before accumulation (because the new surface layer should not be subject to grain growth yet
             if self.c['physGrain']:
                 # self.r2, self.dr2_dt    = FirnPhysics(PhysParams).grainGrowth() #old
                 ## Vincent's new:

@@ -10,7 +10,8 @@ import time
 import json
 
 '''
-to run: parallel –a inputlist_ens.txt –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
+to run: parallel –a modellist_ens.txt python firnbatch_RACMO_summit_ens.py
+
 
 '''
 
@@ -37,7 +38,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re="/Volumes/FirnSSD/CFMresults/RACMO190306/RACMOresults_ens_all/rloop20/" + mm #results folder
+re="/Volumes/FirnSSD/CFMresults/RACMO190431/RACMOresults_ens_all/rloop20/" + mm #results folder
 # tein="inputdata/RACMOinput/Summit/Summit_tskin_RACMO_daily.csv"
 # smbin="inputdata/RACMOinput/Summit/Summit_smb_RACMO_daily.csv"
 
