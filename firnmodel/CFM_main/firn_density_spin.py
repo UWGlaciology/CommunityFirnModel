@@ -121,15 +121,25 @@ class FirnDensitySpin:
                 self.bdot0      = np.mean(input_bdot)
         except:
             self.bdot0      = np.mean(input_bdot)
-
-        if self.c['initprofile']:
-            try:
-                if self.c['singleleap'] or self.c['singlenormal']: #VV If we use the initprofile but the input forcing data does not cover an entire year
-                    self.temp0 = self.c['deepT'] #VV use deep T as mean temperature for spin up calculations (compaction,grain growth)
-                    self.bdot0 = self.c['bdot_long']*1e-3/0.917 #VV use long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
-            except Exception:
-                print("you are using an initial profile for spinup,")
-                print("but you do not have 'singleleap' or 'singlenormal' in the .json")
+        
+        try:
+            if self.c['manualclimate']: # If we want to use a manually specified climate for spin up (e.g. known long-term values). 
+                self.temp0 = self.c['deepT'] #specify deep T as mean temperature for spin up calculations (compaction,grain growth)
+                self.bdot0 = self.c['bdot_long']# *1e-3/0.917 #specify long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
+                print('make sure "bdot_long" has units of mIE/yr!')
+        except Exception:
+            print("Add 'manualclimate' to the json to enable specifying bdot and T")
+            # print("")
+        
+        # if self.c['initprofile']: #pretty sure that this does not need to depend on init profile?
+            ### Vincent's code
+            # try:
+            #     if self.c['singleleap'] or self.c['singlenormal']: #VV If we use the initprofile but the input forcing data does not cover an entire year
+            #         self.temp0 = self.c['deepT'] #VV use deep T as mean temperature for spin up calculations (compaction,grain growth)
+            #         self.bdot0 = self.c['bdot_long']*1e-3/0.917 #VV use long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
+            # except Exception:
+            #     print("you are using an initial profile for spinup,")
+            #     print("but you do not have 'singleleap' or 'singlenormal' in the .json")
 
         
         print('bdot0', self.bdot0)
@@ -167,6 +177,19 @@ class FirnDensitySpin:
         # if not self.c['initprofile']: #VV
         THL                 = self.temp0
         AHL                 = self.bdot0
+        try: #VV use Reeh corrected T
+            if self.c['Reeh91'] and self.c['MELT']:
+                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
+                meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
+                meanacc  = self.bdot0 # mean annual accumulation [mIE/yr]
+                #SIR_step = np.minimum(input_snowmelt,0.6*meanacc) # Reeh 1991 and Reeh 2008 PMAX value is set at 0.6 melt becomes superimposed ice until it reaches 0.6 of annual acc, then runoff
+                #SIR = np.mean(SIR_step) # annual mean superimposed ice formation
+                SIR = min(meanmelt,0.6*meanacc)
+                THL = self.temp0 + 26.6*SIR
+                THL = min(THL,273.15)
+        except:
+            print('add "Reeh91" to .json to enable melt-corrected temperature')
+            pass
         self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
         # elif self.c['initprofile'] == True: # VV we have an initial temperature and density profile
             # Just avoid the model to blow up because it has no age and rho variables, real values are given below
