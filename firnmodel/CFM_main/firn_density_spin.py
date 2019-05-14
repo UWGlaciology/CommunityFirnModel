@@ -103,14 +103,12 @@ class FirnDensitySpin:
                 self.temp0                  = input_temp[0]
             elif self.c['spinup_climate_type']=='mean':
                 self.temp0                  = np.mean(input_temp)
+
         except Exception:
             print("You should add key 'spinup_climate_type' to the config .json file")
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
         
-        # self.temp0 = 270.0
-        # self.temp0 = mean(input_temp[0:12]) #Make sure that this is what we want!
-
         ### accumulation rate
         input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
         
@@ -123,13 +121,12 @@ class FirnDensitySpin:
             self.bdot0      = np.mean(input_bdot)
         
         try:
-            if self.c['manualclimate']: # If we want to use a manually specified climate for spin up (e.g. known long-term values). 
+            if self.c['manual_climate']: # If we want to use a manually specified climate for spin up (e.g. known long-term values). 
                 self.temp0 = self.c['deepT'] #specify deep T as mean temperature for spin up calculations (compaction,grain growth)
                 self.bdot0 = self.c['bdot_long']# *1e-3/0.917 #specify long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
                 print('make sure "bdot_long" has units of mIE/yr!')
         except Exception:
-            print("Add 'manualclimate' to the json to enable specifying bdot and T")
-            # print("")
+            print("Add 'manual_climate' to the json to enable specifying bdot and T")
         
         # if self.c['initprofile']: #pretty sure that this does not need to depend on init profile?
             ### Vincent's code
@@ -219,9 +216,20 @@ class FirnDensitySpin:
         ############################
         ### Surface temperature for each time step
         self.Ts         = self.temp0 * np.ones(self.stp)
-        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
-            # self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp ))) #Orsi, coreless winter
-            self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Greenland (for Antarctica the it should be a plus instead of minus)
+
+        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'           
+            if self.c['SeasonalThemi'] == 'north':
+                self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is for Greenland
+
+            elif self.c['SeasonalThemi'] == 'south':
+                if self.c['coreless']:
+                    self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp))) # Coreless winter, from Orsi
+                else:
+                    self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Antarctica
+            else:
+                print('You have turned on the SeasonalTcycle, but you do not have')
+                print('the hemisphere selected. Exiting. (set to south or north')
+                sys.exit()
 
         ### initial temperature profile
         # init_Tz       = input_temp[0] * np.ones(self.gridLen)
@@ -392,6 +400,7 @@ class FirnDensitySpin:
                 'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
                 'Li2004':               FirnPhysics(PhysParams).Li_2004,
                 'Li2011':               FirnPhysics(PhysParams).Li_2011,
+                'Li2015':               FirnPhysics(PhysParams).Li_2015,
                 'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
                 'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
                 'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,

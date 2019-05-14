@@ -116,7 +116,7 @@ class FirnDensityNoSpin:
                 print("Melt is initialized")
             else:
                 self.MELT           = False
-                print("No melt")
+                print("Melt is not turned on.")
                 input_snowmelt      = None
                 input_year_snowmelt = None
                 self.LWC            = np.zeros_like(self.z)
@@ -141,10 +141,8 @@ class FirnDensityNoSpin:
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
         self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
         self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
-        print(self.modeltime[0:5])
-        print(self.modeltime[-5:])
-        print(yr_start)
-        print(yr_end)
+        print('Model year start:', yr_start)
+        print('Model year end:', yr_end)
         #####################
       
         ###############################
@@ -158,25 +156,38 @@ class FirnDensityNoSpin:
         Tsf                 = interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
         self.Ts             = Tsf(self.modeltime) # surface temperature interpolated to model time
         # self.T_mean       = np.mean(self.Ts)
-        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmpTAmp'
-            
+        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             if self.c['SeasonalThemi'] == 'north':
                 self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is for Greenland
 
             elif self.c['SeasonalThemi'] == 'south':
-                if c['coreless']:
+                if self.c['coreless']:
                     self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp))) # Coreless winter, from Orsi
                 else:
                     self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Antarctica
+            else:
+                print('You have turned on the SeasonalTcycle, but you do not have')
+                print('the hemisphere selected. Exiting. (set to south or north')
+                sys.exit()
+            
         #####################
 
         ### Accumulation ####
         bsf                 = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
         self.bdot           = bsf(self.modeltime) # m ice equivalent per year
         # self.bdotSec      = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
-        self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
-        self.iceout         = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
-        print('iceout, used for dH, is %s' %self.iceout)
+        self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)       
+        try: 
+            if self.c['manual_iceout']:
+                self.iceout = self.c['iceout']
+                print('Ensure that your iceout value has units m ice eq. per year!')
+            else:
+                self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+        except Exception:
+            print('add field "manual_iceout" to .json file to set iceout value manually')
+            self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+
+        # print('iceout, used for dH, is %s' %self.iceout)
         self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
 
         if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
@@ -540,6 +551,7 @@ class FirnDensityNoSpin:
                 'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
                 'Li2004':               FirnPhysics(PhysParams).Li_2004,
                 'Li2011':               FirnPhysics(PhysParams).Li_2011,
+                'Li2015':               FirnPhysics(PhysParams).Li_2015,
                 'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
                 'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
                 'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
@@ -568,6 +580,7 @@ class FirnDensityNoSpin:
 
             if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt            
                 ### Max's bucket scheme:
+                print(mtime)
                 self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation_bucket(self,iii)
 
                 ### Vincent's bucket scheme:

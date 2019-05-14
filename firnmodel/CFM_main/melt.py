@@ -2,139 +2,6 @@
 from constants import *
 import numpy as np
 
-def percolation_noliquid(self, iii):
-
-    '''
-    This is a simple (and very wrong, probably) percolation scheme that does not
-    allow any liquid water to exist. Any water that can be refrozed by the 
-    cold content of the firn will be. There is no limit of how much of the
-    porosity can be filled with that water (which will refreeze). Any water that
-    is not refrozed is considered runoff.
-    '''
-    
-    porosity            = 1 - self.rho/RHO_I # porosity
-    dz_old              = self.dz
-    porespace_vol       = porosity * self.dz #porosity in meters of each box
-    melt_volume_IE      = self.snowmeltSec[iii] * S_PER_YEAR #meters
-    melt_volume_WE      = melt_volume_IE * RHO_I_MGM #meters
-    melt_mass           = melt_volume_WE * 1000. #kg
-    heat_to_freeze      = melt_mass * LF_I #amount of heat needed to refreeze the melt (J)
-
-    if (self.mass_sum==melt_mass).any():
-        exactmass = True
-    else:
-        exactmass = False
-
-    ind1a               = np.where(self.mass_sum<=melt_mass)[0] # indicies of boxes that will be melted away
-    num_boxes_melted    = len(ind1a)+1 #number of boxes that melt away, include the box that is partially melted
-    ind1                = np.where(self.mass_sum>melt_mass)[0][0]   # index which will become the new surface
-
-    ### pm is the partial melt (the box/volume that has a portion melted away)
-    pm_mass             = self.mass_sum[ind1] - melt_mass   # the remaining mass of the PM box
-    pm_dz               = pm_mass / self.rho[ind1] #remaining thickness
-    pm_porespace        = (1 - self.rho[ind1]/RHO_I) * pm_dz #porespace in the PM box
-    pm_rho              = self.rho[ind1] #density of the PM box
-
-    cold_content_0      = CP_I * self.mass * (T_MELT - self.Tz) #cold content of each box, i.e. how much heat to bring it to 273K
-    cold_content_0_sum  = cold_content_0.cumsum(axis=0)
-    cold_content        = cold_content_0[ind1:] #just the boxes that don't melt away
-    cold_content[0]     = CP_I * pm_mass * (T_MELT - self.Tz[ind1]) # the partial melt box has its cold content reassigned.
-    cold_content_sum    = cold_content.cumsum(axis=0)
-
-    ind2_rel            = np.where(cold_content_sum>heat_to_freeze)[0][0] #freeze horizon index (where the wetting front freezes), index relative to ind1
-    ind2                = ind2_rel + ind1 #absolute index on real grid (we have not removed the melted boxes yet)
-
-    if (self.rho[ind1:ind2+1]>830.0).any(): #if there is an ice lens somewhere between the new surface and where freezing should occur
-        ind2_rel                = np.where(self.rho[ind1:]>=830.0)[0][0]
-        ind2                    = ind2_rel + ind1 #the recalculated freezing front (water can not go past this level)
-        cold_content_lens       = cold_content[0:ind2_rel].sum() #cold content that is is available in space between the surface and the lens   
-        refreeze_mass           = cold_content_lens / LF_I # this is how much should be able to refreeze in the available pore space above the ice lens.
-        melt_volume_WE          = refreeze_mass / RHO_W_KGM
-        melt_volume_IE          = melt_volume_WE / RHO_I_MGM #the volume of melt that is not runoff
-        runoff_volume_duetolens = (melt_mass - refreeze_mass) * RHO_I_KGM
-
-    else:
-        runoff_volume_duetolens = 0.0
-
-    pore_indices        = np.arange(ind1,ind2+1) # indicies of the boxes that are available to fill with water
-    pore_indices_flip   = np.flipud(pore_indices)
-    porespace_vol[ind1] = pm_porespace
-    porespace_0_sum     = porespace_vol.cumsum(axis=0)
-    porespace           = porespace_vol[ind1+1:ind2+1] #space available for the water
-    porespace_sum       = porespace.cumsum(axis=0)
-    porespace_sum_flip  = (np.flipud(porespace)).cumsum(axis=0)
-    available_space     = porespace_0_sum[ind2]-porespace_0_sum[ind1]
-
-    if available_space < melt_volume_IE: # melt volume has already been recalculated based on how much can freeze with the cold content
-
-        runoff_volume_duetolimitedporespace = (melt_volume_IE - porespace_sum) * RHO_I_MGM
-
-        self.rho[ind1:ind2+1]   = 830.0 #fill all of the boxes with water.
-        self.Tz[ind1:ind2+1]    = T_MELT
-
-        # split up last box into several
-        divider         = num_boxes_melted
-        self.rho        = np.concatenate((self.rho[ind1:-1] , self.rho[-1]*np.ones(num_boxes_melted)))
-        self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_melted)))
-        self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_melted)))
-        self.dz[0]      = pm_dz
-        self.dzn        = np.concatenate((np.zeros(num_boxes_melted), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
-        self.dzn        = self.dzn[0:self.compboxes]
-        self.Tz         = np.concatenate((self.Tz[ind1:-1],self.Tz[-1]*np.ones(num_boxes_melted)))
-        self.bdot_mean  = np.concatenate((self.bdot_mean[ind1:-1],self.bdot_mean[-1]*np.ones(num_boxes_melted)))
-        self.z          = self.dz.cumsum(axis = 0)
-        self.z          = np.concatenate(([0], self.z[:-1]))
-        self.mass       = self.rho*self.dz
-    
-    elif available_space == 0.0: #the top layer is an ice lens, so the melt runs off
-
-        # split up last box into several
-        divider         = num_boxes_melted # ind3 should be removed and replaced with 2 new boxes.
-        self.rho        = np.concatenate((self.rho[ind1:-1] , self.rho[-1]*np.ones(num_boxes_melted)))
-        self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_melted)))
-        self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_melted)))
-        self.dz[0]      = pm_dz
-        self.dzn        = np.concatenate((np.zeros(num_boxes_melted), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
-        self.dzn        = self.dzn[0:self.compboxes]
-        self.Tz         = np.concatenate((self.Tz[ind1:-1],self.Tz[-1]*np.ones(num_boxes_melted)))
-        self.bdot_mean  = np.concatenate((self.bdot_mean[ind1:-1],self.bdot_mean[-1]*np.ones(num_boxes_melted)))
-        self.z          = self.dz.cumsum(axis = 0)
-        self.z          = np.concatenate(([0], self.z[:-1]))
-        self.mass       = self.rho*self.dz
-
-    else:
-        runoff_volume_duetolimitedporespace = 0
-        ind3a               = np.where(porespace_sum_flip>melt_volume_IE)[0][0]
-        ind3                = ind2 - ind3a #the index of the node that is partially filled with water
-        partial_volume      = melt_volume_IE - np.sum(porespace_vol[ind3+1:ind2+1]) # pore space filled in the box that is partially filled
-        leftover_porespace  = porespace_vol[ind3]-partial_volume #open pore space in the the partially-filled box
-
-        new_node_1_rho      = self.rho[ind3] #split up the partial box into 2 parts
-        new_node_2_rho      = 870.0
-        new_node_1_dz       = leftover_porespace / (1 - self.rho[ind3]/RHO_I)
-        new_node_2_dz       = self.dz[ind3] - new_node_1_dz
-
-        self.rho[ind3+1:ind2+1] = 870.0
-        self.Tz[ind1:ind2+1]    = T_MELT
-
-        # split up last box into several
-        divider         = num_boxes_melted # ind3 should be removed and replaced with 2 new boxes.
-        self.rho        = np.concatenate((self.rho[ind1:ind3] , [new_node_1_rho,new_node_2_rho] , self.rho[ind3+1:-1] , self.rho[-1]*np.ones(num_boxes_melted-1)))
-        self.age        = np.concatenate((self.age[ind1:ind3] , [self.age[ind3],self.age[ind3]] , self.age[ind3+1:-1] , self.age[-1]*np.ones(num_boxes_melted-1)))
-        dzhold          = self.dz[ind1+1:ind3]
-        dzhold2         = self.dz[ind3+1:-1]
-        self.dz         = np.concatenate((self.dz[ind1:ind3] , [new_node_1_dz,new_node_2_dz] , self.dz[ind3+1:-1] ,self.dz[-1]/divider*np.ones(num_boxes_melted-1)))
-        self.dzn        = np.concatenate((np.zeros(num_boxes_melted), np.append(dzhold, new_node_1_dz+new_node_2_dz), dzhold2))
-        self.dzn        = self.dzn[0:self.compboxes]
-        self.dz[0]      = pm_dz
-        self.Tz         = np.concatenate((self.Tz[ind1:ind3] , [self.Tz[ind3],self.Tz[ind3]] , self.Tz[ind3+1:-1] , self.Tz[-1]*np.ones(num_boxes_melted-1)))
-        self.bdot_mean  = np.concatenate((self.bdot_mean[ind1:ind3] , [self.bdot_mean[ind3],self.bdot_mean[ind3]] , self.bdot_mean[ind3+1:-1] , self.bdot_mean[-1]*np.ones(num_boxes_melted-1)))
-        self.z          = self.dz.cumsum(axis = 0)
-        self.z          = np.concatenate(([0], self.z[:-1]))
-        self.mass       = self.rho*self.dz
-
-    return self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn
-
 def percolation_bucket(self, iii):
 
     '''
@@ -187,7 +54,10 @@ def percolation_bucket(self, iii):
     self.dz                 = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_melted))) # this adds new boxes at the bottom.
     self.dz[0]              = pm_dz
     self.Dcon               = np.concatenate((self.Dcon[ind1:-1] , self.Dcon[-1]*np.ones(num_boxes_melted)))
-    self.dzn                = np.concatenate((np.zeros(num_boxes_melted), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
+    self.dzn                = np.concatenate((np.zeros(num_boxes_melted-1), self.dz[0:])) # this will fail in the case that there is no PM box, i.e. the melt mass is exactly equal to the mass of one or several boxes.
+    ### old version:
+    # self.dzn                = np.concatenate((np.zeros(num_boxes_melted-1), self.dz[0:])) #this is not quite right because is assumes compaction for the pm box is zero.
+    ###
     self.dzn                = self.dzn[0:self.compboxes]
     self.Tz                 = np.concatenate((self.Tz[ind1:-1] , self.Tz[-1]*np.ones(num_boxes_melted)))
     self.bdot_mean          = np.concatenate((self.bdot_mean[ind1:-1] , self.bdot_mean[-1]*np.ones(num_boxes_melted)))

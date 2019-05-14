@@ -38,7 +38,7 @@ jsonFile = open(connm, "r")
 data = json.load(jsonFile)
 jsonFile.close()
 
-re="/Volumes/FirnSSD/CFMresults/RACMO190430/RACMOresults_ens_all/Greenland/Summit/rloop20/" + mm #results folder
+re="/Volumes/FirnSSD/CFMresults/CFM190430/RACMOresults_ens_all/Greenland/Summit/rloop20_MARbdot/" + mm #results folder
 # tein="inputdata/RACMOinput/Summit/Summit_tskin_RACMO_daily.csv"
 # smbin="inputdata/RACMOinput/Summit/Summit_smb_RACMO_daily.csv"
 
