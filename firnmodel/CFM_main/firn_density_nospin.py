@@ -116,7 +116,7 @@ class FirnDensityNoSpin:
                 print("Melt is initialized")
             else:
                 self.MELT           = False
-                print("No melt")
+                print("Melt is not turned on.")
                 input_snowmelt      = None
                 input_year_snowmelt = None
                 self.LWC            = np.zeros_like(self.z)
@@ -141,10 +141,8 @@ class FirnDensityNoSpin:
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
         self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
         self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
-        print(self.modeltime[0:5])
-        print(self.modeltime[-5:])
-        print(yr_start)
-        print(yr_end)
+        print('Model year start:', yr_start)
+        print('Model year end:', yr_end)
         #####################
       
         ###############################
@@ -158,25 +156,45 @@ class FirnDensityNoSpin:
         Tsf                 = interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
         self.Ts             = Tsf(self.modeltime) # surface temperature interpolated to model time
         # self.T_mean       = np.mean(self.Ts)
-        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmpTAmp'
-            
+        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             if self.c['SeasonalThemi'] == 'north':
                 self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is for Greenland
 
             elif self.c['SeasonalThemi'] == 'south':
-                if c['coreless']:
+                if self.c['coreless']:
                     self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp)) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp))) # Coreless winter, from Orsi
                 else:
                     self.Ts     = self.Ts + self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is basic for Antarctica
+            else:
+                print('You have turned on the SeasonalTcycle, but you do not have')
+                print('the hemisphere selected. Exiting. (set to south or north')
+                sys.exit()
+            
         #####################
 
         ### Accumulation ####
         bsf                 = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
         self.bdot           = bsf(self.modeltime) # m ice equivalent per year
         # self.bdotSec      = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
-        self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
-        self.iceout         = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+        self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)       
+        try: 
+            if self.c['manual_iceout']:
+                self.iceout = self.c['iceout']
+                print('Ensure that your iceout value has units m ice eq. per year!')
+            else:
+                self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+        except Exception:
+            print('add field "manual_iceout" to .json file to set iceout value manually')
+            self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+
+        # print('iceout, used for dH, is %s' %self.iceout)
         self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
+
+        if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
+            print('ERROR: bdot_type set to "instant" in .json and input')
+            print('accumulation has at least one negative value.') 
+            print('QUITTING MODEL RUN.')
+            sys.exit()
         #####################
         
         ### Melt ############
@@ -240,7 +258,10 @@ class FirnDensityNoSpin:
         except Exception:
             Tind                = np.nonzero(self.modeltime>=1980.0)[0][0] # old way
             print('You should add new variable "TWriteStart" to the json file!')
+            print('Arbitrarily starting writing at 1980.0. See line 243 in firn_density_nospin.py')
         self.TWrite         = self.modeltime[Tind::self.c['TWriteInt']]
+        if self.c['TWriteInt']!=1:
+            print('Time writing interval is not 1; dH output will not be accurate.')
         # self.TWrite       = np.append(self.modeltime[10],self.TWrite)
         # self.TWrite       = self.modeltime[-2::self.c['TWriteInt']]
         # self.TWrite_out   = self.TWrite
@@ -324,11 +345,15 @@ class FirnDensityNoSpin:
             self.Clim_out           = np.zeros((TWlen+1,3),dtype='float32')
             self.Clim_out[0,:]      = np.append(self.modeltime[0], [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
         if 'compaction' in self.output_list:
-            self.crate_out          = np.zeros((TWlen+1,self.compboxes+1),dtype='float32')
-            self.crate_out[0,:]     = np.append(self.modeltime[0], np.zeros(self.compboxes))
+            self.comp_out          = np.zeros((TWlen+1,self.compboxes+1),dtype='float32')
+            self.comp_out[0,:]     = np.append(self.modeltime[0], np.zeros(self.compboxes))
         if 'LWC' in self.output_list:
             self.LWC_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             self.LWC_out[0,:]       = np.append(self.modeltime[0], self.LWC)
+        if 'viscosity' in self.output_list:
+            self.viscosity          = np.zeros(self.gridLen)
+            self.viscosity_out      = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+            self.viscosity_out[0,:] = np.append(self.modeltime[0], self.viscosity)
         try:
             print('rho_out size (MB):', self.rho_out.nbytes/1.0e6) # print the size of the output for reference
         except:
@@ -397,10 +422,11 @@ class FirnDensityNoSpin:
         self.dHAll.append(0)
         dHOut   = 0 # surface elevation change since last time step
         dHOutC  = 0 # cumulative surface elevation change since start of model run
+        compOut = 0 # compaction of just the firn at each time step; no ice dynamics or accumulation
 
         if 'DIP' in self.output_list:
-            self.DIP_out        = np.zeros((TWlen+1,4),dtype='float32')   
-            self.DIP_out[0,:]   = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC])
+            self.DIP_out        = np.zeros((TWlen+1,5),dtype='float32')   
+            self.DIP_out[0,:]   = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC, compOut])
             self.DIPc_out       = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
             self.DIPc_out[0,:]  = np.append(self.modeltime[0], intPhi_c)
         if 'BCO' in self.output_list:
@@ -525,6 +551,7 @@ class FirnDensityNoSpin:
                 'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
                 'Li2004':               FirnPhysics(PhysParams).Li_2004,
                 'Li2011':               FirnPhysics(PhysParams).Li_2011,
+                'Li2015':               FirnPhysics(PhysParams).Li_2015,
                 'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
                 'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
                 'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
@@ -544,7 +571,7 @@ class FirnDensityNoSpin:
             self.rho_old    = np.copy(self.rho)
             self.rho        = self.rho + self.dt * drho_dt
             self.dz_old     = np.copy(self.dz) # model volume thicknesses before the compaction
-            self.sdz_old    = np.sum(self.dz) # old total column thickness
+            self.sdz_old    = np.sum(self.dz) # old total column thickness (s for sum)
             self.z_old      = np.copy(self.z)
             self.dz         = self.mass / self.rho * self.dx # new dz after compaction
             
@@ -553,6 +580,7 @@ class FirnDensityNoSpin:
 
             if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt            
                 ### Max's bucket scheme:
+                print(mtime)
                 self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation_bucket(self,iii)
 
                 ### Vincent's bucket scheme:
@@ -699,7 +727,7 @@ class FirnDensityNoSpin:
                 if 'bdot_mean' in self.output_list:   
                     self.bdot_out[self.WTracker,:]  = np.append(mtime_plus1, self.bdot_mean)
                 if 'compaction' in self.output_list:    
-                    self.crate_out[self.WTracker,:] = np.append(mtime_plus1, self.compaction)
+                    self.comp_out[self.WTracker,:] = np.append(mtime_plus1, self.compaction)
                 if 'LWC' in self.output_list:
                     self.LWC_out[self.WTracker,:]   = np.append(mtime_plus1, self.LWC)
                 if 'grainsize' in self.output_list:
@@ -709,16 +737,23 @@ class FirnDensityNoSpin:
                     self.Hx_out[self.WTracker,:]    = np.append(mtime_plus1, self.Hx)
                 if 'isotopes' in self.output_list:
                     self.iso_out[self.WTracker,:]   = np.append(mtime_plus1, self.del_z)
+                if 'viscosity' in self.output_list:
+                    self.viscosity = RD['viscosity']   
+                    self.viscosity_out[self.WTracker,:] = np.append(mtime_plus1, self.viscosity)
 
                 bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO()
                 intPhi, intPhi_c, z_co  = self.update_DIP()
-                dH, dHtot               = self.update_dH()
-
+                dH, dHtot, comp_firn    = self.update_dH()
+                if mtime==self.TWrite[0]:
+                    self.dHAll = 0 * self.dHAll
+                    dH = 0.0
+                    dHtot = 0.0
+                    comp_firn = 0.0
 
                 if 'BCO' in self.output_list:
                     self.BCO_out[self.WTracker,:]       = np.append(mtime_plus1, [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])                    
                 if 'DIP' in self.output_list:
-                    self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot])
+                    self.DIP_out[self.WTracker,:]       = np.append(mtime_plus1, [intPhi, dH, dHtot, comp_firn])
                     self.DIPc_out[self.WTracker,:]      = np.append(mtime_plus1, intPhi_c)
 
                 if self.c['FirnAir']:
@@ -834,10 +869,12 @@ class FirnDensityNoSpin:
         self.dHAll.append(self.dH)
         self.dHtot = np.sum(self.dHAll)
 
+        self.comp_firn = self.sdz_new - self.sdz_old #total compaction of just the firn during the previous time step
+
         # self.dHOut.append(self.dH)
         # self.dHOutC.append(self.dHtot)
 
-        return self.dH, self.dHtot
+        return self.dH, self.dHtot, self.comp_firn
 
     ###########################
 

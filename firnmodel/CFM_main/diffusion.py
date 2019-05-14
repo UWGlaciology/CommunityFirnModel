@@ -49,24 +49,24 @@ def heatDiff(self,iii):
     ### Conductivity. Choose your favorite! ###
     # References are provided at the end of this script.
 
-    # alpha_DAVIDCS_m2s = 18.3 / S_PER_YEAR
+    # alpha_DAVIDCS_m2s = 18.3 / S_PER_YEAR # special for work Max was doing for David Clemens-Sewell
 
     # K_firn = alpha_DAVIDCS_m2s * self.rho * c_firn
     # K_firn[self.z>=20.0]    = K_ice[self.z>=20.0] * (self.rho[self.z>=20.0]/RHO_I) ** (2 - 0.5 * (self.rho[self.z>=20.0]/RHO_I))    # Schwander 1997, eq. A11
 
     # K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
     # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
-    K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
+    # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
     # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
     # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
     # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
-    # K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
+    K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
     # K_firn    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
     # k_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
     
     Gamma_P         = K_firn # (new)
-    # print('K_firn',K_firn)
+ 
     # Gamma_P         = K_firn / (c_firn) # old)
     tot_rho         = self.rho
     c_vol = self.rho * c_firn
@@ -138,12 +138,12 @@ def enthalpyDiff(self,iii):
     # K_firn[self.z>=20.0]    = K_ice[self.z>=20.0] * (self.rho[self.z>=20.0]/RHO_I) ** (2 - 0.5 * (self.rho[self.z>=20.0]/RHO_I))    # Schwander 1997, eq. A11
     # K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
     # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
-    K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
+    # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
     # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
     # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
     # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
-    # K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
+    K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
     # K_firn    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
     # k_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
     

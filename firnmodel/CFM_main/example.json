@@ -38,7 +38,7 @@
 "HbaseSpin": 2900.0,
 "stpsPerYear": 12.0,
 "D_surf": 1.0,
-"bdot_type": "instant",
+"bdot_type": "mean",
 "bdot_type_options": ["instant","mean","stress"],
 "isoDiff": false,
 "iso": "NoDiffusion",
@@ -54,5 +54,10 @@
 "nodestocombine": 50,
 "grid1bottom": 10.0,
 "spinup_climate_type": "initial",
-"spinup_climate_type_options": ["mean", "initial"]
+"spinup_climate_type_options": ["mean", "initial"],
+"manual_climate": false,
+"deepT": 255.88,
+"bdot_long": 0.49073,
+"manual_iceout": false,
+"iceout": 0.23
 }

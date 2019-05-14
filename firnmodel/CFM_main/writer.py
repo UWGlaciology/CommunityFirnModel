@@ -24,7 +24,7 @@ def write_nospin_hdf5(self):
     if 'climate' in self.output_list:    
         f4.create_dataset('Modelclimate',data = self.Clim_out)
     if 'compaction' in self.output_list:    
-        f4.create_dataset('compaction_rate', data = self.crate_out)
+        f4.create_dataset('compaction', data = self.comp_out)
     if self.c['FirnAir']:
         if "gasses" in self.cg['outputs']:
             for gas in self.cg['gaschoice']:       
@@ -56,6 +56,8 @@ def write_nospin_hdf5(self):
         f4.create_dataset('refrozen',data = self.refrozen_out)
     if 'runoff' in self.output_list:
         f4.create_dataset('runoff',data = self.runoff_out)
+    if 'viscosity' in self.output_list:
+        f4.create_dataset('viscosity',data = self.viscosity_out)
 
     f4.close()
 

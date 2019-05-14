@@ -4,16 +4,47 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.2
+1.0.3
 
 ## Work in progress and known issues
 
 - *Issues* 
-	- None known at this time.
+	- Morris physics do not work properly.
+	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
 
 - *Work in progress*
 	- V. Verjans is working on a percolation module that solves Richard's equation and includes a dual-domain approach to handle preferential flow
 	- Documentation for the CFM
+	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
+	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.0.3] - 2019-05-13
+### Notes
+- This release fixes several bugs. I am working on implementing V. Verjan's preferential flow melt routine; there are several things that may you may notice related to that in this release, e.g. a note about 'merging' and 'Reeh01' in the .json file. This will be fixed in version 1.0.4.
+
+### Changed
+- *physics.py* HLSigfus was changed slightly so that boolean masks are created for the different zones, which makes the code easier to read. HLdynamic (instant version) was changed so that in the case of negative accumulation, A_instant is set to zero.
+- *firn_density_nospin.py* Changed dH calculation to set to be zero at the first write time step.
+- *firn_density_nospin.py* Added **comp_firn** as an additional variable written with DIP. It is the total firn compaction during the previous time step, not including the ice dynamics or new accumulation (i.e. the summed thickness change of all of the layers).
+- *firn_density_nospin.py* Variable **crate_out** has been changed to **comp_out** to reflect that it is just compaction, not the rate.
+- *writer.py* Output name has changed from 'compaction_rate' to 'compaction'
+- *firn_density_nospin.py and firn_density_spin.py* Changed the 'SeasonalTCycle' feature to exit model run if turned on and hemisphere is not selected.
+
+### Fixed
+- *constants.py* Latent heat and specific heat were incorrectly converted to kJ units - fixed, and values were changed to be consistent with Cuffey and Paterson. Note that specific heat changes with temperature; it can be set to reflect that in diffusion.py (Thanks to Jiajin Chen and Gang Hai for pointing this out.)
+- *firn_density_spin.py* the seasonalTcycle feature was hard coded to be only for Greenland (it had been updated to be modular in firn_density_nospin) - now 'spin' matches 'nospin'.
+- *melt.py*, in def percolation_bucket: The compaction output was incorrect because the partial melt (PM) was given a new thickness (in dzn) of zero. Fixed so that the boxes the melt entirely get a value of zero in dzn but the PM box gets its new thickness after melt
+- *general* Running the example, using example.json, did not work because bdot_type was set in it to instant, and the example smb file contains a negative value. firn_density_nospin.py now prints an error and exits if this happens and example.json is set to bdot_type = 'mean'.
+
+### Added
+- *physics.py, firn_density_nospin.py, writer.py* Added code to calculate the firn viscosity predicted by each model and optionally write that to file (Brita Horlings contribution).
+- *firn_density_nospin.py* Added Li2015, which uses a different value for beta than Li and Zwally 2011.
+- *firn_density_spin.py* Added 'manualclimate', which must also be added to .json file to use. It allows the user to set the long-term temperature and accumulation rate manually; helpful e.g. in the case of short model runs.
+- *firn_density_nospin.py* Added 'manual_iceout', which must also be added to .json file to use. It allows the user to set the long-term ice-dynamic thinning manually, e.g. the vertical ice velocity at the bottom of the firn column; helpful e.g. if it is different than the mean accumulation rate for the modeled period.
+- *example.json* several new fields were added.
+
+### Removed
+- *melt.py* Max's original bucket scheme, which did not work well, was removed.
 
 ## [1.0.2] - 2019-02-08
 ### Fixed
