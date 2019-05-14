@@ -43,8 +43,8 @@ def heatDiff(self,iii):
     phi_0           = self.Tz
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    # c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    c_firn        = CP_I # If you prefer a constant specific heat.
+    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn        = CP_I # If you prefer a constant specific heat.
 
     ### Conductivity. Choose your favorite! ###
     # References are provided at the end of this script.

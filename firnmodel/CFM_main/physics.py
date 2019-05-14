@@ -262,14 +262,16 @@ class FirnPhysics:
 
         A_instant     = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
         A_mean = self.bdot_mean * RHO_I_MGM
-        A_mean = 0.45*np.ones_like(A_mean)
+        # A_mean = 0.45*np.ones_like(A_mean)
 
 
         # TmC   = self.T10m - K_TO_C
-        # TmC   = self.T_mean - K_TO_C
+        TmC   = self.T_mean - K_TO_C
 
-        TmC = -17.267
-        A_meanLZ = 0.45
+        
+
+        # TmC = -17.267
+        # A_meanLZ = 0.45
 
         dr_dt = np.zeros(self.gridLen)
 
@@ -279,7 +281,7 @@ class FirnPhysics:
 #            beta1 = -9.788 + 8.996 * A_instant - 0.6165 * TmC
 #            beta2 = beta1 / (-2.0178 + 8.4043 * A_instant - 0.0932 * TmC)
             beta1a = -1.218 - 0.403 * TmC
-            beta2a = beta1a * (0.792 - 1.080 * np.mean(A_meanLZ) + 0.00465 * TmC)
+            beta2a = beta1a * (0.792 - 1.080 * np.mean(A_mean) + 0.00465 * TmC)
 
             dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A_instant * beta1 * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
             dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_instant * beta2 * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
@@ -295,13 +297,12 @@ class FirnPhysics:
 #            beta1a = -9.788 + 8.996 * np.mean(A_mean) - 0.6165 * TmC
 #            beta2a = beta1a / (-2.0178 + 8.4043 * np.mean(A_mean) - 0.0932 * TmC)
             beta1a = -1.218 - 0.403 * TmC
-            # beta2a = beta1a * (0.792 - 1.080 * np.mean(A_mean) + 0.00465 * TmC)
-            beta2a = beta1a * (0.792 - 1.080 * A_meanLZ + 0.00465 * TmC)
+            beta2a = beta1a * (0.792 - 1.080 * np.mean(A_mean) + 0.00465 * TmC)
             beta1 = np.ones(len(A_mean))*beta1a
             beta2 = np.ones(len(A_mean))*beta2a
 
-            dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A_mean[self.rho <= RHO_1] * beta1[self.rho <= RHO_1] * 8.36 * (273.2 - self.Tz[self.rho <= RHO_1]) ** -2.061
-            dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (273.2 - self.Tz[self.rho > RHO_1]) ** -2.061
+            dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A_mean[self.rho <= RHO_1] * beta1[self.rho <= RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
+            dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
