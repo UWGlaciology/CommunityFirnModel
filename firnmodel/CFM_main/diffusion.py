@@ -74,8 +74,9 @@ def heatDiff(self,iii):
 
     self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
-    fT10m           = interpolate.interp1d(self.z, self.Tz)                                 # temp at 10m depth
-    self.T10m       = fT10m(10)
+    # fT10m           = interpolate.interp1d(self.z, self.Tz)                                 # temp at 10m depth
+    # self.T10m       = fT10m(10)
+    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]] #Should be slightly faster than the interpolate.
 
     if np.any(self.Tz>273.17):
         print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')

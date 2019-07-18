@@ -18,8 +18,9 @@ import json
 # thefiles=["randspin600_1","randspin600_2","randspin600_3","randspin600_4","randspin600_5","randspin600_6","randspin600_7","randspin600_8","randspin600_9","randspin600_10"]
 # thefiles=["randspin600_11","randspin600_12","randspin600_13","randspin600_14","randspin600_15","randspin600_16","randspin600_17","randspin600_18","randspin600_19","randspin600_20"]
 
-nn=sys.argv[1] # run ID
-mm=sys.argv[2] # physics
+# nn=sys.argv[1] # run ID
+nn = 'loop20'
+mm=sys.argv[1] # physics
 # print nn
 connm='MARjson/MAR_Summit_config_'+nn+'_'+mm+'_ens.json'
 copyfile('MAR_Summit_config_master_loop20.json', connm)
@@ -33,9 +34,9 @@ data = json.load(jsonFile)
 jsonFile.close()
 
 # re="/Volumes/FirnSSD/CFMresults/MARresults_ens_all/r" + nn + "/" + mm #results folder
-re="MARresults_ens_all/Sim/r" + nn + "/" + mm #results folder
-tein="inputdata/MARinput/Summit/Summit_tskin_MAR_" + nn + ".csv"
-smbin="inputdata/MARinput/Summit/Summit_smb_MAR_" + nn + ".csv"
+re="MARresults_ens_all/Greenland/Summit/r" + nn + "/" + mm #results folder
+tein="inputdata20190304/MARinput/Summit/Summit_tskin_MAR_" + nn + ".csv"
+smbin="inputdata20190304/MARinput/Summit/Summit_smb_MAR_" + nn + ".csv"
 
 #     tmp = data["physRho"]
 data["physRho"] = mm

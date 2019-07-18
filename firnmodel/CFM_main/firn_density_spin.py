@@ -234,6 +234,8 @@ class FirnDensitySpin:
         ### initial temperature profile
         # init_Tz       = input_temp[0] * np.ones(self.gridLen)
         init_Tz         = np.mean(self.Ts) * np.ones(self.gridLen)
+        self.T_mean = np.mean(self.Ts) * np.ones(self.stp)
+
 
         ### Accumulation rate for each time step
         self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (m I.E. per second)
@@ -285,8 +287,8 @@ class FirnDensitySpin:
         
         ### initial temperature grid 
         self.Tz         = init_Tz
-        self.T_mean     = np.mean(self.Tz[self.z<50])
-        self.T10m       = self.T_mean
+        self.T50     = np.mean(self.Tz[self.z<50])
+        self.T10m       = np.mean(self.T_mean)
         
         ### VV addition
 #         print('self.Tz[0:5] no Reeh:',self.Tz[0:5])
@@ -324,13 +326,26 @@ class FirnDensitySpin:
         ### "temperature history" if using Morris physics
         if self.c['physRho']=='Morris2014':
             # initial temperature history function (units seconds)
-            self.Hx     = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
+            # QMorris = 60.0e3
+            QMorris = 110.0e3
+            self.Hx     = np.exp(-1*QMorris/(R*init_Tz))*(self.age+self.dt)
+            # self.Hx     = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
             self.THist  = True
         else:
             self.THist  = False
 
         self.LWC = np.zeros_like(self.z)
         self.MELT = False
+
+        ### values for Goujon physics
+        if self.c['physRho']=='Goujon2003':
+            self.Gamma_Gou      = 0 
+            self.Gamma_old_Gou  = 0
+            self.Gamma_old2_Gou = 0
+            self.ind1_old       = 0
+        #######################
+
+
     ############################
     ##### END INIT #############
     ############################
@@ -393,6 +408,12 @@ class FirnDensitySpin:
             if self.THist:
                 PhysParams['Hx'] = self.Hx
 
+            if self.c['physRho']=='Goujon2003':
+                PhysParams['Gamma_Gou']      = self.Gamma_Gou
+                PhysParams['Gamma_old_Gou']  = self.Gamma_old_Gou
+                PhysParams['Gamma_old2_Gou'] = self.Gamma_old2_Gou
+                PhysParams['ind1_old']       = self.ind1_old                
+
             ### choose densification-physics based on user input
             physicsd = {
                 'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
@@ -418,12 +439,19 @@ class FirnDensitySpin:
             RD      = physicsd[self.c['physRho']]()
             drho_dt = RD['drho_dt']
 
+            if self.c['physRho']=='Goujon2003':
+                self.Gamma_Gou      = RD['Gamma_Gou'] 
+                self.Gamma_old_Gou  = RD['Gamma_old_Gou']
+                self.Gamma_old2_Gou = RD['Gamma_old2_Gou']
+                self.ind1_old       = RD['ind1_old']
+
             ### update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt
             self.rho = self.rho + self.dt * drho_dt
             
             if self.THist:
-                self.Hx = FirnPhysics(PhysParams).THistory()
+                self.Hx = RD['Hx']
+                # self.Hx = FirnPhysics(PhysParams).THistory()
 
             ### update temperature grid and isotope grid if user specifies
             if self.c['heatDiff']:
@@ -432,7 +460,7 @@ class FirnDensitySpin:
             if self.c['isoDiff']:
                 self.del_z  = isoDiff(self,iii)
 
-            self.T_mean     = np.mean(self.Tz[self.z<50])
+            self.T50     = np.mean(self.Tz[self.z<50])
 
             if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
                 self.dz     = ((-self.du_dx)*self.dt + 1)*self.dz 

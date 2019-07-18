@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.3
+1.0.4
 
 ## Work in progress and known issues
 
@@ -18,9 +18,19 @@ TL;DR: Write down the changes that you made to the the model in this document an
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
+## [1.0.4] - 2019-07-17
+### Notes
+- This release includes several components: I fixed implementation of Morris and Wingham (2014) physics, changed how mean temperature is calculated, added a corrected/modified DH calculation, and changed how T10m is calculated. There may be a few things (e.g. random print statements) that are hanging around. I am still working on implementing V. Verjans melt schemes.
+
+### Changed
+- *physics.py, firn_density_spin.py, firn_density_nospin.py* A number of the models use the mean annual surface temperature in their calculations (e.g. the Arthern family, Li and Zwally). On short time scales, this is generally equal to the mean of the entire temperature input. In longer simulations it changes through time. self.T_mean is now calculated at the beginning of firn_density_nospin as the mean temperature of the last 10 years. This should be quite close to the value of T10m if there is no melt. I am still working on how to implement this; it currently uses a Hamming filter with pandas 'rolling' feature. 
+- *diffusion.py* T10m previously used an interpolation to find the temperature at 10m exactly; it now is just the temperature at the first node at 10m depth or greater. It should be slightly faster.
+- *physics.py* I fixed how the Morris and Wingham (2014) model was coded. There was an error in the original text. I fixed it based on correspondence with L. Morris in May 2019. Email me (maxstev@uw.edu) if you want more detail; it will be published in a forthcoming paper.
+- *firn_density_nospin.py* DH is calculated based on compaction at each time step, the thickness of the new snow layer, and the thickness of ice (called *iceout* in the model) that is removed at each time step. If the bottom of the model domain is less than ice density, the CFM did not account for the additional compaction that occured between the bottom of the firn and the ice (917) density horizon. I added a 2 new fields, DHcorr and DHcorrC, that is added to the 'DIP' model output, which mirror the previous fields DH and DHc (elevation change since last time step and cumulative since begining of when output begins writing).
+
 ## [1.0.3] - 2019-05-13
 ### Notes
-- This release fixes several bugs. I am working on implementing V. Verjan's preferential flow melt routine; there are several things that may you may notice related to that in this release, e.g. a note about 'merging' and 'Reeh01' in the .json file. This will be fixed in version 1.0.4.
+- This release fixes several bugs. (I am working on implementing V. Verjan's preferential flow melt routine; there are several things that may you may notice related to that in this release, e.g. a note about 'merging' and 'Reeh01' in the .json file. This will be fixed in version 1.0.4.)
 
 ### Changed
 - *physics.py* HLSigfus was changed slightly so that boolean masks are created for the different zones, which makes the code easier to read. HLdynamic (instant version) was changed so that in the case of negative accumulation, A_instant is set to zero.
