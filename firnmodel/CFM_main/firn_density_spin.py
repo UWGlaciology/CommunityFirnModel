@@ -244,9 +244,10 @@ class FirnDensitySpin:
         ### Surface isotope values for each time step
         if self.c['isoDiff']:
             try:
-                input_iso, input_year_iso = read_input(self.c['InputFileNameIso'])
+                input_iso, input_year_iso = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameIso']))
                 del_s0  = input_iso[0]
             except:
+                # input_iso, input_year_iso = read_input(self.c['InputFileNameIso'])
                 print('No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.')
                 del_s0  = -50.0
 

@@ -268,7 +268,7 @@ class FirnPhysics:
 
         # TmC   = self.T10m - K_TO_C
         TmC   = self.T_mean[self.iii] - K_TO_C 
-        TmC = -17.267
+        # TmC = -17.267
         A_meanLZ = 0.45
 
         dr_dt = np.zeros(self.gridLen)
@@ -301,6 +301,17 @@ class FirnPhysics:
 
             dr_dt[self.rho <= RHO_1] = (RHO_I - self.rho[self.rho <= RHO_1]) * A_mean[self.rho <= RHO_1] * beta1[self.rho <= RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho <= RHO_1]) ** -2.061
             dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
+
+            # if (self.iii>=3000 and self.iii<3005):
+            #     print('beta1a', beta1a)
+            #     print('dr_dt',dr_dt[0:10])
+            #     print('A_mean',A_mean[0:10])
+            #     print('TmC',TmC)
+            #     print('Tz',self.Tz[0:5])
+            #     print('self.rho',self.rho[0:5])
+            #     print('dz',self.dz[0:5])
+            #     input('paused')
+
 
         drho_dt = dr_dt / S_PER_YEAR
         # self.viscosity = np.ones(self.gridLen)
@@ -426,9 +437,9 @@ class FirnPhysics:
         if self.bdot_type == 'instant':
             if self.iii==0:
                 print("It is not recommended to use instant accumulation with Helsen 2008 physics")            
-            dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+            dr_dt = (RHO_I - self.rho) * A_instant * (76.138 - 0.28965 * self.T_mean[self.iii]) * 8.36 * (K_TO_C - self.Tz) ** -2.061
         elif self.bdot_type == 'mean':
-            dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T_mean) * 8.36 * (K_TO_C - self.Tz) ** -2.061
+            dr_dt = (RHO_I - self.rho) * A_mean * (76.138 - 0.28965 * self.T_mean[self.iii]) * 8.36 * (K_TO_C - self.Tz) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR    #To get into (kg m^3)/seconds
       

@@ -139,15 +139,22 @@ class FirnDensityNoSpin:
         yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
         yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
         
-        self.years      = np.ceil((yr_end - yr_start) * 1.0) 
+        # self.years      = np.ceil((yr_end - yr_start) * 1.0)
+        self.years      = (yr_end - yr_start) * 1.0
         self.dt         = S_PER_YEAR / self.c['stpsPerYear'] # seconds per time step
-        self.stp        = int(self.years * S_PER_YEAR/self.dt)       # total number of time steps, as integer
+        self.stp        = int(self.years * S_PER_YEAR/self.dt)-1       # total number of time steps, as integer
 
         # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
         self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
         self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
         print('Model year start:', yr_start)
         print('Model year end:', yr_end)
+        print('stp',self.stp)
+        print('dt',self.dt)
+        print('years',self.years)
+        print('modeltime',self.modeltime[0:5])
+        print('modeltime',self.modeltime[-5:])
+        # sys.exit()
         #####################
       
         ###############################
@@ -222,7 +229,7 @@ class FirnDensityNoSpin:
         if self.c['isoDiff']:
             init_del_z          = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'IsoSpin')
             try:
-                input_iso, input_year_iso = read_input(self.c['InputFileNameIso'])
+                input_iso, input_year_iso = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameIso']))
                 self.del_s      = np.interp(self.modeltime, input_year_iso, input_iso)
                 # del_s0 = input_iso[0]
             except:
@@ -531,7 +538,9 @@ class FirnDensityNoSpin:
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             # print('########################')
-            # print(mtime)
+            if (iii<5 or iii>self.stp-5):
+                print('mtime', mtime)
+                # print('melt', self.snowmelt[iii])
             self.D_surf[iii] = iii
             ### dictionary of the parameters that get passed to physics
             PhysParams = {

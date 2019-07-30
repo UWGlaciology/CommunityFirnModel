@@ -7,6 +7,7 @@ from firn_density_spin import FirnDensitySpin
 from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
+import shutil
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annikah Horlings, Jessica Lundin"
 __license__ = "MIT"
@@ -19,6 +20,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) >= 2:
         configName = os.path.join(os.path.dirname(__file__), sys.argv[1])
+        print(configName)
     else:
         print('No .json configuration file specified. Exiting.')
         sys.exit()
@@ -58,5 +60,7 @@ if __name__ == '__main__':
 
         firn = FirnDensityNoSpin(configName)
         firn.time_evolve()
+
+    shutil.copy(configName,c['resultsFolder'])
     
     print('run time =' , time.time()-tic , 'seconds')
