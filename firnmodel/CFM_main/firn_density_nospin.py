@@ -135,25 +135,53 @@ class FirnDensityNoSpin:
 
         #####################
         ### time ############
-        # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
-        yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
-        yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
-        
-        # self.years      = np.ceil((yr_end - yr_start) * 1.0)
-        self.years      = (yr_end - yr_start) * 1.0
-        self.dt         = S_PER_YEAR / self.c['stpsPerYear'] # seconds per time step
-        self.stp        = int(self.years * S_PER_YEAR/self.dt)-1       # total number of time steps, as integer
+        if 'timesetup' in self.c:
+            pass
+        else:
+            print('You should add "timesetup" to the .json')
+            self.c['timesetup']='interp'
 
-        # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
-        self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
-        self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
-        print('Model year start:', yr_start)
-        print('Model year end:', yr_end)
-        print('stp',self.stp)
-        print('dt',self.dt)
-        print('years',self.years)
-        print('modeltime',self.modeltime[0:5])
-        print('modeltime',self.modeltime[-5:])
+        # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
+        if (self.c['timesetup']=='interp' or self.c['SeasonalTcycle']):
+            if (self.c['SeasonalTcycle'] and self.c['timesetup']=='exact'):
+                print('"Exact" time setup does not work with "SeasonalTcycle"')
+            yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
+            yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
+            
+            # self.years      = np.ceil((yr_end - yr_start) * 1.0)
+            self.years      = (yr_end - yr_start) * 1.0
+            self.dt         = S_PER_YEAR / self.c['stpsPerYear'] # seconds per time step
+            self.stp        = int(self.years * S_PER_YEAR/self.dt)#-1       # total number of time steps, as integer
+            self.dt = self.dt * np.ones(self.stp)
+            # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
+            self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
+            self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
+            # print('Model year start:', yr_start)
+            # print('Model year end:', yr_end)
+            # print('stp',self.stp)
+            # print('dt',self.dt)
+            # print('years',self.years)
+            # print('modeltime',self.modeltime[0:5])
+            # print('modeltime',self.modeltime[-5:])
+            # print('t',self.t)
+
+        elif self.c['timesetup']=='exact':
+            print('"Exact" time setup will not work properly if input forcing does not all have the same time')
+            yr_start = input_year_temp[1]
+            yr_end = input_year_temp[-1]
+            self.dt = np.diff(input_year_temp)*S_PER_YEAR
+            self.stp = len(self.dt)
+            self.modeltime = input_year_temp[1:]
+            self.t = np.mean(np.diff(input_year_temp))
+            # print('Model year start:', yr_start)
+            # print('Model year end:', yr_end)
+            # print('stp',self.stp)
+            # print('dt',self.dt)
+            # # print('years',self.years)
+            # print('modeltime',self.modeltime[0:5])
+            # print('modeltime',self.modeltime[-5:])
+            # print('t',self.t)
+
         # sys.exit()
         #####################
       
@@ -538,8 +566,8 @@ class FirnDensityNoSpin:
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             # print('########################')
-            if (iii<5 or iii>self.stp-5):
-                print('mtime', mtime)
+            # if (iii<5 or iii>self.stp-5):
+            #     print('mtime', mtime)
                 # print('melt', self.snowmelt[iii])
             self.D_surf[iii] = iii
             ### dictionary of the parameters that get passed to physics
@@ -556,7 +584,7 @@ class FirnDensityNoSpin:
                 'rho':          self.rho,
                 'mass':         self.mass,
                 'sigma':        self.sigma,
-                'dt':           self.dt,
+                'dt':           self.dt[iii],
                 'Ts':           self.Ts,
                 'r2':           self.r2,
                 'age':          self.age,
@@ -616,7 +644,7 @@ class FirnDensityNoSpin:
 
             ### update density and age of firn
             self.rho_old    = np.copy(self.rho)
-            self.rho        = self.rho + self.dt * drho_dt
+            self.rho        = self.rho + self.dt[iii] * drho_dt
             self.dz_old     = np.copy(self.dz) # model volume thicknesses before the compaction
             self.sdz_old    = np.sum(self.dz) # old total column thickness (s for sum)
             self.z_old      = np.copy(self.z)
@@ -664,7 +692,7 @@ class FirnDensityNoSpin:
                 AirParams = {
                     'Tz':           self.Tz,
                     'rho':          self.rho,
-                    'dt':           self.dt,
+                    'dt':           self.dt[iii],
                     'z':            self.z,
                     'rhos0':        self.rhos0[iii],
                     'dz_old':       self.dz_old,
@@ -680,7 +708,7 @@ class FirnDensityNoSpin:
                 ### new box gets added on within isoDiff function
                 
             if self.c['strain']: #update horizontal strain
-                strain      = (-1 * self.du_dxSec[iii] * self.dt + 1) * np.ones_like(self.z)
+                strain      = (-1 * self.du_dxSec[iii] * self.dt[iii] + 1) * np.ones_like(self.z)
                 self.dz     = strain * self.dz
                 self.mass   = strain * self.mass
 
@@ -696,7 +724,7 @@ class FirnDensityNoSpin:
             ### update model grid, mass, stress, and mean accumulation rate
             if self.bdotSec[iii]>0: # there is accumulation at this time step
             # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)               
-                self.age        = np.concatenate(([0], self.age[:-1])) + self.dt      
+                self.age        = np.concatenate(([0], self.age[:-1])) + self.dt[iii]      
                 self.dzNew      = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz         = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z          = self.dz.cumsum(axis = 0)
@@ -723,7 +751,7 @@ class FirnDensityNoSpin:
 
             else: # no accumulation during this time step
                 
-                self.age        = self.age + self.dt
+                self.age        = self.age + self.dt[iii]
                 self.z          = self.dz.cumsum(axis=0)
                 self.z          = np.concatenate(([0],self.z[:-1]))
                 self.dzNew      = 0
@@ -732,7 +760,7 @@ class FirnDensityNoSpin:
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
 
-            self.w_firn = (znew - self.z_old) / self.dt # advection rate of the firn, m/s
+            self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
 
             ### find the compaction rate
             ### this should all be old (11/28/17)

@@ -72,7 +72,7 @@ def heatDiff(self,iii):
     c_vol = self.rho * c_firn
     # print('c_vol',c_vol)
 
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
     # fT10m           = interpolate.interp1d(self.z, self.Tz)                                 # temp at 10m depth
     # self.T10m       = fT10m(10)
@@ -156,7 +156,7 @@ def enthalpyDiff(self,iii):
 
     deltaH = RHO_W_KGM * LF_I #Voller 1990, eq 11. (letting T_ref = T_melt) units: J/m^3
 
-    self.Tz, g_liq   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH)
+    self.Tz, g_liq   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH)
 
     fT10m           = interpolate.interp1d(self.z, self.Tz)                                 # temp at 10m depth
     self.T10m       = fT10m(10)
@@ -248,7 +248,7 @@ def enthalpyDiff_old(self,iii):
     Gamma_P[e_less]     = bigKi[e_less] #/tot_rho[e_less]
     Gamma_P[e_great]    = bigKi[e_great] #/tot_rho[e_great]
 
-    enthalpy = transient_solve_EN_old(z_edges_vec, z_P_vec, nt, self.dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
+    enthalpy = transient_solve_EN_old(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho)
 
     e_less              = np.where(enthalpy<Hs)[0]
     e_great             = np.where(enthalpy>=Hs)[0]
@@ -329,15 +329,15 @@ def isoDiff(self,iii):
 
     ### Set diffusivity for each isotope
     c_vol = np.ones_like(self.rho)
-    
+
     if self.c['iso'] == '18':
         D           = m * pz * invtau * Da_18 * (1 / self.rho - 1 / RHO_I) / (R * self.Tz * alpha_18_z)
         D           = D + 1.5e-15
-        self.del_z  = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s, self.rho, c_vol)
+        self.del_z  = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], D, phi_0, nz_P, nz_fv, phi_s, self.rho, c_vol)
     elif self.c['iso'] == 'D':
         D           = m * pz * invtau * Da_D * (1 / self.rho - 1 / RHO_I) / (R * self.Tz * alpha_D_z)
         D[D<=0.0]   = 1.0e-20
-        self.del_z  = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt, D, phi_0, nz_P, nz_fv, phi_s, self.rho, c_vol)
+        self.del_z  = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], D, phi_0, nz_P, nz_fv, phi_s, self.rho, c_vol)
     elif self.c['iso'] == 'NoDiffusion':
         pass
         

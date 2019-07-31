@@ -196,19 +196,29 @@ class FirnDensitySpin:
 
         ############################
         ### set up time stepping
-        if self.c['AutoSpinUpTime']: # automatic, based on time that it will take for a parcel to get to 850 kg m^-3
-            try:
-                zz          = np.min(self.z[self.rho > 850.0])
-                self.years  = int(zz / self.bdot0)
-            except ValueError:
-                print("auto spin up error; using spin up time from json")
+        if self.c['timesetup']=='old':
+            if self.c['AutoSpinUpTime']: # automatic, based on time that it will take for a parcel to get to 850 kg m^-3
+                try:
+                    zz          = np.min(self.z[self.rho > 850.0])
+                    self.years  = int(zz / self.bdot0)
+                except ValueError:
+                    print("auto spin up error; using spin up time from json")
+                    self.years = self.c['yearSpin'] # number of years to spin up for
+            else: # based on time taken to spin up in the config file.
                 self.years = self.c['yearSpin'] # number of years to spin up for
-        else: # based on time taken to spin up in the config file.
-            self.years = self.c['yearSpin'] # number of years to spin up for
-        
-        self.dt     = S_PER_YEAR / self.c['stpsPerYearSpin']
-        self.stp    = int(self.years*S_PER_YEAR/self.dt)
-        self.t      =  1.0 / self.c['stpsPerYearSpin'] # years per time step
+            
+            self.dt     = S_PER_YEAR / self.c['stpsPerYearSpin']
+            self.stp    = int(self.years*S_PER_YEAR/self.dt)
+            self.t      =  1.0 / self.c['stpsPerYearSpin'] # years per time step
+            self.dt = self.dt * np.ones(self.stp)
+
+        elif self.c['timesetup']=='new':
+            self.years  = self.c['yearSpin'] # number of years to spin up for          
+            self.dt1    = S_PER_YEAR / self.c['stpsPerYearSpin']
+            self.stp    = int(self.years*S_PER_YEAR/self.dt1)
+            self.dt     = self.dt1 * np.ones(self.stp)
+            self.t      =  1.0 / self.c['stpsPerYearSpin'] # years per time step
+
         ############################
 
         ############################
@@ -329,7 +339,7 @@ class FirnDensitySpin:
             # initial temperature history function (units seconds)
             # QMorris = 60.0e3
             QMorris = 110.0e3
-            self.Hx     = np.exp(-1*QMorris/(R*init_Tz))*(self.age+self.dt)
+            self.Hx     = np.exp(-1*QMorris/(R*init_Tz))*(self.age+self.dt[0])
             # self.Hx     = np.exp(-110.0e3/(R*init_Tz))*(self.age+self.dt)
             self.THist  = True
         else:
@@ -388,7 +398,7 @@ class FirnDensitySpin:
                 'rho':          self.rho,
                 'mass':         self.mass,
                 'sigma':        self.sigma,
-                'dt':           self.dt,
+                'dt':           self.dt[iii],
                 'Ts':           self.Ts,
                 'r2':           self.r2,
                 'age':          self.age,
@@ -447,8 +457,8 @@ class FirnDensitySpin:
                 self.ind1_old       = RD['ind1_old']
 
             ### update density and age of firn
-            self.age = np.concatenate(([0], self.age[:-1])) + self.dt
-            self.rho = self.rho + self.dt * drho_dt
+            self.age = np.concatenate(([0], self.age[:-1])) + self.dt[iii]
+            self.rho = self.rho + self.dt[iii] * drho_dt
             
             if self.THist:
                 self.Hx = RD['Hx']
@@ -464,8 +474,8 @@ class FirnDensitySpin:
             self.T50     = np.mean(self.Tz[self.z<50])
 
             if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
-                self.dz     = ((-self.du_dx)*self.dt + 1)*self.dz 
-                self.mass   = self.mass*((-self.du_dx)*self.dt + 1)
+                self.dz     = ((-self.du_dx)*self.dt[iii] + 1)*self.dz 
+                self.mass   = self.mass*((-self.du_dx)*self.dt[iii] + 1)
 
             ### update model grid mass, stress, and mean accumulation rate
             dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
