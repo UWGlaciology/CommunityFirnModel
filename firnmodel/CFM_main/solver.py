@@ -66,7 +66,8 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
         ##################
-        if airdict!=None: # this part for gas diffusion, which takes a bit more physics
+        # this part is for gas diffusion, which takes a bit more physics
+        if airdict!=None: 
             Gamma_Po    = Gamma_P * airdict['por_op'] #This is the diffusivity times the open porosity.
 
             Gamma_U     = np.append(Gamma_Po[0], Gamma_Po[0: -1] )

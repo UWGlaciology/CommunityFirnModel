@@ -8,6 +8,7 @@ from writer import write_nospin_hdf5
 from physics import *
 from constants import *
 from melt import *
+from IsotopeDiffusion import IsotopeDiffusion
 import numpy as np
 import csv
 import json
@@ -27,6 +28,13 @@ try:
 except:
     print('You do not have the pandas python package installed.')
     print('It is used to create a running mean temperature.')
+
+from merge import mergeall #VV
+from merge import mergesurf #VV
+from merge import mergenotsurf #VV
+from re_snowpack import resingledomain #VV
+from prefflow_snowpack import prefflow #VV
+from sublim import sublim #VV
 
 class FirnDensityNoSpin:
     '''
@@ -70,7 +78,7 @@ class FirnDensityNoSpin:
         :param configName: name of json config file containing model configurations
         '''
         ### load in json config file and parses the user inputs to a dictionary
-        self.spin = True
+        self.spin = False
         with open(configName, "r") as f:
             jsonString      = f.read()
             self.c          = json.loads(jsonString)
@@ -82,6 +90,12 @@ class FirnDensityNoSpin:
         initAge     = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'ageSpin')
         initDensity = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'densitySpin')
         initTemp    = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'tempSpin')
+
+        try: #VV for reading initial lwc from the spin up file
+            initLWC = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'LWCSpin')
+            print('Initial LWC provided by spin-up')
+        except: 
+            pass 
 
         try:
             self.doublegrid = self.c['doublegrid']
@@ -113,38 +127,43 @@ class FirnDensityNoSpin:
 
         input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 
-        try:
-            if self.c['MELT']:
-                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
-                self.MELT           = True
-                self.LWC            = np.zeros_like(self.z)
-                print("Melt is initialized")
-            else:
-                self.MELT           = False
-                print("Melt is not turned on.")
-                input_snowmelt      = None
-                input_year_snowmelt = None
-                self.LWC            = np.zeros_like(self.z)
+        if 'MELT' not in self.c:
+            print('You should add "MELT" to your .json (True/False)')
+            self.c['MELT'] = False
 
-        except:
-            self.MELT               = False
-            print("No melt; json does not include a melt field")
-            input_snowmelt          = None
-            input_year_snowmelt     = None
-            self.LWC                = np.zeros_like(self.z)
+        if self.c['MELT']:
+            input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
+            self.MELT           = True
+            try: 
+                self.LWC        = initLWC[1:]
+            except:
+                self.LWC        = np.zeros_like(self.z)
+                self.PLWC_mem   = np.zeros_like(self.z) #VV added to keep track of water content that was in PFdom
+            print("Melt is initialized")
+            if 'RAIN' not in self.c:
+                self.c['RAIN'] = False
+            if self.c['RAIN']:
+                input_rain, input_year_rain = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']))
+        else:
+            self.MELT           = False
+            print("Melt is not turned on.")
+            input_snowmelt      = None
+            input_year_snowmelt = None
+            self.LWC            = np.zeros_like(self.z)
+            self.PLWC_mem       = np.zeros_like(self.z)
+            self.c['RAIN'] = False
 
         #####################
         ### time ############
-        if 'timesetup' in self.c:
-            pass
-        else:
+        if 'timesetup' not in self.c:
             print('You should add "timesetup" to the .json')
+            ### could add details here
             self.c['timesetup']='interp'
 
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
         if (self.c['timesetup']=='interp' or self.c['SeasonalTcycle']):
             if (self.c['SeasonalTcycle'] and self.c['timesetup']=='exact'):
-                print('"Exact" time setup does not work with "SeasonalTcycle"')
+                print('"Exact" time setup does not work with "SeasonalTcycle" Switching to "interp"')
             yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
             yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
             
@@ -156,14 +175,7 @@ class FirnDensityNoSpin:
             # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
             self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
             self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
-            # print('Model year start:', yr_start)
-            # print('Model year end:', yr_end)
-            # print('stp',self.stp)
-            # print('dt',self.dt)
-            # print('years',self.years)
-            # print('modeltime',self.modeltime[0:5])
-            # print('modeltime',self.modeltime[-5:])
-            # print('t',self.t)
+
 
         elif self.c['timesetup']=='exact':
             print('"Exact" time setup will not work properly if input forcing does not all have the same time')
@@ -173,16 +185,36 @@ class FirnDensityNoSpin:
             self.stp = len(self.dt)
             self.modeltime = input_year_temp[1:]
             self.t = np.mean(np.diff(input_year_temp))
-            # print('Model year start:', yr_start)
-            # print('Model year end:', yr_end)
-            # print('stp',self.stp)
-            # print('dt',self.dt)
-            # # print('years',self.years)
-            # print('modeltime',self.modeltime[0:5])
-            # print('modeltime',self.modeltime[-5:])
-            # print('t',self.t)
 
-        # sys.exit()
+        elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step
+            # might be able to just use 'exact'?
+            self.years      = (yr_end - yr_start) #VV
+            self.dt         = 10800. #VV 3 hours
+            self.stp        = len(input_temp)
+            self.modeltime = np.zeros(self.stp)
+            self.modeltime[0] = yr_start
+            if (int(yr_start)%4 == 0):
+                leap=1 #leap year
+            elif (int(yr_start)%4 != 1):
+                leap=0 #normal year
+            for ii in range(1,len(self.modeltime)):
+                if leap == 1:
+                    self.modeltime[ii] = self.modeltime[ii-1]+self.dt/31622400
+                    if (int(self.modeltime[ii]+self.dt/31622400)-int(self.modeltime[ii-1]))==1:
+                        # At transition between two years, set time exactly at new year (this avoids propagation of small errors)
+                        self.modeltime[ii] = int(self.modeltime[ii-1])+1
+                elif leap == 0:
+                    self.modeltime[ii] = self.modeltime[ii-1]+self.dt/31536000
+                    if (int(self.modeltime[ii]+self.dt/31536000)-int(self.modeltime[ii-1]))==1:
+                        # At transition between two years, set time exactly at new year (this avoids propagation of small errors)
+                       self.modeltime[ii] = int(self.modeltime[ii-1])+1
+                if int(self.modeltime[ii])%4 == 0:
+                    leap = 1
+                elif int(self.modeltime[ii])%4 != 0:
+                    leap = 0
+            ### next two lines - Vincent's code included, but may have been a bug?
+            # self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
+            # self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
         #####################
       
         ###############################
@@ -208,35 +240,42 @@ class FirnDensityNoSpin:
                 print('You have turned on the SeasonalTcycle, but you do not have')
                 print('the hemisphere selected. Exiting. (set to south or north')
                 sys.exit()
-        try: #Rolling mean average surface temperature (vector)
-            Nyears = 10 #number of years to average for T_mean
-            NN = int(self.c['stpsPerYear']*Nyears)
-            self.T_mean = pd.Series(self.Ts).rolling(window=NN+1,win_type='hamming').mean().values
-            self.T_mean[np.isnan(self.T_mean)]=self.T_mean[NN]
-        except Exception:
-            self.T_mean = np.mean(self.Ts) * np.ones(self.stp)
-            print('Error calculating T_mean, using mean surface over all time')
         #####################
 
         ### Accumulation ####
         bsf                 = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
         self.bdot           = bsf(self.modeltime) # m ice equivalent per year
-        # self.bdotSec      = self.bdot / S_PER_YEAR / (self.stp / self.years) # accumulation rate in per second
-        self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)       
+        self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
+
+        try: #Rolling mean average surface temperature and accumulation rate (vector)
+        # (i.e. the long-term average climate)
+            Nyears = 10 #number of years to average for T_mean
+            NN = int(self.c['stpsPerYear']*Nyears)
+            self.T_mean = pd.Series(self.Ts).rolling(window=NN+1,win_type='hamming').mean().values
+            self.T_mean[np.isnan(self.T_mean)] = self.T_mean[NN]
+            self.bdot_av = pd.Series(self.bdot).rolling(window=NN+1,win_type='hamming').mean().values
+            self.bdot_av[np.isnan(self.bdot_av)] = self.bdot_av[NN]
+        except Exception:
+            self.T_mean = np.mean(self.Ts) * np.ones(self.stp)
+            self.bdot_av = np.mean(self.bdot) * np.ones(self.stp)
+            print('Error calculating T_mean, using mean surface over all time')
+
+        if self.c['manual_climate']: #in the case of very short runs, you want to set the longer-term climate manually
+            self.T_mean = self.c['deepT'] * np.ones(self.stp)
+            self.bdot_av = self.c['bdot_long'] * np.ones(self.stp)
+
         try: 
             if self.c['manual_iceout']:
                 self.iceout = self.c['iceout']
                 print('Ensure that your iceout value has units m ice eq. per year!')
             else:
                 self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
-        
-            # print('Iceout is:' self.iceout)
-            # print('Iceout per time step:' self.iceout*self.t)
+
         except Exception:
             print('add field "manual_iceout" to .json file to set iceout value manually')
             self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 
-        # print('iceout, used for dH, is %s' %self.iceout)
+
         self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
 
         if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
@@ -251,28 +290,6 @@ class FirnDensityNoSpin:
             ssf                 = interpolate.interp1d(input_year_snowmelt,input_snowmelt,int_type,fill_value='extrapolate')
             self.snowmelt       = ssf(self.modeltime)
             self.snowmeltSec    = self.snowmelt / S_PER_YEAR / self.c['stpsPerYear'] # melt for each time step (meters i.e. per second)
-        #####################
-
-        ### Isotopes ########
-        if self.c['isoDiff']:
-            init_del_z          = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'IsoSpin')
-            try:
-                input_iso, input_year_iso = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameIso']))
-                self.del_s      = np.interp(self.modeltime, input_year_iso, input_iso)
-                # del_s0 = input_iso[0]
-            except:
-                print('No external file for surface isotope values found, but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.')
-                # del_s0 = -50.0
-                ar1             = 0.9   # red noise memory coefficient
-                std_rednoise    = 2    # red noise standard deviation
-                self.del_s      = std_rednoise*np.random.randn(self.stp)    # white noise
-
-                for x in range(1,self.stp):
-                    self.del_s[x] = self.del_s[x-1]*ar1 + np.random.randn()  # create red noise from white
-
-                self.del_s      = self.del_s - 50
-                #impose seasonal isotope cycle
-                # self.del_s    = self.del_s + 5 * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp )) + 0.3 * np.cos(4 * np.pi * np.linspace(0, self.years, self.stp )))
         #####################
  
         ### Surface Density #
@@ -329,7 +346,7 @@ class FirnDensityNoSpin:
 
         ### set up initial mass, stress, and mean accumulation rate
         self.mass           = self.rho * self.dz
-        self.sigma          = (self.mass + self.LWC * RHO_W_KGM) * self.dx * GRAVITY
+        self.sigma          = (self.mass + (self.LWC * RHO_W_KGM)) * self.dx * GRAVITY
         self.sigma          = self.sigma.cumsum(axis = 0)
         self.mass_sum       = self.mass.cumsum(axis = 0)
         ### mean accumulation over the lifetime of the parcel:
@@ -338,22 +355,15 @@ class FirnDensityNoSpin:
         #######################
 
         ### set up longitudinal strain rate
-        if self.c['strain']:
-            # input units are yr^-1
+        if self.c['strain']: # input units are yr^-1
             input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']))
             dusf                        = interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')           
             self.du_dx      = dusf(self.modeltime)
             self.du_dxSec   = self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
-
-            # except:
-                # print('strain time series not found; using du_dx from json instead')
-                # self.du_dx        = np.ones_like(self.modeltime) * self.c['du_dx']
-                # self.du_dxSec     = self.du_dx / S_PER_YEAR / self.c['stpsPerYear'] # strain rate (s^-1) at each time step
-
         #######################
         
         self.Tz             = initTemp[1:]
-        self.T50         = np.mean(self.Tz[self.z<50])
+        self.T50            = np.mean(self.Tz[self.z<50])
         self.T10m           = self.Tz[np.where(self.z>=10.0)[0][0]]
 
         # self.compboxes      = len(self.z[self.z<80])
@@ -441,8 +451,10 @@ class FirnDensityNoSpin:
 
         ### temperature history for Morris physics
         if self.c['physRho'] == 'Morris2014':
+            if 'QMorris' not in self.c:
+                self.c['QMorris'] = 110.0e3
             self.THist              = True
-            initHx                  = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'HxSpin')
+            initHx                  = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'HxSpin') 
             self.Hx                 = initHx[1:]
             if 'temp_Hx' in self.output_list:
                 self.Hx_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
@@ -460,21 +472,29 @@ class FirnDensityNoSpin:
             self.Gamma_old2_Gou = 0
             self.ind1_old       = 0
         #######################
-        
+
         ### Isotopes ########
         if self.c['isoDiff']:
-            self.del_z              = init_del_z[1:]
-            if 'isotopes' in self.output_list:
-                self.iso_out        = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-                self.iso_out[0,:]   = np.append(self.modeltime[0], self.del_z)
-            else:
-                self.iso_out        = None
+            print('Isotope Diffusion is initialized')
+
+            self.Isotopes   = {} #dictionary of class instances
+            self.iso_out    = {} # outputs for each isotope
+            self.Isoz       = {} # depth profile of each isotope
+            self.Iso_sig2_z   ={} # diffusion length profile
+            self.iso_sig2_out ={}
+
+            for isotope in self.c['iso']:
+                self.Isotopes[isotope] = IsotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,self.modeltime)
+                self.iso_out[isotope] = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+                self.iso_out[isotope][0,:]   = np.append(self.modeltime[0], self.Isotopes[isotope].del_z)               
+                self.iso_sig2_out[isotope] = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+                self.iso_sig2_out[isotope][0,:]   = np.append(self.modeltime[0], self.Isotopes[isotope].iso_sig2_z)
         #######################
 
         ### DIP, DHdt, LIZ, BCO ###
         self.dHAll      = []
         self.dHAllcorr  = []
-        bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO()
+        bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(0)
         intPhi, intPhi_c, z_co = self.update_DIP()
         
         self.dHAll.append(0)
@@ -505,9 +525,9 @@ class FirnDensityNoSpin:
             with open(self.c['AirConfigName'], "r") as f:
                 jsonString      = f.read()
                 self.cg         = json.loads(jsonString)
-            self.FA         = {}
-            self.gas_out    = {}
-            self.Gz         = {}
+            self.FA         = {} # dictionary holding each instance of the firn-air class
+            self.gas_out    = {} # outputs for each gas in the simulation
+            self.Gz         = {} # Surface boundary condition for each gas
             for gas in self.cg['gaschoice']:
                 if (gas=='d15N2' or gas=='d40Ar'):
                     input_year_gas = input_year_temp
@@ -565,10 +585,6 @@ class FirnDensityNoSpin:
         
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
-            # print('########################')
-            # if (iii<5 or iii>self.stp-5):
-            #     print('mtime', mtime)
-                # print('melt', self.snowmelt[iii])
             self.D_surf[iii] = iii
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -600,8 +616,9 @@ class FirnDensityNoSpin:
                 'FirnAir':      self.c['FirnAir']
             }
             
-            if self.THist: #add Hx to dictionary if physics is Morris
+            if self.c['physRho']=='Morris2014':
                 PhysParams['Hx'] = self.Hx
+                PhysParams['QMorris'] = self.c['QMorris']
 
             if self.c['FirnAir']:
                 PhysParams['AirRunType'] = self.cg['runtype']
@@ -704,7 +721,19 @@ class FirnDensityNoSpin:
                     self.Gz[gas], self.diffu, w_p, gas_age0 = self.FA[gas].firn_air_diffusion(AirParams,iii)
 
             if self.c['isoDiff']: # Update isotopes
-                self.del_z  = isoDiff(self,iii)
+                # self.del_z  = isoDiff(self,iii)
+                IsoParams = {
+                    'Tz':           self.Tz,
+                    'rho':          self.rho,
+                    'dt':           self.dt[iii],
+                    'z':            self.z,
+                    'rhos0':        self.rhos0[iii],
+                    'dz':           self.dz,
+                    'drho_dt':      drho_dt
+                }
+
+                for isotope in self.c['iso']:
+                    self.Isoz[isotope], self.Iso_sig2_z[isotope] = self.Isotopes[isotope].isoDiff(IsoParams,iii)
                 ### new box gets added on within isoDiff function
                 
             if self.c['strain']: #update horizontal strain
@@ -775,11 +804,13 @@ class FirnDensityNoSpin:
             # if not self.snowmeltSec[iii]>0:
             # self.compaction=np.append(0,np.cumsum((self.dz_old[0:compboxes]-self.dz[1:compboxes+1])/self.dt*S_PER_YEAR))
 
-            self.sigma      = (self.mass + self.LWC * RHO_W_KGM) * self.dx * GRAVITY
+            self.sigma      = (self.mass + (self.LWC * RHO_W_KGM)) * self.dx * GRAVITY
             self.sigma      = self.sigma.cumsum(axis = 0)
             self.mass_sum   = self.mass.cumsum(axis = 0)
             
             self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
+            ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
+
             
             # if self.c['physGrain']: # update grain radius
             #     self.r2, self.dr2_dt    = FirnPhysics(PhysParams).grainGrowth()
@@ -812,13 +843,16 @@ class FirnDensityNoSpin:
                     self.dr2_dt_out[self.WTracker,:]= np.append(mtime_plus1, self.dr2_dt)
                 if 'temp_Hx' in self.output_list:
                     self.Hx_out[self.WTracker,:]    = np.append(mtime_plus1, self.Hx)
-                if 'isotopes' in self.output_list:
-                    self.iso_out[self.WTracker,:]   = np.append(mtime_plus1, self.del_z)
+                if self.c['isoDiff']:
+                    for isotope in self.c['iso']:
+                        self.iso_out[isotope][self.WTracker,:] = np.append(mtime_plus1, self.Isoz[isotope])
+                        self.iso_sig2_out[isotope][self.WTracker,:] = np.append(mtime_plus1, self.Iso_sig2_z[isotope])
                 if 'viscosity' in self.output_list:
                     self.viscosity = RD['viscosity']   
                     self.viscosity_out[self.WTracker,:] = np.append(mtime_plus1, self.viscosity)
 
-                bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO()
+
+                bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(iii)
                 intPhi, intPhi_c, z_co  = self.update_DIP()
                 dH, dHtot, comp_firn, dHcorr, dHtotcorr    = self.update_dH()
                 if mtime==self.TWrite[0]:
@@ -869,40 +903,40 @@ class FirnDensityNoSpin:
     ##### END time_evolve #####
     ###########################
 
-    def update_BCO(self):
+    def update_BCO(self,iii):
         '''
         Updates the bubble close-off depth and age based on the Martinerie criteria as well as through assuming the critical density is 815 kg/m^3
         '''
-        try:
-            if (self.c['FirnAir'] and self.cg['runtype']=='steady'):
-                bcoMartRho  = 1 / (1 / (917.0) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off
-            else:
-                bcoMartRho  = 1 / (1 / (917.0) + self.T_mean[iii] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+        # try:
+        if (self.c['FirnAir'] and self.cg['runtype']=='steady'):
+            bcoMartRho  = 1 / (1 / (917.0) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off
+        else:
+            bcoMartRho  = 1 / (1 / (917.0) + self.T_mean[iii] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
 
-            bcoAgeMart  = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
-            bcoDepMart  = min(self.z[self.rho >= (bcoMartRho)])
+        bcoAgeMart  = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
+        bcoDepMart  = min(self.z[self.rho >= (bcoMartRho)])
 
-            # bubble close-off age and depth assuming rho_crit = 815kg/m^3
-            bcoAge830   = min(self.age[self.rho >= 830.0]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
-            bcoDep830   = min(self.z[self.rho >= 830.0])
-            bcoAge815   = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
-            bcoDep815   = min(self.z[self.rho >= (RHO_2)])
+        # bubble close-off age and depth assuming rho_crit = 815kg/m^3
+        bcoAge830   = min(self.age[self.rho >= 830.0]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+        bcoDep830   = min(self.z[self.rho >= 830.0])
+        bcoAge815   = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+        bcoDep815   = min(self.z[self.rho >= (RHO_2)])
 
-            LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
-            LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
-            LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
+        LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
+        LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
+        LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
 
-        except:
+        # except:
             
-            bcoAgeMart  = -9999
-            bcoDepMart  = -9999
-            bcoAge830   = -9999
-            bcoDep830   = -9999
+        #     bcoAgeMart  = -9999
+        #     bcoDepMart  = -9999
+        #     bcoAge830   = -9999
+        #     bcoDep830   = -9999
 
-            LIZDepMart  = -9999
-            LIZAgeMart  = -9999
-            bcoAge815   = -9999
-            bcoDep815   = -9999
+        #     LIZDepMart  = -9999
+        #     LIZAgeMart  = -9999
+        #     bcoAge815   = -9999
+        #     bcoDep815   = -9999
 
         return bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815
 

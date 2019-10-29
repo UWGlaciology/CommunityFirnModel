@@ -18,6 +18,11 @@ TL;DR: Write down the changes that you made to the the model in this document an
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
+## [1.0.5] -
+
+### Fixed
+- *physics.py* Barnola physics had an error where the exponent *n* for zone 2 densification was always 3; it should be 1 (and now is) when the stress is less than 0.1 MPa.
+
 ## [1.0.4] - 2019-07-17
 ### Notes
 - This release includes several components: I fixed implementation of Morris and Wingham (2014) physics, changed how mean temperature is calculated, added a corrected/modified DH calculation, and changed how T10m is calculated. There may be a few things (e.g. random print statements) that are hanging around. I am still working on implementing V. Verjans melt schemes.

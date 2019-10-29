@@ -8,9 +8,10 @@
 "resultsFolder": "example_results",
 "initfirnFile": "example_firndata.csv",
 "initprofile": false,
-"physRho": "HLdynamic",
-"physRho_options":["HLdynamic","HLSigfus","Li2004","Li2011","Helsen2008","Arthern2010S","Arthern2010T","Spencer2001","Goujon2003","Barnola1991","Morris2013","KuipersMunneke2015","Crocus"],
+"physRho": "Barnola1991",
+"physRho_options":["HLdynamic","HLSigfus","Li2004","Li2011","Helsen2008","Arthern2010S","Arthern2010T","Spencer2001","Goujon2003","Barnola1991","Morris2013","KuipersMunneke2015","Crocus","Ligtenberg2011"],
 "MELT": false,
+"ReehCorrectedT": false,
 "FirnAir": false,
 "AirConfigName": "AirConfig.json",
 "TWriteInt": 1,
@@ -59,5 +60,6 @@
 "deepT": 255.88,
 "bdot_long": 0.49073,
 "manual_iceout": false,
-"iceout": 0.23
+"iceout": 0.23,
+"QMorris": 110.0e3
 }
