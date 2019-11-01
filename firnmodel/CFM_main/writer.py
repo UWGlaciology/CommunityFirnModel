@@ -49,6 +49,8 @@ def write_nospin_hdf5(self):
             f4.create_dataset('iso_sig2_{}'.format(isotope), data = self.iso_sig2_out[isotope])
     if 'LWC' in self.output_list:
         f4.create_dataset('LWC',data = self.LWC_out)
+    if 'PLWC_mem' in self.output_list:
+        f4.create_dataset('PLWC_mem',data = self.PLWC_mem_out)
     if 'DIP' in self.output_list:
         f4.create_dataset('DIP',data = self.DIP_out)
         f4.create_dataset('DIPc', data = self.DIPc_out)
@@ -58,15 +60,17 @@ def write_nospin_hdf5(self):
         f4.create_dataset('LIZ',data = self.LIZ_out)
     if 'viscosity' in self.output_list:
         f4.create_dataset('viscosity',data = self.viscosity_out)
-    if 'refrozen' in self.output_list:
-        f4.create_dataset('refrozen',data = self.refrozen_out)
-    if 'runoff' in self.output_list:
+    # if 'refrozen' in self.output_list:
+    #     f4.create_dataset('refrozen',data = self.refrozen_out)
+    # if 'runoff' in self.output_list:
+    #     f4.create_dataset('runoff',data = self.runoff_out)
+    if 'meltoutputs' in self.output_list:
         f4.create_dataset('runoff',data = self.runoff_out)
-    if 'retmip' in self.output_list:
-        f4.create_dataset('icecon',data = self.icecon_out)
-        f4.create_dataset('trfrz',data = self.trfrz_out)
-        f4.create_dataset('tfac',data = self.tfac_out)
-        f4.create_dataset('tlwc',data = self.tlwc_out) 
+        f4.create_dataset('refrozen',data = self.refrozen_out)
+        # f4.create_dataset('icecon',data = self.icecon_out)
+        # f4.create_dataset('trfrz',data = self.trfrz_out)
+        # f4.create_dataset('tfac',data = self.tfac_out)
+        # f4.create_dataset('tlwc',data = self.tlwc_out) 
         f4.create_dataset('totcumrunoff',data = self.totcumrunoff_out)
         f4.create_dataset('cumrefrozen',data = self.cumrefrozen_out)
     f4.close()

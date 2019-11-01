@@ -23,6 +23,7 @@ class IsotopeDiffusion:
         try:
             fn = os.path.splitext(self.c['InputFileNameIso'])
             isofile = fn[0] + '_{}'.format(self.isotope) + fn[1]
+            print(isofile)
             if isotope=='NoDiffusion':
                 isofile = fn[0] + '_d18O' + fn[1]
             input_iso, input_year_iso = read_input(os.path.join(self.c['InputFileFolder'],isofile))
@@ -49,6 +50,7 @@ class IsotopeDiffusion:
 
         except:
             print('No external file for surface isotope values found ({}), but you specified in the config file that isotope diffusion is on. The model will generate its own synthetic isotope data for you.'.format(self.isotope))
+            print('Double check that file name is correct. New module will add d18O or dD to filename for input.')
 
             if spin:
                 del_s0  = -50.0

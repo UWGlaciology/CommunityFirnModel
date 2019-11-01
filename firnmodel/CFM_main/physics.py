@@ -928,6 +928,7 @@ class FirnPhysics:
         '''
 
         f1 = 1.0 # unitless
+        f1 = (1+60*self.LWC/self.dz)**(-1) #From Vincent
         f2 = 4.0 # unitless
         nu_0 = 7.62237e6 # kg s^-1
         a_n = 0.1 # K^-1
@@ -1031,60 +1032,60 @@ class FirnPhysics:
     ### end Max2018 ###
     ###################
 
-    def grainGrowth(self):
-        '''
-        :param Tz:
-        :param Ts:
-        :param iii:
-        :param dt:
-        :return r2: radius squared in m^2
-        '''
+    # def grainGrowth(self):
+    #     '''
+    #     :param Tz:
+    #     :param Ts:
+    #     :param iii:
+    #     :param dt:
+    #     :return r2: radius squared in m^2
+    #     '''
 
-        kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s
-        Eg  = 42.4e3 # kJ/mol
+    #     kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s
+    #     Eg  = 42.4e3 # kJ/mol
 
-        if self.MELT:
-            porosity = 1 - self.rho / RHO_I 
-            porespace = porosity * self.dz # meters
+    #     if self.MELT:
+    #         porosity = 1 - self.rho / RHO_I 
+    #         porespace = porosity * self.dz # meters
 
-            # sat = self.LWC / porespace 
-            sat = np.zeros_like(self.dz) # use 0 sat if our porespace is 0
-            sat[np.where(porespace>0)[0]] = self.LWC[np.where(porespace>0)[0]] / porespace[np.where(porespace>0)[0]]
+    #         # sat = self.LWC / porespace 
+    #         sat = np.zeros_like(self.dz) # use 0 sat if our porespace is 0
+    #         sat[np.where(porespace>0)[0]] = self.LWC[np.where(porespace>0)[0]] / porespace[np.where(porespace>0)[0]]
 
-            if self.GrGrowPhysics == 'Katsushima':
-                dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
-            elif self.GrGrowPhysics == 'Arthern':
-                dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
+    #         if self.GrGrowPhysics == 'Katsushima':
+    #             dr2_dt = 1e-9/(4*(self.r2)**0.5)*np.minimum(2/(np.pi)*(1.28e-8+4.22e-10*(sat*((1000*(RHO_I-self.rho)/(self.rho*RHO_I))*100))**3),6.94e-8)
+    #         elif self.GrGrowPhysics == 'Arthern':
+    #             dr2_dt = kgr * np.exp(-Eg / (R * self.Tz))
 
-        else: # no MELT
-            dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth, units are m^2/s
+    #     else: # no MELT
+    #         dr2_dt = kgr * np.exp(-Eg / (R * self.Tz)) #Arthern et al., 2010 grain growth, units are m^2/s
 
-        r2 = self.r2 + dr2_dt * self.dt
+    #     r2 = self.r2 + dr2_dt * self.dt
 
-        if ((self.calcGrainSize) and (self.bdotSec[self.iii]>0)): #VV if there is a new layer and we use Linow param
-        #if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
-            # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
+    #     if ((self.calcGrainSize) and (self.bdotSec[self.iii]>0)): #VV if there is a new layer and we use Linow param
+    #     #if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
+    #         # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
 
-            b0Lnw = 0.781
-            b1Lnw = 0.0085
-            b2Lnw = -0.279
-            #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
-            #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 # More accurate to use bdot_mean[-1] as value of mean accumulation ??
-            r2_surface = ((b0Lnw+b1Lnw*(self.T_mean[self.iii] - K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 #VV
-            r2 = np.concatenate(([r2_surface], r2[:-1]))
+    #         b0Lnw = 0.781
+    #         b1Lnw = 0.0085
+    #         b2Lnw = -0.279
+    #         #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[0]*RHO_I/1000))*10**(-3))**2
+    #         #r2_surface = ((b0Lnw+b1Lnw*(self.Ts[self.iii]-K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 # More accurate to use bdot_mean[-1] as value of mean accumulation ??
+    #         r2_surface = ((b0Lnw+b1Lnw*(self.T_mean[self.iii] - K_TO_C) + b2Lnw*(self.bdot_mean[-1]*RHO_I/1000))*10**(-3))**2 #VV
+    #         r2 = np.concatenate(([r2_surface], r2[:-1]))
 
-            # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
+    #         # r2 = np.concatenate(([-2.42e-9 * self.Ts[self.iii] + 9.46e-7], r2[:-1])) # legacy code. Not sure where this equation is from. Gow 1967ish?
 
-        elif (self.bdotSec[self.iii]>0): #VV if there is a new layer but we don't use Linow param
-        #else: # use a fixed surface value, r2s0.
+    #     elif (self.bdotSec[self.iii]>0): #VV if there is a new layer but we don't use Linow param
+    #     #else: # use a fixed surface value, r2s0.
 
-            #VV
-            r2 = np.concatenate(([self.r2s0], r2[:-1])) # Rob Arthern's recommended value, personal communication.
-            #r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
-        else: #VV if no new layer, no need for a new grain size at surface
-            pass
+    #         #VV
+    #         r2 = np.concatenate(([self.r2s0], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+    #         #r2 = np.concatenate(([self.r2s0 ** 2], r2[:-1])) # Rob Arthern's recommended value, personal communication.
+    #     else: #VV if no new layer, no need for a new grain size at surface
+    #         pass
 
-        return r2, dr2_dt
+    #     return r2, dr2_dt
     ### end grainGrowth ###
     #######################
 
