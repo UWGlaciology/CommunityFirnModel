@@ -9,19 +9,27 @@ TL;DR: Write down the changes that you made to the the model in this document an
 ## Work in progress and known issues
 
 - *Issues* 
-	- Morris physics do not work properly.
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
 
 - *Work in progress*
-	- V. Verjans is working on a percolation module that solves Richard's equation and includes a dual-domain approach to handle preferential flow
+	- Testing percolation modules from Vincent Verjans that solves Richard's equation and includes a dual-domain approach to handle preferential flow (these modules are included but may not work properly yet)
+	- Melt will likely be changed to have its own class
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
-## [1.0.5] -
+## [1.0.5] - 2019-11-05
+### Notes
+- This release includes quite a number of changes, which I admittedly did a poor job documenting. The most notable ones are: fixing Morris (2014) physics; changing the way the timestepping is set up and handled; and isotope 
 
 ### Fixed
 - *physics.py* Barnola physics had an error where the exponent *n* for zone 2 densification was always 3; it should be 1 (and now is) when the stress is less than 0.1 MPa.
+- *physics.py* Fixed Morris (2014) physics based on correspondence with L. Morris (spring 2019)
+
+### Added
+- *IsotopeDiffusion.py* 
+
+
 
 ## [1.0.4] - 2019-07-17
 ### Notes
