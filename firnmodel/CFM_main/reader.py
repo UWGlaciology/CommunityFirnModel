@@ -18,8 +18,13 @@ def read_input(filename):
 
     FID        = os.path.join(spot, filename)
     data       = np.loadtxt(FID, delimiter=',') #changed 3/6/17 to loadtxt from genfromtxt; much faster
-    input_year = data[0, :]
-    input_data = data[1, :]
+    xx,yy = np.shape(data)
+    if xx>yy:
+        input_year = data[:, 0]
+        input_data = data[:, 1]
+    else:        
+        input_year = data[0, :]
+        input_data = data[1, :]
 
     return input_data, input_year
 

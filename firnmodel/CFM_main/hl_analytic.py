@@ -1,6 +1,13 @@
 #!/usr/bin/env python
-from constants import *
 import numpy as np
+try:
+    from constants import *
+except:
+    R = 8.314
+    RHO_I_MGM   = 0.917 
+    RHO_1_MGM   = 0.550
+    S_PER_YEAR  = 31557600.0 
+
 
 def hl_analytic(rhos0, h, THL, AHL):
     '''
@@ -56,3 +63,8 @@ def hl_analytic(rhos0, h, THL, AHL):
     rho = rho_h * 1000
 
     return age, rho
+
+
+
+
+
