@@ -879,10 +879,11 @@ class FirnDensityNoSpin:
             elif self.bdotSec[iii]<0: #VV
                 self.mass_sum      = self.mass.cumsum(axis = 0) #VV
                 self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim = sublim(self,iii) #VV keeps track of sublimated water for mass conservation
-                self.znew = np.copy(self.z)
+                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
+                self.dzNew      = 0
+                znew = np.copy(self.z)
 
             else: # no accumulation during this time step
-                
                 self.age        = self.age + self.dt[iii]
                 self.z          = self.dz.cumsum(axis=0)
                 self.z          = np.concatenate(([0],self.z[:-1]))
