@@ -11,7 +11,7 @@ from constants import *
 import os
 import sys
 
-class IsotopeDiffusion:
+class isotopeDiffusion:
     def __init__(self,spin,config,isotope,stp,z,modeltime=None):
 
         '''

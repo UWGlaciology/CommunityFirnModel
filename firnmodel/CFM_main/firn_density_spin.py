@@ -5,7 +5,7 @@ from reader import read_input
 from writer import write_spin_hdf5
 from physics import *
 from constants import *
-from IsotopeDiffusion import IsotopeDiffusion
+from isotopeDiffusion import isotopeDiffusion
 import numpy as np
 import csv
 import json
