@@ -1,0 +1,21 @@
+{
+    "gaschoiceOptions":["d15N2","d40Ar","CO2"],
+    "gaschoice":["d15N2","CO2"],
+    "gravity":"on",
+    "thermal":"on",
+    "runtype":"transient",
+    "runtype_options": ["steady", "transient"],
+    "steady_T": 224.25,
+    "steady_bdot": 0.05,
+    "StepsPerYear": 1.0,
+    "z_resolution": 0.5,
+    "UserData": false,
+    "Diffu_param": "Schwander",
+    "Diffu_options": ["Freitag","Schwander","Severinghaus","Witrant","Battle","Adolph"],
+    "lockin": false,
+    "ConvectiveZoneDepth": 4.0,
+    "advection_type": "zero",
+    "advection_type_options": ["Christo","Darcy","zero"],
+    "outputs": ["gasses","gas_age","diffusivity"],
+    "output_options": ["gasses","diffusivity","advection_rate","gas_age"]
+}

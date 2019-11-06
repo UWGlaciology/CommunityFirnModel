@@ -1,3 +1,0 @@
-DATA_NEEM08_EU_CFC113 Data by UEA, uncertainties by Christo
-Depth	CFC-113	grav	u(CFC-113)
-0.00	78.04	78.04	1.45

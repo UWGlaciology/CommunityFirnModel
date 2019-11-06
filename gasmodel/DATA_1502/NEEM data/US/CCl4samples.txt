@@ -1,3 +1,0 @@
-DATA_NEEM08_EU_CCL4.txt     Data from UEA, uncertainties by Christo
-Depth	CCl4	grav corr	u(CCl4)
-0.00	93.25	93.25	5.58

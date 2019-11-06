@@ -1,3 +1,0 @@
-DATA_NEEM08_EU_HFC134a. Data by UEA, uncertainties by Christo
-Depth	R134a	grav	u(R134a)
-0.00	52.482	52.482	1.69

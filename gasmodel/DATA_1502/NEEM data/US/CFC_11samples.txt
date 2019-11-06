@@ -1,3 +1,0 @@
-DATA_NEEM08_EU_CFC11 Data by UEA, uncertainties by Christo
-Depth	CFC-11	grav	u(CFC-11)
-0.00	249.25	249.25	4.09

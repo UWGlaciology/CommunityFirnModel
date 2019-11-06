@@ -1,4 +1,0 @@
-CH4 history for the northern hemisphere provided by David Etheridge, CSIRO
-year    concentration (ppb)
-1800    100
-2010    100
