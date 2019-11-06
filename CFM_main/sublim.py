@@ -59,7 +59,8 @@ def sublim(self,iii):
     self.dzn        = self.dzn[0:self.compboxes]
     self.Tz         = np.concatenate((self.Tz[ind1:-1] , self.Tz[-1]*np.ones(num_boxes_sublim)))
     self.Tz[0]      = np.copy(self.Ts[iii])
-    self.r2         = np.concatenate((self.r2[ind1:-1] , self.r2[-1]*np.ones(num_boxes_sublim)))
+    if self.c['physGrain']:
+        self.r2         = np.concatenate((self.r2[ind1:-1] , self.r2[-1]*np.ones(num_boxes_sublim)))
     self.bdot_mean  = np.concatenate((self.bdot_mean[ind1:-1] , self.bdot_mean[-1]*np.ones(num_boxes_sublim)))
     self.z          = self.dz.cumsum(axis = 0)
     self.z          = np.concatenate(([0] , self.z[:-1]))

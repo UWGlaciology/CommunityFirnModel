@@ -73,6 +73,9 @@ class isotopeDiffusion:
                 self.del_s      = self.del_s - 50
                 self.iso_sig2_s = np.zeros(stp)
 
+        if 'site_pressure' not in self.c:
+            self.c['site_pressure'] = 1013.25
+
 
     def isoDiff(self,IsoParams,iii):
         '''
@@ -116,7 +119,7 @@ class isotopeDiffusion:
         alpha_D_z   = 0.9098 * np.exp(16288 / (self.Tz**2)) # fractionation factor for D
         Po          = 1.0 # reference pressure in atm
         # P         = 1.0
-        P           = 799/1013.25 # Pressure at WAIS from Christo's thesis.
+        P           = self.c['site_pressure']/1013.25 # Pressure at WAIS from Christo's thesis.
 
         ### Set diffusivity in air (units of m^2/s)
         Da          = 2.11e-5 * (self.Tz / 273.15)**1.94 * (Po / P)

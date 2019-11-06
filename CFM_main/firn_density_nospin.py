@@ -503,6 +503,9 @@ class FirnDensityNoSpin:
         ### Isotopes ########
         if self.c['isoDiff']:
             print('Isotope Diffusion is initialized')
+            if 'site_pressure' not in self.c:
+                print('site_pressure not in .json')
+                print('Defaulting to 1013.25')
 
             self.Isotopes   = {} #dictionary of class instances
             self.iso_out    = {} # outputs for each isotope
@@ -511,7 +514,7 @@ class FirnDensityNoSpin:
             self.iso_sig2_out ={}
 
             for isotope in self.c['iso']:
-                self.Isotopes[isotope] = IsotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,self.modeltime)
+                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,self.modeltime)
                 self.iso_out[isotope] = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
                 self.iso_out[isotope][0,:]   = np.append(self.modeltime[0], self.Isotopes[isotope].del_z)               
                 self.iso_sig2_out[isotope] = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
@@ -594,7 +597,7 @@ class FirnDensityNoSpin:
             self.cg = None
 
         if 'merging' not in self.c:
-                self.c['merging'] = False
+            self.c['merging'] = False
         #####################
 
     ####################    
@@ -788,6 +791,9 @@ class FirnDensityNoSpin:
                 if self.PLWC_mem[-1] > 0.: #VV
                     self.PLWC_mem[-2] += self.PLWC_mem[-1] #VV
                 self.PLWC_mem    = np.concatenate(([0], self.PLWC_mem[:-1])) #VV
+            
+            else: # no melt, dz after compaction
+                self.dzn    = self.dz[0:self.compboxes]
             ### end MELT #######
 
             ### heat diffusion

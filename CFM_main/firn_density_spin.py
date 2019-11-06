@@ -255,7 +255,7 @@ class FirnDensitySpin:
             self.iso_sig2_out = {}
 
             for isotope in self.c['iso']:
-                self.Isotopes[isotope] = IsotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z)
+                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z)
 
         ### Surface Density
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp) # could configure this so that user specifies vector of some noise
