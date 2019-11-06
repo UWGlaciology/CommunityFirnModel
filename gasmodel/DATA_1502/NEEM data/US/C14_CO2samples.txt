@@ -1,3 +1,0 @@
-DATA_NEEM08_EU_14CO2.txt Data from CSIRO, uncertainties by Christo 
-Depth	14CO2 (*1E-9 ppm)	grav	u(14CO2)
-0.00	485.38	485.38	9.10
