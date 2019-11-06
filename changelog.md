@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.4
+1.0.5
 
 ## Work in progress and known issues
 
@@ -28,6 +28,9 @@ TL;DR: Write down the changes that you made to the the model in this document an
 
 ### Added
 - *isotopeDiffusion.py* Isotope diffusion is now in a class. Each isotope (dD and d18O) gets its own instance. This module took the code previously in diffusion.py (written by Emma Kahle). There are several bug fixes (notably b in the tortuosity factor, Johnsen 2000 eqn. 18), and diffusion length is now included as an output.
+- *merge.py* Code to merge very thin layers into a thicker layer.
+- *fcts_snowpackflow.py, prefflow_snowpack.py, re_snowpack.py* Scripts for Vincent Verjans' implemention of the reynolds equation and preferential flow (not yet fully tested for compatibility in master branch.)
+- *sublim.py* Script to include sublimation as a process. 
 
 ### Changed
 - *firn_density_nospin.py, firn_density_spin.py* Previously the CFM took time steps of size dt that were the same size. Now dt is a vector and can vary. There is new field 'timesetup' in the .json configuration file, which can be 'exact', 'interp', or 'retmip'. 'interp' is the old method; the model takes the start and end dates from the input files and the number of timesteps per year from the .json to put together (uniform dt) vector of modeltimes. 'exact' actually takes the series of decimal years (e.g. 2015.12, 2015.24, 2015.37) from the input files and uses the spacing between those dates to get dt. 'retmip' is specific to the retmip experiment - its functionality is not tested within the main framework and it may be removed in the future.
