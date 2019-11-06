@@ -22,7 +22,11 @@ TL;DR: Write down the changes that you made to the the model in this document an
 
 ## [1.0.5] - 2019-11-05
 ### Notes
-- This release includes quite a number of changes, which I admittedly did a poor job documenting. The most notable ones are: fixing Morris (2014) physics; changing the way the timestepping is set up and handled; and isotope 
+- This release includes quite a number of changes, which I admittedly did a poor job documenting. The biggest change is the directory structure (sorry if this causes things to break for you, but it simplifies things in the long haul.) *CFM_main* was moved out of directory *firnmodel* and is now just a subdirectory just below CommunityFirnModel. Directory *gasmodel* is gone (all that code was in the firn air module, so it was legacy code). Directory *firnmodel* is also gone.
+ 
+- The other notable changes are: fixing Morris (2014) physics; changing the way the timestepping is set up and handled; and isotope diffusion now is its own class.
+
+- I have begun to start documenting the CFM using readthedocs.io, so there is now a directory under *CommunityFirnModel* called docs which holds that documentation information. Please let me know if you have suggestions.
 
 ### Fixed
 - *physics.py* Barnola physics had an error where the exponent *n* for zone 2 densification was always 3; it should be 1 (and now is) when the stress is less than 0.1 MPa.
