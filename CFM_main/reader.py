@@ -1,4 +1,8 @@
 #!usr/bin/env python
+'''
+Functions to read model inputs.
+'''
+
 import os
 import numpy as np
 # from string import join
@@ -9,11 +13,12 @@ def read_input(filename):
     '''
     Read in data from csv input files
 
-    :param file: name of the file which holds the accumulation rate data
+    :param filename: name of the file which holds the accumulation rate data
 
-    :return input_bdot: accumulation rate vector from a specified csv file
-    :return input_year_bdot: corresponding time vector (in years)
+    :return input_data: vector of field of interest (e.g. temperature, accumulation rate from a specified csv file
+    :return input_year: corresponding time vector (in years)
     '''
+
     spot = os.getcwd()
 
     FID        = os.path.join(spot, filename)
@@ -31,7 +36,7 @@ def read_input(filename):
 def read_init(folder, resultsFileName, varname):
 
     '''
-    Read in data for initial depth, age, density, and temperature to run the model without spin
+    Read in data for initial depth, age, density, and temperature to run the model without spinup
 
     :param folder: the folder containing the files holding depth, age, density, and temperature
 

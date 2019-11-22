@@ -1,7 +1,7 @@
 
 '''
 This is a code applying water flow in firn with single domain approach:
-    - Richards Equation in Matrix Flow domain, no Preferential Flow domain
+- Richards Equation in Matrix Flow domain, no Preferential Flow domain
 
 Essentially a simplification of the dual domain flow scheme
 '''

@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+'''
+The Herron and Langway analytic model.
+'''
+
 import numpy as np
 try:
     from constants import *

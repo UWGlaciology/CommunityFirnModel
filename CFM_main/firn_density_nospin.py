@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+'''
+
+Class for the main model run
+
+'''
+
 
 from diffusion import *
 from reader import read_input
@@ -67,6 +73,7 @@ class FirnDensityNoSpin:
                 (unit: ???, type: array of floats)
     : bdot_mean: mean accumulation over the lifetime of each parcel
                 (units are m I.E. per year)
+                
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
 
@@ -76,6 +83,7 @@ class FirnDensityNoSpin:
         '''
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
         :param configName: name of json config file containing model configurations
+        
         '''
         ### load in json config file and parses the user inputs to a dictionary
         self.spin = False
@@ -521,30 +529,6 @@ class FirnDensityNoSpin:
                 self.iso_sig2_out[isotope][0,:]   = np.append(self.modeltime[0], self.Isotopes[isotope].iso_sig2_z)
         #######################
 
-        ### DIP, DHdt, LIZ, BCO ###
-        self.dHAll      = []
-        self.dHAllcorr  = []
-        bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(0)
-        intPhi, intPhi_c, z_co = self.update_DIP()
-        
-        self.dHAll.append(0)
-        self.dHAllcorr.append(0)
-        dHOut   = 0 # surface elevation change since last time step
-        dHOutC  = 0 # cumulative surface elevation change since start of model run
-        compOut = 0 # compaction of just the firn at each time step; no ice dynamics or accumulation
-        dHOutcorr = 0
-        dHOutcorrC = 0
-
-        if 'DIP' in self.output_list:
-            self.DIP_out        = np.zeros((TWlen+1,7),dtype='float32')   
-            self.DIP_out[0,:]   = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC])
-            self.DIPc_out       = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-            self.DIPc_out[0,:]  = np.append(self.modeltime[0], intPhi_c)
-        if 'BCO' in self.output_list:
-            self.BCO_out        = np.zeros((TWlen+1,10),dtype='float32')
-            self.BCO_out[0,:]   = np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
-        #####################
-
         ##### Firn Air ######
         '''
         each gas of interest gets its own instance of the class, each instance
@@ -600,26 +584,56 @@ class FirnDensityNoSpin:
             self.c['merging'] = False
         #####################
 
+        ### DIP, DHdt, LIZ, BCO ###
+        self.dHAll      = []
+        self.dHAllcorr  = []
+        bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(0)
+        intPhi, intPhi_c, z_co = self.update_DIP()
+        
+        self.dHAll.append(0)
+        self.dHAllcorr.append(0)
+        dHOut   = 0 # surface elevation change since last time step
+        dHOutC  = 0 # cumulative surface elevation change since start of model run
+        compOut = 0 # compaction of just the firn at each time step; no ice dynamics or accumulation
+        dHOutcorr = 0
+        dHOutcorrC = 0
+
+        if 'DIP' in self.output_list:
+            self.DIP_out        = np.zeros((TWlen+1,7),dtype='float32')   
+            self.DIP_out[0,:]   = np.append(self.modeltime[0], [intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC])
+            self.DIPc_out       = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+            self.DIPc_out[0,:]  = np.append(self.modeltime[0], intPhi_c)
+        if 'BCO' in self.output_list:
+            self.BCO_out        = np.zeros((TWlen+1,10),dtype='float32')
+            self.BCO_out[0,:]   = np.append(self.modeltime[0], [bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
+        #####################
+
     ####################    
     ##### END INIT #####
     ####################
 
     def time_evolve(self):
         '''
+
         Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity through time
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
+        
         '''
+
         self.steps = 1 / self.t # steps per year
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
         
         ####################################
         ##### START TIME-STEPPING LOOP #####
         ####################################
-        
+
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             self.D_surf[iii] = iii
-
+            if iii==1000:
+                ntime = time.time()
+                print('1000 iterations took:', ntime-start_time)
+                print('estimated model run time:', self.stp*(ntime-start_time)/1000)
             ### Merging process #VV ###
             if self.c['merging']:
                 if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-4)):

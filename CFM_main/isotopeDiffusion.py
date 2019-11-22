@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+'''
+Code for isotope diffusion.
+'''
 import numpy as np 
 # from solver import solver
 from solver import transient_solve_TR
@@ -12,6 +15,12 @@ import os
 import sys
 
 class isotopeDiffusion:
+
+    '''
+    Isotope diffusion class.
+    '''
+
+
     def __init__(self,spin,config,isotope,stp,z,modeltime=None):
 
         '''
@@ -74,6 +83,7 @@ class isotopeDiffusion:
                 self.iso_sig2_s = np.zeros(stp)
 
         if 'site_pressure' not in self.c:
+            print('site_pressure is not in .json; defaulting to 1013.25')
             self.c['site_pressure'] = 1013.25
 
 

@@ -1,4 +1,12 @@
 #!/usr/bin/env python
+'''
+code to handle diffusion (heat, enthalpy, isotope)
+calls solver
+Draws from Numerical Heat Transfer and Heat Flow (Patankar, 1980)
+
+Isotope diffusion now has its own class.
+'''
+
 from solver import transient_solve_TR
 # from solver import transient_solve_EN_old
 # from solver import transient_solve_EN_new
@@ -6,12 +14,6 @@ from solver import transient_solve_EN
 from constants import *
 import numpy as np
 from scipy import interpolate
-
-'''
-code to handle diffusion (heat, enthalpy, isotope)
-calls solver
-Draws from Numerical Heat Transfer and Heat Flow (Patankar, 1980)
-'''
 
 def heatDiff(self,iii):
     '''
@@ -24,7 +26,8 @@ def heatDiff(self,iii):
 
     :returns self.Tz:
     :returns self.T10m:
-    # thermal diffusivity: alpha = K_firn / (rho*c_firn)
+    
+    thermal diffusivity: alpha = K_firn / (rho*c_firn)
     '''
 
     nz_P            = len(self.z)
@@ -176,10 +179,6 @@ def enthalpyDiff(self,iii):
 
     return self.Tz, self.T10m, self.rho, self.mass, self.LWC
 ### end enthalpy diffusion
-
-'''
-Isotope diffusion now has its own class.
-'''
 
 
 '''

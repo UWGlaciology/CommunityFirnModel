@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-'''This file creates classes for the spin up and main runs and runs the model''' 
+"""
+main.py
+=======
+The core file to run the CFM
+
+This file creates classes for the spin up and main runs and runs the model.
+"""
 
 import sys
 import os

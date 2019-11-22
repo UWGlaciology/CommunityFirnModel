@@ -2,7 +2,7 @@
 '''
 This is a code imitating the preferential flow scheme developed in Wever et al. (2016)
 Water flow in firn with dual domain approach:
-    - Richards Equation in Matrix Flow domain and Preferential Flow domain
+- Richards Equation in Matrix Flow domain and Preferential Flow domain
 
 Few differences with Wever 2016 as:
 -Use of a constant bigF value (part of the pore space allocated to each domain)
@@ -11,7 +11,7 @@ Few differences with Wever 2016 as:
 -Possible to build up aquifer at end of domain
 -Use of upstream weighted mean to determine hydraulic conductivity at interfaces avoids oscillations for large mesh size
 -We use a changing bottom boundary if saturated layers accumulate: don't solve RE for the saturated layers at end of the firn column    
-    + don't solve RE in dry part of the domain
+- don't solve RE in dry part of the domain
 
 Density of last layer of the domain should always be >= 830
 '''

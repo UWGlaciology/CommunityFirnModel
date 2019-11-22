@@ -2,6 +2,11 @@
 from constants import *
 import numpy as np
 
+'''
+Functions to handle meltwater percolation.
+Bucket schemes only in this file.
+'''
+
 def percolation_bucket(self, iii):
 
     '''
@@ -192,7 +197,10 @@ def percolation_bucket(self, iii):
     return self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC
 
 def bucketVV(self, iii):
-    
+    '''
+    Bucket scheme coded by V. Verjans, used in Verjans et al. (2019)
+    '''
+
 #    tic2=time.time()
     irr = 0.02 # Irreducible water content, this is a proportion of the available pore space
     # We use 830 as threshold to generate runoff, can be changed

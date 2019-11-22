@@ -1,18 +1,48 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+'''
+The Community Firn Model physics module.
+========================================
+
+Something here.
+'''
+
+
 import numpy as np
 from constants import *
 from scipy import interpolate
 import sys
 import numpy.polynomial.polynomial as poly
 
-# The standard parameters that get passed are:
-# (iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain):
-# if you want to add physics that require more parameters, you need to change the 'PhysParams' dictionary in both the spin and nospin classes.
+
+
+
+
 
 class FirnPhysics:
 
+    '''
+    class for the various firn densification schemes
+
+    The standard parameters that get passed are: iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain
+
+    if you want to add physics that require more parameters, you need to change the 'PhysParams' dictionary in both the spin and nospin classes.
+
+    :param steps: # of steps per year
+    :param gridLen:
+    :param bdotSec:
+    :param Tz:
+    :param rho:
+    :param sigma:
+
+    :return drho_dt:
+    :return viscosity:
+
+    '''
+
     def __init__(self,PhysParams):
         '''
+        The init docstring
         bdot_mean units are m I.E./year
         bdotSec units are m I.E./time step
         '''
@@ -20,20 +50,11 @@ class FirnPhysics:
             setattr(self,k,v)
         self.RD = {} # RD = Return Dictionary, set up this way so that more things can be returned easily if needed.
 
+
     def HL_dynamic(self):
-        #HL viscosity doesn't work
         '''
         Accumulation units are m W.E. per year
-
-        :param steps: # of steps per year
-        :param gridLen:
-        :param bdotSec:
-        :param Tz:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
+        viscosity doesn't work
         '''
         Q1  = 10160.0
         Q2  = 21400.0
@@ -81,17 +102,7 @@ class FirnPhysics:
 
     def HL_Sigfus(self):
         '''
-        Accumulation units are m W.E. per year (zone 1); uses stress for zone 2
-
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param Tz:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
+        Accumulation units are m W.E. per year (zone 1); uses stress for zone 2 
         '''
         Q1  = 10160.0
         Q2  = 21400.0
@@ -139,17 +150,7 @@ class FirnPhysics:
         (Arthern implies accumulation is m I.E./year for bdot; not doing that here.)
         Paper would lead me to believe that it is m W.E.
         
-        ***Needs to have the vapor flux coded in if we want to use these physics properly.
-
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param T10m:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
+        Needs to have the vapor flux coded in if we want to use these physics properly.
         '''
 
         A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
@@ -181,19 +182,6 @@ class FirnPhysics:
         Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)
 
         beta should be calculated with the long-term mean accumulation rate
-
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param bdot_mean:
-        :param bdot_type:
-        :param Tz:
-        :param T10m:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
         '''
 
         A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
@@ -241,26 +229,17 @@ class FirnPhysics:
     ###################
 
     def Li_2015(self):
+
+        
         '''
-        Thanks to Jiajen Chen for pointing out that there were updated beta parameters
-        in Li and Zwally, 2015.
         Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
         Temperature in the equation for beta is in C.
         Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)
 
         beta should be calculated with the long-term mean accumulation rate
-
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param bdot_mean:
-        :param bdot_type:
-        :param Tz:
-        :param T10m:
-        :param rho:
-
-        :return drho_dt:
         '''
+
+        #Thanks to Jiajen Chen for pointing out that there were updated beta parameters in Li and Zwally, 2015
 
         A_instant     = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
         A_mean = self.bdot_mean * RHO_I_MGM
@@ -315,18 +294,6 @@ class FirnPhysics:
         This is the steady-state solution described in the main text of Arthern et al. (2010)
         Accumulation units are kg/m^2/year
 
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param bdot_type:
-        :param bdot_mean:
-        :param Tz:
-        :param T10m:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
         '''
 
         ar1 = 0.07
@@ -366,15 +333,6 @@ class FirnPhysics:
 
         Uses stress rather than accumulation rate.
 
-        :param gridLen: 
-        :param Tz:
-        :param rho:
-        :param sigma:
-        :param r2:
-        :param physGrain:
-
-        :return drho_dt:
-        :return viscosity:
         '''
 
         kc1 = 9.2e-9
@@ -406,18 +364,6 @@ class FirnPhysics:
         Equation is from Arthern et al. 2010 (2)
         (Arthern implies units are m I.E.; not doing that here) 
 
-
-        :param steps:
-        :param bdotSec:
-        :param bdot_mean:
-        :param Tz:
-        :param Ts:
-        :param rho:
-        :param bdot_type:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
         '''
 
         A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
@@ -445,18 +391,6 @@ class FirnPhysics:
         '''
         Accumulation units are kg/m^2/year
 
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param bdot_mean:
-        :param bdot_type:
-        :param Tz:
-        :param T10m:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
         '''
         ar1 = 0.07
         ar2 = 0.03
@@ -501,18 +435,6 @@ class FirnPhysics:
         Units are mm W.E. per year
         b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
 
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param bdot_mean:
-        :param bdot_type:
-        :param Tz:
-        :param T10m:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt :
-        :return viscosity:
         '''
         ar1 = 0.07
         ar2 = 0.03
@@ -571,15 +493,6 @@ class FirnPhysics:
 
         uses m W.E. (zone 1) and stress (zone 2)
 
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param Tz:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt:
-        :return viscosity:
         '''
         Q1              = 10160.0
         k1              = 11.0
@@ -638,7 +551,6 @@ class FirnPhysics:
         Uses stress instead of accumulation.
 
         Need to choose physics for zone 2. Herron and Langway here.
-
         '''
 
         QMorris = self.c['QMorris']
@@ -709,18 +621,6 @@ class FirnPhysics:
         Units are mm W.E. per year
         b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
 
-        :param steps:
-        :param gridLen:
-        :param bdotSec:
-        :param bdot_mean:
-        :param bdot_type:
-        :param Tz:
-        :param T10m:
-        :param rho:
-        :param sigma:
-
-        :return drho_dt :
-        :return viscosity:
         '''
         ar1 = 0.07
         ar2 = 0.03
@@ -782,14 +682,8 @@ class FirnPhysics:
 
     def Goujon_2003(self):
         '''
-
         Uses stress
-
-        :return:
         '''
-
-        # global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
-
 
         atmosP      = 101325.0 # Atmospheric Pressure
         dDdt        = np.zeros(self.gridLen) # Capital D is change in relative density
@@ -924,7 +818,7 @@ class FirnPhysics:
     def Crocus(self):
         '''
         Uses stress
-        :return:
+
         '''
 
         f1 = 1.0 # unitless
@@ -951,8 +845,12 @@ class FirnPhysics:
     ### end Crocus ###
     ##################
 
-    ### Experimental: based on firn compaction data from FirnCover campaigns
+
     def Max2018b(self):
+        '''
+        Experimental: based on firn compaction data from FirnCover campaigns
+        '''
+
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1
         k0 = 6.0e7
@@ -981,6 +879,10 @@ class FirnPhysics:
     ####################
 
     def Max2018(self):
+        '''
+        Experimental: based on firn compaction data from FirnCover campaigns
+        '''
+
         # k0 = 0.15 # units Pa^-1 s^-1
         # k1 = 0.05 # units Pa^-1 s^-1
         # k0 = 8.5e9
@@ -1091,6 +993,10 @@ class FirnPhysics:
 
     def surfacegrain(self):
 
+        '''
+        function to calculate the surface grain size at each time step
+        '''
+
         if self.calcGrainSize: #VV if there is a new layer and we use Linow param
             #if self.calcGrainSize: # Apply initial grain size parameterisation from Linow et al., 2012: eqs (11) and (12)
                 # uses mean annual T in [C] and mean annual bdot in [m w.e. yr-1]
@@ -1117,12 +1023,9 @@ class FirnPhysics:
     def graincalc(self):
         
         '''
+        Evolve the grain size
+
         This is the same as graingrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function      
-        :param Tz:
-        :param Ts:
-        :param iii:
-        :param dt:
-        :return r2:
         '''
 
         kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s

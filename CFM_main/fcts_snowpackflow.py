@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 '''
 This script contains all the functions required to make the pereferential flow scheme of snowpack work
 https://models.slf.ch/p/snowpack/source/tree/HEAD/branches/dev/snowpack/snowpackCore/ReSolver1d.cc
@@ -15,14 +15,15 @@ from constants import *
 def NPtrid(a,b,c,d):
     '''
     package to solve tridiagonal matrix --> find x matrix in Ax=d equation
+
     a,b,c,d are arrays, should be made of floats, not integer
     a and c are 1 index shorter than b and d
-    
-       b0 c0 0. 0. ...
-       a0 b1 c1 0. ...
-    A= ...............
-       . 0. 0. an-1 bn
+    -   [b0 c0 0. 0. ...]
+    -   [a0 b1 c1 0. ...]
+    A = [...............]
+    -   [. 0. 0. an-1 bn]
     '''
+
     diagonals  = [a, b, c]
     tridiagmat = diags(diagonals,[-1,0,1]).toarray()
     tridiagsol = solve(tridiagmat,d)
@@ -36,18 +37,14 @@ def TDMAsolver(a,b,c,d):
     TDMA solver --> find x matrix in Ax=d equation
     a,b,c,d are arrays, should be made of floats, not integer
     a and c are 1 index shorter than b and d
-    
-       b0 c0 0. 0. ...
-       a0 b1 c1 0. ...
-    A= ...............
-       . 0. 0. an-1 bn
-    
+    -   [b0 c0 0. 0. ...]
+    -   [a0 b1 c1 0. ...]
+    A = [...............]
+    -   [. 0. 0. an-1 bn]    
     A is nxn tridiagonal matrix with a - b - c as diagonals, x is nx1 matrix, d is nx1 matrix
     Sources:
-        https://gist.github.com/cbellei/8ab3ab8551b8dfc8b081c518ccd9ada9
-        https://en.wikibooks.org/wiki/Algorithm_Implementation/Linear_Algebra/Tridiagonal_matrix_algorithm#Python
-        
-    
+    https://gist.github.com/cbellei/8ab3ab8551b8dfc8b081c518ccd9ada9
+    https://en.wikibooks.org/wiki/Algorithm_Implementation/Linear_Algebra/Tridiagonal_matrix_algorithm#Python
     '''
     
     n = len(d)
@@ -80,7 +77,7 @@ def splitCFM(rhoC,dzC,TzC,massC,lwcC,Plwc_memC,r2C,vert_res):
     C for coarse grid
     We split the layers of the CFM in layers of a certain maximal thickness.
     Maximal thickness must be specified in vert_res.
-    With the implementation of upstream weighted mean for K at interfaces, we can take large vert_res value !
+    With the implementation of upstream weighted mean for K at interfaces, we can take large vert_res value!
     '''
     
     ### Resolution we want for the layers for RE, should maybe be given as input to funcion ###
@@ -144,10 +141,10 @@ def combineCFM(split_list,rhoF,dzF,TzF,massF,lwcF,Plwc_memF,r2F,refrozenF):
     F for fine grid
     C for coarse grid
     Here, we need the vectors that are outputs of the flow routine:
-        combine them back to reintegrate these to the CFM
-        Note that we also need the split_list ! (nb of sublayers into which every CFM layer was split by the split function)
-        Normally, RE routine (including freezing) should not affect dz and r2 variables but only use them
-            -> not necessary to combine them and to give them back to CFM (which can keep its own self.dz and self.r2)
+    - combine them back to reintegrate these to the CFM
+    - Note that we also need the split_list ! (nb of sublayers into which every CFM layer was split by the split function)
+    - Normally, RE routine (including freezing) should not affect dz and r2 variables but only use them
+    -> not necessary to combine them and to give them back to CFM (which can keep its own self.dz and self.r2)
     '''
     ### Vectors that will be reattributed to the self. vectors ###
     dzC = np.array([]) # thickness vector for the C

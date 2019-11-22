@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+
+'''
+
+Class for spinning up the model.
+
+'''
+
 from diffusion import heatDiff
 from hl_analytic import hl_analytic
 from reader import read_input
@@ -61,14 +68,18 @@ class FirnDensitySpin:
                 (unit: ???, type: array of floats)
     : rhos0: surface accumulate rate vector
                 (unit: ???, type: array of floats)
+                
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
+
     '''
 
     def __init__(self, configName):
         '''
+
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature of the model run
         :param configName: name of json config file containing model configurations
+        
         '''
 
         ### load in json config file and parses the user inputs to a dictionary
