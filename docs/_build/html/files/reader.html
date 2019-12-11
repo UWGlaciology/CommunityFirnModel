@@ -180,11 +180,10 @@
             
   <div class="section" id="module-reader">
 <span id="reader"></span><h1>reader<a class="headerlink" href="#module-reader" title="Permalink to this headline">¶</a></h1>
-<p>Functions to read model inputs.</p>
 <dl class="function">
 <dt id="reader.read_init">
 <code class="sig-prename descclassname">reader.</code><code class="sig-name descname">read_init</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">resultsFileName</em>, <em class="sig-param">varname</em><span class="sig-paren">)</span><a class="headerlink" href="#reader.read_init" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read in data for initial depth, age, density, and temperature to run the model without spinup</p>
+<dd><p>Read in data for initial depth, age, density, and temperature to run the model without spin</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>folder</strong> – the folder containing the files holding depth, age, density, and temperature</p>
@@ -198,12 +197,12 @@
 <dd><p>Read in data from csv input files</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>filename</strong> – name of the file which holds the accumulation rate data</p>
+<dd class="field-odd"><p><strong>file</strong> – name of the file which holds the accumulation rate data</p>
 </dd>
-<dt class="field-even">Return input_data</dt>
-<dd class="field-even"><p>vector of field of interest (e.g. temperature, accumulation rate from a specified csv file</p>
+<dt class="field-even">Return input_bdot</dt>
+<dd class="field-even"><p>accumulation rate vector from a specified csv file</p>
 </dd>
-<dt class="field-odd">Return input_year</dt>
+<dt class="field-odd">Return input_year_bdot</dt>
 <dd class="field-odd"><p>corresponding time vector (in years)</p>
 </dd>
 </dl>

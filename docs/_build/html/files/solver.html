@@ -180,19 +180,6 @@
             
   <div class="section" id="module-solver">
 <span id="solver"></span><h1>solver<a class="headerlink" href="#module-solver" title="Permalink to this headline">¶</a></h1>
-<p>Functions to solve the diffusion equation</p>
-<dl class="function">
-<dt id="solver.A">
-<code class="sig-prename descclassname">solver.</code><code class="sig-name descname">A</code><span class="sig-paren">(</span><em class="sig-param">P</em><span class="sig-paren">)</span><a class="headerlink" href="#solver.A" title="Permalink to this definition">¶</a></dt>
-<dd><p>Power-law scheme, Patankar eq. 5.34</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="solver.F_upwind">
-<code class="sig-prename descclassname">solver.</code><code class="sig-name descname">F_upwind</code><span class="sig-paren">(</span><em class="sig-param">F</em><span class="sig-paren">)</span><a class="headerlink" href="#solver.F_upwind" title="Permalink to this definition">¶</a></dt>
-<dd><p>Upwinding scheme</p>
-</dd></dl>
-
 <dl class="function">
 <dt id="solver.solver">
 <code class="sig-prename descclassname">solver.</code><code class="sig-name descname">solver</code><span class="sig-paren">(</span><em class="sig-param">a_U</em>, <em class="sig-param">a_D</em>, <em class="sig-param">a_P</em>, <em class="sig-param">b</em><span class="sig-paren">)</span><a class="headerlink" href="#solver.solver" title="Permalink to this definition">¶</a></dt>
@@ -214,7 +201,7 @@
 <dl class="function">
 <dt id="solver.transient_solve_EN">
 <code class="sig-prename descclassname">solver.</code><code class="sig-name descname">transient_solve_EN</code><span class="sig-paren">(</span><em class="sig-param">z_edges</em>, <em class="sig-param">Z_P</em>, <em class="sig-param">nt</em>, <em class="sig-param">dt</em>, <em class="sig-param">Gamma_P</em>, <em class="sig-param">phi_0</em>, <em class="sig-param">nz_P</em>, <em class="sig-param">nz_fv</em>, <em class="sig-param">phi_s</em>, <em class="sig-param">tot_rho</em>, <em class="sig-param">c_vol</em>, <em class="sig-param">g_liq</em>, <em class="sig-param">deltaH</em><span class="sig-paren">)</span><a class="headerlink" href="#solver.transient_solve_EN" title="Permalink to this definition">¶</a></dt>
-<dd><p>transient 1-d diffusion finite volume method for enthalpy</p>
+<dd><p>transient 1-d diffusion finite volume method</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -237,7 +224,7 @@
 <dl class="function">
 <dt id="solver.transient_solve_EN_new_B">
 <code class="sig-prename descclassname">solver.</code><code class="sig-name descname">transient_solve_EN_new_B</code><span class="sig-paren">(</span><em class="sig-param">z_edges</em>, <em class="sig-param">Z_P</em>, <em class="sig-param">nt</em>, <em class="sig-param">dt</em>, <em class="sig-param">Gamma_P</em>, <em class="sig-param">phi_0</em>, <em class="sig-param">nz_P</em>, <em class="sig-param">nz_fv</em>, <em class="sig-param">phi_s</em>, <em class="sig-param">tot_rho</em>, <em class="sig-param">enthalpy_l=None</em><span class="sig-paren">)</span><a class="headerlink" href="#solver.transient_solve_EN_new_B" title="Permalink to this definition">¶</a></dt>
-<dd><p>transient 1-d diffusion finite volume method for enthalpy option b (old code)</p>
+<dd><p>transient 1-d diffusion finite volume method</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -294,12 +281,6 @@
 :param nz_fv:
 :param phi_s:
 :return phi_t:</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="solver.w">
-<code class="sig-prename descclassname">solver.</code><code class="sig-name descname">w</code><span class="sig-paren">(</span><em class="sig-param">airdict</em>, <em class="sig-param">z_edges</em>, <em class="sig-param">rho_edges</em>, <em class="sig-param">Z_P</em>, <em class="sig-param">dZ</em><span class="sig-paren">)</span><a class="headerlink" href="#solver.w" title="Permalink to this definition">¶</a></dt>
-<dd><p>Function for downward advection of air and also calculates total air content.</p>
 </dd></dl>
 
 </div>

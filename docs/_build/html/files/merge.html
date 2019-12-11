@@ -180,17 +180,8 @@
             
   <div class="section" id="module-merge">
 <span id="merge-py"></span><h1>merge.py<a class="headerlink" href="#module-merge" title="Permalink to this headline">¶</a></h1>
-<p>Script that contains 3 functions. These are to be used if we want to proceed to merging of thin layers of the firn column.
-I suggest we specify in json input if merge is true/false and the thickness threshold (‘merge_min’):
-“merging”: true,
-“merge_min”: 5e-3
-mergesurf(): for layer[0] and layer[1], to be used in time_evolve() of firn_density_nospin
-mergenotsurf(): for layers[2:], to be used in time_evolve() of firn_density_nospin
-mergeall(): for all layers, to be used at the end of firn_density_spin
-CAUTION:
-- not used for all variables (e.g. du_dx)
-- nothing is done considering gas neither for isotopes
-&#64;author: verjans</p>
+<p>Created on Wed Jun  6 08:58:16 2018</p>
+<p>&#64;author: verjans</p>
 <dl class="function">
 <dt id="merge.mergeall">
 <code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergeall</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">thickmin</em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergeall" title="Permalink to this definition">¶</a></dt>
@@ -206,7 +197,10 @@ Here we change self.compboxes as we modify the number of layers above 80m depth.
 We merge all the layers below a thickness threshold except the layers of indices 0 and 1.
 This allows layers that became too thin due to compaction to be merged with the layer below.
 Minimum thickness threshold must be specified as thickmin
-We don’t do this for surface layer because that would lead to any newly accumulated layer to be merged if RCM forcing is on a short time scale. The surface layer has its own function mergesurf().</p>
+We don’t do this for surface layer because that would lead to any newly accumulated layer to be merged if RCM forcing is on a</p>
+<blockquote>
+<div><p>short time scale. The surface layer has its own function mergesurf().</p>
+</div></blockquote>
 </dd></dl>
 
 <dl class="function">
@@ -214,8 +208,11 @@ We don’t do this for surface layer because that would lead to any newly accumu
 <code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergesurf</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">thickmin</em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergesurf" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function is to call during time_evolve function of firn_density_nospin.
 We merge the surface layer[0] with the layer[1] below as long as layer[1] remains under a certain thickness threshold.
-By applying condition on layer[1] instead of layer[0], we avoid merging all newly accumulated layers in the case we use a RCM forcing on a short time scale.
-Thickness threshold must be specified and consistent with the one of mergenotsurf().</p>
+By applying condition on layer[1] instead of layer[0], we avoid merging all newly accumulated layers in the case we use a</p>
+<blockquote>
+<div><p>RCM forcing on a short time scale.</p>
+</div></blockquote>
+<p>Thickness threshold must be specified and consistent with the one of mergenotsurf().</p>
 </dd></dl>
 
 </div>

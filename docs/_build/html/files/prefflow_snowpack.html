@@ -181,16 +181,24 @@
   <div class="section" id="module-prefflow_snowpack">
 <span id="prefflow-snowpack-py"></span><h1>prefflow_snowpack.py<a class="headerlink" href="#module-prefflow_snowpack" title="Permalink to this headline">¶</a></h1>
 <p>This is a code imitating the preferential flow scheme developed in Wever et al. (2016)
-Water flow in firn with dual domain approach:
-- Richards Equation in Matrix Flow domain and Preferential Flow domain</p>
+Water flow in firn with dual domain approach:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Richards Equation in Matrix Flow domain and Preferential Flow domain</p></li>
+</ul>
+</div></blockquote>
 <p>Few differences with Wever 2016 as:
 -Use of a constant bigF value (part of the pore space allocated to each domain)
 -Runoff function from Zuo and Oerlemans 1996
 -Possible to apply PFfreezing if cold wave penetrates from the surface
 -Possible to build up aquifer at end of domain
 -Use of upstream weighted mean to determine hydraulic conductivity at interfaces avoids oscillations for large mesh size
--We use a changing bottom boundary if saturated layers accumulate: don’t solve RE for the saturated layers at end of the firn column
-- don’t solve RE in dry part of the domain</p>
+-We use a changing bottom boundary if saturated layers accumulate: don’t solve RE for the saturated layers at end of the firn column</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>don’t solve RE in dry part of the domain</p></li>
+</ul>
+</div></blockquote>
 <p>Density of last layer of the domain should always be &gt;= 830</p>
 </div>
 
