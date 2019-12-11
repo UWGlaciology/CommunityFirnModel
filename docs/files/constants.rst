@@ -1,0 +1,4 @@
+constants.py
+============
+
+.. automodule:: constants
