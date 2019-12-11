@@ -30,7 +30,7 @@ release = '1.0.5'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark','sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon'
+extensions = ['recommonmark','sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon', 'sphinx-jsonschema','sphinx.ext.mathjax'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
