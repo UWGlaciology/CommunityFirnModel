@@ -1,6 +1,12 @@
 #!/usr/bin/env python
+'''
+Script to change the grid to have different resolutions at different depths.
+'''
+
 from constants import *
 import numpy as np
+
+
 
 def regrid(self):
     '''

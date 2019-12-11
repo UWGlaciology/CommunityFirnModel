@@ -1,10 +1,20 @@
 #!/usr/bin/env python
+'''
+writer.py
+=========
+
+Functions for writing model outputs.
+'''
+
 import csv
 import os
 import numpy as np
 import h5py
 
 def write_nospin_hdf5(self):
+    '''
+    Write the results fromt the main model run
+    '''
 
     f4 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']),'w')
     
@@ -76,6 +86,9 @@ def write_nospin_hdf5(self):
     f4.close()
 
 def write_spin_hdf5(self):
+    '''
+    Write the model outputs at the end of spin up
+    '''
 
     f5 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['spinFileName']), 'w')
 

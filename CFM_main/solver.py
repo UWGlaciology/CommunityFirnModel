@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+'''
+Functions to solve the diffusion equation
+'''
+
 import numpy as np
 from scipy import interpolate
 import scipy.integrate
@@ -195,7 +199,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
 def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH):
     '''
-    transient 1-d diffusion finite volume method
+    transient 1-d diffusion finite volume method for enthalpy
 
     :param z_edges:
     :param Z_P:
@@ -314,7 +318,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
 def transient_solve_EN_new_B(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, enthalpy_l=None):
     '''
-    transient 1-d diffusion finite volume method
+    transient 1-d diffusion finite volume method for enthalpy option b (old code)
 
     :param z_edges:
     :param Z_P:
@@ -588,7 +592,10 @@ def transient_solve_EN_old(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
 '''
 Functions below are for firn air
 '''
-def w(airdict, z_edges, rho_edges, Z_P, dZ): # Function for downward advection of air and also calculates total air content. 
+def w(airdict, z_edges, rho_edges, Z_P, dZ): 
+    '''
+    Function for downward advection of air and also calculates total air content. 
+    '''
     if airdict['advection_type']=='Darcy':
         por_op_edges=np.interp(z_edges,airdict['z'],airdict['por_op'])
         T_edges = np.interp(z_edges,airdict['z'],airdict['Tz'])
@@ -666,11 +673,13 @@ def w(airdict, z_edges, rho_edges, Z_P, dZ): # Function for downward advection o
     return w_ad
 
 
-def A(P): # Power-law scheme, Patankar eq. 5.34
+def A(P):
+    '''Power-law scheme, Patankar eq. 5.34'''
     A = np.maximum( (1 - 0.1 * np.abs( P ) )**5, np.zeros(np.size(P) ) )
     return A    
 
-def F_upwind(F): # Upwinding scheme
+def F_upwind(F): 
+    ''' Upwinding scheme '''
     F_upwind = np.maximum( F, 0 )
     return F_upwind
 

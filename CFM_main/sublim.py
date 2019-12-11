@@ -1,20 +1,20 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 29 09:28:01 2018
-
-@author: verjans
-"""
+'''
+Script for sublimation.
+'''
 
 from constants import *
 import numpy as np
 
 
 def sublim(self,iii):
-    '''Sublimation of the surface layers, partially based on melt.py
+    '''
+    Sublimation of the surface layers, partially based on melt.py
     We don't do anything energy-wise (no modification of Tz)
     Layers are sublimated in turn, starting with the surface layer
-    Liquid water is sublimated before the ice matrix'''
+    Liquid water is sublimated before the ice matrix
+    '''
     
     
     lwc_initial = sum(self.LWC)

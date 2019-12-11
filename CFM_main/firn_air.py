@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+'''
+code to deal with modeling firn-air diffusion
+'''
+
+
 import numpy as np 
 from solver import solver
 from solver import transient_solve_TR
@@ -148,7 +154,10 @@ class FirnAir:
         return diffu , d_eddy #, dd
 
     def porosity(self): #,rho,T
-        ### co is close-off, cl is closed
+        '''
+        Calculate the total, open, and closed porosity.
+        co is close-off, cl is closed
+        '''
         
         indT=np.where(self.z>20)[0][0]
         if self.cg['runtype']=='steady':
@@ -195,6 +204,12 @@ class FirnAir:
 
 
     def firn_air_diffusion(self,AirParams,iii):
+
+        '''
+        Solve the diffusion equation.
+        Calls solver.py
+        '''
+
 
         for k,v in list(AirParams.items()):
             setattr(self,k,v)
@@ -246,7 +261,7 @@ class FirnAir:
         # self.z_co               = min(self.z[self.rho>=(self.rho_co)]) #close-off depth; bcoRho is close off density
         # self.z_co               = self.z[np.where(self.rho>=self.rho_co)[0][0]] #close-off depth; bcoRho is close off density
         self.LID                = min(self.z[self.rho>=(self.LIDRho)]) #lock in depth; LIDRho is lock-in density
-        print(self.LID)
+        # print(self.LID)
         self.bdot_t = self.bdot[iii]
 
         self.diffu, self.d_eddy = self.diffusivity()
@@ -278,7 +293,9 @@ class FirnAir:
             }
 
         msk = np.where(self.z>self.z_co)[0][0]
-        self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, airdict)
+        c_vol = np.ones_like(self.rho) # Just a filler here to make the diffusion work.
+        
+        self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, c_vol, airdict)
         self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 
         ind_LID = np.where(self.z>=self.LID)[0]
@@ -294,6 +311,9 @@ class FirnAir:
 
 def gasses(gaschoice, T, p_a, M_air):
     
+    '''
+    Function to set up specifics for different gasses.
+    '''
 
     #d_0 = 5.e2 # Free air diffusivity, CO2, m**2/yr Schwander, 1988 reports 7.24 mm**2/s =379 m**2/yr
     d_0 = 1.6e-5 # m^2/s :wikipedia value. changed 9/27/13  Schwander, 1988 reports 7.24 mm**2/s = 7.24e-6 m**2/yr

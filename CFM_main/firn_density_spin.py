@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+
+'''
+
+Class for spinning up the model.
+
+'''
+
 from diffusion import heatDiff
 from hl_analytic import hl_analytic
 from reader import read_input
@@ -61,14 +68,18 @@ class FirnDensitySpin:
                 (unit: ???, type: array of floats)
     : rhos0: surface accumulate rate vector
                 (unit: ???, type: array of floats)
+                
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
+
     '''
 
     def __init__(self, configName):
         '''
+
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature of the model run
         :param configName: name of json config file containing model configurations
+        
         '''
 
         ### load in json config file and parses the user inputs to a dictionary
@@ -138,7 +149,7 @@ class FirnDensitySpin:
         ############################
         ### set up model grid ######
         ############################
-        self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYearSpin'])) # number of grid points
+        self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYear'])) # number of grid points
         gridHeight      = np.linspace(self.c['H'], self.c['HbaseSpin'], self.gridLen)
         self.z          = self.c['H'] - gridHeight
         self.dz         = np.diff(self.z) 
@@ -202,9 +213,9 @@ class FirnDensitySpin:
         else: # based on time taken to spin up in the config file.
             self.years = self.c['yearSpin'] # number of years to spin up for
         
-        dt1         = S_PER_YEAR / self.c['stpsPerYearSpin']
+        dt1         = S_PER_YEAR / self.c['stpsPerYear']
         self.stp    = int(self.years*S_PER_YEAR/dt1)
-        self.t      =  1.0 / self.c['stpsPerYearSpin'] # years per time step
+        self.t      =  1.0 / self.c['stpsPerYear'] # years per time step
         self.dt     = dt1 * np.ones(self.stp)
         ############################
 
@@ -241,7 +252,7 @@ class FirnDensitySpin:
             self.T10m       = self.T_mean
 
         ### Accumulation rate for each time step
-        self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYearSpin'] # accumulation (m I.E. per second)
+        self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYear'] # accumulation (m I.E. per second)
         self.bdotSec    = self.bdotSec0 * np.ones(self.stp) # vector of accumulation at each time step
         self.bdot_mean = np.ones_like(self.dz)*self.bdot0
         self.bdot_av = self.bdot0 * np.ones(self.stp) #The long-term mean accumulation rate

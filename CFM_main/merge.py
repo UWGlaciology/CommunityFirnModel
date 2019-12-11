@@ -1,33 +1,28 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-Created on Wed Jun  6 08:58:16 2018
-
-@author: verjans
-"""
-
-import numpy as np
-from constants import *
 
 '''
 Script that contains 3 functions. These are to be used if we want to proceed to merging of thin layers of the firn column.
 I suggest we specify in json input if merge is true/false and the thickness threshold ('merge_min'):
-    "merging": true,
-    "merge_min": 5e-3
+"merging": true,
+"merge_min": 5e-3
 mergesurf(): for layer[0] and layer[1], to be used in time_evolve() of firn_density_nospin
 mergenotsurf(): for layers[2:], to be used in time_evolve() of firn_density_nospin
 mergeall(): for all layers, to be used at the end of firn_density_spin
 CAUTION:
-    not used for all variables (e.g. du_dx)
-    + nothing is done considering gas neither for isotopes
+- not used for all variables (e.g. du_dx)
+- nothing is done considering gas neither for isotopes
+@author: verjans
 '''
+
+import numpy as np
+from constants import *
 
 def mergesurf(self,thickmin):
     '''
     This function is to call during time_evolve function of firn_density_nospin.
     We merge the surface layer[0] with the layer[1] below as long as layer[1] remains under a certain thickness threshold.
-    By applying condition on layer[1] instead of layer[0], we avoid merging all newly accumulated layers in the case we use a 
-        RCM forcing on a short time scale.
+    By applying condition on layer[1] instead of layer[0], we avoid merging all newly accumulated layers in the case we use a RCM forcing on a short time scale.
     Thickness threshold must be specified and consistent with the one of mergenotsurf().
     '''
     
@@ -87,8 +82,7 @@ def mergenotsurf(self,thickmin):
     We merge all the layers below a thickness threshold except the layers of indices 0 and 1.
     This allows layers that became too thin due to compaction to be merged with the layer below.
     Minimum thickness threshold must be specified as thickmin
-    We don't do this for surface layer because that would lead to any newly accumulated layer to be merged if RCM forcing is on a 
-        short time scale. The surface layer has its own function mergesurf().
+    We don't do this for surface layer because that would lead to any newly accumulated layer to be merged if RCM forcing is on a short time scale. The surface layer has its own function mergesurf().
     '''
 
     rmind = np.array([]) # list of indices that will have to be removed
