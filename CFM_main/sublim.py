@@ -25,7 +25,17 @@ def sublim(self,iii):
     ind1a               = np.where((self.mass_sum+np.cumsum(1000*self.LWC)) <= sublim_mass)[0] # indices of boxes that will be sublimated away
     # print('ind1a', ind1a)
     num_boxes_sublim    = len(ind1a)+1 # number of boxes that sublimate away, include the box that is partially sublimated
-    ind1                = np.where((self.mass_sum+np.cumsum(1000*self.LWC)) > sublim_mass)[0][0] # index which will become the new surface
+    try:
+        ind1                = np.where((self.mass_sum+np.cumsum(1000*self.LWC)) > sublim_mass)[0][0] # index which will become the new surface
+    except:
+        print('error!')
+        print(iii)
+        print(self.modeltime[iii])
+        print('sublim_mass',sublim_mass)
+        print('rho',self.rho[0:20])
+        print('tz',self.Tz[0:20])
+        print('bdotsec',(self.bdotSec[iii] * S_PER_YEAR))
+        sys.exit()
 
     # ps is the partial sublimation (the model volume that has a portion sublimated away)   
     if ind1 > 0: # if we sublimate the entire layers we retrieve the mass+lwc of these layers to the sublimated mass of the ps layer
@@ -71,6 +81,13 @@ def sublim(self,iii):
     ## Grid should be ready
 
     self.totwatersublim += (lwc_initial-sum(self.LWC))
+
+    if np.any(self.LWC<0.0):
+        print('negative LWC after sublim')
+        print('setting to zero and continuing')
+        print("iii",iii)
+        print(self.LWC[0:10])
+    self.LWC[self.LWC<0]=0.0
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim
     

@@ -627,8 +627,12 @@ class FirnDensityNoSpin:
         ##### START TIME-STEPPING LOOP #####
         ####################################
 
+
+        print('modeltime',self.modeltime[0],self.modeltime[-1])
+        print('stp',self.stp)
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
+
             self.D_surf[iii] = iii
             if iii==1000:
                 ntime = time.time()
@@ -776,15 +780,43 @@ class FirnDensityNoSpin:
                 ### end prefsnowpack ##################
 
                 elif self.c['liquid'] == 'bucketVV':
+                    # if ((iii>5544) and (iii<5548)):
+                    #     print('---------')
+                    #     print(iii)
+                    #     print('bdotSec',self.bdotSec[iii])
+                    #     print('meltSec',self.snowmeltSec[iii])
+                    #     print('depth',self.dz[0:20])
+                    #     print('rho',self.rho[0:20])
+                    #     print('Tz',self.Tz[0:20])
+                    #     print('lwc',self.LWC[0:20])
+                    #     print('---------')
+
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
                         self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror = bucketVV(self,iii)
+                    # if ((iii>5544) and (iii<5548)):
+                    #     print('---------')
+                    #     print('depth',self.dz[0:20])
+                    #     print('rho',self.rho[0:20])
+                    #     print('Tz',self.Tz[0:20])
+                    #     print('lwc',self.LWC[0:20])
+                    #     print('---------')
+
                     else:
                         #Dry firn column and no input of meltwater
                         self.runoff = np.array([0.]) #VV no runoff
                         self.refrozen = np.zeros_like(self.dz) #VV no refreezing
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
-                    self.Tz, self.T10m  = heatDiff(self,iii)
+                    # self.Tz, self.T10m  = heatDiff(self,iii)
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                    # if ((iii>5544) and (iii<5548)):
+                    #     print('---------')
+                    #     print('depth',self.dz[0:20])
+                    #     print('rho',self.rho[0:20])
+                    #     print('Tz',self.Tz[0:20])
+                    #     print('lwc',self.LWC[0:20])
+                    #     print('---------')
+                                             
                 ### end bucketVV ##################
 
                 elif self.c['liquid'] == 'percolation_bucket': ### Max's bucket scheme:
@@ -897,6 +929,7 @@ class FirnDensityNoSpin:
                     self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
 
             elif self.bdotSec[iii]<0: #VV
+                # print("sublimating", self.modeltime[iii])
                 self.mass_sum      = self.mass.cumsum(axis = 0) #VV
                 self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim = sublim(self,iii) #VV keeps track of sublimated water for mass conservation
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
@@ -1032,36 +1065,36 @@ class FirnDensityNoSpin:
         '''
         Updates the bubble close-off depth and age based on the Martinerie criteria as well as through assuming the critical density is 815 kg/m^3
         '''
-        # try:
-        if (self.c['FirnAir'] and self.cg['runtype']=='steady'):
-            bcoMartRho  = 1 / (1 / (917.0) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off
-        else:
-            bcoMartRho  = 1 / (1 / (917.0) + self.T_mean[iii] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
+        try:
+            if (self.c['FirnAir'] and self.cg['runtype']=='steady'):
+                bcoMartRho  = 1 / (1 / (917.0) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off
+            else:
+                bcoMartRho  = 1 / (1 / (917.0) + self.T_mean[iii] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
 
-        bcoAgeMart  = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
-        bcoDepMart  = min(self.z[self.rho >= (bcoMartRho)])
+            bcoAgeMart  = min(self.age[self.rho >= bcoMartRho]) / S_PER_YEAR  # close-off age from Martinerie
+            bcoDepMart  = min(self.z[self.rho >= (bcoMartRho)])
 
-        # bubble close-off age and depth assuming rho_crit = 815kg/m^3
-        bcoAge830   = min(self.age[self.rho >= 830.0]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
-        bcoDep830   = min(self.z[self.rho >= 830.0])
-        bcoAge815   = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
-        bcoDep815   = min(self.z[self.rho >= (RHO_2)])
+            # bubble close-off age and depth assuming rho_crit = 815kg/m^3
+            bcoAge830   = min(self.age[self.rho >= 830.0]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+            bcoDep830   = min(self.z[self.rho >= 830.0])
+            bcoAge815   = min(self.age[self.rho >= (RHO_2)]) / S_PER_YEAR  # close-off age where rho = 815 kg m^-3
+            bcoDep815   = min(self.z[self.rho >= (RHO_2)])
 
-        LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
-        LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
-        LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
+            LIZMartRho = bcoMartRho - 14.0  # LIZ depth (Blunier and Schwander, 2000)
+            LIZAgeMart = min(self.age[self.rho > LIZMartRho]) / S_PER_YEAR  # lock-in age
+            LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
 
-        # except:
+        except:
             
-        #     bcoAgeMart  = -9999
-        #     bcoDepMart  = -9999
-        #     bcoAge830   = -9999
-        #     bcoDep830   = -9999
+            bcoAgeMart  = -9999
+            bcoDepMart  = -9999
+            bcoAge830   = -9999
+            bcoDep830   = -9999
 
-        #     LIZDepMart  = -9999
-        #     LIZAgeMart  = -9999
-        #     bcoAge815   = -9999
-        #     bcoDep815   = -9999
+            LIZDepMart  = -9999
+            LIZAgeMart  = -9999
+            bcoAge815   = -9999
+            bcoDep815   = -9999
 
         return bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815
 
