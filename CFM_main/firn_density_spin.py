@@ -458,7 +458,7 @@ class FirnDensitySpin:
             ### Update grain growth #VV ###
             #VV calculate this before accumulation (because the new surface layer should not be subject to grain growth yet
             if self.c['physGrain']:
-                self.r2 = FirnPhysics(PhysParams).graincalc()
+                self.r2 = FirnPhysics(PhysParams).graincalc(iii)
                 r2surface = FirnPhysics(PhysParams).surfacegrain() # This considers whether to use a fixed or calculated surface grain size.
                 self.r2 = np.concatenate(([r2surface], self.r2[:-1])) #VV form the new grain size array
 
@@ -470,16 +470,19 @@ class FirnDensitySpin:
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
                 if self.c['initprofile']:
+                    print('Updating density using init file')
                     initfirn = pd.read_csv(self.c['initfirnFile'],delimiter=',') 
                     init_depth      = initfirn['depth'].values
                     self.rho = np.interp(self.z,init_depth,initfirn['density'].values)
                     if 'temperature' in list(initfirn):
+                        print('and temperature')
                         init_temp = initfirn['temperature'].values
                         if init_temp[0]<0:
                             init_temp = init_temp + 273.15
                         self.Tz = np.interp(self.z,init_depth,init_temp)                      
                     if 'age' in list(initfirn):
-                        self.age = np.interp(self.z,init_depth,initfirn['age'].values)
+                        print('and age')
+                        self.age = np.interp(self.z,init_depth,initfirn['age'].values*S_PER_YEAR)
                     if 'lwc' in list(initfirn):
                         self.LWC = np.interp(self.z,init_depth,initfirn['lwc'].values)
 

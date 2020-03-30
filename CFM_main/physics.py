@@ -837,6 +837,32 @@ class FirnPhysics:
         dr_dt[self.rho>=RHO_I] = 0
 
         drho_dt = dr_dt #/ S_PER_YEAR
+
+        ##########
+        CHybrid = True
+        if CHybrid:
+            RHO_CC = 450
+            ar1 = 0.07
+            ar2 = 0.03
+            Ec  = 60.0e3
+            Eg  = 42.4e3
+            A_mean_1 = self.bdot_mean[self.rho < RHO_CC] * RHO_I
+            A_mean_2 = self.bdot_mean[self.rho >= RHO_CC] * RHO_I
+
+            M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
+            M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+
+            M_0[M_0<0.25]=0.25
+            M_1[M_1<0.25]=0.25
+
+            # dr_dt[self.rho < RHO_CC]  = (RHO_I - self.rho[self.rho < RHO_CC]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_CC]) + Eg / (R * self.T_mean[self.iii]))
+            dr_dt[self.rho >= RHO_CC] = ((RHO_I - self.rho[self.rho >= RHO_CC]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_CC]) + Eg / (R * self.T_mean[self.iii])))/ S_PER_YEAR
+            drho_dt[self.rho>=RHO_I] = 0
+
+        # dr_dt[self.rho >= RHO_CC] = ((RHO_I - self.rho[self.rho >= RHO_CC]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_CC]) + Eg / (R * self.T_mean[self.iii])))/ S_PER_YEAR
+
+
+        #########
         
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -1020,7 +1046,7 @@ class FirnPhysics:
     ### end surfacegrain ###
     ########################
         
-    def graincalc(self):
+    def graincalc(self,iii):
         
         '''
         Evolve the grain size

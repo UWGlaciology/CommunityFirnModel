@@ -67,5 +67,7 @@
 "liquid": "percolation_bucket",
 "liquid_options": ["percolation_bucket","bucketVV","resingledomain","prefsnowpack"],
 "merging": true,
-"merge_min": 1e-4
+"merge_min": 1e-4,
+"enthalpy": true,
+"LWCcorrect": false
 }

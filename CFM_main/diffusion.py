@@ -58,16 +58,19 @@ def heatDiff(self,iii):
     # K_firn[self.z>=20.0]    = K_ice[self.z>=20.0] * (self.rho[self.z>=20.0]/RHO_I) ** (2 - 0.5 * (self.rho[self.z>=20.0]/RHO_I))    # Schwander 1997, eq. A11
 
     # K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
-    # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
+    K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
     # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
     # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
     # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
     # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
-    K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
+    # K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
     # K_firn    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
     # k_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
-    
+    if self.c['MELT']:
+        if self.c['LWCheat']=='lowK':
+            K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
+
     Gamma_P         = K_firn # (new)
  
     # Gamma_P         = K_firn / (c_firn) # old)
@@ -80,12 +83,14 @@ def heatDiff(self,iii):
     # fT10m           = interpolate.interp1d(self.z, self.Tz)                                 # temp at 10m depth
     # self.T10m       = fT10m(10)
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]] #Should be slightly faster than the interpolate.
-
-    if np.any(self.Tz>273.17):
-        print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
-        print('Maximal temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))
-        print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
-        self.Tz[self.Tz>=273.15]=273.15
+    if self.c['MELT']:
+        if self.c['LWCheat']=='effectiveT':
+            pass
+        elif np.any(self.Tz>273.15):
+            print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
+            print('Maximal temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))
+            print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
+            self.Tz[self.Tz>=273.15]=273.15
 
     return self.Tz, self.T10m
 ### end heat diffusion
@@ -98,10 +103,13 @@ def enthalpyDiff(self,iii):
     LWC is in volume (m^3)
     thermal diffusivity: alpha = K_firn / (rho*c_firn)
     '''
-
+    Tstart = self.Tz.copy()
     nz_P            = len(self.z)
     nz_fv           = nz_P - 2
-    nt              = 3
+    if np.any(self.LWC>0):
+        nt              = 3
+    else:
+        nt = 1
 
     z_edges_vec1    = self.z[0:-1] + np.diff(self.z) / 2
     z_edges_vec     = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
@@ -172,10 +180,42 @@ def enthalpyDiff(self,iii):
         self.Tz[self.Tz>=273.15]=273.15
 
     ### sort out how much liquid has been frozen and update density and LWC.
+    if np.any(self.rho>917.0):
+        print('high rho before reallocate',iii)
+    lwc_old = self.LWC.copy()
+    mass_old = self.mass.copy()
+    rho_old = self.rho.copy()
+
     self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
+    if np.any(delta_mass_liq<0):
+        print(self.modeltime[iii],'Fixing negative values of delta_mass_liq, min value:',min(delta_mass_liq))
+        delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
+
+    if np.any(self.rho>917.0):
+    # if iii>12101:
+        print('high rho after reallocate',iii)
+        # ind9 = np.where(self.rho>917.0)[0]
+        # ind9 = np.arange(0,6)
+        # print('ind9',ind9)
+        # print('Tstart',Tstart[0:5])
+        # print('Tz',self.Tz[0:5])
+        # print('dml',delta_mass_liq[ind9])
+        # print('lwc',self.LWC[ind9])
+        # print('dz',self.dz[ind9])
+        # print('mass',self.mass[ind9])
+        # print('rho',self.rho[ind9])
+        # print('mass_liq',mass_liq[ind9])
+        # print('lwc_old',lwc_old[ind9])
+        # print('mass_old',mass_old[ind9])
+        # print('rho_old', rho_old[ind9])
+        # print('max dml', max(delta_mass_liq))
+        # print('min dml', min(delta_mass_liq))
+        # input('enter')
+
+
 
     return self.Tz, self.T10m, self.rho, self.mass, self.LWC
 ### end enthalpy diffusion

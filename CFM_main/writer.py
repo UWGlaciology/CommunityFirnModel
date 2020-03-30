@@ -63,7 +63,7 @@ def write_nospin_hdf5(self):
         f4.create_dataset('PLWC_mem',data = self.PLWC_mem_out)
     if 'DIP' in self.output_list:
         f4.create_dataset('DIP',data = self.DIP_out)
-        f4.create_dataset('DIPc', data = self.DIPc_out)
+        # f4.create_dataset('DIPc', data = self.DIPc_out)
     if 'BCO' in self.output_list:
         f4.create_dataset('BCO',data = self.BCO_out) 
     if 'LIZ' in self.output_list:

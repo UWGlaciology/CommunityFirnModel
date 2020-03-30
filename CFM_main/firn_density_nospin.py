@@ -5,7 +5,6 @@ Class for the main model run
 
 '''
 
-
 from diffusion import *
 from reader import read_input
 from reader import read_init
@@ -196,11 +195,15 @@ class FirnDensityNoSpin:
 
         elif self.c['timesetup']=='exact':
             print('"Exact" time setup will not work properly if input forcing does not all have the same time')
-            yr_start = input_year_temp[1]
-            yr_end = input_year_temp[-1]
+            # yr_start = input_year_temp[0] #previously had [1] - error? 20/3/3
+            # yr_end = input_year_temp[-1]
             self.dt = np.diff(input_year_temp)*S_PER_YEAR
+            # self.dt = np.append(self.dt,self.dt[-1])
             self.stp = len(self.dt)
-            self.modeltime = input_year_temp[1:]
+            self.modeltime = input_year_temp[1:] # this offset because use diff above
+            # self.modeltime = input_year_temp[0:-1]
+            yr_start = self.modeltime[0]
+            yr_end = self.modeltime[-1]
             self.t = np.mean(np.diff(input_year_temp))
 
         elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step
@@ -326,12 +329,12 @@ class FirnDensityNoSpin:
             elif self.c['srho_type']=='param':
                 self.rhos0      = 481.0 + 4.834 * (self.T_av - T_MELT) # Kuipers Munneke, 2015
             elif self.c['srho_type']=='noise':
-                rho_stdv        = 50 # the standard deviation of the surface density (I made up 25)
+                rho_stdv        = 25 # the standard deviation of the surface density (I made up 25)
                 self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
-                self.rhos0[self.rhos0>600]=600
-                self.rhos0[self.rhos0<300]=300
-                print('Max surface density is:', np.max(self.rhos0))
-                print('Min surface density is:', np.min(self.rhos0))
+                self.rhos0[self.rhos0>450]=450
+                self.rhos0[self.rhos0<250]=250
+                # print('Max surface density is:', np.max(self.rhos0))
+                # print('Min surface density is:', np.min(self.rhos0))
         else:
             self.rhos0      = self.c['rhos0'] * np.ones(self.stp)       # density at surface
         #####################
@@ -339,6 +342,7 @@ class FirnDensityNoSpin:
         ### Layer tracker ###
         self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
         self.Dcon       = self.c['D_surf'] * np.zeros(self.gridLen)  # layer tracking routine (initial depth vector)
+        self.Dcon = np.flipud(np.arange((-1*(len(self.Dcon))),0))
         #####################
 
         ###############################
@@ -780,27 +784,8 @@ class FirnDensityNoSpin:
                 ### end prefsnowpack ##################
 
                 elif self.c['liquid'] == 'bucketVV':
-                    # if ((iii>5544) and (iii<5548)):
-                    #     print('---------')
-                    #     print(iii)
-                    #     print('bdotSec',self.bdotSec[iii])
-                    #     print('meltSec',self.snowmeltSec[iii])
-                    #     print('depth',self.dz[0:20])
-                    #     print('rho',self.rho[0:20])
-                    #     print('Tz',self.Tz[0:20])
-                    #     print('lwc',self.LWC[0:20])
-                    #     print('---------')
-
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
                         self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror = bucketVV(self,iii)
-                    # if ((iii>5544) and (iii<5548)):
-                    #     print('---------')
-                    #     print('depth',self.dz[0:20])
-                    #     print('rho',self.rho[0:20])
-                    #     print('Tz',self.Tz[0:20])
-                    #     print('lwc',self.LWC[0:20])
-                    #     print('---------')
-
                     else:
                         #Dry firn column and no input of meltwater
                         self.runoff = np.array([0.]) #VV no runoff
@@ -808,15 +793,10 @@ class FirnDensityNoSpin:
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
                     # self.Tz, self.T10m  = heatDiff(self,iii)
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
-                    # if ((iii>5544) and (iii<5548)):
-                    #     print('---------')
-                    #     print('depth',self.dz[0:20])
-                    #     print('rho',self.rho[0:20])
-                    #     print('Tz',self.Tz[0:20])
-                    #     print('lwc',self.LWC[0:20])
-                    #     print('---------')
-                                             
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)           
+                    coldlayers = np.where(self.Tz < T_MELT)
+                    if np.any(self.LWC[coldlayers[0]]>0.):
+                        print('Problem: water content in a cold layer')
                 ### end bucketVV ##################
 
                 elif self.c['liquid'] == 'percolation_bucket': ### Max's bucket scheme:
@@ -825,14 +805,25 @@ class FirnDensityNoSpin:
                     else: # no melt, dz after compaction
                         self.dzn    = self.dz[0:self.compboxes]
                     ### Heat ###
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                    if self.c['LWCheat']=='enthalpy':
+                        self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                    else: # use heat
+                        if self.c['LWCheat']=='effectiveT':
+                            self.Tz, self.T10m = effectiveT(self,iii)
+
+                        else:
+                            self.Tz, self.T10m  = heatDiff(self,iii)
+                            if (self.c['LWCheat']=='LWCcorrect') or (self.c['LWCheat']=='lowK'):
+                                if iii == 0:
+                                    print('LWCcorrect is on')
+                                self.Tz, self.LWC = LWC_correct(self)
                 ### end percolation_bucket #########
 
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
                     print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
-                    self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
+                    # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
                     # This should never happen if bottom of modelled firn column is at rho >= 830
-                self.LWC        = np.concatenate(([0], self.LWC[:-1]))
+                # self.LWC        = np.concatenate(([0], self.LWC[:-1]))
 
                 if self.PLWC_mem[-1] > 0.: #VV
                     self.PLWC_mem[-2] += self.PLWC_mem[-1] #VV
@@ -845,7 +836,6 @@ class FirnDensityNoSpin:
             ### heat diffusion
             if (self.c['heatDiff'] and not self.MELT): # no melt, so use regular heat diffusion
                 self.Tz, self.T10m  = heatDiff(self,iii)
-
 
             else: # user says no heat diffusion, so just set the temperature of the new box on top.
                 self.Tz     = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
@@ -904,7 +894,7 @@ class FirnDensityNoSpin:
 
             ### Update grain growth ###
             if self.c['physGrain']: # update grain radius
-                self.r2 = FirnPhysics(PhysParams).graincalc() # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
+                self.r2 = FirnPhysics(PhysParams).graincalc(iii) # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
             
             ### update model grid, mass, stress, and mean accumulation rate
             if self.bdotSec[iii]>0: # there is accumulation at this time step
@@ -927,6 +917,7 @@ class FirnDensityNoSpin:
                 # self.compaction = self.dz_old[0:self.compboxes] - self.dzn[0:self.compboxes]
                 if self.doublegrid:
                     self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
+                self.LWC        = np.concatenate(([0], self.LWC[:-1]))
 
             elif self.bdotSec[iii]<0: #VV
                 # print("sublimating", self.modeltime[iii])
