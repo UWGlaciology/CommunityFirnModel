@@ -52,21 +52,42 @@ def heatDiff(self,iii):
     ### Conductivity. Choose your favorite! ###
     # References are provided at the end of this script.
 
-    # alpha_DAVIDCS_m2s = 18.3 / S_PER_YEAR # special for work Max was doing for David Clemens-Sewell
-
-    # K_firn = alpha_DAVIDCS_m2s * self.rho * c_firn
-    # K_firn[self.z>=20.0]    = K_ice[self.z>=20.0] * (self.rho[self.z>=20.0]/RHO_I) ** (2 - 0.5 * (self.rho[self.z>=20.0]/RHO_I))    # Schwander 1997, eq. A11
 
     # K_firn    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
-    K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
+    # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
     # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
-    # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
+    # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho/1000)             # Yen 1981, eq. 35.
     # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
     # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
     # K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
     # K_firn    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
-    # k_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
+    # K_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
+
+
+    Kdict = {}
+    Kdict['Schwander']    = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
+    Kdict['Yen_fixed']   = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
+    Kdict['Yen_var']    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
+    Kdict['Anderson']    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
+    Kdict['Yen_b']    = 0.0688 * np.exp(0.0088*(phi_0-273.15) + 4.6682*self.rho/1000)             # Yen 1981, eq. 35.
+    Kdict['Sturm']    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
+    Kdict['VanDusen']    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
+    Kdict['Schwerdtfeger']    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
+    Kdict['Riche']    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
+    Kdict['Jiawen']    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3 
+
+    if self.c['conductivity'] =='mix':
+        if iii==0:
+            print('mixed conductivity')
+        K_firn = np.zeros_like(self.rho)
+        K_firn[self.z<0.2] = Kdict['Sturm'][self.z<0.2]
+        K_firn[self.z>=0.3] = Kdict['Anderson'][self.z>=0.3]
+        Kcond = ((self.z>=0.2) & (self.z<0.3))
+        K_firn[Kcond] = (Kdict['Sturm'][Kcond] + Kdict['Anderson'][Kcond])/2
+    else:
+        K_firn = Kdict[self.c['conductivity']]
+
     if self.c['MELT']:
         if self.c['LWCheat']=='lowK':
             K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
@@ -152,10 +173,10 @@ def enthalpyDiff(self,iii):
     # K_firn    = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
     # K_firn    = K_ice * (self.rho / 1000)**1.885                            # Yen 1981, modified for variable K_ice
     # K_firn    = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
-    # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho)             # Yen 1981, eq. 35.
-    # K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
-    # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P)
-    K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P)
+    # K_firn    = 0.0688 * np.exp(0.0088*phi_0 + 4.6682*self.rho/1000.)             # Yen 1981, eq. 35.
+    K_firn    = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
+    # K_firn    = 2.1e-2 + 4.2e-4 * self.rho + 2.2e-9 * (self.rho)**3         # Van Dusen 1929 (via C&P, lower limit)
+    # K_firn    = (2 * K_ice * self.rho) / (3*RHO_I - self.rho)               # Schwerdtfeger (via C&P, upper limit)
     # K_firn    = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
     # k_firn    = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
     
@@ -219,6 +240,19 @@ def enthalpyDiff(self,iii):
 
     return self.Tz, self.T10m, self.rho, self.mass, self.LWC
 ### end enthalpy diffusion
+
+
+
+# def rad_pen(self,E_rp):
+
+#     def exco(rho):
+#     return -0.0338*rho +33.54
+
+#     k_ex = exco(self.rho)
+#     c_firn    = 0.021 + 2.5 * (self.rho/1000.)**2
+#     deltaE_layers = E_rp * np.exp(-k_ex*self.z)
+#     deltaT = deltaE_layers/(self.mass*CP_I)
+#     self.Tz[1:] = self.Tz[1:]+deltaT
 
 
 '''

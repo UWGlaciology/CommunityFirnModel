@@ -251,6 +251,11 @@ class FirnDensitySpin:
             self.T_mean     = np.mean(self.Tz[self.z<50])
             self.T10m       = self.T_mean
 
+        try:
+            ctest = self.c['conductivity']
+        except:
+            self.c['conductivity'] = 'Anderson'
+
         ### Accumulation rate for each time step
         self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYear'] # accumulation (m I.E. per second)
         self.bdotSec    = self.bdotSec0 * np.ones(self.stp) # vector of accumulation at each time step
@@ -341,6 +346,7 @@ class FirnDensitySpin:
                 'Tz':           self.Tz,
                 'T_mean':       self.T_mean,
                 'T10m':         self.T10m,
+                'T50':          self.T50,
                 'rho':          self.rho,
                 'mass':         self.mass,
                 'sigma':        self.sigma,
@@ -388,7 +394,8 @@ class FirnDensitySpin:
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
-                'Max2018':              FirnPhysics(PhysParams).Max2018
+                'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
+                'MaxSP':                FirnPhysics(PhysParams).MaxSP
             }
 
             RD      = physicsd[self.c['physRho']]()
@@ -485,6 +492,7 @@ class FirnDensitySpin:
                         self.age = np.interp(self.z,init_depth,initfirn['age'].values*S_PER_YEAR)
                     if 'lwc' in list(initfirn):
                         self.LWC = np.interp(self.z,init_depth,initfirn['lwc'].values)
+
 
                 self.rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 self.Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
