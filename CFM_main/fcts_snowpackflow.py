@@ -146,6 +146,7 @@ def combineCFM(split_list,rhoF,dzF,TzF,massF,lwcF,Plwc_memF,r2F,refrozenF):
     - Normally, RE routine (including freezing) should not affect dz and r2 variables but only use them
     -> not necessary to combine them and to give them back to CFM (which can keep its own self.dz and self.r2)
     '''
+    
     ### Vectors that will be reattributed to the self. vectors ###
     dzC = np.array([]) # thickness vector for the C
     massC = np.array([]) # mass vector for the C 

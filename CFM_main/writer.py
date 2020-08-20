@@ -108,4 +108,6 @@ def write_spin_hdf5(self):
         f5.create_dataset('gridSpin', data = self.grid_time)
     if self.c['MELT']: #VV
         f5.create_dataset('LWCSpin', data = self.LWC_time)
+    # if self.write_bdot:
+        # f5.create_dataset('bdot_meanSpin', data = self.bdot_mean_time)
     f5.close()

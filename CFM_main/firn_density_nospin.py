@@ -98,7 +98,6 @@ class FirnDensityNoSpin:
         initDensity = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'densitySpin')
         initTemp    = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'tempSpin')
 
-
         try: #VV for reading initial lwc from the spin up file
             initLWC = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'LWCSpin')
             print('Initial LWC provided by spin-up')
@@ -298,7 +297,7 @@ class FirnDensityNoSpin:
         ### Accumulation ####
         bsf                 = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
         self.bdot           = bsf(self.modeltime) # m ice equivalent per year
-        # self.bdot[self.bdot<1e-4] = 0.0
+        self.bdot[self.bdot<1e-6] = 0.0
         self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
 
 
@@ -434,7 +433,11 @@ class FirnDensityNoSpin:
         self.sigma          = self.sigma.cumsum(axis = 0)
         self.mass_sum       = self.mass.cumsum(axis = 0)
         ### mean accumulation over the lifetime of the parcel:
-        self.bdot_mean      = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
+        spinF = self.c['resultsFolder']+'/'+self.c['spinFileName']
+        if 'bdot_meanSpin' in h5py.File(spinF,'r').keys():
+            self.bdot_mean = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'bdot_meanSpin')[1:]
+        else:
+            self.bdot_mean      = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
         ### It is the mass of the overlying firn divided by the age of the parcel.
         #VV transform mass in meters ice equiv -> divide by age(in sec) [m/s] -> multiply by years per step and by steps per year (cancels) -> multiply by secperyear -> [mIE/yr]
         #VV for surf layer -> mass in mIE is only multiplied by steps per year: if 1 stp/yr,mean acc is the mass of surf layer; if 2 stps/yr,mean acc is 2* what has been accumulated over the last step, etc.

@@ -844,6 +844,8 @@ class FirnPhysics:
         ##########
         CHybrid = True
         if CHybrid:
+            if self.iii==0:
+                print("You are using CROCUS hybrid")
             RHO_CC = 450
             ar1 = 0.07
             ar2 = 0.03
@@ -1063,8 +1065,11 @@ class FirnPhysics:
         # L,kL,os,d,rhoc = 2.20486112e+01, 4.26473629e-02, 6.55373968e-01, 2.00000000e-02, 5.11228713e+02
         # L,kL,os,d,rhoc = 2.52880882e+01, 4.01341086e-02, 4.64676820e+00, 1.00000000e-02,5.13089576e+02 #good for 10m, little toofast for others
         # L,kL,os,d,rhoc = 2.86587915e+01, 3.76819172e-02, 8.54495830e+00, 9.67012244e-30, 5.14586341e+02 # real 
-        L,kL,os,d,rhoc = 3.15006691e+01, 3.36426623e-02, 8.22270983e+00, 1.98965578e-26, 5.11149480e+02
-        # L,kL,os,d,rhoc = 28.2, 3.88e-2, 9.2, 0, 516
+        # L,kL,os,d,rhoc = 3.09885751e+01, 3.78208923e-02, 7.89969584e+00, 7.53593340e-33, 5.14133552e+02
+        Q=60.0e3
+        # L,kL,os,d,rhoc = 2.20570722e+01, 3.69831602e-02, 1.00000000e+01, 3.46114982e-38,5.15734776e+02
+
+        L,kL,os,d,rhoc = 22.13, 3.95e-02, 1.00000000e+01, 0 ,511.2 #Set cutoff to 60 for K values.
         
         kM = k_log_cf_d(self.rho,L,kL,os,d,rhoc)
 

@@ -87,7 +87,7 @@ class FirnDensitySpin:
         with open(configName, "r") as f:
             jsonString  = f.read()
             self.c      = json.loads(jsonString)
-
+            
         print('Spin run started')
         print("physics are", self.c['physRho'])
         try:
@@ -99,13 +99,30 @@ class FirnDensitySpin:
         ### create directory to store results. Deletes if it exists already.
         # Vincent says we do not want to remove existing (preferential flow?) - 4/24/19
         if os.path.exists(self.c['resultsFolder']):
-            rmtree(self.c['resultsFolder'])
-        os.makedirs(self.c['resultsFolder'])
+            dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
+            dir_unique = list(set(dir_exts))
+            # print('dir_unique',dir_unique)
+            CFM_exts = ['.json','.hdf5']
+            if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
+                rmtree(self.c['resultsFolder'])
+                os.makedirs(self.c['resultsFolder'])
+            else:
+                print('WARNING: THE DIRECTORY YOU ARE USING CONTAINS NON-CFM FILES')
+                print('CFM will delete all files in the results directory with .hdf5 extension')
+                files_in_directory = os.listdir(self.c['resultsFolder'])
+                filtered_files = [file for file in files_in_directory if file.endswith(".hdf5")]
+                for file in filtered_files:
+                    path_to_file = os.path.join(self.c['resultsFolder'], file)
+                    os.remove(path_to_file)
+        
+        else:
+            os.makedirs(self.c['resultsFolder'])
 
         ############################
         ##### load input files #####
         ############################
-        ### temperature
+        
+        ### temperature ###
         input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
             input_temp              = input_temp + K_TO_C
@@ -120,7 +137,7 @@ class FirnDensitySpin:
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
         
-        ### accumulation rate
+        ### accumulation rate ###
         input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))       
         try:
             if self.c['spinup_climate_type']=='initial':
@@ -196,9 +213,9 @@ class FirnDensitySpin:
 
         self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
 
-        if self.c['initprofile']: # VV filler values to avoid model blow up if THL and AHL are out of HL calibration range
-            self.age = S_PER_YEAR*100*np.ones_like(self.dz) #VV this does not matter as it is rectified when we initialise profie below
-            self.rho = 500*np.ones_like(self.dz)#VV this does not matter as it is rectified when we initialise profile
+        # if self.c['initprofile']: # VV filler values to avoid model blow up if THL and AHL are out of HL calibration range
+            # self.age = S_PER_YEAR*100*np.ones_like(self.dz) #VV this does not matter as it is rectified when we initialise profie below
+            # self.rho = 500*np.ones_like(self.dz)#VV this does not matter as it is rectified when we initialise profile
         ############################
 
         ############################
@@ -492,7 +509,9 @@ class FirnDensitySpin:
                         self.age = np.interp(self.z,init_depth,initfirn['age'].values*S_PER_YEAR)
                     if 'lwc' in list(initfirn):
                         self.LWC = np.interp(self.z,init_depth,initfirn['lwc'].values)
-
+                    # if 'bdot_mean' in list(initfirn):
+                    #     self.write_bdot = True
+                    #     self.bdot_mean = np.interp(self.z,init_depth,initfirn['bdot_mean'].values)
 
                 self.rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 self.Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
@@ -521,6 +540,10 @@ class FirnDensitySpin:
                     self.grid_time   = np.concatenate(([self.t * iii + 1], self.gridtrack))
                 else:
                     self.grid_time   = None
+                # if self.write_bdot:
+                    # self.bdot_mean_time = np.concatenate(([self.t * iii + 1], self.bdot_mean))
+                # else:
+                    # self.bdot_mean_time = None
 
                 write_spin_hdf5(self)
 
