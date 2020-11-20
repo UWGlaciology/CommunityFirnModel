@@ -6,6 +6,9 @@ TL;DR: Write down the changes that you made to the the model in this document an
 ## Current Version
 1.0.5
 
+## Full Documentation
+
+https://communityfirnmodel.readthedocs.io/en/latest/
 
 ## Work in progress and known issues
 
@@ -19,6 +22,30 @@ TL;DR: Write down the changes that you made to the the model in this document an
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.0.6]  2020-11-04
+### Notes
+- This is a long overdue release, and there will likely be a number of changes that are not documented here. I am pretty confident that nothing should break from 1.0.5 to 1.0.6. 
+
+- The CFM paper to cite has finally be published; it is at https://doi.org/10.5194/gmd-13-4355-2020
+
+
+### Added
+- *physics.py* The NASA Goddard densification model (Medley et al. 2020) has been added.
+- *diffusion.py* There is now a function that allows the user to choose which parameterization for conductivity to use. There a quite a few! The .json configuration file needs a new key, 'conductivity', to utilize this functionality. Default is 'Anderson'.
+- *firn_density_nospin.py* New functionality to use firn temperature observations (e.g. from a thermistor string)
+- *firn_density_nospin.py* New functionality to turn off densification (in case e.g. you only want to model temperature)
+- *radiation penetration* Still in progress!
+- *firn_density_nospin.py* New functionality to set output bit size. Previous and current default is float32. Add key 'output_bits' to .json file to specify. Recommend keeping at float32 except in the case that you might be feeding the results into another model run.
+- *firn_density_nospin.py, writer.py* New functionality to write to the spin file during the 'main' (non-spin) run, which allows you to run a long model run (e.g. effective spin up with a reference, variable climate). Then, future runs can reuse that effective spin up. See documentation for more information. Two new keys in the .json file for this: 'spinUpdate' (boolean) and 'spinUpdateDate' (float).
+
+### Fixed
+- *physics.py* Morris and Wingham (2014) physics has a bug (the units were wrong on the deltaE parameter)
+
+### Changed
+- *firn_density_nospin.py* the final step of the model run now gets written - prior behavior was that the time steps to write were by interval, e.g. every 3rd time step. New behavior will now write the final time step no matter what.
+
+
 
 ## [1.0.5] - 2019-11-05
 ### Notes

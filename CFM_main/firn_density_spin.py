@@ -14,6 +14,7 @@ from physics import *
 from constants import *
 from isotopeDiffusion import isotopeDiffusion
 import numpy as np
+import scipy.interpolate as interpolate
 import csv
 import json
 import sys
@@ -99,13 +100,31 @@ class FirnDensitySpin:
         ### create directory to store results. Deletes if it exists already.
         # Vincent says we do not want to remove existing (preferential flow?) - 4/24/19
         if os.path.exists(self.c['resultsFolder']):
-            rmtree(self.c['resultsFolder'])
-        os.makedirs(self.c['resultsFolder'])
+            dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
+            dir_unique = list(set(dir_exts))
+            print('dir_unique',dir_unique)
+            CFM_exts = ['.json','.hdf5']
+            if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
+                print('rmtree')
+                rmtree(self.c['resultsFolder'])
+                os.makedirs(self.c['resultsFolder'])
+            else:
+                print('WARNING: THE DIRECTORY YOU ARE USING CONTAINS NON-CFM FILES')
+                print('CFM will delete all files in the results directory with .hdf5 extension')
+                files_in_directory = os.listdir(self.c['resultsFolder'])
+                filtered_files = [file for file in files_in_directory if file.endswith(".hdf5")]
+                for file in filtered_files:
+                    path_to_file = os.path.join(self.c['resultsFolder'], file)
+                    os.remove(path_to_file)
+        
+        else:
+            os.makedirs(self.c['resultsFolder'])
 
         ############################
         ##### load input files #####
         ############################
-        ### temperature
+        
+        ### temperature ###
         input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
             input_temp              = input_temp + K_TO_C
@@ -120,7 +139,7 @@ class FirnDensitySpin:
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
         
-        ### accumulation rate
+        ### accumulation rate ###
         input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))       
         try:
             if self.c['spinup_climate_type']=='initial':
@@ -196,9 +215,9 @@ class FirnDensitySpin:
 
         self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
 
-        if self.c['initprofile']: # VV filler values to avoid model blow up if THL and AHL are out of HL calibration range
-            self.age = S_PER_YEAR*100*np.ones_like(self.dz) #VV this does not matter as it is rectified when we initialise profie below
-            self.rho = 500*np.ones_like(self.dz)#VV this does not matter as it is rectified when we initialise profile
+        # if self.c['initprofile']: # VV filler values to avoid model blow up if THL and AHL are out of HL calibration range
+            # self.age = S_PER_YEAR*100*np.ones_like(self.dz) #VV this does not matter as it is rectified when we initialise profie below
+            # self.rho = 500*np.ones_like(self.dz)#VV this does not matter as it is rectified when we initialise profile
         ############################
 
         ############################
@@ -250,6 +269,11 @@ class FirnDensitySpin:
             self.Tz         = np.minimum(self.Tz,273.15)
             self.T_mean     = np.mean(self.Tz[self.z<50])
             self.T10m       = self.T_mean
+
+        try:
+            ctest = self.c['conductivity']
+        except:
+            self.c['conductivity'] = 'Anderson'
 
         ### Accumulation rate for each time step
         self.bdotSec0   = self.bdot0 / S_PER_YEAR / self.c['stpsPerYear'] # accumulation (m I.E. per second)
@@ -314,6 +338,17 @@ class FirnDensitySpin:
             self.ind1_old       = 0
         #######################
 
+        #######################
+        try:
+            if self.c['no_densification']:
+                print('CAUTION: densification if OFF!')
+            else:
+                pass
+        except:
+            print('no_densification not in .json; setting to false')
+            self.c['no_densification']=False
+        #######################
+
     ############################
     ##### END INIT #############
     ############################
@@ -341,6 +376,7 @@ class FirnDensitySpin:
                 'Tz':           self.Tz,
                 'T_mean':       self.T_mean,
                 'T10m':         self.T10m,
+                'T50':          self.T50,
                 'rho':          self.rho,
                 'mass':         self.mass,
                 'sigma':        self.sigma,
@@ -388,11 +424,14 @@ class FirnDensitySpin:
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
-                'Max2018':              FirnPhysics(PhysParams).Max2018
+                'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
+                'MaxSP':                FirnPhysics(PhysParams).MaxSP
             }
 
             RD      = physicsd[self.c['physRho']]()
             drho_dt = RD['drho_dt']
+            if self.c['no_densification']:
+                drho_dt = np.zeros_like(drho_dt)
 
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
@@ -419,7 +458,8 @@ class FirnDensitySpin:
                     'z':            self.z,
                     'rhos0':        self.rhos0[iii],
                     'dz':           self.dz,
-                    'drho_dt':      drho_dt
+                    'drho_dt':      drho_dt,
+                    'bdot':         self.bdotSec[iii]
                 }
 
                 for isotope in self.c['iso']:
@@ -458,7 +498,7 @@ class FirnDensitySpin:
             ### Update grain growth #VV ###
             #VV calculate this before accumulation (because the new surface layer should not be subject to grain growth yet
             if self.c['physGrain']:
-                self.r2 = FirnPhysics(PhysParams).graincalc()
+                self.r2 = FirnPhysics(PhysParams).graincalc(iii)
                 r2surface = FirnPhysics(PhysParams).surfacegrain() # This considers whether to use a fixed or calculated surface grain size.
                 self.r2 = np.concatenate(([r2surface], self.r2[:-1])) #VV form the new grain size array
 
@@ -470,23 +510,40 @@ class FirnDensitySpin:
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
                 if self.c['initprofile']:
+                    print('Updating density using init file')
                     initfirn = pd.read_csv(self.c['initfirnFile'],delimiter=',') 
                     init_depth      = initfirn['depth'].values
                     self.rho = np.interp(self.z,init_depth,initfirn['density'].values)
                     if 'temperature' in list(initfirn):
+                        print('and temperature')
                         init_temp = initfirn['temperature'].values
                         if init_temp[0]<0:
                             init_temp = init_temp + 273.15
                         self.Tz = np.interp(self.z,init_depth,init_temp)                      
                     if 'age' in list(initfirn):
-                        self.age = np.interp(self.z,init_depth,initfirn['age'].values)
+                        print('and age')
+                        self.age = np.interp(self.z,init_depth,initfirn['age'].values*S_PER_YEAR)
                     if 'lwc' in list(initfirn):
                         self.LWC = np.interp(self.z,init_depth,initfirn['lwc'].values)
+                    # if 'bdot_mean' in list(initfirn):
+                    #     self.write_bdot = True
+                    #     self.bdot_mean = np.interp(self.z,init_depth,initfirn['bdot_mean'].values)
+
+                # ### Manual gridding...
+                # zold = self.z.copy()
+                # dzM = 0.001
+                # manualZ = np.arange(0,20+dzM,dzM) #XXX
+                # self.z = manualZ
+                # self.Tz = initfirn['temperature']
+                # self.rho = initfirn['density']
+                # self.age = np.interp(self.z,zold,self.age)
+                # ###
 
                 self.rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 self.Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
                 self.age_time        = np.concatenate(([self.t * iii + 1], self.age))
                 self.z_time          = np.concatenate(([self.t * iii + 1], self.z))
+
 
                 if self.c['physGrain']:
                     self.r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
@@ -498,8 +555,18 @@ class FirnDensitySpin:
                     self.Hx_time     = None
                 if self.c['isoDiff']:
                     for isotope in self.c['iso']:
+                        self.Iso_sig2_z[isotope] = np.interp(self.z,zold,self.Iso_sig2_z[isotope]) ###XXX
+
+
                         self.iso_out[isotope]    = np.concatenate(([self.t * iii + 1], self.Isoz[isotope]))
                         self.iso_sig2_out[isotope] = np.concatenate(([self.t * iii + 1], self.Iso_sig2_z[isotope]))
+                        if 'iso{}'.format(isotope) in list(initfirn):
+                            print('Interpolating isotope {}'.format(isotope))
+                            isoIntFun = interpolate.interp1d(init_depth,initfirn['iso{}'.format(isotope)].values,'nearest',fill_value='extrapolate')
+                            self.iso_out[isotope] = np.concatenate(([self.t * iii + 1], isoIntFun(self.z)))
+
+
+                            # self.iso_out[isotope] = np.interp(self.z,init_depth,initfirn['iso{}'.format(isotope)].values)
                 else:
                     self.iso_time    = None
                 if self.c['MELT']:
@@ -510,6 +577,10 @@ class FirnDensitySpin:
                     self.grid_time   = np.concatenate(([self.t * iii + 1], self.gridtrack))
                 else:
                     self.grid_time   = None
+                # if self.write_bdot:
+                    # self.bdot_mean_time = np.concatenate(([self.t * iii + 1], self.bdot_mean))
+                # else:
+                    # self.bdot_mean_time = None
 
                 write_spin_hdf5(self)
 

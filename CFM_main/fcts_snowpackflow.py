@@ -14,7 +14,7 @@ from constants import *
 
 def NPtrid(a,b,c,d):
     '''
-    package to solve tridiagonal matrix --> find x matrix in Ax=d equation
+    function to solve tridiagonal matrix --> find x matrix in Ax=d equation
 
     a,b,c,d are arrays, should be made of floats, not integer
     a and c are 1 index shorter than b and d
@@ -82,16 +82,16 @@ def splitCFM(rhoC,dzC,TzC,massC,lwcC,Plwc_memC,r2C,vert_res):
     
     ### Resolution we want for the layers for RE, should maybe be given as input to funcion ###
     ### Number of sublayers vector ###
-    split_list = np.array([]) # list that contains nb of sublayers of every layer (index corresponds to index of layer in CFM)
+    split_list  = np.array([]) # list that contains nb of sublayers of every layer (index corresponds to index of layer in CFM)
     
     ### Vectors of the variables that will be used in Fine grid ###
-    dzF = np.array([]) # thickness vector for the F
-    massF = np.array([]) # mass vector for the F 
-    LWCF = np.array([]) # LWC vector for the F
-    rhoF = np.array([]) # density vector for the F
-    TzF = np.array([]) # temperature vector for the F
-    r2F = np.array([]) # squared radius vector for the F
-    PLWC_memF = np.array([]) # PLWC_mem vector for the flow routine
+    dzF         = np.array([]) # thickness vector for the F
+    massF       = np.array([]) # mass vector for the F 
+    LWCF        = np.array([]) # LWC vector for the F
+    rhoF        = np.array([]) # density vector for the F
+    TzF         = np.array([]) # temperature vector for the F
+    r2F         = np.array([]) # squared radius vector for the F
+    PLWC_memF   = np.array([]) # PLWC_mem vector for the flow routine
     # must not be executed for refrozen as refrozen is specific to each CFM step -> starts as zero everywhere at every flow routine
     
     for ii in range(len(dzC)):
@@ -102,37 +102,37 @@ def splitCFM(rhoC,dzC,TzC,massC,lwcC,Plwc_memC,r2C,vert_res):
             
             ### Define new values of the variables: caution to the difference between additive and non-additive ###
             # Additive variables: value of CFM layer repartitioned between sublayers #
-            newdz = dzC[ii]/nb_sublayers*np.ones(nb_sublayers) # thickness value of the layers for the F (will be close to vert_res)
-            newmass = massC[ii]/nb_sublayers*np.ones(nb_sublayers) # mass value of the layers for the F
-            newLWC = lwcC[ii]/nb_sublayers*np.ones(nb_sublayers) # LWC value of the layers for the F
+            newdz       = dzC[ii]/nb_sublayers*np.ones(nb_sublayers) # thickness value of the layers for the F (will be close to vert_res)
+            newmass     = massC[ii]/nb_sublayers*np.ones(nb_sublayers) # mass value of the layers for the F
+            newLWC      = lwcC[ii]/nb_sublayers*np.ones(nb_sublayers) # LWC value of the layers for the F
             newPLWC_mem = Plwc_memC[ii]/nb_sublayers*np.ones(nb_sublayers) # PLWC_mem value of the layers for the F
 
             # Non-additive variables: every sublayer keeps the same value as the CFM layer #
-            newrho = rhoC[ii]*np.ones(nb_sublayers) # density value of the layers for the F
-            newTz = TzC[ii]*np.ones(nb_sublayers) # temperature value of the layers for the F
-            newr2 = r2C[ii]*np.ones(nb_sublayers) # grain size value of the layers for the F
+            newrho      = rhoC[ii]*np.ones(nb_sublayers) # density value of the layers for the F
+            newTz       = TzC[ii]*np.ones(nb_sublayers) # temperature value of the layers for the F
+            newr2       = r2C[ii]*np.ones(nb_sublayers) # grain size value of the layers for the F
             
             ### Fill in the vectors that will be used in the RE routine ###
-            dzF = np.concatenate((dzF,newdz)) # thickness [m]
-            massF = np.concatenate((massF,newmass)) # mass [kg]
-            LWCF = np.concatenate((LWCF,newLWC)) # LWC [m]
-            rhoF = np.concatenate((rhoF,newrho)) # density [kg m-3]
-            TzF = np.concatenate((TzF,newTz)) # temperature [K]
-            r2F = np.concatenate((r2F,newr2)) # squared radius [m2]
-            PLWC_memF = np.concatenate((PLWC_memF,newPLWC_mem)) # LWC [m]
+            dzF         = np.concatenate((dzF,newdz)) # thickness [m]
+            massF       = np.concatenate((massF,newmass)) # mass [kg]
+            LWCF        = np.concatenate((LWCF,newLWC)) # LWC [m]
+            rhoF        = np.concatenate((rhoF,newrho)) # density [kg m-3]
+            TzF         = np.concatenate((TzF,newTz)) # temperature [K]
+            r2F         = np.concatenate((r2F,newr2)) # squared radius [m2]
+            PLWC_memF   = np.concatenate((PLWC_memF,newPLWC_mem)) # LWC [m]
             
         if dzC[ii] <= vert_res: # Cases where the layer of the CFM is not thicker than vert_res -> does not need to be split in sublayers
-            nb_sublayers = 1 # Only one sublayer per layer of CFM
-            split_list = np.append(split_list,nb_sublayers) # fill in split_list with a value of 1 
+            nb_sublayers    = 1 # Only one sublayer per layer of CFM
+            split_list      = np.append(split_list,nb_sublayers) # fill in split_list with a value of 1 
             
             ### Store immediately the CFM values in the vectors for F ###
-            dzF = np.append(dzF,dzC[ii]) # thickness [m]
-            massF = np.append(massF,massC[ii]) # mass [kg]
-            LWCF = np.append(LWCF,lwcC[ii]) # LWC [m]
-            rhoF = np.append(rhoF,rhoC[ii]) # density [kg m-3]
-            TzF = np.append(TzF,TzC[ii]) # temperature [K]
-            r2F = np.append(r2F,r2C[ii]) # squared radius [m2]
-            PLWC_memF = np.append(PLWC_memF,Plwc_memC[ii]) # LWC [m]
+            dzF         = np.append(dzF,dzC[ii]) # thickness [m]
+            massF       = np.append(massF,massC[ii]) # mass [kg]
+            LWCF        = np.append(LWCF,lwcC[ii]) # LWC [m]
+            rhoF        = np.append(rhoF,rhoC[ii]) # density [kg m-3]
+            TzF         = np.append(TzF,TzC[ii]) # temperature [K]
+            r2F         = np.append(r2F,r2C[ii]) # squared radius [m2]
+            PLWC_memF   = np.append(PLWC_memF,Plwc_memC[ii]) # LWC [m]
             
     return split_list,rhoF,dzF,TzF,massF,LWCF,PLWC_memF,r2F
 
@@ -146,15 +146,16 @@ def combineCFM(split_list,rhoF,dzF,TzF,massF,lwcF,Plwc_memF,r2F,refrozenF):
     - Normally, RE routine (including freezing) should not affect dz and r2 variables but only use them
     -> not necessary to combine them and to give them back to CFM (which can keep its own self.dz and self.r2)
     '''
+    
     ### Vectors that will be reattributed to the self. vectors ###
-    dzC = np.array([]) # thickness vector for the C
-    massC = np.array([]) # mass vector for the C 
-    lwcC = np.array([]) # LWC vector for the C
-    Plwc_memC = np.array([]) # PLWC_mem vector for the C
-    rhoC = np.array([]) # density vector for the C
-    TzC = np.array([]) # temperature vector for the C
-    r2C = np.array([]) # squared radius vector for the C
-    refrozenC = np.array([]) # refrozen water amount per layer vector for the C
+    dzC         = np.array([]) # thickness vector for the C
+    massC       = np.array([]) # mass vector for the C 
+    lwcC        = np.array([]) # LWC vector for the C
+    Plwc_memC   = np.array([]) # PLWC_mem vector for the C
+    rhoC        = np.array([]) # density vector for the C
+    TzC         = np.array([]) # temperature vector for the C
+    r2C         = np.array([]) # squared radius vector for the C
+    refrozenC   = np.array([]) # refrozen water amount per layer vector for the C
     
     jj = 0 # index in split_list
     
@@ -163,25 +164,25 @@ def combineCFM(split_list,rhoF,dzF,TzF,massF,lwcF,Plwc_memF,r2F,refrozenF):
         
         ### Combine values of the variables: caution to the difference between additive and non-additive ###
         # Additive values: sum the values of all the sublayers that we combine
-        combdz = np.sum(dzF[jj:jjlast]) # combining the dz values from same C layer (dzF[jj] == dzF[jj+1] == dzF[jj+2] == ... == dzF[jjlast])
-        combmass = np.sum(massF[jj:jjlast]) # combining the mass values from same C layer
-        comblwc = np.sum(lwcF[jj:jjlast]) # combining the LWC values from same C layer
+        combdz       = np.sum(dzF[jj:jjlast]) # combining the dz values from same C layer (dzF[jj] == dzF[jj+1] == dzF[jj+2] == ... == dzF[jjlast])
+        combmass     = np.sum(massF[jj:jjlast]) # combining the mass values from same C layer
+        comblwc      = np.sum(lwcF[jj:jjlast]) # combining the LWC values from same C layer
         combPlwc_mem = np.sum(Plwc_memF[jj:jjlast]) # combining the PLWC_mem values from same C layer
         combrefrozen = np.sum(refrozenF[jj:jjlast]) # combining the refrozen values from same C layer
         # Non-additive variables: take the mean of the values of all the sublayers that we combine
-        combrho = np.mean(rhoF[jj:jjlast])
-        combTz = np.mean(TzF[jj:jjlast])
-        combr2 = np.mean(r2F[jj:jjlast])
+        combrho      = np.mean(rhoF[jj:jjlast])
+        combTz       = np.mean(TzF[jj:jjlast])
+        combr2       = np.mean(r2F[jj:jjlast])
         
         ### Fill in the vectors that will be given back to the C ###
-        dzC = np.append(dzC,combdz) # thickness vector for dz [m]
-        massC = np.append(massC,combmass) # mass vector for mass [kg]
-        lwcC = np.append(lwcC,comblwc) # LWC vector for LWC [m]
-        Plwc_memC = np.append(Plwc_memC,combPlwc_mem) # PLWC_mem vector for PLWC_mem [m]
-        rhoC = np.append(rhoC,combrho) # density vector for rho [kg m-3]
-        TzC = np.append(TzC,combTz) # temperature vector for Tz [K]
-        r2C = np.append(r2C,combr2) # squared radius vector for r2 [m2]
-        refrozenC = np.append(refrozenC,combrefrozen) # refrozen vector for refrozen [mWE]
+        dzC         = np.append(dzC,combdz) # thickness vector for dz [m]
+        massC       = np.append(massC,combmass) # mass vector for mass [kg]
+        lwcC        = np.append(lwcC,comblwc) # LWC vector for LWC [m]
+        Plwc_memC   = np.append(Plwc_memC,combPlwc_mem) # PLWC_mem vector for PLWC_mem [m]
+        rhoC        = np.append(rhoC,combrho) # density vector for rho [kg m-3]
+        TzC         = np.append(TzC,combTz) # temperature vector for Tz [K]
+        r2C         = np.append(r2C,combr2) # squared radius vector for r2 [m2]
+        refrozenC   = np.append(refrozenC,combrefrozen) # refrozen vector for refrozen [mWE]
         
         jj = jjlast
         
@@ -197,21 +198,22 @@ def restrictdom(self):
     rhobottom = 830.
     
     iirho = 0
-    iilwc = 0        
+    iilwc = 0
+
     if np.any(self.rho<rhobottom):        
-        iirho = np.where(self.rho<rhobottom)[0][-1] #Last layer below 830
+        iirho = np.where(self.rho<rhobottom)[0][-1] # Last layer below 830
     if np.any(self.LWC>0):
-        iilwc = np.where(self.LWC>0)[0][-1] #Last layer with water content
-    ii = max(iirho,iilwc) #Last layer below 830 or with water content
+        iilwc = np.where(self.LWC>0)[0][-1] # Last layer with water content
+    ii = max(iirho,iilwc) # Last layer below 830 or with water content
     
     # ii is now the last layer where rho is below rhobottom kg/m3 -> limit the domain until ii+1
-    rho_short = self.rho[0:ii+2]
-    dz_short = self.dz[0:ii+2]
-    Tz_short = self.Tz[0:ii+2]
-    mass_short = self.mass[0:ii+2]
-    lwc_short = self.LWC[0:ii+2]
-    r2_short = self.r2[0:ii+2]
-    Plwc_mem_short = self.PLWC_mem[0:ii+2]
+    rho_short       = self.rho[0:ii+2]
+    dz_short        = self.dz[0:ii+2]
+    Tz_short        = self.Tz[0:ii+2]
+    mass_short      = self.mass[0:ii+2]
+    lwc_short       = self.LWC[0:ii+2]
+    r2_short        = self.r2[0:ii+2]
+    Plwc_mem_short  = self.PLWC_mem[0:ii+2]
     
     return(rho_short,dz_short,Tz_short,mass_short,lwc_short,Plwc_mem_short,r2_short)
     
@@ -221,14 +223,14 @@ def lengthendom(self,rho_short,dz_short,Tz_short,mass_short,lwc_short,Plwc_mem_s
     during the flow routine (because all their rho values was above rhoimp from a certain depth).
     !! This function has to be called before the flow routine but AFTER the melting !!
     '''
-    ii = len(dz_short)-1 # last layer that may have been affected by flow routine
-    rho_full = np.append(rho_short,self.rho[ii+1:]) # modify the old variables that were defined on the entire column
-    dz_full = np.append(dz_short,self.dz[ii+1:])
-    Tz_full = np.append(Tz_short,self.Tz[ii+1:])
-    mass_full = np.append(mass_short,self.mass[ii+1:])
-    lwc_full = np.append(lwc_short,self.LWC[ii+1:])
-    r2_full = np.append(r2_short,self.r2[ii+1:])
-    Plwc_mem_full = np.append(Plwc_mem_short,self.PLWC_mem[ii+1:])
+    ii              = len(dz_short)-1 # last layer that may have been affected by flow routine
+    rho_full        = np.append(rho_short,self.rho[ii+1:]) # modify the old variables that were defined on the entire column
+    dz_full         = np.append(dz_short,self.dz[ii+1:])
+    Tz_full         = np.append(Tz_short,self.Tz[ii+1:])
+    mass_full       = np.append(mass_short,self.mass[ii+1:])
+    lwc_full        = np.append(lwc_short,self.LWC[ii+1:])
+    r2_full         = np.append(r2_short,self.r2[ii+1:])
+    Plwc_mem_full   = np.append(Plwc_mem_short,self.PLWC_mem[ii+1:])
     
     return(rho_full,dz_full,Tz_full,mass_full,lwc_full,Plwc_mem_full,r2_full)
 
@@ -240,22 +242,26 @@ def Msatexcess(dz,rho,Mtheta,Mtheta_sat,crtn_theta,rhoimp,totrunoff):
     the layers below (in priority) and in the layers above (if there is not enough pore space in all the layers below)
     '''
     waterexcess = np.where(Mtheta > Mtheta_sat) # spot layers where we exceed saturation
-    ice1 = np.zeros_like(dz)
-    sat1 = np.zeros_like(dz)
+    ice1        = np.zeros_like(dz)
+    sat1        = np.zeros_like(dz)
+
     ice1[np.where(rho>=rhoimp)[0]] = 1
     sat1[np.where(Mtheta/Mtheta_sat>=0.95)[0]] = 1
-    icesat = ice1+sat1
+
+    icesat      = ice1+sat1
+
     if np.any(icesat==0):
-        lowest = np.where(icesat == 0)[0][-1]
+        lowest  = np.where(icesat == 0)[0][-1]
     elif np.all(icesat>0):
-        lowest = 0
+        lowest  = 0
     
     for index in waterexcess[0]:
-        lwcexc = 1.001*(Mtheta[index]-Mtheta_sat[index]) * dz[index] # move excess of water, with safety margin
-        lwcexc = min((Mtheta[index]-crtn_theta/10)*dz[index],lwcexc) # we still need minimum theta for numerical stability
+        lwcexc  = 1.001*(Mtheta[index]-Mtheta_sat[index]) * dz[index] # move excess of water, with safety margin
+        lwcexc  = min((Mtheta[index]-crtn_theta/10)*dz[index],lwcexc) # we still need minimum theta for numerical stability
         Mtheta[index] -= lwcexc/dz[index] # we remove that excess of water but still have to distribute it in the column
         tobelow = 1 # we first try to distribute in layers situated below
-        bb = 1
+        bb      = 1
+
         if (index+bb)>lowest or (index+bb>len(dz)-1): # if there are no layers below, no below distribution
             tobelow = 0
         while lwcexc > 0. and tobelow == 1: # as long as there is excess to distribute and we did not reach bottom
@@ -264,9 +270,9 @@ def Msatexcess(dz,rho,Mtheta,Mtheta_sat,crtn_theta,rhoimp,totrunoff):
                 transf = np.maximum(transf,0.) # make sure not to have negative values
             elif rho[index+bb]>=rhoimp: # No transfer of water in layers above pore close-off density
                 transf = 0.
-            Mtheta[index+bb] += transf/dz[index+bb] # add the water
-            bb += 1 # go to layer below
-            lwcexc -= transf # part of lwcexc has been distributed
+            Mtheta[index+bb]    += transf/dz[index+bb] # add the water
+            bb                  += 1 # go to layer below
+            lwcexc              -= transf # part of lwcexc has been distributed
             if (index+bb)>lowest or (index+bb>len(dz)-1): # if we reach bottom, stop below distribution
                 tobelow = 0
         
@@ -306,22 +312,24 @@ def Psatexcess(dz,rho,Ptheta,Ptheta_sat,crtn_theta,rhoimp,totrunoff):
     the layers below (in priority) and in the layers above (if there is not enough pore space in all the layers below)
     '''
     waterexcess = np.where(Ptheta > Ptheta_sat) # spot layers where we exceed saturation
-    ice1 = np.zeros_like(dz)
-    sat1 = np.zeros_like(dz)
+    ice1        = np.zeros_like(dz)
+    sat1        = np.zeros_like(dz)
+
     ice1[np.where(rho>=rhoimp)[0]] = 1
     sat1[np.where(Ptheta/Ptheta_sat>=0.95)[0]] = 1
-    icesat = ice1+sat1
+
+    icesat      = ice1+sat1
     if np.any(icesat==0):
-        lowest = np.where(icesat == 0)[0][-1]
+        lowest  = np.where(icesat == 0)[0][-1]
     elif np.all(icesat>0):
-        lowest = 0
+        lowest  = 0
         
     for index in waterexcess[0]:
-        lwcexc = 1.001*(Ptheta[index]-Ptheta_sat[index]) * dz[index] # move excess of water, with safety margin
-        lwcexc = min((Ptheta[index]-crtn_theta/10)*dz[index],lwcexc) # we still need minimum theta for numerical stability
+        lwcexc        = 1.001*(Ptheta[index]-Ptheta_sat[index]) * dz[index] # move excess of water, with safety margin
+        lwcexc        = min((Ptheta[index]-crtn_theta/10)*dz[index],lwcexc) # we still need minimum theta for numerical stability
         Ptheta[index] -= lwcexc/dz[index] # we remove that excess of water but still have to distribute it in the column
-        tobelow = 1 # we first try to distribute in layers situated below
-        bb = 1
+        tobelow       = 1 # we first try to distribute in layers situated below
+        bb            = 1
         if (index+bb)>lowest or (index+bb>len(dz)-1): # if there are no layers below, no below distribution
             tobelow = 0
         while lwcexc > 0. and tobelow == 1: # as long as there is excess to distribute and we did not reach bottom
@@ -366,25 +374,27 @@ def Micedryer(dz,rho,Mtheta,Mtheta_sat,crtn_theta,rhoimp,totrunoff):
     '''
     This works the same as satexcess but in order to make sure that layers at pore close-off density (rho>rhoimp) are dry in MFdom.
     '''
-    icelay = np.where(rho>rhoimp)[0] # spot ice layer
-    wetlay = np.where(Mtheta>crtn_theta/10)[0] # spot layers above minimum saturation
-    ice_to_dry = np.intersect1d(icelay,wetlay) # spot ice layers above minimum saturation
+    icelay      = np.where(rho>rhoimp)[0] # spot ice layer
+    wetlay      = np.where(Mtheta>crtn_theta/10)[0] # spot layers above minimum saturation
+    ice_to_dry  = np.intersect1d(icelay,wetlay) # spot ice layers above minimum saturation
     
-    ice1 = np.zeros_like(dz)
-    sat1 = np.zeros_like(dz)
+    ice1    = np.zeros_like(dz)
+    sat1    = np.zeros_like(dz)
     ice1[np.where(rho>=rhoimp)[0]] = 1
     sat1[np.where(Mtheta/Mtheta_sat>=0.95)[0]] = 1
-    icesat = ice1+sat1
+    icesat  = ice1+sat1
+
     if np.any(icesat==0):
         lowest = np.where(icesat == 0)[0][-1]
     elif np.all(icesat>0):
         lowest = 0
     
     for index in ice_to_dry:
-        lwcexc = (Mtheta[index]-crtn_theta/10) * dz[index] # move excess of water, with safety margin
-        Mtheta[index] -= lwcexc/dz[index] # we remove that excess of water but still have to distribute it in the column
-        tobelow = 1 # we first try to distribute in layers situated below
-        bb = 1
+        lwcexc          = (Mtheta[index]-crtn_theta/10) * dz[index] # move excess of water, with safety margin
+        Mtheta[index]   -= lwcexc/dz[index] # we remove that excess of water but still have to distribute it in the column
+        tobelow         = 1 # we first try to distribute in layers situated below
+        bb              = 1
+
         if (index+bb)>lowest or (index+bb>len(dz)-1): # if there are no layers below, no below distribution
             tobelow = 0
         while lwcexc > 0. and tobelow == 1: # as long as there is excess to distribute and we did not reach bottom
@@ -393,9 +403,9 @@ def Micedryer(dz,rho,Mtheta,Mtheta_sat,crtn_theta,rhoimp,totrunoff):
                 transf = np.maximum(transf,0.) # make sure not to have negative values
             elif rho[index+bb]>=rhoimp:
                 transf = 0.
-            Mtheta[index+bb] += transf/dz[index+bb] # add the water
-            bb += 1 # go to layer below
-            lwcexc -= transf # part of lwcexc has been distributed
+            Mtheta[index+bb]    += transf/dz[index+bb] # add the water
+            bb                  += 1 # go to layer below
+            lwcexc              -= transf # part of lwcexc has been distributed
             if index+bb > len(dz)-1: # if we reach bottom, stop below distribution
                 tobelow = 0
         
@@ -430,15 +440,15 @@ def Picedryer(dz,rho,Ptheta,Ptheta_sat,crtn_theta,rhoPdr,totrunoff):
     '''
     This works the same as satexcess but in order to make sure that layers at pore close-off density (rho>rhoimp) are dry in MFdom.
     '''
-    icelay = np.where(rho>rhoPdr)[0] # spot ice layer
-    wetlay = np.where(Ptheta>crtn_theta/10)[0] # spot layers above minimum saturation
-    ice_to_dry = np.intersect1d(icelay,wetlay) # spot ice layers above minimum saturation
+    icelay      = np.where(rho>rhoPdr)[0] # spot ice layer
+    wetlay      = np.where(Ptheta>crtn_theta/10)[0] # spot layers above minimum saturation
+    ice_to_dry  = np.intersect1d(icelay,wetlay) # spot ice layers above minimum saturation
     
-    ice1 = np.zeros_like(dz)
-    sat1 = np.zeros_like(dz)
+    ice1        = np.zeros_like(dz)
+    sat1        = np.zeros_like(dz)
     ice1[np.where(rho>=rhoPdr)[0]] = 1
     sat1[np.where(Ptheta/Ptheta_sat>=0.95)[0]] = 1
-    icesat = ice1+sat1
+    icesat      = ice1+sat1
     if np.any(icesat==0):
         lowest = np.where(icesat == 0)[0][-1]
     elif np.all(icesat>0):
