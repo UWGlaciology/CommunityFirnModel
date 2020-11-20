@@ -553,7 +553,7 @@ class FirnPhysics:
         Need to choose physics for zone 2. Herron and Langway here.
         '''
 
-        QMorris = self.c['QMorris']
+        QMorris = self.QMorris
         # QMorris = 60.e3
 
         if self.iii ==0:
@@ -566,12 +566,14 @@ class FirnPhysics:
         ### I calculated coefficients for slope and intercept by regressing the 
         ### (E_alpha - E_H) for each site and each activation energy provided by
         ### Liz Morris (the fix of the erroneous Table 2 in original paper)
-        slope = -0.0009667915546575245 * self.c['QMorris'] /1.e3 + 0.001947860800510695
-        intercept = 0.29455063899108685* self.c['QMorris'] /1.e3 - 2.652540535829697
-        deltaE = slope*self.T_mean[self.iii] + intercept 
+        slope = -0.0009667915546575245 * self.QMorris /1.e3 + 0.001947860800510695
+        intercept = 0.29455063899108685* self.QMorris /1.e3 - 2.652540535829697
+        deltaE = (slope*self.T_mean[self.iii] + intercept) * 1000
         kHL = 11.0 # units m water eq.
         Estar = 10.16e3
         kMorris = kHL * np.exp(-1 * (Estar - deltaE) / (R * self.T_mean[self.iii]))
+        if self.iii==0:
+            print('kMorris=',kMorris)
         ##
 
         ### calculations for the (1-M_0*m) term
@@ -587,7 +589,7 @@ class FirnPhysics:
         drho_dt   = np.zeros(self.gridLen)
         viscosity = np.zeros(self.gridLen)
  
-        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-1*self.c['QMorris'] / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] * (1 - M0bar*m)
+        drho_dt[self.rho < RHO_1] = (kMorris / (RHO_W_KGM * GRAVITY)) * ((RHO_I - self.rho[self.rho < RHO_1])) * (1 / self.Hx[self.rho < RHO_1]) * np.exp(-1*self.QMorris / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] * (1 - M0bar*m)
 
         # Use HL Dynamic for zone 2 b/c Morris does not specify zone 2.
         Q2  = 21400.0
@@ -603,8 +605,8 @@ class FirnPhysics:
         viscosity[self.rho < RHO_1]   = -(self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
         viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1]) / (2)/drho_dt[self.rho >= RHO_1] 
 
-        self.Hx = self.Hx + np.exp(-1*self.c['QMorris'] / (R * self.Tz)) * self.dt
-        Hx_new  = np.exp(-1 * self.c['QMorris'] / (R * self.Tz[0])) * self.dt 
+        self.Hx = self.Hx + np.exp(-1*self.QMorris / (R * self.Tz)) * self.dt
+        Hx_new  = np.exp(-1 * self.QMorris / (R * self.Tz[0])) * self.dt 
         self.Hx = np.concatenate(([Hx_new],self.Hx[:-1]))
 
         # input('enter to continue')
@@ -634,7 +636,7 @@ class FirnPhysics:
             A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
             if self.iii==0:
                 print("It is not recommended to use instant accumulation with Ligtenberg 2011 physics")
-            M_0 = 1.042 - 0.0916 * np.log(A_instafnt)
+            M_0 = 1.042 - 0.0916 * np.log(A_instant)
             M_1 = 1.734 - 0.2039 * np.log(A_instant)
             M_0 = np.max((0.25,M_0))
             M_1 = np.max((0.25,M_1))
@@ -878,21 +880,25 @@ class FirnPhysics:
 
     def GSFC2020(self):
         '''
-        Developed by Brooke Medley at NASA Goddard
-        Taken from Smith et al. (2020)
+        Taken from Medley et al. (2020)
         Accumulation units are kg/m^2/year
+        Subscript here are changed to 1 and 2 (correspond to densification stage)
+        (in Medley et al. 2020 they are 0 and 1)
         '''
 
         ar1 = 0.07
         ar2 = 0.03
-        Ec  = 60.0e3
+        Ec1  = 60.0e3
+        Ec2 = 56973.0
         Eg  = 42.4e3
-        beta1 = -0.1483 # Changed from Smith 2020, which used subcripts 0 and 1
-        beta2 = -0.3510 # we want subscripts to reflect zone so we use 1 and 2
-        E1 = -731
-        E2 = -2861
+        alpha1 = 0.9250
+        alpha2 = 0.6354
+        # beta1 = -0.1483 # Changed from Smith 2020, which used subcripts 0 and 1
+        # beta2 = -0.3510 # we want subscripts to reflect zone so we use 1 and 2
+        # E1 = -731
+        # E2 = -2861
 
-        A_mean_1    = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000
+        A_mean_1    = self.bdot_mean[self.rho < RHO_1] * RHO_I_MGM * 1000 # Convert to kg/m^2/time
         A_mean_2    = self.bdot_mean[self.rho >= RHO_1] * RHO_I_MGM * 1000
         dr_dt       = np.zeros(self.gridLen)
         viscosity   = np.zeros(self.gridLen)
@@ -901,11 +907,16 @@ class FirnPhysics:
             print('instant bdot_type does not work with GSFC physics. exiting')
             sys.exit()
         elif self.bdot_type == 'mean':
-            R1 = A_mean_1**beta1 * np.exp(-E1 / (R * self.Tz[self.rho < RHO_1]))
-            R2 = A_mean_2**beta2 * np.exp(-E2 / (R * self.Tz[self.rho >= RHO_1]))
+            # R1 = A_mean_1**beta1 * np.exp(-E1 / (R * self.Tz[self.rho < RHO_1]))
+            # R2 = A_mean_2**beta2 * np.exp(-E2 / (R * self.Tz[self.rho >= RHO_1]))
+            indS1 = np.where(self.rho < RHO_1)[0]
+            indS2 = np.where(self.rho >= RHO_1)[0]
 
-            dr_dt[self.rho < RHO_1]  = R1 * (RHO_I - self.rho[self.rho < RHO_1]) * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean[self.iii]))
-            dr_dt[self.rho >= RHO_1] = R2 * (RHO_I - self.rho[self.rho >= RHO_1]) * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+            c1 = ar1 * A_mean_1**alpha1 * GRAVITY * np.exp(-Ec1 / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+            c2 = ar2 * A_mean_2**alpha2 * GRAVITY * np.exp(-Ec2 / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+
+            dr_dt[self.rho < RHO_1]  = c1 * (RHO_I - self.rho[self.rho < RHO_1])
+            dr_dt[self.rho >= RHO_1] = c2 * (RHO_I - self.rho[self.rho >= RHO_1])
 
         drho_dt = dr_dt / S_PER_YEAR
         

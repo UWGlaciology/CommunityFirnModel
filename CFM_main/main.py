@@ -17,7 +17,7 @@ import shutil
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annikah Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@uw.edu"
 __status__ = "Production"
@@ -43,9 +43,12 @@ if __name__ == '__main__':
     print("-----------------------------------------------------------------------")
     print("-----------------------------------------------------------------------")
     print("<<<<<<<< Running the Community Firn Model (CFM), Version %s >>>>>>>>" %__version__)
-    print("<<<<<<<< Developed at the University of Washington             >>>>>>>>")
-    print("<<<<<<<< Please cite your use!                                 >>>>>>>>")
+    print("<<<<<<<< Please cite your use:                                 >>>>>>>>")
+    print("<<<<<<<< https://doi.org/10.5194/gmd-13-4355-2020              >>>>>>>>")
     print("<<<<<<<< Distributed under terms of the MIT license.           >>>>>>>>")
+    print("<<<<<<<< Please consider telling us that you are using the CFM >>>>>>>>")
+    print("<<<<<<<< (it helps to keep the project going!)                 >>>>>>>>")
+    print("<<<<<<<< Questions/comments to Max Stevens: maxstev@umd.edu    >>>>>>>>")
     print("-----------------------------------------------------------------------")
     print("-----------------------------------------------------------------------")
     print("")

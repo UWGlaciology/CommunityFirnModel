@@ -20,10 +20,6 @@ def percolation_bucket(self, iii):
     '''
 
     # maxpore_f                 = 2.0   # factor by which the maximum filled porespace can exceed the irreducible saturation.
-    # if iii>12101:
-    #     print('melt check 1',iii)
-    #     print('LWC',self.LWC[0:5])
-        
 
     impermeable_rho         = 750.  # impermeable lens density.
 
@@ -31,9 +27,7 @@ def percolation_bucket(self, iii):
         print('ERROR: negative LWC')
         print('(model will continue to run)')
 
-    # if self.modeltime[iii]>2010:
-    #     print('modeltime',self.modeltime[iii])
-    #     print('rho ', self.rho[0:10])
+
 
     melt_volume_IE          = self.snowmeltSec[iii] * S_PER_YEAR * 0.5    # meters
     melt_volume_WE          = melt_volume_IE * RHO_I_MGM            # meters
@@ -55,18 +49,6 @@ def percolation_bucket(self, iii):
     melt_mass_a             = melt_mass + melt_boxes_LWC_mass
     melt_vol_a              = melt_mass_a / RHO_W_KGM
 
-    # if iii>12101:
-    #     print('partial melt stage')
-    #     print('num_boxes_melted',num_boxes_melted)
-    #     print('melt_mass',melt_mass)
-    #     print('melt_mass_a',melt_mass_a)
-    #     print('pm_lwc',pm_lwc)
-    #     print('dz',self.dz[0:5])
-    #     print('rho',self.rho[0:5])
-    #     print('pmdz',pm_dz)
-    #     input('enter')
-
-
     ###################################
     ### Regrid after melt
     ### Melted boxes are accomodated by just adding more (new) boxes at the bottom of the column
@@ -74,12 +56,8 @@ def percolation_bucket(self, iii):
     divider                 = num_boxes_melted
     self.rho                = np.concatenate((self.rho[ind1:-1] , self.rho[-1]*np.ones(num_boxes_melted)))
     self.LWC                = np.concatenate((self.LWC[ind1:-1] , self.LWC[-1]*np.ones(num_boxes_melted)))
-    # if iii>12101:
-    #     print('lwc1',self.LWC[0:5])
     self.LWC[0]             = pm_lwc
-    # if iii>12101:
-    #     print('lwc2',self.LWC[0:5])
-    #     input()
+
     self.age                = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_melted)))
     # self.dz               = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_melted))) # this splits the last box into many.
     self.dz                 = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_melted))) # this adds new boxes at the bottom.
@@ -127,13 +105,6 @@ def percolation_bucket(self, iii):
     maxLWC1                 = porespace_vol * maxpore   # maximum volume of water that can be stored in each node (meters)
     maxLWC2                 = ((917.0 * self.dz) - self.mass) / RHO_W_KGM # double check that the LWC does not get too large. 
     maxLWC                  = np.minimum(maxLWC1 , maxLWC2)
-
-    # if iii>12101:
-    #     print('melt check mid')
-    #     print('LWC',self.LWC[0:5])
-    #     print('rho',self.rho[0:5])
-    #     print('dz',self.dz[0:5])
-    #     input()
 
     maxLWC[self.rho>impermeable_rho] = 0
     maxLWC_mass             = maxLWC * RHO_W_KGM        # mass of the maximum volume of water
@@ -237,22 +208,10 @@ def percolation_bucket(self, iii):
     if np.any(self.rho>917.0):
         print('high rho in melt.py', np.max(self.rho))
         self.rho[self.rho>917.0]=917.0
-    # print('lwc:',np.sum(self.LWC))
-    # print('lwc:',self.LWC)
-
-    # if iii>12101:
-    #     print('melt check end')
-    #     print('LWC',self.LWC[0:5])
-    #     print('rho',self.rho[0:5])
-    #     print('dz',self.dz[0:5])
-    #     input()
-
-    # if self.modeltime[iii]>2010:
-        
-        # print('rho after bucket', self.rho[0:10])
     
 
     return self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC
+###################################################
 ### End percolation_bucket ########################
 ###################################################
 
@@ -262,21 +221,19 @@ def bucketVV(self, iii):
     Bucket scheme coded by V. Verjans, used in Verjans et al. (2019)
     '''
 
-#    tic2=time.time()
-    irr = 0.02 * np.ones_like(self.dz) # Irreducible water content, this is a proportion of the available pore space
+    rhoimp      = 830. #impermeable density, threshold to generate runoff, can be changed
+    irr         = 0.02 * np.ones_like(self.dz) # Irreducible water content, this is a proportion of the available pore space
     #irr = 0.06 * np.ones_like(self.dz) # Crocus value (Reijmer 2012)
-    CLparam = 1 # Set this to 1 to use Coleou and Lesaffre 1998 parameterisation
-    rhoimp = 830.
-    # We use rhoimp as threshold to generate runoff, can be changed
+    CLparam     = 1 # Set this to 1 to use Coleou and Lesaffre 1998 parameterisation
     if CLparam == 1:
-        irr = np.zeros_like(self.dz) #calculated below (twice: once before freezing and once after freezing)
+        irr     = np.zeros_like(self.dz) #calculated below (twice: once before freezing and once after freezing)
     
     ##### First: melting of the surface layers, taken from melt.py #####
     melt_volume_IE      = self.snowmeltSec[iii] * S_PER_YEAR # This still has to be checked by Max (division by self.c['stpsPerYear']?) [m]
     melt_volume_WE      = melt_volume_IE * RHO_I_MGM # [m]
     melt_mass           = melt_volume_WE * 1000. # [kg]
     
-    initial_lwc = 1*self.LWC
+    initial_lwc         = 1*self.LWC
     
 #    heat_to_freeze             = melt_mass * LF_I                         # amount of heat needed to refreeze the melt (J)
     ind1a               = np.where(self.mass_sum <= melt_mass)[0] # indices of boxes that will be melted away

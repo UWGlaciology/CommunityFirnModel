@@ -108,41 +108,41 @@ def prefflow(self,iii):
     #print('We are at year:',self.modeltime[iii])
     
     ### Parameters we might want to change according to different runs ###
-    tstep = 900. # Frequency of exchange betwwen domains and of refreezing [s]
-    slope = 3.4907e-3 # slope that appears in  lateral runoff formula of Zuo and Oerlemans 1996, possibly in RE
-    cst_melt = 1 # constant meltwater input: set this to 1
-    sinus_melt = 0 # meltwater input according to sinusoidal daily cycle: set this to 1 !! Make sure dtCFM is 24h !!
-    bigF = 0.2*np.ones_like(dz) # close to observed values of Williams 2010 and references cited in there
+    tstep       = 900. # Frequency of exchange betwwen domains and of refreezing [s]
+    slope       = 3.4907e-3 # slope that appears in  lateral runoff formula of Zuo and Oerlemans 1996, possibly in RE
+    cst_melt    = 1 # constant meltwater input: set this to 1
+    sinus_melt  = 0 # meltwater input according to sinusoidal daily cycle: set this to 1 !! Make sure dtCFM is 24h !!
+    bigF        = 0.2*np.ones_like(dz) # close to observed values of Williams 2010 and references cited in there
     impermeability = 1. # 1 to activate impermeability of thick ice layers, 0 otherwise
-    impthick = 0.0 # minimum thickness of ice layers to be impermeable [m]
-    rhoimp = 810.
-    rofflim = 0.95 # effective saturation of MFdom above which we launch extra runoff to have MeffSat == rofflim
-    PSatlim = 0.1
-    kth = 0.021 + 2.5 * (rho/1000.)**2 # Thermal conductivity [W m-1 K-1] Make sure to use same as in CFM for consistency
-    bigN = 0.2 # tuning parameter of SNOWPACK where it is set to 0, nb of flow paths per m2 Wever 2016 (7)
-    rhoPdr = 1*rhoimp # density from which we dry out PFdom layers if we have a drying front at end of run to avoid keeping tiny amounts of water forever
+    impthick    = 0.0 # minimum thickness of ice layers to be impermeable [m]
+    rhoimp      = 810.
+    rofflim     = 0.95 # effective saturation of MFdom above which we launch extra runoff to have MeffSat == rofflim
+    PSatlim     = 0.1
+    kth         = 0.021 + 2.5 * (rho/1000.)**2 # Thermal conductivity [W m-1 K-1] Make sure to use same as in CFM for consistency
+    bigN        = 0.2 # tuning parameter of SNOWPACK where it is set to 0, nb of flow paths per m2 Wever 2016 (7)
+    rhoPdr      = 1*rhoimp # density from which we dry out PFdom layers if we have a drying front at end of run to avoid keeping tiny amounts of water forever
 
-    grain = r2 ** (1/2) # grain size [m]
+    grain       = r2 ** (1/2) # grain size [m]
     
-    Mlwc = lwc-Plwc_mem
-    Plwc = Plwc_mem
+    Mlwc        = lwc-Plwc_mem
+    Plwc        = Plwc_mem
     
-    depth = np.cumsum(dz)-dz/2 # depth of the center of every layer [m]
-    depth_imin1 = np.delete(np.append(0,depth),-1) # depth staggered 1 level below [m]
-    zstep = depth-depth_imin1 # distance between centers of adjacent layers (between center[i] and center[i-1]), will be used for the PFdom [m]
-    zstep_iplus1 = np.append(np.delete(zstep,0),dz[-1]/2) # zstep vector staggered 1 level lower
+    depth           = np.cumsum(dz)-dz/2 # depth of the center of every layer [m]
+    depth_imin1     = np.delete(np.append(0,depth),-1) # depth staggered 1 level below [m]
+    zstep           = depth-depth_imin1 # distance between centers of adjacent layers (between center[i] and center[i-1]), will be used for the PFdom [m]
+    zstep_iplus1    = np.append(np.delete(zstep,0),dz[-1]/2) # zstep vector staggered 1 level lower
     
     ### Time parameters ###
-    dtCFM = self.dt #duratin of timesteps in CFM, constant value, [s]
-    Mdeltat = 300. #duration of timesteps for this script, choose an arbitrary starting value (<= tstep) [s]
-    Mdeltat_new = 300. #further, we adjust deltat_new and then assign this value to deltat, start with deltat_new == deltat [s]
-    deltat_max = 1*tstep #maximum time step allowed
-    deltat_min = 1e-20 #minimum time step allowed (1e-10 in D'Amboise 2017, not specified in Wever 2014) [s]
-    Mtime_counter = 0 # time for REMF, will be reset at 0 every tstep seconds
-    Pdeltat = 300. #duration of timesteps for flow in PFdom, this is adapted according to max value of Ptheta [s]
-    Pdeltat_new = 300.
-    Ptime_counter = 0 # time for PF, will be reset at 0 every tstep seconds
-    timer = 0 # this tracks the time passing --> remains between 0 and dtCFM [s]
+    dtCFM           = self.dt #duratin of timesteps in CFM, constant value, [s]
+    Mdeltat         = 300. #duration of timesteps for this script, choose an arbitrary starting value (<= tstep) [s]
+    Mdeltat_new     = 300. #further, we adjust deltat_new and then assign this value to deltat, start with deltat_new == deltat [s]
+    deltat_max      = 1*tstep #maximum time step allowed
+    deltat_min      = 1e-20 #minimum time step allowed (1e-10 in D'Amboise 2017, not specified in Wever 2014) [s]
+    Mtime_counter   = 0 # time for REMF, will be reset at 0 every tstep seconds
+    Pdeltat         = 300. #duration of timesteps for flow in PFdom, this is adapted according to max value of Ptheta [s]
+    Pdeltat_new     = 300.
+    Ptime_counter   = 0 # time for PF, will be reset at 0 every tstep seconds
+    timer           = 0 # this tracks the time passing --> remains between 0 and dtCFM [s]
 
     ### Calculate pore space available in every layer --> water content at saturation 
     porosity           = 1 - rho/RHO_I # Definition of porosity [/]
@@ -151,37 +151,39 @@ def prefflow(self,iii):
     porosity_refr      = np.maximum(porosity_refr,17e-3) # allow space for minimum water content required in both domains for numerical stability, 17e-3 is equivalent to 900.0 density
     porespace_refr_vol = porosity_refr*dz # Available pore space of each layer [m]
     
-    theta_sat = porosity_refr # value of volumetric water content in saturated conditions [/]
-    Mtheta_sat = (1-bigF)*theta_sat
-    Ptheta_sat = bigF*theta_sat
-    totrunoff = 0.
+    theta_sat   = porosity_refr # value of volumetric water content in saturated conditions [/]
+    Mtheta_sat  = (1-bigF)*theta_sat
+    Ptheta_sat  = bigF*theta_sat
+    totrunoff   = 0.
 
     ### Convergence of the solution between successive iterations ###
-    crtn_head = 1e-3 #Criterion on head pressure, see Wever 2014 Appendix
-    crtn_theta = 1e-5 #Criterion on water content, see Wever 2014 Appendix
-    crtn_MB = 1e-8 # Mass balance criterion, as in SNOWPACK ReSolver line 576
+    crtn_head   = 1e-3 #Criterion on head pressure, see Wever 2014 Appendix
+    crtn_theta  = 1e-5 #Criterion on water content, see Wever 2014 Appendix
+    crtn_MB     = 1e-8 # Mass balance criterion, as in SNOWPACK ReSolver line 576
     
-    theta_min_fr = 1e-4 # Threshold value to allow freezing, Wever 2014 Appendix
-    lwc_min_fr = theta_min_fr*dz # corresponding lwc threshold
-    Mlwc_min_fr = 1*lwc_min_fr 
-    Plwc_min_fr = 1*lwc_min_fr
+    theta_min_fr    = 1e-4 # Threshold value to allow freezing, Wever 2014 Appendix
+    lwc_min_fr      = theta_min_fr*dz # corresponding lwc threshold
+    Mlwc_min_fr     = 1*lwc_min_fr 
+    Plwc_min_fr     = 1*lwc_min_fr
     
     ### Use rain climatic inputy ###
     try:
        raintoadd = self.rainSec[iii] * S_PER_YEAR * RHO_I_MGM # [m]
     except:
         raintoadd = 0.
-    melt_vol_a += raintoadd # we add the rain to the melt volume, everything is in m we (total value for this time step)
+
+    melt_vol_a      += raintoadd # we add the rain to the melt volume, everything is in m we (total value for this time step)    
     
     totrefrozen_lwc = 0 # will calculate total lwc refrozen [mWE]
-    refrozenlay = np.zeros_like(dz) # will calculate total lwc refrozen in every layer [mWE]
+    refrozenlay     = np.zeros_like(dz) # will calculate total lwc refrozen in every layer [mWE]
     
-    surfrunoff = 0. # all lateral runoff of this CFMstep    
+    surfrunoff = 0. # all lateral runoff of this CFMstep  
+
     if rho[0] >= rhoimp:
         surfrunoff += melt_vol_a
         totinflux  = 0.
     elif rho[0] <= rhoimp:
-        totinflux = melt_vol_a # total surface input for this CFM timestep (should be double checked) [m]
+        totinflux  = melt_vol_a # total surface input for this CFM timestep (should be double checked) [m]
         
     mean_influx  = totinflux/dtCFM # mean value of the liquid water flux at surface [m/s]
         
@@ -194,40 +196,40 @@ def prefflow(self,iii):
     h_e   = 5.8e-3 # air entry pressure for pore size of 5mm at 273K [m], Wever 2014 
     Sc    = (1 + (alpha_vG*h_e)**n_vG)**(-m_vG) #Saturation at cut-off point [/], see Ippisch et al., 2006 eq(11)
 
-    h_we = 0.0437/(2*grain*1e3) + 0.01074 # water entry suction for snow, Hirashima 2014 (15) [m]
-    MSat_we = (1+(alpha_vG*abs(h_we))**n_vG)**-m_vG / Sc # Effective saturation corresponding to the water entry suction
+    h_we        = 0.0437/(2*grain*1e3) + 0.01074 # water entry suction for snow, Hirashima 2014 (15) [m]
+    MSat_we     = (1+(alpha_vG*abs(h_we))**n_vG)**-m_vG / Sc # Effective saturation corresponding to the water entry suction
     MSat_westag = np.append(np.delete(MSat_we,0),1) # MSat_we values staggered, MSat_westag[i+1] == MSat_we[i]
-    mu   = 0.001792 # Dynamic viscosity of water [kg m-1 s-1] , can be added to constants list
-    Ksat = RHO_W_KGM*GRAVITY/mu * 3.0*(grain)**2*np.exp(-0.013*rho) # Hydraulic conductivity at saturation (>0) [m s-1], Formula of Calonne et al. 2012, see Wever 2015 (7) and D'Amboise 2017 (10)
+    mu          = 0.001792 # Dynamic viscosity of water [kg m-1 s-1] , can be added to constants list
+    Ksat        = RHO_W_KGM*GRAVITY/mu * 3.0*(grain)**2*np.exp(-0.013*rho) # Hydraulic conductivity at saturation (>0) [m s-1], Formula of Calonne et al. 2012, see Wever 2015 (7) and D'Amboise 2017 (10)
 
-    theta_min = crtn_theta/10*np.ones_like(dz) # minimum initial value of theta used for numerical stability
+    theta_min   = crtn_theta/10*np.ones_like(dz) # minimum initial value of theta used for numerical stability
     ### MFdom variables ###
-    Mtheta = Mlwc/dz # Volumetric liquid water content [/]
+    Mtheta      = Mlwc/dz # Volumetric liquid water content [/]
     Mprewetting = dz*(theta_min-Mtheta) # amount of water required for prewetting of MFdom [m]
     Mprewetting = np.maximum(0,Mprewetting) # exclude negative values (where Mtheta already higher than theta_min)
-    Mtheta = np.maximum(Mtheta,theta_min) # modify theta
-    Mlwc = Mtheta*dz # modify lwc
+    Mtheta      = np.maximum(Mtheta,theta_min) # modify theta
+    Mlwc        = Mtheta*dz # modify lwc
     ## Define residual water content as in Wever 2014 ##
-    Mthetar = np.minimum((np.ones_like(Mtheta)*0.02),0.9*Mtheta) # initial residual water content [/], Wever 2014 (10)
+    Mthetar     = np.minimum((np.ones_like(Mtheta)*0.02),0.9*Mtheta) # initial residual water content [/], Wever 2014 (10)
     ## Calculate effective saturation ##
-    MeffSat = (Mtheta-Mthetar)/(Mtheta_sat-Mthetar) # effective saturation of the MFdom layers []
+    MeffSat     = (Mtheta-Mthetar)/(Mtheta_sat-Mthetar) # effective saturation of the MFdom layers []
     
     ### PFdom variables ###
-    Ptheta = Plwc/dz # Volumetric liquid water content [/]
+    Ptheta      = Plwc/dz # Volumetric liquid water content [/]
     Pprewetting = dz*(theta_min-Ptheta) # amount of water required for prewetting of PFdom [m]
     Pprewetting = np.maximum(0,Pprewetting) # exclude negative values (where Ptheta already higher than theta_min)
-    Ptheta = np.maximum(Ptheta,theta_min) # modify theta
-    Plwc = Ptheta*dz # modify lwc
+    Ptheta      = np.maximum(Ptheta,theta_min) # modify theta
+    Plwc        = Ptheta*dz # modify lwc
     # residual water content is 0 in PFdom
     ## Calculate effective saturation ##
-    PeffSat = Ptheta/Ptheta_sat # effective saturation of the MFdom layers []
+    PeffSat     = Ptheta/Ptheta_sat # effective saturation of the MFdom layers []
 
     totprewetting = Mprewetting+Pprewetting # total water added for numerical stability [m]
 
-    totlwc0 = sum(Mlwc) + sum(Plwc)
-    totflux = 0
-    massconsalarm = 0
-    provrunoff = 0.
+    totlwc0         = sum(Mlwc) + sum(Plwc)
+    totflux         = 0
+    massconsalarm   = 0
+    provrunoff      = 0.
 
     ### Move water from layers where effSat is above 1 ###
     # Should be executed before head calculations, otherwise RuntimeWarning
@@ -241,15 +243,15 @@ def prefflow(self,iii):
         Ptheta,PeffSat,Plwc,totrunoff = Psatexcess(dz,rho,Ptheta,Ptheta_sat,crtn_theta,rhoimp,totrunoff)
         
     ## Spot the aquifer #
-    ice1 = np.zeros_like(dz) # bit array for ice layers
+    ice1    = np.zeros_like(dz) # bit array for ice layers
     ice1[np.where(rho>=rhoimp)[0]] = 1
     if np.any(ice1==0):
         noflow = np.where(ice1==0)[0][-1] + 1 # this layer and all layers below are saturated or are ice layers
     elif np.all(ice1>0): # If all the domain is ice or saturated
         noflow = 0 # all layers are saturated or are ice layers
      
-    indaqM = 1*noflow
-    indaqP = 1*noflow
+    indaqM  = 1*noflow
+    indaqP  = 1*noflow
     tostore = 0
     if np.any(MeffSat>0.95):
         icebottom = np.zeros_like(dz)
@@ -335,28 +337,28 @@ def prefflow(self,iii):
                 #print('All melt in runoff because all domain is ice or saturated, totinflux is:',totinflux)         
     
     #Assign old values
-    Mtheta_old = 1*Mtheta
-    Mthetar_old = 1*Mthetar
-    MeffSat_old = 1*MeffSat
-    Mlwc_old = 1*Mlwc
-    Mhead_old = 1*Mhead
+    Mtheta_old      = 1*Mtheta
+    Mthetar_old     = 1*Mthetar
+    MeffSat_old     = 1*MeffSat
+    Mlwc_old        = 1*Mlwc
+    Mhead_old       = 1*Mhead
     Mhead_old_imin1 = np.append(0,np.delete(Mhead,-1))
-    Ptheta_old = 1*Ptheta
-    PeffSat_old = 1*PeffSat
-    Plwc_old = 1*Plwc
-    Phead_old = 1*Phead
+    Ptheta_old      = 1*Ptheta
+    PeffSat_old     = 1*PeffSat
+    Plwc_old        = 1*Plwc
+    Phead_old       = 1*Phead
     Phead_old_imin1 = np.append(0,np.delete(Phead,-1))
     
-    Mdtheta_dh = np.zeros_like(dz)
+    Mdtheta_dh      = np.zeros_like(dz)
     Mtheta_previous = np.zeros_like(dz)
-    Mhead_previous = np.zeros_like(dz)
-    delta_Mtheta = np.zeros_like(dz)
-    delta_Mhead2 = np.zeros_like(dz)
-    Pdtheta_dh = np.zeros_like(dz)
+    Mhead_previous  = np.zeros_like(dz)
+    delta_Mtheta    = np.zeros_like(dz)
+    delta_Mhead2    = np.zeros_like(dz)
+    Pdtheta_dh      = np.zeros_like(dz)
     Ptheta_previous = np.zeros_like(dz)
-    Phead_previous = np.zeros_like(dz)
-    delta_Ptheta = np.zeros_like(dz)
-    delta_Phead2 = np.zeros_like(dz)    
+    Phead_previous  = np.zeros_like(dz)
+    delta_Ptheta    = np.zeros_like(dz)
+    delta_Phead2    = np.zeros_like(dz)    
     
     ##### Start the Global time loop #####
     while timer < dtCFM:
@@ -368,17 +370,17 @@ def prefflow(self,iii):
         ##### Time loop for MFdom ####
         sat_layers = np.array([])
         while Mtime_counter < tstep:
-            Mflag = 0 # Too many iterations or other cases where finer time step is required
-            provrunoff = 0.
+            Mflag       = 0 # Too many iterations or other cases where finer time step is required
+            provrunoff  = 0.
                         
             if np.any(Mtheta<1e-10): # For some unknown reason, this happens on some rare occasions (only in the surface layer when layer below is an ice layer I think)
                 instb = np.where(Mtheta<1e-10)[0]
                 for ii in instb:
-                    Mtheta[ii] = theta_min[ii] # set theta back to numerical stability threshold and update all MFdom variables
+                    Mtheta[ii]  = theta_min[ii] # set theta back to numerical stability threshold and update all MFdom variables
                     Mthetar[ii] = 0.9*Mtheta[ii]
                     MeffSat[ii] = (Mtheta[ii]-Mthetar[ii])/(Mtheta_sat[ii]-Mthetar[ii])
-                    Mlwc[ii] = Mtheta[ii]*dz[ii]
-                    Mhead[ii] = -1*1/alpha_vG[ii] * ((Sc[ii] * MeffSat[ii])**(-1/m_vG[ii])-1)**(1/n_vG[ii]) # [m] Wever 2014 (3)
+                    Mlwc[ii]    = Mtheta[ii]*dz[ii]
+                    Mhead[ii]   = -1*1/alpha_vG[ii] * ((Sc[ii] * MeffSat[ii])**(-1/m_vG[ii])-1)**(1/n_vG[ii]) # [m] Wever 2014 (3)
                     print('We had to fix an instability in MFdom, layers were:',instb)
             
             ### Liquid water input of the time step ###
@@ -405,21 +407,21 @@ def prefflow(self,iii):
                     Mliq_in = 0.
                 Mliq_out = liqout # Not sure this works if we use liq_out different than 0
             
-            Mdeltat = 1*Mdeltat_new # Use the dynamically adjusted time step
+            Mdeltat         = 1*Mdeltat_new # Use the dynamically adjusted time step
             ### Assign old values ###
-            Mtheta_old = np.copy(Mtheta)
-            Mthetar_old = np.copy(Mthetar)
-            MeffSat_old = np.copy(MeffSat)
-            Mlwc_old = np.copy(Mlwc)
-            Mhead_old = np.copy(Mhead)
+            Mtheta_old      = np.copy(Mtheta)
+            Mthetar_old     = np.copy(Mthetar)
+            MeffSat_old     = np.copy(MeffSat)
+            Mlwc_old        = np.copy(Mlwc)
+            Mhead_old       = np.copy(Mhead)
             Mhead_old_imin1 = np.append(0,np.delete(Mhead,-1))
             
             ### Update of Mthetar as in Wever 2014 ###
             Mthetar[0:(bottom+1)] = np.minimum((np.ones_like(Mtheta[0:(bottom+1)])*0.02),0.9*Mtheta[0:(bottom+1)])
             
             ### Update of effSat and head (because Mthetar might have changed) ##
-            MeffSat[0:(bottom+1)] = (Mtheta[0:(bottom+1)]-Mthetar[0:(bottom+1)])/(Mtheta_sat[0:(bottom+1)]-Mthetar[0:(bottom+1)]) # []
-            Mhead[0:(bottom+1)]  = -1*1/alpha_vG[0:(bottom+1)] * ((Sc[0:(bottom+1)] * MeffSat[0:(bottom+1)])**(-1/m_vG[0:(bottom+1)])-1)**(1/n_vG[0:(bottom+1)]) # [m] Wever 2014 (3)
+            MeffSat[0:(bottom+1)]   = (Mtheta[0:(bottom+1)]-Mthetar[0:(bottom+1)])/(Mtheta_sat[0:(bottom+1)]-Mthetar[0:(bottom+1)]) # []
+            Mhead[0:(bottom+1)]     = -1*1/alpha_vG[0:(bottom+1)] * ((Sc[0:(bottom+1)] * MeffSat[0:(bottom+1)])**(-1/m_vG[0:(bottom+1)])-1)**(1/n_vG[0:(bottom+1)]) # [m] Wever 2014 (3)
             
             
             ### This is to reduce calculation time: we don't solve RE for the lowest parts of the domain if these are dry or only filled due to emptying of Pend_lwc ###
@@ -452,50 +454,53 @@ def prefflow(self,iii):
                     provrunoff = mean_influx*Mdeltat # firn cannot accomodate input -> in provrunoff
              
             if Mliq_in>0 and rho[1]>=rhoimp: #If there is input but nothing can flow out of layer[0] because layer[1] is impermeable
-                Mlwc[0] += Mliq_in*Mdeltat # We immediately give all the input of the time step to the surface layer
-                Mtheta[0] = Mlwc[0]/dz[0]
-                Mthetar[0] = np.minimum(0.02,0.9*Mtheta[0])
-                MeffSat[0] = (Mtheta[0]-Mthetar[0])/(Mtheta_sat[0]-Mthetar[0])
-                Mhead[0]  = -1*1/alpha_vG[0] * ((Sc[0] * MeffSat[0])**(-1/m_vG[0])-1)**(1/n_vG[0]) # [m] Wever 2014 (3)
-                Mliq_in = 0. # There is no input to give anymore
+                Mlwc[0]     += Mliq_in*Mdeltat # We immediately give all the input of the time step to the surface layer
+                Mtheta[0]   = Mlwc[0]/dz[0]
+                Mthetar[0]  = np.minimum(0.02,0.9*Mtheta[0])
+                MeffSat[0]  = (Mtheta[0]-Mthetar[0])/(Mtheta_sat[0]-Mthetar[0])
+                Mhead[0]    = -1*1/alpha_vG[0] * ((Sc[0] * MeffSat[0])**(-1/m_vG[0])-1)**(1/n_vG[0]) # [m] Wever 2014 (3)
+                Mliq_in     = 0. # There is no input to give anymore
                 if ic == 0: # If all the layers are dry, we don't need to proceed to RE (water only in layer[0] and layer[1] is impermeable)
                     bottom = 0
-                Mtheta_old[0] = 1*Mtheta[0]
-                Mthetar_old[0] = 1*Mthetar[0]
-                MeffSat_old[0] = 1*MeffSat[0]
-                Mlwc_old[0] = 1*Mlwc[0]
-                Mhead_old[0] = 1*Mhead[0]
+
+                Mtheta_old[0]   = 1*Mtheta[0]
+                Mthetar_old[0]  = 1*Mthetar[0]
+                MeffSat_old[0]  = 1*MeffSat[0]
+                Mlwc_old[0]     = 1*Mlwc[0]
+                Mhead_old[0]    = 1*Mhead[0]
                 
-            Miteration = 0 # Let's count the number of iterations required
+            Miteration   = 0 # Let's count the number of iterations required
     
             delta_Mhead  = np.ones_like(dz) # Difference in head pressure between two iterative steps, calculated by TDMA
             delta_Mhead2 = np.ones_like(dz) # Difference in head pressure between two iterative steps, directly calculated (in case head is artificially adjusted)
             delta_Mtheta = np.ones_like(dz) # Difference in volumetric liquid water content between two iterative steps
-            MB_Merror = np.ones_like(dz) # Mass balance error between discretised flux (with K values of last iteration) and changes calculated by the Picard scheme
+            MB_Merror    = np.ones_like(dz) # Mass balance error between discretised flux (with K values of last iteration) and changes calculated by the Picard scheme
             
             ### Spot the impermeable layers ###
-            saturated = np.where(MeffSat >= 0.95)[0]
-            sat_layers = np.unique(np.append(sat_layers,saturated))
-            ice_layers = np.where(rho>=rhoimp) # density threshold should be used here
+            saturated   = np.where(MeffSat >= 0.95)[0]
+            sat_layers  = np.unique(np.append(sat_layers,saturated))
+            ice_layers  = np.where(rho>=rhoimp) # density threshold should be used here
                 
             if impthick == 0.:
                 thick_ice = ice_layers[0]
                 
             elif impthick > 0.:            
                 if len(ice_layers[0]) > 0: # If there are ice layers
-                    thick_ice = np.array([]) # this will contain all the indices of layers that are part of thick ice layers (thickness threshold is to be fixed)
-                    start_ice = np.array([]) # this will contain all the indices where an ice layer starts
-                    end_ice = np.array([]) # this will contain all the indices where an ice layer ends
-                    cc = ice_layers[0][0] # first ice layer
+                    thick_ice   = np.array([]) # this will contain all the indices of layers that are part of thick ice layers (thickness threshold is to be fixed)
+                    start_ice   = np.array([]) # this will contain all the indices where an ice layer starts
+                    end_ice     = np.array([]) # this will contain all the indices where an ice layer ends
+                    cc          = ice_layers[0][0] # first ice layer
+
                     while cc <= ice_layers[0][-1]: # loop through all ice layers
                         if cc in ice_layers[0]:
                             start = cc # index of the start of the ice layer
                             while (cc+1 in ice_layers[0]) == True: # goes through all the layers belonging to an individual ice layers
                                 cc += 1
-                            end = cc # index of the end of the ice layer
-                            start_ice = np.append(start_ice,start) # add the start of the layer to the start list
-                            end_ice = np.append(end_ice,end) # add the end of the layer to the end list
+                            end         = cc # index of the end of the ice layer
+                            start_ice   = np.append(start_ice,start) # add the start of the layer to the start list
+                            end_ice     = np.append(end_ice,end) # add the end of the layer to the end list
                         cc += 1
+
                     for dd in range(len(start_ice)): # For every ice layer
                         thickness = sum(dz[int(start_ice[dd]):int(end_ice[dd])+1]) # calculate thickness of every ice layer
                         if thickness >= impthick: # if the thickness is above the threshold thickness for impermeability
@@ -508,16 +513,16 @@ def prefflow(self,iii):
             ##### Iterative loop for RE in MFdom #####
             # 3 conditions: difference below convergence criterion, min 2 iterations, special case flag is not on
                 ### "center of layers = nodes" approach, as Wever 2014 and D'Amboise 2017 --> staggering ###
-                dzdom     = dz[0:(bottom+1)]
-                depthdom = np.cumsum(dzdom)-dzdom/2 # depth of the center of every layer [m]
-                depthdom_imin1 = np.delete(np.append(0,depthdom),-1) # depth staggered 1 level below [m]
-                zstepdom = depthdom-depthdom_imin1 # distance between centers of adjacent layers (between center[i] and center[i-1]), will be used for the PFdom [m]
+                dzdom           = dz[0:(bottom+1)]
+                depthdom        = np.cumsum(dzdom)-dzdom/2 # depth of the center of every layer [m]
+                depthdom_imin1  = np.delete(np.append(0,depthdom),-1) # depth staggered 1 level below [m]
+                zstepdom        = depthdom-depthdom_imin1 # distance between centers of adjacent layers (between center[i] and center[i-1]), will be used for the PFdom [m]
                 zstepdom_iplus1 = np.append(np.delete(zstepdom,0),dzdom[-1]/2) # zstep vector staggered 1 level lower         
                 
-                Mheaddown      = np.delete(Mhead,0) # Mhead values except last layer -> 1 element shorter than Mhead
-                Mheadup        = np.delete(Mhead,-1) # Mhead values except first layer -> 1 element shorter than Mhead
-                Mhead_imin1 = np.append(0,Mheadup) # Mhead vector staggered 1 level lower
-                Mhead_iplus1   = np.append(Mheaddown,0) # Mhead vector staggered 1 level higher
+                Mheaddown       = np.delete(Mhead,0) # Mhead values except last layer -> 1 element shorter than Mhead
+                Mheadup         = np.delete(Mhead,-1) # Mhead values except first layer -> 1 element shorter than Mhead
+                Mhead_imin1     = np.append(0,Mheadup) # Mhead vector staggered 1 level lower
+                Mhead_iplus1    = np.append(Mheaddown,0) # Mhead vector staggered 1 level higher
                 
                 ### Hydraulic conductivity of every layer [Wever 2014 (11)] ###
                 MKdom = Ksat[0:(bottom+1)] * MeffSat[0:(bottom+1)]**0.5 * (1-(1-MeffSat[0:(bottom+1)]**(1/m_vG[0:(bottom+1)]))**m_vG[0:(bottom+1)])**2 # (>0) [m s-1]

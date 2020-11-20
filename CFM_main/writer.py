@@ -10,6 +10,7 @@ import csv
 import os
 import numpy as np
 import h5py
+from constants import *
 
 def write_nospin_hdf5(self):
     '''
@@ -23,8 +24,8 @@ def write_nospin_hdf5(self):
     if 'temperature' in self.output_list:
         f4.create_dataset('temperature',data = self.Tz_out)
     if 'age' in self.output_list:
-        f4.create_dataset('age',data = self.age_out[-1,:])
-        # f4.create_dataset('age',data = self.age_out) # use this one if you want a matrix of ages
+        # f4.create_dataset('age',data = self.age_out[-1,:])
+        f4.create_dataset('age',data = self.age_out) # use this one if you want a matrix of ages
     if 'depth' in self.output_list:    
         f4.create_dataset('depth',data = self.z_out)
     if 'dcon' in self.output_list:    
@@ -85,6 +86,15 @@ def write_nospin_hdf5(self):
         f4.create_dataset('cumrefrozen',data = self.cumrefrozen_out)
     f4.close()
 
+    # try:
+    # if self.c['spinUpdate']:
+        # SpinUpdate(self)
+    # except:
+    #     print('pass')
+        # pass
+
+
+
 def write_spin_hdf5(self):
     '''
     Write the model outputs at the end of spin up
@@ -111,3 +121,43 @@ def write_spin_hdf5(self):
     # if self.write_bdot:
         # f5.create_dataset('bdot_meanSpin', data = self.bdot_mean_time)
     f5.close()
+
+def SpinUpdate(self,mtime):
+    # tind = np.where(self.rho_out[:,0]>=self.c['spinUpdateDate'])[0][0]
+
+    spin_results = h5py.File(os.path.join(self.c['resultsFolder'], self.c['spinFileName']),'r+')
+    
+    spin_results['densitySpin'][:] = np.append(mtime,self.rho)
+    spin_results['tempSpin'][:]    = np.append(mtime,self.Tz)
+    spin_results['ageSpin'][:]     = np.append(mtime,self.age)
+    spin_results['depthSpin'][:]   = np.append(mtime,self.z)
+
+    try:
+        spin_results.create_dataset('bdot_meanSpin',data = np.append(mtime,self.bdot_mean))
+    except:
+        spin_results['bdot_meanSpin'][:] = np.append(mtime,self.bdot_mean)
+
+    if self.c['MELT']:
+        try:
+            spin_results.create_dataset('LWCSpin',data = np.append(mtime,self.LWC))
+        except:
+            spin_results['LWCSpin'][:] = np.append(mtime,self.LWC)
+
+    if self.c['physGrain']:
+        try:
+            spin_results['r2Spin'][:] = np.append(mtime,self.r2)
+        except:
+            pass
+
+    if self.c['physRho']=='Morris2014':
+        spin_results['HxSpin'][:] = np.append(mtime,self.Hx)
+
+    if self.c['isoDiff']:
+        for isotope in self.c['iso']:
+            spin_results['IsoSpin_{}'.format(isotope)][:]  = np.append(mtime, self.Isoz[isotope])
+            spin_results['iso_sig2_{}'.format(isotope)][:] = np.append(mtime, self.Iso_sig2_z[isotope])
+
+    if self.doublegrid:
+        spin_results['gridSpin'] = np.append(mtime,self.gridtrack)
+
+    spin_results.close()

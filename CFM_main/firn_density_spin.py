@@ -14,6 +14,7 @@ from physics import *
 from constants import *
 from isotopeDiffusion import isotopeDiffusion
 import numpy as np
+import scipy.interpolate as interpolate
 import csv
 import json
 import sys
@@ -87,7 +88,7 @@ class FirnDensitySpin:
         with open(configName, "r") as f:
             jsonString  = f.read()
             self.c      = json.loads(jsonString)
-            
+
         print('Spin run started')
         print("physics are", self.c['physRho'])
         try:
@@ -101,9 +102,10 @@ class FirnDensitySpin:
         if os.path.exists(self.c['resultsFolder']):
             dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
             dir_unique = list(set(dir_exts))
-            # print('dir_unique',dir_unique)
+            print('dir_unique',dir_unique)
             CFM_exts = ['.json','.hdf5']
             if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
+                print('rmtree')
                 rmtree(self.c['resultsFolder'])
                 os.makedirs(self.c['resultsFolder'])
             else:
@@ -336,6 +338,17 @@ class FirnDensitySpin:
             self.ind1_old       = 0
         #######################
 
+        #######################
+        try:
+            if self.c['no_densification']:
+                print('CAUTION: densification if OFF!')
+            else:
+                pass
+        except:
+            print('no_densification not in .json; setting to false')
+            self.c['no_densification']=False
+        #######################
+
     ############################
     ##### END INIT #############
     ############################
@@ -417,6 +430,8 @@ class FirnDensitySpin:
 
             RD      = physicsd[self.c['physRho']]()
             drho_dt = RD['drho_dt']
+            if self.c['no_densification']:
+                drho_dt = np.zeros_like(drho_dt)
 
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
@@ -443,7 +458,8 @@ class FirnDensitySpin:
                     'z':            self.z,
                     'rhos0':        self.rhos0[iii],
                     'dz':           self.dz,
-                    'drho_dt':      drho_dt
+                    'drho_dt':      drho_dt,
+                    'bdot':         self.bdotSec[iii]
                 }
 
                 for isotope in self.c['iso']:
@@ -513,10 +529,21 @@ class FirnDensitySpin:
                     #     self.write_bdot = True
                     #     self.bdot_mean = np.interp(self.z,init_depth,initfirn['bdot_mean'].values)
 
+                # ### Manual gridding...
+                # zold = self.z.copy()
+                # dzM = 0.001
+                # manualZ = np.arange(0,20+dzM,dzM) #XXX
+                # self.z = manualZ
+                # self.Tz = initfirn['temperature']
+                # self.rho = initfirn['density']
+                # self.age = np.interp(self.z,zold,self.age)
+                # ###
+
                 self.rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
                 self.Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
                 self.age_time        = np.concatenate(([self.t * iii + 1], self.age))
                 self.z_time          = np.concatenate(([self.t * iii + 1], self.z))
+
 
                 if self.c['physGrain']:
                     self.r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
@@ -528,8 +555,18 @@ class FirnDensitySpin:
                     self.Hx_time     = None
                 if self.c['isoDiff']:
                     for isotope in self.c['iso']:
+                        self.Iso_sig2_z[isotope] = np.interp(self.z,zold,self.Iso_sig2_z[isotope]) ###XXX
+
+
                         self.iso_out[isotope]    = np.concatenate(([self.t * iii + 1], self.Isoz[isotope]))
                         self.iso_sig2_out[isotope] = np.concatenate(([self.t * iii + 1], self.Iso_sig2_z[isotope]))
+                        if 'iso{}'.format(isotope) in list(initfirn):
+                            print('Interpolating isotope {}'.format(isotope))
+                            isoIntFun = interpolate.interp1d(init_depth,initfirn['iso{}'.format(isotope)].values,'nearest',fill_value='extrapolate')
+                            self.iso_out[isotope] = np.concatenate(([self.t * iii + 1], isoIntFun(self.z)))
+
+
+                            # self.iso_out[isotope] = np.interp(self.z,init_depth,initfirn['iso{}'.format(isotope)].values)
                 else:
                     self.iso_time    = None
                 if self.c['MELT']:
