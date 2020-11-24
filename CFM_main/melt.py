@@ -21,7 +21,10 @@ def percolation_bucket(self, iii):
 
     # maxpore_f                 = 2.0   # factor by which the maximum filled porespace can exceed the irreducible saturation.
 
-    impermeable_rho         = 750.  # impermeable lens density.
+    try:
+        impermeable_rho = self.c['impermeable_rho']
+    except:
+        impermeable_rho         = 830.  # impermeable lens density.
 
     if np.any(self.LWC<0):
         print('ERROR: negative LWC')
@@ -29,7 +32,7 @@ def percolation_bucket(self, iii):
 
 
 
-    melt_volume_IE          = self.snowmeltSec[iii] * S_PER_YEAR * 0.5    # meters
+    melt_volume_IE          = self.snowmeltSec[iii] * S_PER_YEAR    # meters
     melt_volume_WE          = melt_volume_IE * RHO_I_MGM            # meters
     melt_mass               = melt_volume_WE * 1000.                # kg
     heat_to_freeze          = melt_mass * LF_I                      # amount of heat needed to refreeze the melt (J)
@@ -233,7 +236,7 @@ def bucketVV(self, iii):
     melt_volume_WE      = melt_volume_IE * RHO_I_MGM # [m]
     melt_mass           = melt_volume_WE * 1000. # [kg]
     
-    initial_lwc         = 1*self.LWC
+    initial_lwc         = 1 * self.LWC
     
 #    heat_to_freeze             = melt_mass * LF_I                         # amount of heat needed to refreeze the melt (J)
     ind1a               = np.where(self.mass_sum <= melt_mass)[0] # indices of boxes that will be melted away
@@ -291,12 +294,15 @@ def bucketVV(self, iii):
     
     self.refrozen = np.zeros_like(self.dz)
     runoff = 0
+
     ### First refreeze if there is any lwc already in the column ###
     if np.any(self.LWC>0)==True:
         lwc_before_freeze = 1*self.LWC
         lwcpres = np.where(self.LWC > 0)[0] # layers with existing lwc
         coldlay = np.where(self.Tz<273.15)[0]
         frl = np.intersect1d(lwcpres,coldlay) # layers with refreezing
+        # if frl.size !=0:
+            # print('frl',frl)
         latheat = np.zeros_like(self.dz)
         freeze = np.zeros_like(self.dz)
         freeze[frl] = np.minimum(refreeze_vol_pot[frl],porespace_refr_vol[frl])
@@ -385,12 +391,17 @@ def bucketVV(self, iii):
             irr = liqmassprop/(1-liqmassprop) * (self.rho*RHO_I) / (RHO_W_KGM*(RHO_I-self.rho))
     
     ### Make water in excess of irreducible water content runoff ###
-    irr_limit = np.maximum(irr*porespace_refr_vol,0.) # max amount of lwc that a layer can hold in its pore space
-    rofflayers = np.where(self.LWC>irr_limit)[0] # layers with lwc in excess of irr
+    irr_limit   = np.maximum(irr*porespace_refr_vol,0.) # max amount of lwc that a layer can hold in its pore space
+    rofflayers  = np.where(self.LWC>irr_limit)[0] # layers with lwc in excess of irr
+    
     if len(rofflayers)>0: # if there are layers where lwc exceeds irreducible water content
-        for ll in rofflayers:
-            runoff += self.LWC[ll] - irr_limit[ll] # excess is added to runoff
-            self.LWC[ll] = 1*irr_limit[ll] # LWC is reduced
+        lwc2 = self.LWC.copy()
+        ## Vincent's old code, can be vectorized
+        # for ll in rofflayers:
+        #     runoff       += self.LWC[ll] - irr_limit[ll] # excess is added to runoff
+        #     self.LWC[ll] = 1*irr_limit[ll] # LWC is reduced
+        runoff = self.LWC[rofflayers] - irr_limit[rofflayers]        
+        self.LWC[rofflayers] = 1*irr_limit[rofflayers]
         #print('Water above irrlimit runs off, max(self.LWC/(porosity_refr*self.dz)):',max(self.LWC/(porosity_refr*self.dz)))
         
     ### Runoff water present in layers with density exceeding impermeability threshold ###
@@ -398,68 +409,71 @@ def bucketVV(self, iii):
         runoff += sum(self.LWC[self.rho>=rhoimp])
         self.LWC[self.rho>=rhoimp] = 0.
 
-
     ### Percolation + Refreezing of the surface input ###
     try:
        raintoadd = self.rainSec[iii] * S_PER_YEAR * RHO_I_MGM # [m]
        #print('raintoadd is:',raintoadd)
     except:
         raintoadd = 0.
-    tofreeze = 1*melt_vol_a + raintoadd # m water equivalent, the input melt water that has to be refrozen
-    frozen = np.zeros_like(self.dz) # array for refrozen volume in every layer
-    retained = np.zeros_like(self.dz) # array for retained volume in every layer
+
+    tofreeze    = 1*melt_vol_a + raintoadd # m water equivalent, the input melt water that has to be refrozen
+    frozen      = np.zeros_like(self.dz) # array for refrozen volume in every layer
+    retained    = np.zeros_like(self.dz) # array for retained volume in every layer
     
     if tofreeze>0:
         
         if (refreeze_vol_pot[0]>tofreeze) and (porespace_refr_vol[0]>tofreeze): # if all meltwater refreezes in layer[0] -> no need to do entire computation
             frozen[0] += tofreeze
-            ipl = 0
+            ipl       = 0
             #print('Full freezing in surface layer')
         elif (refreeze_vol_pot[0]<tofreeze) or (porespace_refr_vol[0]<tofreeze): # otherwise entire computation
-            frcap = np.zeros_like(self.dz) # array for refreezing capacity of the layers
-            retcap = np.zeros_like(self.dz) # array for retention capacity of the layers
+            frcap   = np.zeros_like(self.dz) # array for refreezing capacity of the layers
+            retcap  = np.zeros_like(self.dz) # array for retention capacity of the layers
+            
             if np.any(self.rho>=rhoimp): # check if there is an impermeable layer in the domain
                 ipl = np.where(self.rho>=rhoimp)[0][0] # first impermeable layer -> bottom limit for downward percolation
             elif np.all(self.rho<rhoimp): # if no impermeable layer in the domain
                 ipl = len(self.dz) # percolation will occur over the entire column potentially
-            frcap[0:ipl] = np.minimum(refreeze_vol_pot[0:ipl],porespace_refr_vol[0:ipl]) # max freezing possible [mWE]
-            rhopot = (self.mass+frcap*1000)/self.dz # potential density if all the refreezing capacity was to be consumed
-            porositypot = 1-rhopot/RHO_I # potential porosity
-            porosity_refrpot = porositypot*RHO_I/RHO_W_KGM # potential space available for liq water volume once refrozen
+            
+            frcap[0:ipl]          = np.minimum(refreeze_vol_pot[0:ipl],porespace_refr_vol[0:ipl]) # max freezing possible [mWE]
+            rhopot                = (self.mass+frcap*1000)/self.dz # potential density if all the refreezing capacity was to be consumed
+            porositypot           = 1-rhopot/RHO_I # potential porosity
+            porosity_refrpot      = porositypot*RHO_I/RHO_W_KGM # potential space available for liq water volume once refrozen
             porespace_refr_volpot = porosity_refrpot*self.dz # potential available pore space of each layer [m]
             if CLparam == 1:
-                liqmassproppot = 0.057*(porositypot/(1-porositypot)) + 0.017
-                irr = liqmassproppot/(1-liqmassproppot) * (rhopot*RHO_I) / (RHO_W_KGM*(RHO_I-rhopot))
-            retcap[0:ipl] = irr[0:ipl]*porespace_refr_volpot[0:ipl]-self.LWC[0:ipl] # retention capacity of every layer after refreezing [mWE]
+                liqmassproppot    = 0.057*(porositypot/(1-porositypot)) + 0.017
+                irr               = liqmassproppot/(1-liqmassproppot) * (rhopot*RHO_I) / (RHO_W_KGM*(RHO_I-rhopot))
+            retcap[0:ipl]         = irr[0:ipl]*porespace_refr_volpot[0:ipl]-self.LWC[0:ipl] # retention capacity of every layer after refreezing [mWE]
+
             if sum(frcap+retcap)>=tofreeze: # enough retention possible to accomodate all liquid water
                 ist = np.where(np.cumsum(frcap+retcap)>=tofreeze)[0][0] # layer where all water accomodated -> percolation stops there
-                frozen[0:ist] = np.copy(frcap[0:ist]) # frozen water in layers above ist
+                frozen[0:ist]   = np.copy(frcap[0:ist]) # frozen water in layers above ist
                 retained[0:ist] = np.copy(retcap[0:ist]) # retained water in layers above ist
-                tofreeze -= sum(frozen+retained) # water left to be frozen/retained in layer ist
-                frozen[ist] = min(tofreeze,frcap[ist]) # freezing in layer ist
-                tofreeze -= frozen[ist] # water left to be retained in layer ist
-                retained[ist] = min(tofreeze,retcap[ist]) # retention in layer ist
-                tofreeze -= retained[ist] # no water should be left in tofreeze
+                tofreeze        -= sum(frozen+retained) # water left to be frozen/retained in layer ist
+                frozen[ist]     = min(tofreeze,frcap[ist]) # freezing in layer ist
+                tofreeze        -= frozen[ist] # water left to be retained in layer ist
+                retained[ist]   = min(tofreeze,retcap[ist]) # retention in layer ist
+                tofreeze        -= retained[ist] # no water should be left in tofreeze
             elif sum(frcap+retcap)<tofreeze: # not possible to accomodate all liquid water -> runoff will occur
-                frozen[0:ipl] = np.copy(frcap[0:ipl]) # frozen water in layers above ipl
+                frozen[0:ipl]   = np.copy(frcap[0:ipl]) # frozen water in layers above ipl
                 retained[0:ipl] = np.copy(retcap[0:ipl]) # retained water in layers above ipl
-                tofreeze -= sum(frozen+retained) # water left for runoff
-                runoff += 1*tofreeze # runoff the rest of the water
-                tofreeze = 0.
+                tofreeze        -= sum(frozen+retained) # water left for runoff
+                runoff          += 1*tofreeze # runoff the rest of the water
+                tofreeze        = 0.
         
-        self.refrozen[0:ipl+1] += frozen[0:ipl+1] # add the freezing to self.refrozen
-        self.mass[0:ipl+1] += frozen[0:ipl+1]*1000 # adjust the mass of layers
-        self.rho[0:ipl+1] = self.mass[0:ipl+1]/self.dz[0:ipl+1] # adjust density of layers
-        latheat = frozen*1000*LF_I # latent heat released due to the refreezing [J]
-        cold_content[0:ipl+1] -= latheat[0:ipl+1] # remaining cold content
-        self.Tz[0:ipl+1] = T_MELT - cold_content[0:ipl+1]/(CP_I*self.mass[0:ipl+1]) # temperature is changed accordingly
-        self.LWC[0:ipl+1] += retained[0:ipl+1] # retained water added to LWC 
+        self.refrozen[0:ipl+1]  += frozen[0:ipl+1] # add the freezing to self.refrozen
+        self.mass[0:ipl+1]      += frozen[0:ipl+1]*1000 # adjust the mass of layers
+        self.rho[0:ipl+1]       = self.mass[0:ipl+1]/self.dz[0:ipl+1] # adjust density of layers
+        latheat                 = frozen*1000*LF_I # latent heat released due to the refreezing [J]
+        cold_content[0:ipl+1]   -= latheat[0:ipl+1] # remaining cold content
+        self.Tz[0:ipl+1]        = T_MELT - cold_content[0:ipl+1]/(CP_I*self.mass[0:ipl+1]) # temperature is changed accordingly
+        self.LWC[0:ipl+1]       += retained[0:ipl+1] # retained water added to LWC 
 
         if np.any(self.LWC<0):
             self.LWC = np.maximum(self.LWC,0) # ensure no negative lwc values   
     
-    self.runoff = runoff
-    self.lwcerror += sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd)
+    self.runoff     = runoff
+    self.lwcerror   += sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd)
     
     ## Sanity checks
     if abs(sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd)) > 1e-12: #check for water balance
