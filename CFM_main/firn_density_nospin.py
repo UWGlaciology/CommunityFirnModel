@@ -127,6 +127,14 @@ class FirnDensityNoSpin:
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
+        if 'spinUpdate' not in self.c:
+            self.c['spinUpdate'] = False
+        if self.c['spinUpdate']:
+            csvStartDate = initDepth[0]
+            print('csvStartDate',csvStartDate)
+        else:
+            csvStartDate = None
+
         ### get temperature and accumulation rate from input csv file
         try:
             if self.c['manualT']:
@@ -151,12 +159,12 @@ class FirnDensityNoSpin:
             init_Tz = bigTmat[1:,1] # temp at zeroeth time step (i.e. at init)
 
         else:
-            input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
+            input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), csvStartDate)
             if input_temp[0] < 0.0:
                 input_temp      = input_temp + K_TO_C
             input_temp[input_temp>T_MELT] = T_MELT
 
-        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
+        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), csvStartDate)
 
         if 'MELT' not in self.c:
             print('You should add "MELT" to your .json (True/False)')
@@ -168,7 +176,7 @@ class FirnDensityNoSpin:
             self.raininput      = False #VV no rain input
 
         if self.c['MELT']:
-            input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']))
+            input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']), csvStartDate)
             self.MELT           = True
             try: 
                 self.LWC        = initLWC[1:]
@@ -179,7 +187,7 @@ class FirnDensityNoSpin:
             if 'RAIN' not in self.c:
                 self.c['RAIN'] = False
             if self.c['RAIN']:
-                input_rain, input_year_rain = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']))
+                input_rain, input_year_rain = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), csvStartDate)
             if 'liquid' not in self.c:
                 print('Melt is on, but you did not specify which perolation scheme in the .json')
                 print('Defaulting to original CFM bucket scheme')
@@ -360,7 +368,7 @@ class FirnDensityNoSpin:
         ### Surface Density #
         if self.c['variable_srho']:
             if self.c['srho_type']=='userinput':
-                input_srho, input_year_srho = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']))
+                input_srho, input_year_srho = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), csvStartDate)
                 Rsf             = interpolate.interp1d(input_year_srho,input_srho,int_type,fill_value='extrapolate') # interpolation function
                 self.rhos0      = Rsf(self.modeltime) # surface temperature interpolated to model time
             elif self.c['srho_type']=='param':
@@ -395,7 +403,7 @@ class FirnDensityNoSpin:
             self.c['rad_pen']=False
             
         if self.c['rad_pen']:    
-            input_rad, input_year_rad = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']))
+            input_rad, input_year_rad = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']), csvStartDate)
             Radsf             = interpolate.interp1d(input_year_rad,input_rad,int_type,fill_value='extrapolate')
             self.E_sw = Radsf(self.modeltime)
 
@@ -453,7 +461,7 @@ class FirnDensityNoSpin:
 
         ### set up longitudinal strain rate
         if self.c['strain']: # input units are yr^-1
-            input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']))
+            input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), csvStartDate)
             dusf                        = interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')           
             self.du_dx      = dusf(self.modeltime)
             self.du_dxSec   = self.du_dx / S_PER_YEAR #/ self.c['stpsPerYear'] # strain rate (s^-1) at each time step
@@ -624,7 +632,7 @@ class FirnDensityNoSpin:
                     input_year_gas = input_year_temp
                     input_gas = np.ones_like(input_year_temp)
                 else:
-                    input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas))
+                    input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas), csvStartDate)
 
                 Gsf     = interpolate.interp1d(input_year_gas,input_gas,'linear',fill_value='extrapolate')
                 Gs      = Gsf(self.modeltime)
@@ -700,8 +708,6 @@ class FirnDensityNoSpin:
         self.steps = 1 / np.mean(self.t) # steps per year
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
 
-        if 'spinUpdate' not in self.c:
-            self.c['spinUpdate'] = False
         if self.c['spinUpdate']:
             indUpdate = np.where(self.modeltime>=self.c['spinUpdateDate'])[0][0]
         
@@ -873,11 +879,14 @@ class FirnDensityNoSpin:
                         self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                         self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
-                    # self.Tz, self.T10m  = heatDiff(self,iii)
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)           
+                    if self.c['LWCheat']=='enthalpy':
+                        self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)     
+                    else:
+                        self.Tz, self.T10m  = heatDiff(self,iii)
+                              
                     coldlayers = np.where(self.Tz < T_MELT)
-                    if np.any(self.LWC[coldlayers[0]]>0.):
-                        print('Problem: water content in a cold layer')
+                    # if np.any(self.LWC[coldlayers[0]]>0.):
+                        # print('Problem: water content in a cold layer')
                 ### end bucketVV ##################
 
                 elif self.c['liquid'] == 'percolation_bucket': ### Max's bucket scheme:

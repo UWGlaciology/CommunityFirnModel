@@ -9,7 +9,7 @@ import numpy as np
 from constants import *
 import h5py
 
-def read_input(filename):
+def read_input(filename,StartDate=None):
     '''
     Read in data from csv input files
 
@@ -30,6 +30,13 @@ def read_input(filename):
     else:        
         input_year = data[0, :]
         input_data = data[1, :]
+
+    if StartDate==None:
+        pass
+    else:
+        StartInd = np.where(input_year>=StartDate)[0]
+        input_year = input_year[StartInd]
+        input_data = input_data[StartInd]
 
     return input_data, input_year
 
