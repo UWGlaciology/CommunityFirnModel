@@ -24,12 +24,21 @@ def read_input(filename,StartDate=None):
     FID        = os.path.join(spot, filename)
     data       = np.loadtxt(FID, delimiter=',') #changed 3/6/17 to loadtxt from genfromtxt; much faster
     xx,yy = np.shape(data)
-    if xx>yy:
-        input_year = data[:, 0]
-        input_data = data[:, 1]
-    else:        
-        input_year = data[0, :]
-        input_data = data[1, :]
+    n_data = np.minimum(xx, yy)
+    if n_data==2:
+        if xx>yy:
+            input_year = data[:, 0]
+            input_data = data[:, 1]
+        else:
+            input_year = data[0, :]
+            input_data = data[1, :]
+    else:
+        if xx>yy:
+            input_year = data[:, 0]
+            input_data = data[:, 1:n_data]
+        else:
+            input_year = data[0, :]
+            input_data = np.transpose(data[1:n_data, :])
 
     if StartDate==None:
         pass
