@@ -66,6 +66,9 @@ class FirnPhysics:
         A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM # Accumulation in units m W.E. per year
         A_mean = self.bdot_mean * RHO_I_MGM
 
+        z1mask = (self.rho < RHO_1)
+        z2mask = (self.rho >= RHO_1)
+
         drho_dt = np.zeros(self.gridLen)
         viscosity = np.zeros(self.gridLen)
         
@@ -77,21 +80,21 @@ class FirnPhysics:
                 A_instant = 0.0
             if (self.FirnAir and self.AirRunType=='steady'):
                 Tcon = self.steady_T * np.ones_like(self.Tz)
-                drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * Tcon[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
-                drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * Tcon[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+                drho_dt[z1mask]     = k1 * np.exp(-Q1 / (R * Tcon[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+                drho_dt[z2mask]     = k2 * np.exp(-Q2 / (R * Tcon[z2mask])) * (RHO_I_MGM - self.rho[z2mask] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
             else:
-                drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
-                drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
-                
-                viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
-                viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]
+                drho_dt[z1mask]     = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+                drho_dt[z2mask]     = k2 * np.exp(-Q2 / (R * self.Tz[z2mask])) * (RHO_I_MGM - self.rho[z2mask] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
+
+                viscosity[z1mask]   = (self.rho[z1mask] * self.sigma[z1mask]) / (2)/drho_dt[z1mask]
+                viscosity[z2mask]   = (self.rho[z2mask] * self.sigma[z2mask]) / (2)/drho_dt[z2mask]
 
         elif self.bdot_type == 'mean':
-            drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
-            drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * (A_mean[self.rho >= RHO_1])**bHL * 1000 / S_PER_YEAR
+            drho_dt[z1mask]     = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * (A_mean[z1mask])**aHL * 1000 / S_PER_YEAR
+            drho_dt[z2mask]     = k2 * np.exp(-Q2 / (R * self.Tz[z2mask])) * (RHO_I_MGM - self.rho[z2mask] / 1000) * (A_mean[z2mask])**bHL * 1000 / S_PER_YEAR
 
-            # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
-            # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]
+            viscosity[z1mask]   = (self.rho[z1mask] * self.sigma[z1mask]) / (2)/drho_dt[z1mask]
+            viscosity[z2mask]   = (self.rho[z2mask] * self.sigma[z2mask]) / (2)/drho_dt[z2mask]
 
         self.RD['drho_dt']   = drho_dt
 
