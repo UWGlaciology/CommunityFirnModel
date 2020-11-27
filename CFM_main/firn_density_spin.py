@@ -301,11 +301,24 @@ class FirnDensitySpin:
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.mass_sum   = self.mass.cumsum(axis = 0)
 
-        ### longitudinal strain rate
+        ### longitudinal strain rates
+        if 'strain' not in self.c:
+            self.c['strain'] = False
         if self.c['strain']:
-            self.du_dx      = np.zeros(self.gridLen)
-            self.du_dx[1:]  = self.c['du_dx']/(S_PER_YEAR)
-                
+            input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
+            input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
+            if self.c['spinup_climate_type'] == 'initial':
+                self.eps_1 = input_eps_1[0]
+                self.eps_2 = input_eps_2[0]
+            elif self.c['spinup_climate_type'] == 'mean':
+                self.eps_1 = np.mean(input_eps_1)
+                self.eps_2 = np.mean(input_eps_2)
+            else:
+                self.eps_1 = np.mean(input_eps_1)
+                self.eps_2 = np.mean(input_eps_2)
+            print('Spin-up strain rates are', self.eps_1, 'and', self.eps_2)
+            self.eps_zz       = - (self.eps_1 + self.eps_2)
+
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             if self.c['calcGrainSize']:
@@ -432,6 +445,9 @@ class FirnDensitySpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+            if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
+                self.dz     = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.dz
+                self.mass   = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.mass
 
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou']
@@ -466,10 +482,6 @@ class FirnDensitySpin:
                     self.Isoz[isotope], self.Iso_sig2_z[isotope] = self.Isotopes[isotope].isoDiff(IsoParams,iii)
 
             self.T50     = np.mean(self.Tz[self.z<50])
-
-            if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
-                self.dz     = ((-self.du_dx)*self.dt[iii] + 1)*self.dz 
-                self.mass   = self.mass*((-self.du_dx)*self.dt[iii] + 1)
 
             ### update model grid mass, stress, and mean accumulation rate
             dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR

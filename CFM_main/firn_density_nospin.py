@@ -459,12 +459,17 @@ class FirnDensityNoSpin:
         ### for surf layer -> mass in mIE is only multiplied by steps per year: if 1 stp/yr,mean acc is the mass of surf layer; if 2 stps/yr,mean acc is 2* what has been accumulated over the last step, etc.
         #######################
 
-        ### set up longitudinal strain rate
+        ### set up longitudinal strain rates
+        if 'strain' not in self.c:
+            self.c['strain'] = False
         if self.c['strain']: # input units are yr^-1
-            input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), csvStartDate)
-            dusf                        = interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')           
-            self.du_dx      = dusf(self.modeltime)
-            self.du_dxSec   = self.du_dx / S_PER_YEAR #/ self.c['stpsPerYear'] # strain rate (s^-1) at each time step
+            input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']), csvStartDate)
+            input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
+            d1sf             = interpolate.interp1d(input_year_eps, input_eps_1, int_type, fill_value='extrapolate')
+            d2sf             = interpolate.interp1d(input_year_eps, input_eps_2, int_type, fill_value='extrapolate')
+            self.eps_1      = d1sf(self.modeltime)
+            self.eps_2      = d2sf(self.modeltime)
+            self.eps_zz = - (self.eps_1 + self.eps_2)
         #######################
         if self.c['manualT']:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
@@ -809,6 +814,10 @@ class FirnDensityNoSpin:
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
 
+            if self.c['strain']:
+                self.dz     = (1 + self.eps_zz[iii] / S_PER_YEAR * self.dt[iii]) * self.dz
+                self.mass   = (1 + self.eps_zz[iii] / S_PER_YEAR * self.dt[iii]) * self.mass
+
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou']
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
@@ -1003,11 +1012,6 @@ class FirnDensityNoSpin:
                 for isotope in self.c['iso']:
                     self.Isoz[isotope], self.Iso_sig2_z[isotope] = self.Isotopes[isotope].isoDiff(IsoParams,iii)
                 ### new box gets added on within isoDiff function
-
-            if self.c['strain']: #update horizontal strain
-                strain      = (-1 * self.du_dxSec[iii] * self.dt[iii] + 1) * np.ones_like(self.z)
-                self.dz     = strain * self.dz
-                self.mass   = strain * self.mass
 
             self.sdz_new    = np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
