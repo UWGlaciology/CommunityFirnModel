@@ -1083,7 +1083,7 @@ class FirnDensityNoSpin:
             self.sigma      = (self.mass + (self.LWC * RHO_W_KGM)) * self.dx * GRAVITY
             self.sigma      = self.sigma.cumsum(axis = 0)
             self.mass_sum   = self.mass.cumsum(axis = 0)
-            self.bdot_mean = np.concatenate(([self.mass_sum[0] * self.c['stpsPerYear'] / RHO_I], (self.bdot_mean[:-1] * self.age[1:] + self.bdot[iii] * self.dt[iii]) / (self.age[1:] + self.dt[iii])))
+            self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * self.c['stpsPerYear'] * S_PER_YEAR
 
             ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
 
