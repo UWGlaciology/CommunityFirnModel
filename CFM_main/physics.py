@@ -120,7 +120,7 @@ class FirnPhysics:
 
         RHO_12 = 551.0
         z1mask = (self.rho <= RHO_1)
-        z12mask = ((self.rho > RHO_1) & (self.rho <= RHO_12))  % Transition zone. Use classical HL_dynamic zone two model, to prevent exploding densification when rhoDiff goes to zero.
+        z12mask = ((self.rho > RHO_1) & (self.rho <= RHO_12))  # Transition zone. Use classical HL_dynamic zone two model, to prevent exploding densification when rhoDiff goes to zero.
         z2mask = ((self.rho > RHO_12) & (self.rho < RHO_I))
         zImask = (self.rho >= RHO_I)
 
