@@ -35,10 +35,10 @@ def read_input(filename,StartDate=None):
     else:
         if xx>yy:
             input_year = data[:, 0]
-            input_data = data[:, 1:n_data]
+            input_data = np.transpose(data[:, 1:n_data])
         else:
             input_year = data[0, :]
-            input_data = np.transpose(data[1:n_data, :])
+            input_data = data[1:n_data, :]
 
     if StartDate==None:
         pass
@@ -101,5 +101,3 @@ def read_init(folder, resultsFileName, varname):
 #     input_melt      = data_melt[1, :]
 
 #     return input_snowmelt, input_year_snowmelt
-
-
