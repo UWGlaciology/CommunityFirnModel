@@ -43,7 +43,7 @@ def firnConductivity(self,iii):
     elif self.c['conductivity']=='Riche':
         K_firn  = 3.e-6 * self.rho**2 - 1.06e-5 * self.rho + 0.024            # Riche and Schneebeli 2013 eq. 10
     elif self.c['conductivity']=='Jiawen':
-        K_firn  = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3 
+        K_firn  = 0.0784 + 2.697 * (self.rho/1000.)**2                        # Jiawen 1991 eq. 3
     elif self.c['conductivity']=='Calonne2011':
         K_firn  = 0.024 - 1.23e-4 * self.rho + 2.5e-6 * self.rho**2           # Calonne et al. 2011
     elif self.c['conductivity'] =='mix':
@@ -61,7 +61,7 @@ def firnConductivity(self,iii):
         if iii==0:
             print('Conductivity is not set to one of the values; using Anderson')
         K_firn = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
-    
+
     return K_firn
 ##########################
 
@@ -76,7 +76,7 @@ def heatDiff(self,iii):
 
     :returns self.Tz:
     :returns self.T10m:
-    
+
     thermal diffusivity: alpha = K_firn / (rho*c_firn)
     '''
 
@@ -87,7 +87,7 @@ def heatDiff(self,iii):
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
     z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
     z_P_vec     = self.z
-    
+
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
 
@@ -147,20 +147,20 @@ def enthalpyDiff(self,iii):
     z_edges_vec1    = self.z[0:-1] + np.diff(self.z) / 2
     z_edges_vec     = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
     z_P_vec         = self.z
-    
+
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
 
     H_ice = RHO_I * CP_I * (self.Tz - T_MELT)
     H_liq = RHO_W_KGM * LF_I
-  
+
     vol_ice     = self.mass / RHO_I     # volume of the ice portion of each volume
     vol_tot     = vol_ice + self.LWC    # total volume of ice and liquid in each volume
     mass_liq    = self.LWC * RHO_W_KGM  # mass of liquid water
     rho_liq_eff = mass_liq/self.dz      # effective density of the liquid portion
     tot_rho     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
     g_liq_1     = self.LWC / vol_tot     # liquid volume fraction (of the material portion, porosity ignored)
-    g_ice_1     = vol_ice / vol_tot     # solid/ice volume fraction 
+    g_ice_1     = vol_ice / vol_tot     # solid/ice volume fraction
     g_liq       = self.LWC / self.dz    # liquid volume fraction, total volume
     g_ice       = vol_ice / self.dz     # solid/ice volume fraction, total volume
 
@@ -180,7 +180,7 @@ def enthalpyDiff(self,iii):
     K_firn = firnConductivity(self,iii) # thermal conductivity
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
-    
+
     Gamma_P = K_eff
 
     deltaH = RHO_W_KGM * LF_I #Voller 1990, eq 11. (letting T_ref = T_melt) units: J/m^3
