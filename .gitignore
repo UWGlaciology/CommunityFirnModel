@@ -31,8 +31,6 @@ tempSpin.csv
 *.tar
 *.DS_store
 *.DS_Store
-*.xml
-*.iml
 
 docs/_build
 docs/_static
