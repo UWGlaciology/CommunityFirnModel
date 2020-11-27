@@ -69,7 +69,7 @@ class FirnDensitySpin:
                 (unit: ???, type: array of floats)
     : rhos0: surface accumulate rate vector
                 (unit: ???, type: array of floats)
-                
+
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
 
@@ -80,7 +80,7 @@ class FirnDensitySpin:
 
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature of the model run
         :param configName: name of json config file containing model configurations
-        
+
         '''
 
         ### load in json config file and parses the user inputs to a dictionary
@@ -116,14 +116,14 @@ class FirnDensitySpin:
                 for file in filtered_files:
                     path_to_file = os.path.join(self.c['resultsFolder'], file)
                     os.remove(path_to_file)
-        
+
         else:
             os.makedirs(self.c['resultsFolder'])
 
         ############################
         ##### load input files #####
         ############################
-        
+
         ### temperature ###
         input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
         if input_temp[0] < 0.0:
@@ -138,9 +138,9 @@ class FirnDensitySpin:
             print("You should add key 'spinup_climate_type' to the config .json file")
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
-        
+
         ### accumulation rate ###
-        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))       
+        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
         try:
             if self.c['spinup_climate_type']=='initial':
                 self.bdot0      = input_bdot[0]
@@ -155,11 +155,11 @@ class FirnDensitySpin:
             print("Add 'manual_climate' to the json to enable specifying long-term bdot and T")
             self.c['manual_climate']=False
 
-        if self.c['manual_climate']: # If we want to use a manually specified climate for spin up (e.g. known long-term values). 
+        if self.c['manual_climate']: # If we want to use a manually specified climate for spin up (e.g. known long-term values).
             self.temp0 = self.c['deepT'] #specify deep T as mean temperature for spin up calculations (compaction,grain growth)
             self.bdot0 = self.c['bdot_long']# *1e-3/0.917 #specify long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
             print('make sure "bdot_long" has units of mIE/yr!')
-               
+
         print('Spin-up accumulation rate is', self.bdot0)
         print('Spin-up temperature is', self.temp0)
         ### could include others, e.g. surface density
@@ -171,7 +171,7 @@ class FirnDensitySpin:
         self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYear'])) # number of grid points
         gridHeight      = np.linspace(self.c['H'], self.c['HbaseSpin'], self.gridLen)
         self.z          = self.c['H'] - gridHeight
-        self.dz         = np.diff(self.z) 
+        self.dz         = np.diff(self.z)
         self.dz         = np.append(self.dz, self.dz[-1])
         self.dx         = np.ones(self.gridLen)
         print('Grid length is', self.gridLen)
@@ -231,7 +231,7 @@ class FirnDensitySpin:
                 self.years = self.c['yearSpin'] # number of years to spin up for
         else: # based on time taken to spin up in the config file.
             self.years = self.c['yearSpin'] # number of years to spin up for
-        
+
         dt1         = S_PER_YEAR / self.c['stpsPerYear']
         self.stp    = int(self.years*S_PER_YEAR/dt1)
         self.t      =  1.0 / self.c['stpsPerYear'] # years per time step
@@ -244,7 +244,7 @@ class FirnDensitySpin:
         ### Surface temperature for each time step
         self.Ts         = self.temp0 * np.ones(self.stp)
 
-        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'           
+        if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             if self.c['SeasonalThemi'] == 'north':
                 self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is for Greenland
 
@@ -301,11 +301,24 @@ class FirnDensitySpin:
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.mass_sum   = self.mass.cumsum(axis = 0)
 
-        ### longitudinal strain rate
+        ### longitudinal strain rates
+        if 'strain' not in self.c:
+            self.c['strain'] = False
         if self.c['strain']:
-            self.du_dx      = np.zeros(self.gridLen)
-            self.du_dx[1:]  = self.c['du_dx']/(S_PER_YEAR)
-                
+            input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
+            input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
+            if self.c['spinup_climate_type'] == 'initial':
+                self.eps_1 = input_eps_1[0]
+                self.eps_2 = input_eps_2[0]
+            elif self.c['spinup_climate_type'] == 'mean':
+                self.eps_1 = np.mean(input_eps_1)
+                self.eps_2 = np.mean(input_eps_2)
+            else:
+                self.eps_1 = np.mean(input_eps_1)
+                self.eps_2 = np.mean(input_eps_2)
+            print('Spin-up strain rates are', self.eps_1, 'and', self.eps_2)
+            self.eps_zz       = - (self.eps_1 + self.eps_2)
+
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             if self.c['calcGrainSize']:
@@ -320,7 +333,7 @@ class FirnDensitySpin:
         if self.c['physRho']=='Morris2014':
             if 'QMorris' not in self.c:
                 print('Add "QMorris" to the .json. CFM is setting to 110e3')
-                self.c['QMorris'] = 110.0e3               
+                self.c['QMorris'] = 110.0e3
             # initial temperature history function (units seconds)
             self.Hx     = np.exp(-1*self.c['QMorris']/(R*self.Tz))*(self.age+self.dt[0])
             self.THist  = True
@@ -332,7 +345,7 @@ class FirnDensitySpin:
 
         ### values for Goujon physics
         if self.c['physRho']=='Goujon2003':
-            self.Gamma_Gou      = 0 
+            self.Gamma_Gou      = 0
             self.Gamma_old_Gou  = 0
             self.Gamma_old2_Gou = 0
             self.ind1_old       = 0
@@ -356,7 +369,7 @@ class FirnDensitySpin:
     def time_evolve(self):
         '''
         Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature through time
-        based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
+        based on the user specified number of timesteps in the model run. Updates the firn density using a user specified
         '''
         self.steps = 1 / self.t # this is time steps per year
 
@@ -433,8 +446,11 @@ class FirnDensitySpin:
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
 
+            if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
+                self.mass   = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.mass
+
             if self.c['physRho']=='Goujon2003':
-                self.Gamma_Gou      = RD['Gamma_Gou'] 
+                self.Gamma_Gou      = RD['Gamma_Gou']
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
                 self.Gamma_old2_Gou = RD['Gamma_old2_Gou']
                 self.ind1_old       = RD['ind1_old']
@@ -442,7 +458,7 @@ class FirnDensitySpin:
             ### update density and age of firn
             self.age = np.concatenate(([0], self.age[:-1])) + self.dt[iii]
             self.rho = self.rho + self.dt[iii] * drho_dt
-            
+
             if self.THist:
                 self.Hx = RD['Hx']
 
@@ -467,34 +483,30 @@ class FirnDensitySpin:
 
             self.T50     = np.mean(self.Tz[self.z<50])
 
-            if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
-                self.dz     = ((-self.du_dx)*self.dt[iii] + 1)*self.dz 
-                self.mass   = self.mass*((-self.du_dx)*self.dt[iii] + 1)
-
             ### update model grid mass, stress, and mean accumulation rate
             dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+            self.dz_old     = np.copy(self.dz)
             self.dz         = self.mass / self.rho * self.dx
-            self.dz_old     = self.dz    
-            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))     
+            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))
             self.z          = self.dz.cumsum(axis = 0)
             self.z          = np.concatenate(([0], self.z[:-1]))
             self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-            
-            ### VV corrected temperature profile with latent heat release from meltwater, 
+
+            ### VV corrected temperature profile with latent heat release from meltwater,
             ### following Reeh 1991 parameterisation ##
             if self.c['ReehCorrectedT']:
                 self.Tz         = np.concatenate(([self.Ts[iii]]+26.6*self.SIR, self.Tz[:-1]))
             else:
                 self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
             ##
-            
+
             massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
             self.mass       = np.concatenate(([massNew], self.mass[:-1]))
             self.sigma      = self.mass * self.dx * GRAVITY
             self.sigma      = self.sigma.cumsum(axis = 0)
             self.mass_sum   = self.mass.cumsum(axis = 0)
             self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
-                          
+
             ### Update grain growth #VV ###
             #VV calculate this before accumulation (because the new surface layer should not be subject to grain growth yet
             if self.c['physGrain']:
@@ -511,7 +523,7 @@ class FirnDensitySpin:
             if (iii == (self.stp - 1)):
                 if self.c['initprofile']:
                     print('Updating density using init file')
-                    initfirn = pd.read_csv(self.c['initfirnFile'],delimiter=',') 
+                    initfirn = pd.read_csv(self.c['initfirnFile'],delimiter=',')
                     init_depth      = initfirn['depth'].values
                     self.rho = np.interp(self.z,init_depth,initfirn['density'].values)
                     if 'temperature' in list(initfirn):
@@ -519,7 +531,7 @@ class FirnDensitySpin:
                         init_temp = initfirn['temperature'].values
                         if init_temp[0]<0:
                             init_temp = init_temp + 273.15
-                        self.Tz = np.interp(self.z,init_depth,init_temp)                      
+                        self.Tz = np.interp(self.z,init_depth,init_temp)
                     if 'age' in list(initfirn):
                         print('and age')
                         self.age = np.interp(self.z,init_depth,initfirn['age'].values*S_PER_YEAR)
@@ -549,7 +561,7 @@ class FirnDensitySpin:
                     self.r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
                 else:
                     self.r2_time     = None
-                if self.THist:                
+                if self.THist:
                     self.Hx_time     = np.concatenate(([self.t * iii + 1], self.Hx))
                 else:
                     self.Hx_time     = None
