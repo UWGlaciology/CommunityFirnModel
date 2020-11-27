@@ -815,7 +815,6 @@ class FirnDensityNoSpin:
                 drho_dt = np.zeros_like(drho_dt)
 
             if self.c['strain']:
-                self.dz     = (1 + self.eps_zz[iii] / S_PER_YEAR * self.dt[iii]) * self.dz
                 self.mass   = (1 + self.eps_zz[iii] / S_PER_YEAR * self.dt[iii]) * self.mass
 
             if self.c['physRho']=='Goujon2003':

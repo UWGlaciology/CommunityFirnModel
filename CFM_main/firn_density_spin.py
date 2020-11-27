@@ -445,8 +445,8 @@ class FirnDensitySpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+
             if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
-                self.dz     = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.dz
                 self.mass   = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.mass
 
             if self.c['physRho']=='Goujon2003':
@@ -485,8 +485,8 @@ class FirnDensitySpin:
 
             ### update model grid mass, stress, and mean accumulation rate
             dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+            self.dz_old     = np.copy(self.dz)
             self.dz         = self.mass / self.rho * self.dx
-            self.dz_old     = self.dz
             self.dz         = np.concatenate(([dzNew], self.dz[:-1]))
             self.z          = self.dz.cumsum(axis = 0)
             self.z          = np.concatenate(([0], self.z[:-1]))
