@@ -114,13 +114,12 @@ class FirnPhysics:
 
         drho_dt     = np.zeros(self.gridLen)
         z2first     = np.min(np.where(self.rho > RHO_1))
-        sigma550    = ((self.rho[z2first] - RHO_1) * self.sigma[z2first - 1] + (RHO_1 - self.rho[z2first - 1]) * self.sigma[z2first]) / (self.rho[z2first] - self.rho[z2first - 1])
-
+        sigma550    = ((self.rho[z2first] - RHO_1) * self.sigma[z2first - 1] + (RHO_1 - self.rho[z2first - 1]) * self.sigma[z2first]) / (self.rho[z2first] - self.rho[z2first - 1])  # Direct calculation faster than interpolate.
         rhoDiff     = (RHO_I_MGM - self.rho / 1000)
 
         RHO_12 = 551.0
         z1mask = (self.rho <= RHO_1)
-        z12mask = ((self.rho > RHO_1) & (self.rho <= RHO_12))  # Transition zone. Use classical HL_dynamic zone two model, to prevent exploding densification when rhoDiff goes to zero.
+        z12mask = ((self.rho > RHO_1) & (self.rho <= RHO_12))  # Transition zone. Use classical HL_dynamic zone two model, to prevent exploding densification when sigmaDiff goes to zero.
         z2mask = ((self.rho > RHO_12) & (self.rho < RHO_I))
         zImask = (self.rho >= RHO_I)
 
