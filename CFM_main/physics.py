@@ -100,35 +100,42 @@ class FirnPhysics:
 
     def HL_Sigfus(self):
         '''
-        Accumulation units are m W.E. per year (zone 1); uses stress for zone 2 
+        Accumulation units are m W.E. per year (zone 1); uses stress for zone 2
         '''
         Q1  = 10160.0
         Q2  = 21400.0
         k1  = 11.0
         k2  = 575.0
         aHL = 1.0
+        bHL = 0.5
 
         A_instant   = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM
         A_mean      = self.bdot_mean * RHO_I_MGM
 
         drho_dt     = np.zeros(self.gridLen)
-        f550        = interpolate.interp1d(self.rho, self.sigma)
-        sigma550    = f550(RHO_1)
+        z2first     = np.min(np.where(self.rho > RHO_1))
+        sigma550    = ((self.rho[z2first] - RHO_1) * self.sigma[z2first - 1] + (RHO_1 - self.rho[z2first - 1]) * self.sigma[z2first]) / (self.rho[z2first] - self.rho[z2first - 1])
+
         rhoDiff     = (RHO_I_MGM - self.rho / 1000)
 
-        z1mask = (self.rho < RHO_1)
-        z2mask = ((self.rho >= RHO_1) & (self.rho < RHO_I))
+        RHO_12 = 551.0
+        z1mask = (self.rho <= RHO_1)
+        z12mask = ((self.rho > RHO_1) & (self.rho <= RHO_12))  % Transition zone. Use classical HL_dynamic zone two model, to prevent exploding densification when rhoDiff goes to zero.
+        z2mask = ((self.rho > RHO_12) & (self.rho < RHO_I))
         zImask = (self.rho >= RHO_I)
 
         kSig        = (k2 * np.exp(-1 * Q2 / (R * self.Tz[z2mask])))**2 / S_PER_YEAR
         sigmaDiff   = (self.sigma[z2mask] - sigma550)
 
+
         if self.bdot_type == 'instant':
             drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+            drho_dt[z12mask] = k2 * np.exp(-Q2 / (R * self.Tz[z12mask])) * (RHO_I_MGM - self.rho[z12mask] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
             drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * (A_mean[z1mask])**aHL * 1000 / S_PER_YEAR
+            drho_dt[z12mask] = k2 * np.exp(-Q2 / (R * self.Tz[z12mask])) * (RHO_I_MGM - self.rho[z12mask] / 1000) * (A_mean[z12mask])**bHL * 1000 / S_PER_YEAR
 
-        drho_dt[z2mask]  = kSig * (sigmaDiff * rhoDiff[z2mask]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
+        drho_dt[z2mask]  = kSig * (sigmaDiff * rhoDiff[z2mask]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[z2mask])))
         drho_dt[zImask]  = 0
 
         viscosity = self.rho * self.sigma / 2 / drho_dt
