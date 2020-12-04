@@ -466,6 +466,9 @@ class FirnDensityNoSpin:
             self.c['strain_softening'] = False
         if 'residual_strain' not in self.c:
             self.c['residual_strain'] = 2e-4
+        if 'strain_heating' not in self.c:
+            self.c['strain_heating'] = False
+
         if self.c['strain']: # input units are yr^-1
             input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']), csvStartDate)
             input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
@@ -479,6 +482,9 @@ class FirnDensityNoSpin:
             if self.c['strain_softening']:
                 self.c['strain_softening']=False
                 print("To model strain softening, you need to turn on strain.")
+            if self.c['strain_heating']:
+                self.c['strain_heating']=False
+                print("To model strain heating, you need to turn on strain.")
         #######################
         if self.c['manualT']:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
@@ -838,6 +844,10 @@ class FirnDensityNoSpin:
                     eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * correction_factor_viscosity[z2mask]
                     drho_dt[z2mask]        = drho_dt[z2mask] * correction_factor_viscosity[z2mask]
                     self.viscosity[z2mask] = self.viscosity[z2mask] / correction_factor_viscosity[z2mask]
+
+                if self.c['strain_heating']:
+                    self.eps_sum = eps_zz_classic
+                    self.eps_eff2 = 0.5 * (self.eps_1[iii]**2 + self.eps_2[iii]**2 + (eps_zz_classic + self.eps_zz[iii])**2)
 
                 self.mass   = (1 + self.eps_zz[iii] / S_PER_YEAR * self.dt[iii]) * self.mass
 

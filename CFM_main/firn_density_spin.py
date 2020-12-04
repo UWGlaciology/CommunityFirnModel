@@ -308,6 +308,9 @@ class FirnDensitySpin:
             self.c['strain_softening'] = False
         if 'residual_strain' not in self.c:
             self.c['residual_strain'] = 2e-4
+        if 'strain_heating' not in self.c:
+            self.c['strain_heating'] = False
+
         if self.c['strain']:
             input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
             input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
@@ -326,6 +329,8 @@ class FirnDensitySpin:
         else:
             if self.c['strain_softening']:
                 self.c['strain_softening']=False
+            if self.c['strain_heating']:
+                self.c['strain_heating']=False
 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -470,6 +475,11 @@ class FirnDensitySpin:
                         eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * correction_factor_viscosity[z2mask]
                         drho_dt[z2mask]        = drho_dt[z2mask] * correction_factor_viscosity[z2mask]
                         self.viscosity[z2mask] = self.viscosity[z2mask] / correction_factor_viscosity[z2mask]
+
+                if 'strain_heating' in self.c:
+                    if self.c['strain_heating']:
+                        self.eps_sum = eps_zz_classic
+                        self.eps_eff2 = 0.5 * (self.eps_1**2 + self.eps_2**2 + (eps_zz_classic + self.eps_zz)**2)
 
                 self.mass   = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.mass
 
