@@ -462,14 +462,23 @@ class FirnDensityNoSpin:
         ### set up longitudinal strain rates
         if 'strain' not in self.c:
             self.c['strain'] = False
+        if 'strain_softening' not in self.c:
+            self.c['strain_softening'] = False
+        if 'residual_strain' not in self.c:
+            self.c['residual_strain'] = 2e-4
         if self.c['strain']: # input units are yr^-1
             input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']), csvStartDate)
             input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
-            d1sf             = interpolate.interp1d(input_year_eps, input_eps_1, int_type, fill_value='extrapolate')
-            d2sf             = interpolate.interp1d(input_year_eps, input_eps_2, int_type, fill_value='extrapolate')
-            self.eps_1      = d1sf(self.modeltime)
-            self.eps_2      = d2sf(self.modeltime)
-            self.eps_zz = - (self.eps_1 + self.eps_2)
+            d1sf               = interpolate.interp1d(input_year_eps, input_eps_1, int_type, fill_value='extrapolate')
+            d2sf               = interpolate.interp1d(input_year_eps, input_eps_2, int_type, fill_value='extrapolate')
+            self.eps_1         = d1sf(self.modeltime)
+            self.eps_2         = d2sf(self.modeltime)
+            self.eps_eff_hor_2 = (self.eps_1 ** 2 + self.eps_2 ** 2) / 2
+            self.eps_zz        = - (self.eps_1 + self.eps_2)
+        else:
+            if self.c['strain_softening']:
+                self.c['strain_softening']=False
+                print("To model strain softening, you need to turn on strain.")
         #######################
         if self.c['manualT']:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
@@ -813,8 +822,23 @@ class FirnDensityNoSpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+            self.viscosity = RD['viscosity']
 
             if self.c['strain']:
+                eps_zz_classic = - drho_dt / self.rho * S_PER_YEAR
+                eps_zz_classic = eps_zz_classic - np.abs(self.c['residual_strain'])  # Regularisation
+
+                if self.c['strain_softening']:
+                    eps_eff_classic_2 = 0.5 * (eps_zz_classic ** 2)
+                    r_hor2 = self.eps_eff_hor_2[iii] / eps_eff_classic_2
+                    K = (13.5 * r_hor2 + 1.5 * np.sqrt(81 * r_hor2 ** 2 + 12 * r_hor2) + 1) ** (1 / 3)
+                    correction_factor_viscosity = (K + 1 / K + 1) / 3
+
+                    z2mask = (self.rho >= RHO_1)
+                    eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * correction_factor_viscosity[z2mask]
+                    drho_dt[z2mask]        = drho_dt[z2mask] * correction_factor_viscosity[z2mask]
+                    self.viscosity[z2mask] = self.viscosity[z2mask] / correction_factor_viscosity[z2mask]
+
                 self.mass   = (1 + self.eps_zz[iii] / S_PER_YEAR * self.dt[iii]) * self.mass
 
             if self.c['physRho']=='Goujon2003':

@@ -304,6 +304,10 @@ class FirnDensitySpin:
         ### longitudinal strain rates
         if 'strain' not in self.c:
             self.c['strain'] = False
+        if 'strain_softening' not in self.c:
+            self.c['strain_softening'] = False
+        if 'residual_strain' not in self.c:
+            self.c['residual_strain'] = 2e-4
         if self.c['strain']:
             input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
             input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
@@ -317,7 +321,11 @@ class FirnDensitySpin:
                 self.eps_1 = np.mean(input_eps_1)
                 self.eps_2 = np.mean(input_eps_2)
             print('Spin-up strain rates are', self.eps_1, 'and', self.eps_2)
-            self.eps_zz       = - (self.eps_1 + self.eps_2)
+            self.eps_eff_hor_2 = (self.eps_1 ** 2 + self.eps_2 ** 2) / 2
+            self.eps_zz        = - (self.eps_1 + self.eps_2)
+        else:
+            if self.c['strain_softening']:
+                self.c['strain_softening']=False
 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -445,8 +453,24 @@ class FirnDensitySpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+            self.viscosity = RD['viscosity']
 
             if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
+                eps_zz_classic = - drho_dt / self.rho * S_PER_YEAR  # Densification rate in case of no strain.
+                eps_zz_classic = eps_zz_classic - np.abs(self.c['residual_strain'])
+
+                if 'strain_softening' in self.c:
+                    if self.c['strain_softening']:
+                        eps_eff_classic_2 = 0.5 * (eps_zz_classic ** 2)
+                        r_hor2 = self.eps_eff_hor_2 / eps_eff_classic_2
+                        K = (13.5 * r_hor2 + 1.5 * np.sqrt(81 * r_hor2 ** 2 + 12 * r_hor2) + 1) ** (1 / 3)
+                        correction_factor_viscosity = (K + 1 / K + 1) / 3
+
+                        z2mask = (self.rho >= RHO_1)
+                        eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * correction_factor_viscosity[z2mask]
+                        drho_dt[z2mask]        = drho_dt[z2mask] * correction_factor_viscosity[z2mask]
+                        self.viscosity[z2mask] = self.viscosity[z2mask] / correction_factor_viscosity[z2mask]
+
                 self.mass   = (1 + self.eps_zz / S_PER_YEAR * self.dt[iii]) * self.mass
 
             if self.c['physRho']=='Goujon2003':
