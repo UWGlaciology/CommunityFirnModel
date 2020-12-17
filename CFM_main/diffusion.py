@@ -15,7 +15,7 @@ from constants import *
 import numpy as np
 from scipy import interpolate
 
-def firnConductivity(self,iii):
+def firnConductivity(self,iii,K_ice):
     '''
     Function to set the firn's thermal conductivity
     based on one of a number of parameterizations.
@@ -95,7 +95,7 @@ def heatDiff(self,iii):
     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
     # c_firn        = CP_I # If you prefer a constant specific heat.
 
-    K_firn = firnConductivity(self,iii) # thermal conductivity
+    K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
 
     if self.c['MELT']:
         try:
@@ -197,11 +197,12 @@ def enthalpyDiff(self,iii):
         self.Tz[self.Tz>=273.15]=273.15
 
     ### sort out how much liquid has been frozen and update density and LWC.
-    if np.any(self.rho>917.0):
-        print('high rho before reallocate',iii)
+    # if np.any(self.rho>917.0):
+    #     print('high rho before reallocate',iii)
     lwc_old = self.LWC.copy()
     mass_old = self.mass.copy()
     rho_old = self.rho.copy()
+    tot_mass_old = mass_old + lwc_old*1000
 
     self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
@@ -211,8 +212,7 @@ def enthalpyDiff(self,iii):
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
 
-    if np.any(self.rho>917.0):
-        print('high rho after reallocate',iii)
+    tot_mass_new = self.mass + self.LWC*1000
 
     return self.Tz, self.T10m, self.rho, self.mass, self.LWC
 

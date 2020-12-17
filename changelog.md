@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.5
+1.0.6
 
 ## Full Documentation
 
@@ -27,7 +27,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 ### Notes
 - This is a long overdue release, and there will likely be a number of changes that are not documented here. I am pretty confident that nothing should break from 1.0.5 to 1.0.6. 
 
-- The CFM paper to cite has finally be published; it is at https://doi.org/10.5194/gmd-13-4355-2020
+- The CFM paper to cite has finally been published; it is at https://doi.org/10.5194/gmd-13-4355-2020
 
 
 ### Added

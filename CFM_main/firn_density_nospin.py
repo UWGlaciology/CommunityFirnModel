@@ -79,7 +79,7 @@ class FirnDensityNoSpin:
 
     '''
 
-    def __init__(self, configName):
+    def __init__(self, configName, climateTS = None):
         '''
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
         :param configName: name of json config file containing model configurations
@@ -127,6 +127,7 @@ class FirnDensityNoSpin:
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
+        ### Feature to update the spin file to not have to repeat a long spin up
         if 'spinUpdate' not in self.c:
             self.c['spinUpdate'] = False
         if self.c['spinUpdate']:
@@ -159,13 +160,26 @@ class FirnDensityNoSpin:
             init_Tz = bigTmat[1:,1] # temp at zeroeth time step (i.e. at init)
 
         else:
-            input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), csvStartDate)
+            if climateTS != None:
+                input_temp = climateTS['Tskin']
+                input_year_temp = climateTS['time']
+            else:
+                input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), csvStartDate)
             if input_temp[0] < 0.0:
                 input_temp      = input_temp + K_TO_C
             input_temp[input_temp>T_MELT] = T_MELT
+        #####################
 
-        input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), csvStartDate)
+        ### bdot ############
+        if climateTS != None:
+            input_bdot = climateTS['smb']
+            input_year_bdot = climateTS['time']        
+        else:
+            input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), csvStartDate)
+        #####################
 
+        #####################
+        ### MELT ##############
         if 'MELT' not in self.c:
             print('You should add "MELT" to your .json (True/False)')
             self.c['MELT']      = False
@@ -200,6 +214,7 @@ class FirnDensityNoSpin:
             self.LWC            = np.zeros_like(self.z)
             self.PLWC_mem       = np.zeros_like(self.z)
             self.c['RAIN'] = False
+        #####################
 
         #####################
         ### time ############
@@ -478,9 +493,12 @@ class FirnDensityNoSpin:
         #######################
 
         ### model outputs
+        dic = {'density':'rho', 'temperature':'Tz', 'depth':'z'}
         self.output_list    = self.c['outputs']
         if 'output_bits' not in self.c:
             self.c['output_bits']='float32'
+        if 'grid_outputs' not in self.c:
+            self.c['grid_outputs'] = False
         print(self.output_list)
         if ((not self.MELT) and ('LWC' in self.output_list)):
             self.output_list.remove('LWC')
@@ -490,41 +508,95 @@ class FirnDensityNoSpin:
             print('removed gasses from output list (firn air is not on)')
         if ((not self.c['isoDiff']) and ('isotopes' in self.output_list)):
             self.output_list.remove('isotopes')
-            print('removed isotopes from output list')          
+            print('removed isotopes from output list')
+        if ((self.c['grid_outputs']) and ('Dcon' in self.output_list)):
+            self.output_list.remove('Dcon')
+            print('removed Dcon from output list (incompatible with grid_outputs)')
+        if ((self.c['grid_outputs']) and ('compaction' in self.output_list)):
+            self.output_list.remove('compaction')
+            print('removed Dcon from output list (incompatible with grid_outputs)')
+        
+        if self.c['grid_outputs']:
+            self.grid_out = np.arange(self.z[0],self.z[-1],self.c['grid_output_res'])
+
         if 'density' in self.output_list:
-            self.rho_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.rho_out[0,:]       = np.append(init_time, self.rho)
+            if self.c['grid_outputs']:
+                self.rho_out            = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.rho_out[0,:]       = np.append(init_time, np.interp(self.grid_out, self.z, self.rho))
+            else:
+                self.rho_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.rho_out[0,:]       = np.append(init_time, self.rho)
+        
         if 'temperature' in self.output_list:
-            self.Tz_out             = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.Tz_out[0,:]        = np.append(init_time, self.Tz)
+            if self.c['grid_outputs']:
+                self.Tz_out             = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.Tz_out[0,:]        = np.append(init_time, np.interp(self.grid_out, self.z, self.Tz))
+            else:
+                self.Tz_out             = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.Tz_out[0,:]        = np.append(init_time, self.Tz)
+        
         if 'age' in self.output_list:
-            self.age_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.age_out[0,:]       = np.append(init_time, self.age/S_PER_YEAR)
+            if self.c['grid_outputs']:
+                self.age_out            = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.age_out[0,:]       = np.append(init_time, np.interp(self.grid_out, self.z, self.age)/S_PER_YEAR)
+            else:
+                self.age_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.age_out[0,:]       = np.append(init_time, self.age/S_PER_YEAR)
+        
         if 'depth' in self.output_list:
-            self.z_out              = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.z_out[0,:]         = np.append(init_time, self.z)
+            if self.c['grid_outputs']:
+                self.z_out              = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.z_out[0,:]         = np.append(init_time, self.grid_out)
+            else:
+                self.z_out              = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.z_out[0,:]         = np.append(init_time, self.z)
+        
         if 'dcon' in self.output_list:
-            self.D_out              = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.D_out[0,:]         = np.append(init_time, self.Dcon)
+                self.D_out              = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.D_out[0,:]         = np.append(init_time, self.Dcon)
+        
         if 'bdot_mean' in self.output_list:
-            self.bdot_out           = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.bdot_out[0,:]      = np.append(init_time, self.bdot_mean)
+            if self.c['grid_outputs']:
+                self.bdot_out           = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.bdot_out[0,:]      = np.append(init_time, np.interp(self.grid_out, self.z, self.bdot_mean))
+            else:
+                self.bdot_out           = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.bdot_out[0,:]      = np.append(init_time, self.bdot_mean)
+        
         if 'climate' in self.output_list:
-            self.Clim_out           = np.zeros((TWlen+1,3),dtype=self.c['output_bits'])
-            self.Clim_out[0,:]      = np.append(init_time, [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
+            self.Clim_out               = np.zeros((TWlen+1,3),dtype=self.c['output_bits'])
+            self.Clim_out[0,:]          = np.append(init_time, [self.bdot[0], self.Ts[0]])  # not sure if bdot or bdotSec
+        
         if 'compaction' in self.output_list:
-            self.comp_out          = np.zeros((TWlen+1,self.compboxes+1),dtype=self.c['output_bits'])
-            self.comp_out[0,:]     = np.append(init_time, np.zeros(self.compboxes))
+            self.comp_out               = np.zeros((TWlen+1,self.compboxes+1),dtype=self.c['output_bits'])
+            self.comp_out[0,:]          = np.append(init_time, np.zeros(self.compboxes))
+        
         if 'LWC' in self.output_list:
-            self.LWC_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.LWC_out[0,:]       = np.append(init_time, self.LWC)
+            if self.c['grid_outputs']:
+                self.LWC_out            = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.LWC_out[0,:]       = np.append(init_time, np.interp(self.grid_out, self.z, self.LWC))
+            else:
+                self.LWC_out            = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.LWC_out[0,:]       = np.append(init_time, self.LWC)
+
         if 'PLWC_mem' in self.output_list:
-            self.PLWC_mem_out             = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits']) #VV
-            self.PLWC_mem_out[0,:]        = np.append(init_time, self.PLWC_mem) #VV
+            if self.c['grid_outputs']:
+                self.PLWC_mem_out       = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.PLWC_mem_out[0,:]  = np.append(init_time, np.interp(self.grid_out, self.z, self.PLWC_mem))                
+            else:
+                self.PLWC_mem_out       = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits']) #VV
+                self.PLWC_mem_out[0,:]  = np.append(init_time, self.PLWC_mem) #VV
+
         if 'viscosity' in self.output_list:
             self.viscosity          = np.zeros(self.gridLen)
-            self.viscosity_out      = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
-            self.viscosity_out[0,:] = np.append(init_time, self.viscosity)
+            if self.c['grid_outputs']:
+                self.viscosity_out      = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                self.viscosity_out[0,:] = np.append(init_time, np.interp(self.grid_out, self.z, self.viscosity))
+            else:
+                self.viscosity_out      = np.zeros((TWlen+1,len(self.dz)+1),dtype=self.c['output_bits'])
+                self.viscosity_out[0,:] = np.append(init_time, self.viscosity)
+
+            # Mout.updateMO()
         try:
             print('rho_out size (MB):', self.rho_out.nbytes/1.0e6) # print the size of the output for reference
         except:
@@ -533,34 +605,38 @@ class FirnDensityNoSpin:
 
 
         ### Writing also the outputs required for retmip #VV ###
-        self.runoff = np.array([0.]) #VV total runoff which is a single value for the whole firn column
-        self.refrozen = np.zeros_like(self.dz) #VV refreezing in every layer, array of size of our grid
-        self.totalrunoff = np.array([0.]) # Might be useful to have a total final value without having to write every time step
-        self.totalrefrozen = np.zeros_like(self.dz) # Might be useful to have a total final value without having to write every time step
+        self.runoff         = np.array([0.]) #VV total runoff which is a single value for the whole firn column
+        self.refrozen       = np.zeros_like(self.dz) #VV refreezing in every layer, array of size of our grid
+        self.totalrunoff    = np.array([0.]) # Might be useful to have a total final value without having to write every time step
+        self.totalrefrozen  = np.zeros_like(self.dz) # Might be useful to have a total final value without having to write every time step
         self.totwatersublim = 0. #VV Total amount of liquid water that get sublimated
-        self.lwcerror = 0. #VV
-        self.totallwcerror =0. #
+        self.lwcerror       = 0. #VV
+        self.totallwcerror  = 0. #
 
         if 'meltoutputs' in self.output_list: #VV
-            self.runoff_out = np.zeros((TWlen+1,2),dtype='float32') 
-            self.refrozen_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-            self.refrozen_out[0,:] = np.append(init_time, self.refrozen) 
-            self.totcumrunoff_out = np.zeros((TWlen+1,2),dtype='float32') 
-            self.cumrefrozen_out = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32') 
+            self.runoff_out           = np.zeros((TWlen+1,2),dtype='float32') 
+            self.refrozen_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+            self.refrozen_out[0,:]    = np.append(init_time, self.refrozen) 
+            self.totcumrunoff_out     = np.zeros((TWlen+1,2),dtype='float32') 
+            self.cumrefrozen_out      = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32') 
             self.cumrefrozen_out[0,:] = np.append(init_time, self.totalrefrozen)
         #####################
 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
-            initr2                  = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
-            self.r2                 = initr2[1:]
-            r20                     = self.r2
-            self.dr2_dt             = np.zeros_like(self.z)
+            initr2                   = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
+            self.r2                  = initr2[1:]
+            r20                      = self.r2
+            self.dr2_dt              = np.zeros_like(self.z)
             if 'grainsize' in self.output_list:
-                self.r2_out         = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-                self.r2_out[0,:]    = np.append(init_time, self.r2)
-                self.dr2_dt_out     = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
-                self.dr2_dt_out[0,:]= np.append(init_time, self.dr2_dt)
+                if self.c['grid_outputs']:
+                    self.viscosity_out      = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+                    self.viscosity_out[0,:] = np.append(init_time, np.interp(self.grid_out, self.z, self.viscosity))
+                else:
+                    self.r2_out          = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+                    self.r2_out[0,:]     = np.append(init_time, self.r2)
+                    self.dr2_dt_out      = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
+                    self.dr2_dt_out[0,:] = np.append(init_time, self.dr2_dt)
             else:
                 self.r2_out         = None
                 self.dr2_dt_out     = None            
@@ -826,6 +902,8 @@ class FirnDensityNoSpin:
             if self.THist:
                 self.Hx = RD['Hx']
 
+            self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
             if self.MELT:
                 if self.c['liquid'] == 'prefsnowpack':
                     #VV You can choose a date to switch from bucket to prefflow, this should be easy to use from the json file
@@ -872,7 +950,12 @@ class FirnDensityNoSpin:
 
                 elif self.c['liquid'] == 'bucketVV':
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
-                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror = bucketVV(self,iii)
+                        #VV 09/12/2020: change output variables of bucketVV
+                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refrozen, self.runoff, self.lwcerror = bucketVV(self,iii)
+                        #VV 09/12/2020: account for changes in self.gridtrack
+                        if self.doublegrid==True: #gridtrack corrected for melting
+                            self.gridtrack = np.copy(meltgridtrack)
+
                     else:
                         #Dry firn column and no input of meltwater
                         self.runoff     = np.array([0.]) #VV no runoff
@@ -909,6 +992,27 @@ class FirnDensityNoSpin:
                                 self.Tz, self.LWC = LWC_correct(self)
                 ### end percolation_bucket #########
 
+
+                elif self.c['liquid'] == 'percolation_bucket_noretention': ### Max's bucket scheme:
+                    if (self.MELT and self.snowmeltSec[iii]>0): #i.e. there is melt
+                        self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC = percolation_bucket_noretention(self,iii)
+                    else: # no melt, dz after compaction
+                        self.dzn    = self.dz[0:self.compboxes]
+                    ### Heat ###
+                    if self.c['LWCheat']=='enthalpy':
+                        self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                    else: # use heat
+                        if self.c['LWCheat']=='effectiveT':
+                            self.Tz, self.T10m = effectiveT(self,iii)
+
+                        else:
+                            self.Tz, self.T10m  = heatDiff(self,iii)
+                            if (self.c['LWCheat']=='LWCcorrect') or (self.c['LWCheat']=='lowK'):
+                                if iii == 0:
+                                    print('LWCcorrect is on')
+                                self.Tz, self.LWC = LWC_correct(self)
+                ### end percolation_bucket #########                
+
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
                     print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
                     # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
@@ -941,7 +1045,16 @@ class FirnDensityNoSpin:
                     self.Tz[0:i6cm] = self.Ts[iii]
                     self.Tz[i6cm:-1] = self.Tz[i6cm:-1]+deltaT
 
-            self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+            # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
+            # xxx = np.where((self.Tz<T_MELT) & (self.LWC>0))
+            # if np.size(xxx) > 0:
+            #     print('diffuion l969')
+            #     print(xxx)
+            #     print(self.Tz[xxx])
+            #     print(self.LWC[xxx])
+            #     input('enter to continue')
+
             ### heat diffusion
             Ts_old = self.Tz[0]
 
@@ -954,7 +1067,7 @@ class FirnDensityNoSpin:
                 tif = interpolate.interp1d(self.manualT_dep, self.manualT_temp[:,iii],kind='cubic')
                 self.Tz = tif(self.z)
 
-            elif not self.c['heatDiff']: # user says no heat diffusion, so just set the temperature of the new box on top.
+            elif (not self.c['heatDiff'] and not self.MELT): # user says no heat diffusion, so just set the temperature of the new box on top.
                 # self.Tz     = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
                 self.Tz = self.Ts[iii]*np.ones_like(self.Tz)
                 if iii==0:
@@ -1042,14 +1155,17 @@ class FirnDensityNoSpin:
                     self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
                 self.LWC        = np.concatenate(([0], self.LWC[:-1]))
 
-            elif self.bdotSec[iii]<0: #VV
+            elif self.bdotSec[iii]<0:
 
-                self.mass_sum      = self.mass.cumsum(axis = 0) #VV
-                self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim = sublim(self,iii) #VV keeps track of sublimated water for mass conservation
+                self.mass_sum   = self.mass.cumsum(axis = 0)
+                
+                self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation
+                
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 self.dzNew      = 0
+                if self.doublegrid == True: # gridtrack corrected for sublimation
+                    self.gridtrack = np.copy(meltgridtrack)
                 znew = np.copy(self.z)
-
 
             else: # no accumulation during this time step
                 self.age        = self.age + self.dt[iii]
@@ -1090,26 +1206,48 @@ class FirnDensityNoSpin:
                 mtime_plus1 = self.TWrite[ind] 
 
                 if 'density' in self.output_list:
-                    self.rho_out[self.WTracker,:]   = np.append(mtime_plus1, self.rho)
+                    # MOut.updateMO('rho',self.rho,mtime_plus1)
+                    if self.c['grid_outputs']:
+                        self.rho_out[self.WTracker,:]   = np.append(mtime_plus1, np.interp(self.grid_out, self.z, self.rho))
+                    else:
+                        self.rho_out[self.WTracker,:]   = np.append(mtime_plus1, self.rho)
                 if 'temperature' in self.output_list:
-                    self.Tz_out[self.WTracker,:]    = np.append(mtime_plus1, self.Tz)
+                    if self.c['grid_outputs']:
+                        self.Tz_out[self.WTracker,:]   = np.append(mtime_plus1, np.interp(self.grid_out, self.z, self.Tz))
+                    else:
+                        self.Tz_out[self.WTracker,:]    = np.append(mtime_plus1, self.Tz)
                 if 'age' in self.output_list:
-                    self.age_out[self.WTracker,:]   = np.append(mtime_plus1, self.age/S_PER_YEAR)
+                    if self.c['grid_outputs']:
+                        self.age_out[self.WTracker,:]   = np.append(mtime_plus1, np.interp(self.grid_out, self.z, self.age)/S_PER_YEAR)
+                    else:                    
+                        self.age_out[self.WTracker,:]   = np.append(mtime_plus1, self.age/S_PER_YEAR)
                 if 'depth' in self.output_list:
-                    self.z_out[self.WTracker,:]     = np.append(mtime_plus1, self.z)
+                    if self.c['grid_outputs']:
+                        self.z_out[self.WTracker,:]     = np.append(mtime_plus1, self.grid_out)
+                    else:
+                        self.z_out[self.WTracker,:]     = np.append(mtime_plus1, self.z)
                 if 'dcon' in self.output_list:    
                     self.D_out[self.WTracker,:]     = np.append(mtime_plus1, self.Dcon)
                 if 'climate' in self.output_list:   
                     self.Clim_out[self.WTracker,:]  = np.append(mtime_plus1, [self.bdot[int(iii)], self.Ts[int(iii)]])
-                if 'bdot_mean' in self.output_list:   
-                    self.bdot_out[self.WTracker,:]  = np.append(mtime_plus1, self.bdot_mean)
+                if 'bdot_mean' in self.output_list:
+                    if self.c['grid_outputs']:
+                        self.bdot_out[self.WTracker,:]   = np.append(mtime_plus1, np.interp(self.grid_out, self.z, self.bdot_mean))
+                    else:                   
+                        self.bdot_out[self.WTracker,:]  = np.append(mtime_plus1, self.bdot_mean)
                 if 'compaction' in self.output_list:    
                     # self.comp_out[self.WTracker,:] = np.append(mtime_plus1, self.compaction)
                     self.comp_out[self.WTracker,:] = np.append(mtime_plus1, np.cumsum(self.compaction))
                 if 'LWC' in self.output_list:
-                    self.LWC_out[self.WTracker,:]   = np.append(mtime_plus1, self.LWC)
+                    if self.c['grid_outputs']:
+                        self.LWC_out[self.WTracker,:]   = np.append(mtime_plus1, np.interp(self.grid_out, self.z, self.LWC))
+                    else:                    
+                        self.LWC_out[self.WTracker,:]   = np.append(mtime_plus1, self.LWC)
                 if 'PLWC_mem' in self.output_list:
-                    self.PLWC_mem_out[self.WTracker,:] = np.append(mtime_plus1, self.PLWC_mem) #VV
+                    if self.c['grid_outputs']:
+                        self.PLWC_mem_out[self.WTracker,:]   = np.append(mtime_plus1, np.interp(self.grid_out, self.z, self.PLWC_mem))
+                    else:                
+                        self.PLWC_mem_out[self.WTracker,:] = np.append(mtime_plus1, self.PLWC_mem) #VV
                 if 'grainsize' in self.output_list:
                     self.r2_out[self.WTracker,:]    = np.append(mtime_plus1, self.r2)
                     self.dr2_dt_out[self.WTracker,:]= np.append(mtime_plus1, self.dr2_dt)
@@ -1168,16 +1306,15 @@ class FirnDensityNoSpin:
                 SpinUpdate(self,mtime)
 
             if self.doublegrid:
-                if self.gridtrack[-1]==2:
-                    # print('regridding now at ', iii)
-                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
-                    if iii<100:
-                        tdep = np.where(self.gridtrack==1)[0][-1]
-                        print('transition at:', self.z[tdep])
-
-
-
-
+                #VV changes 09/12/2020
+                #if self.gridtrack[-1]==2:
+                    ## print('regridding now at ', iii)
+                    #self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
+                    #if iii<100:
+                        #tdep = np.where(self.gridtrack==1)[0][-1]
+                        #print('transition at:', self.z[tdep])
+                if self.gridtrack[-1]!=3: #VV works for whatever the gridtrack value we have
+                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self) #VV regrid22
 
         ##################################
         ##### END TIME-STEPPING LOOP #####

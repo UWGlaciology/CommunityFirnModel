@@ -74,9 +74,13 @@ def sublim(self,iii):
     self.z          = self.dz.cumsum(axis = 0)
     self.z          = np.concatenate(([0] , self.z[:-1]))
     self.mass       = self.rho * self.dz
+    ### VV changes 09/12/2020
     if self.doublegrid:
-        self.gridtrack = np.append(self.gridtrack[ind1:-1],3*np.ones(num_boxes_sublim))
-        #self.gridtrack = np.concatenate(self.gridtrack[ind1:-1],[3*np.ones(num_boxes_sublim)])
+        sublgridtrack = np.append(self.gridtrack[ind1:-1],self.gridtrack[-1]*np.ones(num_boxes_sublim))
+    elif self.doublegrid==False:
+        sublgridtrack = np.zeros_like(self.dz)
+    ###
+
     ## Grid should be ready
 
     self.totwatersublim += (lwc_initial-sum(self.LWC))
@@ -86,6 +90,6 @@ def sublim(self,iii):
         print('setting to zero and continuing')
     self.LWC[self.LWC<0]=0.0
 
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim,sublgridtrack
     
     

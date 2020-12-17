@@ -158,6 +158,6 @@ def SpinUpdate(self,mtime):
             spin_results['iso_sig2_{}'.format(isotope)][:] = np.append(mtime, self.Iso_sig2_z[isotope])
 
     if self.doublegrid:
-        spin_results['gridSpin'] = np.append(mtime,self.gridtrack)
+        spin_results['gridSpin'][:] = np.append(mtime,self.gridtrack)
 
     spin_results.close()
