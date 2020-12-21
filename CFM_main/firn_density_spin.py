@@ -592,7 +592,7 @@ class FirnDensitySpin:
                     self.Hx_time     = None
                 if self.c['isoDiff']:
                     for isotope in self.c['iso']:
-                        self.Iso_sig2_z[isotope] = np.interp(self.z,zold,self.Iso_sig2_z[isotope]) ###XXX
+                        # self.Iso_sig2_z[isotope] = np.interp(self.z,zold,self.Iso_sig2_z[isotope]) ###XXX
 
 
                         self.iso_out[isotope]    = np.concatenate(([self.t * iii + 1], self.Isoz[isotope]))

@@ -1,6 +1,6 @@
 {
     "gaschoiceOptions":["d15N2","d40Ar","CO2"],
-    "gaschoice":["d15N2"],
+    "gaschoice":["d15N2","d40Ar"],
     "gravity":"on",
     "thermal":"on",
     "runtype":"transient",
@@ -16,6 +16,6 @@
     "ConvectiveZoneDepth": 1.0,
     "advection_type": "zero",
     "advection_type_options": ["Christo","Darcy","zero"],
-    "outputs": ["gasses","gas_age"],
-    "output_options": ["gasses","diffusivity","advection_rate","gas_age"]
+    "outputs": ["gasses","diffusivity","air_advection_rate","firn_advection_rate","gas_age"],
+    "output_options": ["gasses","diffusivity","air_advection_rate","firn_advection_rate","gas_age"]
 }
