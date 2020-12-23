@@ -55,17 +55,20 @@ class ModelOutputs:
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
 
             else:
-                if self.MOgrid:
-                    self.Mout_dict[varname] = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
-
-                    if varname=='LWC':
-                        self.Mout_dict[varname][0,:] = np.append(mtime,RGfun(MOd[z], MOd[varname], self.grid_out))
-
+                if self.MOgrid: #gridding outputs
+                    if varname == 'z':
+                        self.Mout_dict[varname] = np.zeros((len(self.grid_out)+1),dtype=self.c['output_bits'])
+                        self.Mout_dict[varname] = np.append(init_time,self.grid_out)
                     else:
-                        Ifun = interpolate.interp1d(MOd[z], MOd[varname], kind = intkind, fill_value='extrapolate')           
-                        self.Mout_dict[varname][0,:] = np.append(mtime,Ifun(self.grid_out))
+                        self.Mout_dict[varname] = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
+
+                    if varname == 'LWC':
+                        self.Mout_dict[varname][0,:] = np.append(init_time,RGfun(MOd['z'], MOd[varname], self.grid_out))
+                    elif varname != 'z':
+                        Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind, fill_value='extrapolate')         
+                        self.Mout_dict[varname][0,:] = np.append(init_time,Ifun(self.grid_out))
                 
-                else:
+                else: #not gridding outputs
                     self.Mout_dict[varname]       = np.zeros((TWlen+1,Glen+1),dtype=self.c['output_bits'])
                     self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
 
@@ -85,9 +88,18 @@ class ModelOutputs:
             if self.MOgrid:
                 if varname == 'LWC':
                     self.Mout_dict[varname][0,:] = np.append(mtime,RGfun(MOd[z], MOd[varname], self.grid_out))
+                elif ((varname == 'BCO') or (varname == 'DIP') or (varname == 'climate') or (varname == 'runoff')):
+                    self.Mout_dict[varname][Wtracker,:] = np.append(mtime,MOd[varname])
+                elif varname == 'z':
+                    continue
                 else:
-                    Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind, fill_value='extrapolate')           
-                    self.Mout_dict[varname][Wtracker,:] = np.append(mtime,Ifun(self.grid_out))
+                    try:
+                        Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind, fill_value='extrapolate')           
+                        self.Mout_dict[varname][Wtracker,:] = np.append(mtime,Ifun(self.grid_out))
+                    except:
+                        print(varname)
+                        print(mtime)
+                        sys.exit()
             else:
                 self.Mout_dict[varname][Wtracker,:] = np.append(mtime,MOd[varname])
 

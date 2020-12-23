@@ -23,6 +23,26 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
+## [1.0.7]
+### Notes
+- A few major changes in this release: 
+- The way that the CFM saves its outputs and writes to file has been updated (including a new module, ModelOuputs.py)
+- The regridding scheme has been updated by Vincent Verjans to add a third subgrid.
+
+### Added
+- *ModelOutputs.py, firn_density_nospin.py* ModelOutputs.py is a new module that takes the place of a bunch of code in firn_density_nospin.py. Previously, firn_density_nospin initialized arrays for each variable so be saved/written to file (e.g self.rho_out). ModelOutputs is a class, and it sets up a dictionary to contain all of the output arrays. These arrays are updated at each time step by calling ModelOutputs. The upshot is that firn_density_nospin is cleaned up a fair bit and it is easier to add new features that you might want to write to file.
+
+### Changed
+- *writer.py* With the new ModelOutputs module, writer.py now loops through the variables to write with a generic line of code, rather than unique bits of code for each variable.
+- *regrid.py* regrid now splits the grid into 3 subgrids of different resolutions. This new scheme is very similar to the original regrid scheme. The difference is that it uses a coarser resolution below grid2, in a grid called grid22. There is still grid1 (high resolution), then grid2 at a coarse resolution and then grid22 at a very coarse resolution. Below grid22, there is the grid23 which is again the same resolution as grid2. As before, the grid3 provides the stock of layers to be removed at each accumulation event. To use this, you need to add 3 new keys to the .json: "multnodestocombine" specifies how many nodes in grid2 to combine to make grid22; "grid2bottom" specifies the depth of the grid2 to grid22 transition. More information about the doublegrid feature is in the CFM documentation.
+- *writer.py, ModelOutputs.py* There is now an option to grid your outputs onto a common grid, which can save some space on your hard drive. Add 'grid_outputs' (True/False) to the .json to enable it, and add 'grid_output_res' to the resolution to specify the resolution (in meters) that you want the grid to be at (e.g. 0.1 will make a 10-cm grid.)
+
+### Fixed
+- *regrid.py* Previously, the CFM did not account for changes in self.gridtrack due to removal of nodes by melt/sublimation. This is fixed for the sublime and bucketVV schemes.
+- *melt.py, bucketVV* When the melt amount was such that the pm_dz became extremely small, the model crashed. pm_dz is now forced to be at least 1e-6 m thick.
+- melt.py, bucketVV* A previous update got rid of a for loop in bucketVV when calculating runoff. There was a small error that computed the runoff term as a vector instead of a scalar. 
+
+
 ## [1.0.6]  2020-11-04
 ### Notes
 - This is a long overdue release, and there will likely be a number of changes that are not documented here. I am pretty confident that nothing should break from 1.0.5 to 1.0.6. 
