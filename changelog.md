@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.6
+1.0.7
 
 ## Full Documentation
 
@@ -31,11 +31,13 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 
 ### Added
 - *ModelOutputs.py, firn_density_nospin.py* ModelOutputs.py is a new module that takes the place of a bunch of code in firn_density_nospin.py. Previously, firn_density_nospin initialized arrays for each variable so be saved/written to file (e.g self.rho_out). ModelOutputs is a class, and it sets up a dictionary to contain all of the output arrays. These arrays are updated at each time step by calling ModelOutputs. The upshot is that firn_density_nospin is cleaned up a fair bit and it is easier to add new features that you might want to write to file.
+- *diffusion.py* Added thermal conductivity parameterization from Calonne et al. (2019) (which is the new default).
 
 ### Changed
 - *writer.py* With the new ModelOutputs module, writer.py now loops through the variables to write with a generic line of code, rather than unique bits of code for each variable.
 - *regrid.py* regrid now splits the grid into 3 subgrids of different resolutions. This new scheme is very similar to the original regrid scheme. The difference is that it uses a coarser resolution below grid2, in a grid called grid22. There is still grid1 (high resolution), then grid2 at a coarse resolution and then grid22 at a very coarse resolution. Below grid22, there is the grid23 which is again the same resolution as grid2. As before, the grid3 provides the stock of layers to be removed at each accumulation event. To use this, you need to add 3 new keys to the .json: "multnodestocombine" specifies how many nodes in grid2 to combine to make grid22; "grid2bottom" specifies the depth of the grid2 to grid22 transition. More information about the doublegrid feature is in the CFM documentation.
 - *writer.py, ModelOutputs.py* There is now an option to grid your outputs onto a common grid, which can save some space on your hard drive. Add 'grid_outputs' (True/False) to the .json to enable it, and add 'grid_output_res' to the resolution to specify the resolution (in meters) that you want the grid to be at (e.g. 0.1 will make a 10-cm grid.)
+- *diffusion.py* Calonne 2019 is now the default thermal conductivity.
 
 ### Fixed
 - *regrid.py* Previously, the CFM did not account for changes in self.gridtrack due to removal of nodes by melt/sublimation. This is fixed for the sublime and bucketVV schemes.
