@@ -21,10 +21,20 @@ def firnConductivity(self,iii,K_ice):
     based on one of a number of parameterizations.
 
     Choose your favorite!
+    Default is Calonne et al. 2019.
     References are provided at the end of this script.
     '''
-
-    if self.c['conductivity']=='Schwander':
+    if self.c['conductivity']=='Calonne2019':  #Calonne et al. 2019
+        rho_transition = 450.0 #[kg/m^3]
+        a = 0.02 #[m^3/kg]
+        theta       = 1 / (1 + np.exp(-2*a*(self.rho - rho_transition)))
+        kref_firn   = 2.107 + 0.003618 * (self.rho - RHO_I)
+        kref_snow   = 0.024 - 1.23e-4 * self.rho + 2.5e-6 * self.rho**2
+        kref_i      = 2.107 # [W/m/K]
+        kref_a      = 0.024 # [W/m/K] 
+        K_air       = kref_a # use this for now; at some point find equation for T-dependence of air
+        K_firn      = (1-theta) * K_ice*K_air/(kref_i*kref_a) * kref_snow + theta * K_ice/kref_i * kref_firn # equation 5
+    elif self.c['conductivity']=='Schwander':
         K_firn  = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
     elif self.c['conductivity']=='Yen_fixed':
         K_firn  = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
@@ -33,7 +43,7 @@ def firnConductivity(self,iii,K_ice):
     elif self.c['conductivity']=='Anderson':
         K_firn  = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
     elif self.c['conductivity']=='Yen_b':
-        K_firn  = 0.0688 * np.exp(0.0088*(phi_0-273.15) + 4.6682*self.rho/1000)             # Yen 1981, eq. 35.
+        K_firn  = 0.0688 * np.exp(0.0088*(phi_0-273.15) + 4.6682*self.rho/1000) # Yen 1981, eq. 35.
     elif self.c['conductivity']=='Sturm':
         K_firn  = 0.138 - 1.01*(self.rho/1000) + 3.233*(self.rho/1000)**2     # Sturm, 1997.; rho < 0.6
     elif self.c['conductivity']=='VanDusen':
@@ -59,9 +69,18 @@ def firnConductivity(self,iii,K_ice):
         K_firn[Kcond]       = (Kdict['Sturm'][Kcond] + Kdict['Anderson'][Kcond])/2
     else:
         if iii==0:
-            print('Conductivity is not set to one of the values; using Anderson')
-        K_firn = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
-    
+            print('Conductivity is not set to one of the values; using Calonne (2019)')
+        # K_firn = 0.021 + 2.5 * (self.rho/1000.)**2                           # Anderson (1976)
+        rho_transition = 450.0 #[kg/m^3]
+        a = 0.02 #[m^3/kg]
+        theta       = 1 / (1 + np.exp(-2*a*(self.rho - rho_transition)))
+        kref_firn   = 2.107 + 0.003618 * (self.rho - RHO_I)
+        kref_snow   = 0.024 - 1.23e-4 * self.rho + 2.5e-6 * self.rho**2
+        kref_i      = 2.107 # [W/m/K]
+        kref_a      = 0.024 # [W/m/K] 
+        K_air       = kref_a # use this for now; at some point find equation for T-dependence of air
+        K_firn      = (1-theta) * K_ice*K_air/(kref_i*kref_a) * kref_snow + theta * K_ice/kref_i * kref_firn # equation 5
+
     return K_firn
 ##########################
 
@@ -239,6 +258,8 @@ def enthalpyDiff(self,iii):
 
 Anderson EA (1976) A point energy and mass balance model of a snow cover. (doi:10.1016/S0074-6142(99)80039-4)
 Brandt RE and Warren SG (1997) Temperature measurements and heat transfer in near-surface snow at the South Pole. J. Glaciol. 43(144), 339–351
+Calonne, N., Flin, F., Morin, S., Lesaffre, B., du Roscoat, S. R., & Geindreau, C. (2011). Numerical and experimental investigations of the effective thermal conductivity of snow. Geophysical Research Letters, 38, L23501. https://doi.org/10.1029/2011GL049234
+Calonne, N., Milliancourt, L., Burr, A., Philip, A., Martin, C. L., Flin, F., & Geindreau, C. (2019). Thermal conductivity of snow, firn, and porous ice from 3-D image-based computations. Geophysical Research Letters, 46, 13,079–13,089. https://doi. org/10.1029/2019GL085228
 Jiawen R, Dahe Q and Maohuan H (1991) THERMAL PROPERTIES AND TEMPERATURE DISTRIBUTION OF SNOW/FIRN ON THE LAW DOME ICE CAP, ANTARCTICA. Antarct. Res. 2(2), 38–46
 Lüthi MP and Funk M (2001) Modelling heat flow in a cold, high-altitude glacier: Interpretation of measurements from Colle Gnifetti, Swiss Alps. J. Glaciol. 47(157), 314–324 (doi:10.3189/172756501781832223)
 Riche F and Schneebeli M (2013) Thermal conductivity of snow measured by three independent methods and anisotropy considerations. Cryosphere 7(1), 217–227 (doi:10.5194/tc-7-217-2013)
