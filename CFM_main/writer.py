@@ -12,87 +12,92 @@ import numpy as np
 import h5py
 from constants import *
 
-def write_nospin_hdf5(self):
+def write_nospin_hdf5(self,Mout_dict):
     '''
     Write the results fromt the main model run
     '''
 
     f4 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']),'w')
+
+    for VW in Mout_dict.keys():
+
+        if VW == 'rho': 
+            wn = 'density'
+        elif VW == 'Tz':
+            wn = 'temperature'
+        elif VW == 'z':
+            wn = 'depth'
+        elif VW == 'age':
+            Mout_dict[VW] = Mout_dict[VW]/S_PER_YEAR
+            wn = 'age'
+        elif VW == 'climate':
+            wn = 'Modelclimate'
+        elif VW == 'Hx':
+            wn = 'temp_Hx'
+        else:
+            wn = VW
+
+        f4.create_dataset(wn, data = Mout_dict[VW])
     
-    if 'density' in self.output_list:
-        f4.create_dataset('density',data = self.rho_out)
-    if 'temperature' in self.output_list:
-        f4.create_dataset('temperature',data = self.Tz_out)
-    if 'age' in self.output_list:
-        # f4.create_dataset('age',data = self.age_out[-1,:])
-        f4.create_dataset('age',data = self.age_out) # use this one if you want a matrix of ages
-    if 'depth' in self.output_list:    
-        f4.create_dataset('depth',data = self.z_out)
-    if 'dcon' in self.output_list:    
-        f4.create_dataset('Dcon',data = self.D_out)
-    if 'bdot_mean' in self.output_list:    
-        f4.create_dataset('bdot',data = self.bdot_out)
-    if 'climate' in self.output_list:    
-        f4.create_dataset('Modelclimate',data = self.Clim_out)
-    if 'compaction' in self.output_list:    
-        f4.create_dataset('compaction', data = self.comp_out)
-    if self.c['FirnAir']:
-        if "gasses" in self.cg['outputs']:
-            for gas in self.cg['gaschoice']:       
-                f4.create_dataset(gas, data = self.gas_out[gas])
-        if "diffusivity" in self.cg['outputs']:
-            f4.create_dataset('diffusivity', data = self.diffu_out)
-        if "gas_age" in self.cg['outputs']:
-            f4.create_dataset('gas_age', data = self.gas_age_out)
-        if "advection_rate" in self.cg['outputs']:
-            f4.create_dataset('w_air', data = self.w_air_out)
-            f4.create_dataset('w_firn', data = self.w_firn_out)
-    if 'grainsize' in self.output_list:
-        f4.create_dataset('r2', data = self.r2_out)
-        f4.create_dataset('dr2_dt', data = self.dr2_dt_out)
-    if 'temp_Hx' in self.output_list:    
-        f4.create_dataset('Hx',data = self.Hx_out)
-    # if 'isotopes' in self.output_list:    
-    #     f4.create_dataset('isotopes',data = self.iso_out)
-    if self.c['isoDiff']:
-        for isotope in self.c['iso']:
-            f4.create_dataset('isotopes_{}'.format(isotope), data = self.iso_out[isotope])
-            f4.create_dataset('iso_sig2_{}'.format(isotope), data = self.iso_sig2_out[isotope])
-    if 'LWC' in self.output_list:
-        f4.create_dataset('LWC',data = self.LWC_out)
-    if 'PLWC_mem' in self.output_list:
-        f4.create_dataset('PLWC_mem',data = self.PLWC_mem_out)
-    if 'DIP' in self.output_list:
-        f4.create_dataset('DIP',data = self.DIP_out)
-        # f4.create_dataset('DIPc', data = self.DIPc_out)
-    if 'BCO' in self.output_list:
-        f4.create_dataset('BCO',data = self.BCO_out) 
-    if 'LIZ' in self.output_list:
-        f4.create_dataset('LIZ',data = self.LIZ_out)
-    if 'viscosity' in self.output_list:
-        f4.create_dataset('viscosity',data = self.viscosity_out)
-    # if 'refrozen' in self.output_list:
-    #     f4.create_dataset('refrozen',data = self.refrozen_out)
-    # if 'runoff' in self.output_list:
-    #     f4.create_dataset('runoff',data = self.runoff_out)
-    if 'meltoutputs' in self.output_list:
-        f4.create_dataset('runoff',data = self.runoff_out)
-        f4.create_dataset('refrozen',data = self.refrozen_out)
-        # f4.create_dataset('icecon',data = self.icecon_out)
-        # f4.create_dataset('trfrz',data = self.trfrz_out)
-        # f4.create_dataset('tfac',data = self.tfac_out)
-        # f4.create_dataset('tlwc',data = self.tlwc_out) 
-        f4.create_dataset('totcumrunoff',data = self.totcumrunoff_out)
-        f4.create_dataset('cumrefrozen',data = self.cumrefrozen_out)
+    # if 'rho' in self.output_list:
+    #     f4.create_dataset('density', data = Mout_dict['rho'])
+    # if 'Tz' in self.output_list:
+    #     f4.create_dataset('temperature', data = Mout_dict['Tz'])
+    # if 'age' in self.output_list:
+    #     f4.create_dataset('age', data = Mout_dict['age']) # use this one if you want a matrix of ages
+    #     # f4.create_dataset('age', data = Mout_dict['age'][-1,:]) # use this one if you want just the last row 
+    # if 'z' in self.output_list:    
+    #     f4.create_dataset('depth', data = Mout_dict['z'])
+    # if 'Dcon' in self.output_list:    
+    #     f4.create_dataset('Dcon', data = Mout_dict['Dcon'])
+    # if 'bdot_mean' in self.output_list:    
+    #     f4.create_dataset('bdot_mean', data = Mout_dict['bdot_mean'])
+    # if 'climate' in self.output_list:    
+    #     f4.create_dataset('Modelclimate', data = Mout_dict['climate'])
+    # if 'compaction' in self.output_list:    
+    #     f4.create_dataset('compaction', data = Mout_dict['compaction'])
+
+    # if self.c['FirnAir']:
+    #     for gas in self.cg['gaschoice']:       
+    #         f4.create_dataset(gas, data = Mout_dict[gas])
+    #     if "diffusivity" in self.cg['outputs']:
+    #         f4.create_dataset('diffusivity', data = Mout_dict['diffusivity'])
+    #     if "gas_age" in self.cg['outputs']:
+    #         f4.create_dataset('gas_age', data = Mout_dict['gas_age'])
+    #     if "advection_rate" in self.cg['outputs']:
+    #         f4.create_dataset('w_air', data = self.w_air_out)
+    #         f4.create_dataset('w_firn', data = self.w_firn_out)
+    # if 'grainsize' in self.output_list:
+    #     f4.create_dataset('r2', data = Mout_dict['r2'])
+    #     f4.create_dataset('dr2_dt', data = Mout_dict['dr2_dt'])
+    # if 'temp_Hx' in self.output_list:    
+    #     f4.create_dataset('temp_Hx',data = Mout_dict['Hx'])
+    # if self.c['isoDiff']:
+    #     for isotope in self.c['iso']:
+    #         f4.create_dataset('isotopes_{}'.format(isotope), data = self.iso_out[isotope])
+    #         f4.create_dataset('iso_sig2_{}'.format(isotope), data = self.iso_sig2_out[isotope])
+    # if 'LWC' in self.output_list:
+    #     f4.create_dataset('LWC',data = Mout_dict['LWC'])
+    # if 'PLWC_mem' in self.output_list:
+    #     f4.create_dataset('PLWC_mem',data = Mout_dict['PLWC_mem'])
+    # if 'DIP' in self.output_list:
+    #     f4.create_dataset('DIP',data = Mout_dict['DIP'])
+    # if 'DIPc' in self.output_list:
+    #     f4.create_dataset('DIPc',data = Mout_dict['DIPc'])
+    # if 'BCO' in self.output_list:
+    #     f4.create_dataset('BCO',data = Mout_dict['BCO']) 
+    # if 'viscosity' in self.output_list:
+    #     f4.create_dataset('viscosity',data = Mout_dict['viscosity'])
+    # if 'meltoutputs' in self.output_list:
+    #     f4.create_dataset('runoff',data = Mout_dict['runoff'])
+    #     f4.create_dataset('refrozen',data = Mout_dict['refrozen'])
+    #     # f4.create_dataset('icecon',data = self.icecon_out)
+    #     # f4.create_dataset('trfrz',data = self.trfrz_out)
+    #     # f4.create_dataset('tfac',data = self.tfac_out)
+    #     # f4.create_dataset('tlwc',data = self.tlwc_out) 
+    #     # f4.create_dataset('totcumrunoff',data = self.totcumrunoff_out)
+    #     # f4.create_dataset('cumrefrozen',data = self.cumrefrozen_out)
     f4.close()
-
-    # try:
-    # if self.c['spinUpdate']:
-        # SpinUpdate(self)
-    # except:
-    #     print('pass')
-        # pass
-
 
 
 def write_spin_hdf5(self):
@@ -158,6 +163,6 @@ def SpinUpdate(self,mtime):
             spin_results['iso_sig2_{}'.format(isotope)][:] = np.append(mtime, self.Iso_sig2_z[isotope])
 
     if self.doublegrid:
-        spin_results['gridSpin'] = np.append(mtime,self.gridtrack)
+        spin_results['gridSpin'][:] = np.append(mtime,self.gridtrack)
 
     spin_results.close()

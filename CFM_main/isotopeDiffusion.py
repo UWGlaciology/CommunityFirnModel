@@ -116,10 +116,10 @@ class isotopeDiffusion:
         z_P_vec     = self.z
 
         ### Node positions
-        # phi_s       = self.del_z[0] # isotope value at surface
-        phi_s       = self.del_z[1] # isotope value at surface
-        if iii==0:
-            print('Caution! line 121, isotopeDiffusion.py')
+        phi_s       = self.del_z[0] # isotope value at surface
+        # phi_s       = self.del_z[1] # isotope value at surface
+        # if iii==0:
+        #     print('Caution! line 121, isotopeDiffusion.py')
         phi_0       = self.del_z # initial isotope profile
 
         ### Define diffusivity for each isotopic species
