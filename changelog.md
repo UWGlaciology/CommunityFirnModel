@@ -25,6 +25,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 
 ## [1.0.7]
 ### Notes
+- This release is a bit preemptive, but pushing it now to fix issue with timing of temperature diffusion and new surface temperature in time loop.
 - A few major changes in this release: 
 - The way that the CFM saves its outputs and writes to file has been updated (including a new module, ModelOuputs.py)
 - The regridding scheme has been updated by Vincent Verjans to add a third subgrid.
@@ -40,6 +41,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 - *diffusion.py* Calonne 2019 is now the default thermal conductivity.
 
 ### Fixed
+- *firn_density_nospin.py* Order of operations in the time-stepping loop has been changed (reverted) - the surface temperature was updated before diffusion was called, which resulted in getting slightly different answers when using doublegrid.
 - *regrid.py* Previously, the CFM did not account for changes in self.gridtrack due to removal of nodes by melt/sublimation. This is fixed for the sublime and bucketVV schemes.
 - *melt.py, bucketVV* When the melt amount was such that the pm_dz became extremely small, the model crashed. pm_dz is now forced to be at least 1e-6 m thick.
 - melt.py, bucketVV* A previous update got rid of a for loop in bucketVV when calculating runoff. There was a small error that computed the runoff term as a vector instead of a scalar. 

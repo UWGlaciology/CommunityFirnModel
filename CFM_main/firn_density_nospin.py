@@ -133,7 +133,7 @@ class FirnDensityNoSpin:
             self.c['spinUpdate'] = False
         if self.c['spinUpdate']:
             csvStartDate = initDepth[0]
-            print('csvStartDate',csvStartDate)
+            # print('csvStartDate',csvStartDate)
         else:
             csvStartDate = None
 
@@ -146,7 +146,7 @@ class FirnDensityNoSpin:
                 if self.c['heatDiff']:
                     print('"heatDiff" should be false for manualT runs. Run will continue.')
         except:
-            print('"manualT" not in .json; run will continue with original model behavior')
+            # print('"manualT" not in .json; run will continue with original model behavior')
             self.c['manualT'] = False 
 
         if self.c['manualT']:
@@ -209,7 +209,7 @@ class FirnDensityNoSpin:
                 self.c['liquid'] = 'percolation_bucket'
         else:
             self.MELT           = False
-            print("Melt is not turned on.")
+            # print("Melt is not turned on.")
             input_snowmelt      = None
             input_year_snowmelt = None
             self.LWC            = np.zeros_like(self.z)
@@ -220,7 +220,7 @@ class FirnDensityNoSpin:
         #####################
         ### time ############
         if 'timesetup' not in self.c:
-            print('You should add "timesetup" to the .json')
+            # print('You should add "timesetup" to the .json')
             ### could add details here
             self.c['timesetup']='interp'
 
@@ -244,7 +244,7 @@ class FirnDensityNoSpin:
 
 
         elif self.c['timesetup']=='exact':
-            print('"Exact" time setup will not work properly if input forcing does not all have the same time')
+            # print('"Exact" time setup will not work properly if input forcing does not all have the same time')
             # yr_start = input_year_temp[0] #previously had [1] - error? 20/3/3
             # yr_end = input_year_temp[-1]
             self.dt = np.diff(input_year_temp)*S_PER_YEAR
@@ -256,9 +256,6 @@ class FirnDensityNoSpin:
             yr_end = self.modeltime[-1]
             # self.t = np.mean(np.diff(input_year_temp))
             self.t = np.diff(input_year_temp)
-            # print(len(self.dt))
-            # print(np.diff(input_year_temp)[0:10])
-            # input()
             init_time = input_year_temp[0]
 
         elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step
@@ -298,7 +295,7 @@ class FirnDensityNoSpin:
         ### temperature, accumulation, melt, isotopes, surface density
         ###############################
         int_type            = self.c['int_type']
-        print('Climate interpolation method is %s' %int_type)
+        # print('Climate interpolation method is %s' %int_type)
 
         ### Temperature #####       
         Tsf                 = interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
@@ -317,11 +314,12 @@ class FirnDensityNoSpin:
                 print('the hemisphere selected. Exiting. (set to south or north')
                 sys.exit()
 
-        try:
-            print('conductivity is: ',self.c['conductivity'])
-        except:
-            self.c['conductivity'] = 'Anderson'
-            print('conductivity was not set in .json; Defaulting to Anderson')
+        # try:
+            # print('conductivity is: ',self.c['conductivity'])
+        # except:
+        if 'conductivity' not in self.c:
+            self.c['conductivity'] = 'Calonne2019'
+            print('conductivity was not set in .json; Defaulting to Calonne2019')
         #####################
 
         ### Accumulation ####
@@ -410,13 +408,14 @@ class FirnDensityNoSpin:
             self.c['no_densification']=False
 
         #####################
-        try:
-            if self.c['rad_pen']:
-                print('radiation penetration initialized')
-            else:
-                pass
-        except:
-            print('rad_pen not in .json; setting to false')
+        # try:
+            # if self.c['rad_pen']:
+                # print('radiation penetration initialized')
+            # else:
+                # pass
+        # except:
+            # print('rad_pen not in .json; setting to false')
+        if 'rad_pen' not in self.c:
             self.c['rad_pen']=False
             
         if self.c['rad_pen']: 
@@ -449,7 +448,7 @@ class FirnDensityNoSpin:
             print('Time writing interval is not 1; dH output will not be accurate.')
         TWlen               = len(self.TWrite) #- 1
         self.WTracker       = 1
-        print('TWrite (end): ',self.TWrite[-1])
+        # print('TWrite (end): ',self.TWrite[-1])
 
         ### you can choose to write certain fields at different times.
         ### (Functionality not fully tested) 
@@ -489,6 +488,7 @@ class FirnDensityNoSpin:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
         else:
             self.Tz             = initTemp[1:]
+
         self.T50            = np.mean(self.Tz[self.z<50])
         self.T10m           = self.Tz[np.where(self.z>=10.0)[0][0]]
 
@@ -633,6 +633,8 @@ class FirnDensityNoSpin:
         ######################################
         ### MODEL OUTPUTS ####################
         ######################################
+        if 'grid_outputs' not in self.c:
+            self.c['grid_outputs'] = False
         rep_dict = {'density':'rho', 'temperature':'Tz', 'depth':'z', 'dcon':'Dcon', 'temp_Hx':'Hx'} #mapping names from output list to variables in CFM
         self.output_list = [rep_dict.get(n, n) for n in self.c['outputs']]
         if 'grainsize' in self.c['outputs']:
@@ -708,14 +710,14 @@ class FirnDensityNoSpin:
         ####################################
 
         print('modeltime',self.modeltime[0],self.modeltime[-1])
-        print('stp',self.stp)
+        # print('stp',self.stp)
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             self.D_surf[iii] = iii
             if iii==1000:
                 ntime = time.time()
-                print('1000 iterations took:', ntime-start_time)
-                print('estimated model run time:', self.stp*(ntime-start_time)/1000)
+                # print('1000 iterations took:', ntime-start_time)
+                print('estimated model run time (seconds):', self.stp*(ntime-start_time)/1000)
             ### Merging process #VV ###
             if self.c['merging']:
                 if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-4)):
@@ -818,7 +820,7 @@ class FirnDensityNoSpin:
             if self.THist:
                 self.Hx = RD['Hx']
 
-            self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+            # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
 
             if self.MELT:
                 if self.c['liquid'] == 'prefsnowpack':
@@ -1052,8 +1054,8 @@ class FirnDensityNoSpin:
                 if self.c['physGrain']: # update grain radius
                     r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
                     self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
-                # if not self.c['manualT']:
-                    # self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+                if not self.c['manualT']:
+                    self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
                 self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
                 massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass       = np.concatenate(([massNew], self.mass[:-1]))
@@ -1065,6 +1067,8 @@ class FirnDensityNoSpin:
 
             elif self.bdotSec[iii]<0:
 
+                # print('sublim')
+
                 self.mass_sum   = self.mass.cumsum(axis = 0)
                 
                 self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation
@@ -1072,7 +1076,7 @@ class FirnDensityNoSpin:
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 self.dzNew      = 0
                 if self.doublegrid == True: # gridtrack corrected for sublimation
-                    self.gridtrack = np.copy(meltgridtrack)
+                    self.gridtrack = np.copy(sublgridtrack)
                 znew = np.copy(self.z)
 
             else: # no accumulation during this time step
@@ -1082,8 +1086,8 @@ class FirnDensityNoSpin:
                 self.dzNew      = 0
                 znew = np.copy(self.z)                             
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
-                # if not self.c['manualT']:
-                    # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+                if not self.c['manualT']:
+                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
 
             self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
 
@@ -1107,7 +1111,6 @@ class FirnDensityNoSpin:
             self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * self.c['stpsPerYear']*S_PER_YEAR
 
             ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
-
             #############################################################
             ### write results as often as specified in the init method ##
             #############################################################

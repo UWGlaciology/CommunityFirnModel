@@ -91,21 +91,18 @@ class FirnDensitySpin:
 
         print('Spin run started')
         print("physics are", self.c['physRho'])
-        try:
-            print('Merging is:',self.c["merging"])
-        except Exception:
-            print('"merging" missing from .json fields')
-            pass
+        if 'merging' not in self.c:
+            self.c['merging'] = False
 
         ### create directory to store results. Deletes if it exists already.
         # Vincent says we do not want to remove existing (preferential flow?) - 4/24/19
         if os.path.exists(self.c['resultsFolder']):
             dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
             dir_unique = list(set(dir_exts))
-            print('dir_unique',dir_unique)
+            # print('dir_unique',dir_unique)
             CFM_exts = ['.json','.hdf5']
             if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
-                print('rmtree')
+                # print('rmtree')
                 rmtree(self.c['resultsFolder'])
                 os.makedirs(self.c['resultsFolder'])
             else:
@@ -168,15 +165,15 @@ class FirnDensitySpin:
             self.bdot0 = self.c['bdot_long']# *1e-3/0.917 #specify long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
             print('make sure "bdot_long" has units of mIE/yr!')
                
-        print('Spin-up accumulation rate is', self.bdot0)
-        print('Spin-up temperature is', self.temp0)
+        # print('Spin-up accumulation rate is', self.bdot0)
+        # print('Spin-up temperature is', self.temp0)
         ### could include others, e.g. surface density
         ############################
 
         ############################
         ### set up model grid ######
         ############################
-        print(self.bdot0)
+        # print(self.bdot0)
         self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYear'])) # number of grid points
 
         gridHeight      = np.linspace(self.c['H'], self.c['HbaseSpin'], self.gridLen)
@@ -379,7 +376,7 @@ class FirnDensitySpin:
             else:
                 pass
         except:
-            print('no_densification not in .json; setting to false')
+            # print('no_densification not in .json; setting to false')
             self.c['no_densification']=False
         #######################
 
