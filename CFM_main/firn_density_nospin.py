@@ -247,7 +247,7 @@ class FirnDensityNoSpin:
             # print('"Exact" time setup will not work properly if input forcing does not all have the same time')
             # yr_start = input_year_temp[0] #previously had [1] - error? 20/3/3
             # yr_end = input_year_temp[-1]
-            self.dt = np.diff(input_year_temp)*S_PER_YEAR
+            self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s]
             # self.dt = np.append(self.dt,self.dt[-1])
             self.stp = len(self.dt)
             self.modeltime = input_year_temp[1:] # this offset because use diff above
@@ -326,13 +326,17 @@ class FirnDensityNoSpin:
         bsf                 = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
         self.bdot           = bsf(self.modeltime) # m ice equivalent per year
         self.bdot[self.bdot<1e-6] = 0.0
+        
+        # self.bdotSec        = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
+        # else:    
         self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
 
 
         try: #Rolling mean average surface temperature and accumulation rate (vector)
         # (i.e. the long-term average climate)
             Nyears = 10 #number of years to average for T_mean
-            NN = int(self.c['stpsPerYear']*Nyears)
+            NN = int(np.mean(S_PER_YEAR/self.dt)*Nyears)
+            # NN = int(self.c['stpsPerYear']*Nyears)
             self.T_mean = pd.Series(self.Ts).rolling(window=NN+1,win_type='hamming').mean().values
             self.T_mean[np.isnan(self.T_mean)] = self.T_mean[NN]
             self.bdot_av = pd.Series(self.bdot).rolling(window=NN+1,win_type='hamming').mean().values
@@ -370,12 +374,12 @@ class FirnDensityNoSpin:
         if self.MELT:
             ssf                 = interpolate.interp1d(input_year_snowmelt,input_snowmelt,int_type,fill_value='extrapolate')
             self.snowmelt       = ssf(self.modeltime)
-            self.snowmeltSec    = self.snowmelt / S_PER_YEAR / self.c['stpsPerYear'] # melt for each time step (meters i.e. per second)
+            self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
 
             if self.c['RAIN'] == True: ##VV use rain climatic input
                 rsf             = interpolate.interp1d(input_year_rain,input_rain,int_type,fill_value='extrapolate')
                 self.rain       = rsf(self.modeltime) # [mIE/yr]
-                self.rainSec    = self.rain / S_PER_YEAR / self.c['stpsPerYear'] # rain for each time step (mIE/s)
+                self.rainSec    = self.rain / S_PER_YEAR / (S_PER_YEAR/self.dt) # rain for each time step (mIE/s)
             else:
                 self.rainSec    = np.zeros(self.stp) #VV to avoid problem in the conditions to call for liquid water routine
         #####################
@@ -471,7 +475,7 @@ class FirnDensityNoSpin:
         if 'bdot_meanSpin' in h5py.File(spinF,'r').keys():
             self.bdot_mean = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'bdot_meanSpin')[1:]
         else:
-            self.bdot_mean      = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / np.mean(self.t)))))*self.c['stpsPerYear']*S_PER_YEAR
+            self.bdot_mean      = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / np.mean(self.t)))))* np.mean(S_PER_YEAR/self.dt) *S_PER_YEAR
         ### It is the mass of the overlying firn divided by the age of the parcel.
         ### transform mass in meters ice equiv -> divide by age(in sec) [m/s] -> multiply by years per step and by steps per year (cancels) -> multiply by secperyear -> [mIE/yr]
         ### for surf layer -> mass in mIE is only multiplied by steps per year: if 1 stp/yr,mean acc is the mass of surf layer; if 2 stps/yr,mean acc is 2* what has been accumulated over the last step, etc.
@@ -1108,7 +1112,7 @@ class FirnDensityNoSpin:
             self.sigma      = self.sigma.cumsum(axis = 0)
             self.mass_sum   = self.mass.cumsum(axis = 0)
             
-            self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * self.c['stpsPerYear']*S_PER_YEAR
+            self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * np.mean(S_PER_YEAR/self.dt) * S_PER_YEAR
 
             ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
             #############################################################
