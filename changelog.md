@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.7
+1.0.8
 
 ## Full Documentation
 
@@ -22,6 +22,15 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.0.8]
+### Notes
+- there is only one quick fix in this release. 
+- Related to this fix, I should note that I use 365.25 to calculate seconds in a year. So, when creating forcing files from climate data, which requires calculating mass fluxes in units of m/year, you should use 365.25 days per year. (And, this then gets divided out when you use 'exact' time stepping.) If you have any suggestions on how to improve this, please let me know! The reality is that it is a bit challenging because each year does not have the same number of seconds due to leap years.
+
+### Fixed
+- *firn_density_nospin.py* Using 'exact' time setup still used the 'stpsPerYear' in the .json file to figure out the specific amount of accumulation (and melt, and rain) at each time step. This led to small errors in the calculated accumulation rate (especially if the time step size was slightly different for each time step.) It now uses the delta time (dt) value to calculate those mass fluxes.
+
 
 ## [1.0.7]
 ### Notes

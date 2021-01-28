@@ -76,7 +76,7 @@ class ModelOutputs:
 
     def updateMO(self, MOd, mtime, Wtracker):
         '''
-        Function to update teh output matrices in Mout_dict
+        Function to update the output matrices in Mout_dict
         '''
 
         for varname in self.output_list:
