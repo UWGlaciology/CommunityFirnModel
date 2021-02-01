@@ -1028,11 +1028,20 @@ class FirnPhysics:
 
         ar1 = 0.07
         ar2 = 0.03
-        Ec1  = 60.0e3
-        Ec2 = 56973.0
         Eg  = 42.4e3
-        alpha1 = 0.9250
-        alpha2 = 0.6354
+
+        # old ones
+        # Ec1  = 60.0e3
+        # Ec2 = 56973.0
+        # alpha1 = 0.9250
+        # alpha2 = 0.6354
+
+        # New:
+        Ec1  = 59442.0
+        Ec2 = 56827.0
+        alpha1 = 0.9021
+        alpha2 = 0.6372
+
         # beta1 = -0.1483 # Changed from Smith 2020, which used subcripts 0 and 1
         # beta2 = -0.3510 # we want subscripts to reflect zone so we use 1 and 2
         # E1 = -731
