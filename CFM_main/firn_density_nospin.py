@@ -516,10 +516,10 @@ class FirnDensityNoSpin:
             initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
             self.r2             = initr2[1:]
             r20                 = self.r2
-            self.dr2_dt         = np.zeros_like(self.z)        
+            # self.dr2_dt         = np.zeros_like(self.z) # dr2_dt not currently set up    
         else:            
             self.r2             = None
-            self.dr2_dt         = None
+            # self.dr2_dt         = None
         #######################
 
         ### temperature history for Morris physics
@@ -617,9 +617,20 @@ class FirnDensityNoSpin:
         ### DIP, DHdt, BCO ###
         bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(0)
 
+        if 'DIPhorizon' in self.c:
+            self.DIPhorizon = self.c['DIPhorizon']
+            if self.DIPhorizon > self.z[-1]:
+                print('DIPhorizon is deeper than bottom of domain.')
+                reset_HZ = np.floor(self.z[-1]*0.8)
+                print('setting to 80% of domain depth ({} m)'.format(reset_HZ))
+                self.DIPhorizon = reset_HZ
+        else:
+            self.DIPhorizon = np.floor(self.z[-1]*0.8)
+
         self.dHAll      = []
         self.dHAllcorr  = []
-        intPhi, self.DIPc, z_co = self.update_DIP()        
+        intPhi, self.DIPc, z_co = self.update_DIP()
+        ind_z = np.where(self.z>=self.DIPhorizon)[0][0]        
         self.dHAll.append(0)
         self.dHAllcorr.append(0)
         dHOut       = 0 # surface elevation change since last time step
@@ -627,9 +638,11 @@ class FirnDensityNoSpin:
         compOut     = 0 # compaction of just the firn at each time step; no ice dynamics or accumulation
         dHOutcorr   = 0
         dHOutcorrC  = 0
+        DIPhz       = self.DIPhorizon #set the first element in DIPhz to be the horizon depth
+        
 
         self.BCO = np.array([bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
-        self.DIP = np.array([intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC])
+        self.DIP = np.array([intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC, DIPhz])
         #####################
         self.climate = np.array([self.bdot[0],self.Ts[0]])
         #####################
@@ -644,7 +657,7 @@ class FirnDensityNoSpin:
         if 'grainsize' in self.c['outputs']:
             self.output_list.remove('grainsize')
             self.output_list.append('r2')
-            self.output_list.append('dr2_dt')
+            # self.output_list.append('dr2_dt')
         if 'meltoutputs' in self.c['outputs']: # Need to work with Vincent on what should be here.
             self.output_list.remove('meltoutputs')
             self.output_list.append('runoff') # This is cumulative for each time step
@@ -1136,6 +1149,11 @@ class FirnDensityNoSpin:
 
                 intPhi, self.DIPc, z_co  = self.update_DIP()
                 dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC  = self.update_dH(iii)
+                try:
+                    ind_z = np.where(self.z>=self.DIPhorizon)[0][0]
+                    DIPhz = self.DIPc[ind_z]
+                except Exception:
+                    DIPhz = np.nan
 
                 if mtime==self.TWrite[0]:
                     self.dHAll  = 0 * self.dHAll
@@ -1147,7 +1165,7 @@ class FirnDensityNoSpin:
                     dHtotcorr   = 0.0
 
                 self.BCO  = np.array([bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
-                self.DIP  = np.array([intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC])
+                self.DIP  = np.array([intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC,DIPhz])
 
                 MOd = {key:value for key, value in self.__dict__.items() if key in self.output_list}
 
@@ -1258,6 +1276,7 @@ class FirnDensityNoSpin:
 
         intPhi = np.sum(phi * self.dz)  # depth-integrated porosity
         intPhi_c = np.cumsum(phi * self.dz)
+
         # self.intPhiAll.append(intPhi)
 
         return intPhi, intPhi_c, z_co

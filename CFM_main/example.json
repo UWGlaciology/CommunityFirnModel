@@ -82,5 +82,6 @@
 "site_pressure": 1013.25,
 "output_bits": "float32",
 "spinUpdate": "true",
-"spinUpdateDate": 1980.0
+"spinUpdateDate": 1980.0,
+"DIPhorizon": 100.0
 }

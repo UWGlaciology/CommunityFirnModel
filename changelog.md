@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.8
+1.0.9
 
 ## Full Documentation
 
@@ -22,6 +22,20 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.0.9]
+### Notes
+
+### Added
+- *firn_density_nospin.py* (and outputs): The DIP output now includes an additional column (the last), which is the DIP to a specific depth horizon (DIPhz). This is specified in the .json with key "DIPhorizon". This feature is helpful because the bottom of the model domain at each time step can change through time, which results in inconsistencies in how the (total) DIP changes through time. The default value for DIPhorizon is 80% of the initial bottom of the domain (e.g. if the model domain was initially 200m, the DIPhorizon is 160m). If the firn thickness changes and the bottom of the domain becomes less than DIPhorizon, the DIPhz value output will be NaN. In this case, the density and depth outputs can be used to calculate DIP to any depth horizon. (This is the previous model behavior.) The very first value in the DIPhz column is the horizon depth. 
+
+### Fixed
+- *ModelOutputs.py* When using the grid outputs option, previous behavior was that values would be extrapolated using the same value for all points outside the interpolation. For example, if the output grid was 0 to 150 m, but the actual model domain only went to 140 m, the same values for density, temperature, etc. would be assigned to the outputs for all depths beyond 140m. Now they are filled in using NaN.
+
+### Changed
+- *physics.py* B. Medley at NASA GSFC re-ran her calibration, and the model parameters have changed slightly.
+- *firn_density_nospin.py* The CFM would include 'dr2_dt' in the outputs associated with grain size. That variable was initialized, but not updated in the main code (time-stepping loop), which led to the saved file including a bix matrix of zeros. For now this has been disabled (i.e. there is no 'dr2_dt' at all.)
+
 
 ## [1.0.8]
 ### Notes
