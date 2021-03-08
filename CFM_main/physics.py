@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-The Community Firn Model physics module.
-========================================
+physics.py
+==========
 
-Something here.
+The Community Firn Model physics module.
+
+equations for each of the densification models.
 '''
 
 
@@ -13,9 +15,6 @@ from constants import *
 from scipy import interpolate
 import sys
 import numpy.polynomial.polynomial as poly
-
-
-
 
 
 

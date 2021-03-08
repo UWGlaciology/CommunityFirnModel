@@ -20,7 +20,6 @@ class isotopeDiffusion:
     Isotope diffusion class.
     '''
 
-
     def __init__(self,spin,config,isotope,stp,z,modeltime=None):
 
         '''

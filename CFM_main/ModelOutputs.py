@@ -117,21 +117,8 @@ class ModelOutputs:
 
 
 
+        # old stuff below
 
-
-
-
-
-
-
-
-
-        #         # self.Mout_dict[varname][0,:] = np.append(mtime,var)
-
-
-
-            
-        # self.Mout_dict['rho'] 
 
         # if 'output_bits' not in self.c:
         #     self.c['output_bits']='float32'
