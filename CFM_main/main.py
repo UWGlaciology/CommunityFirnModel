@@ -2,9 +2,13 @@
 """
 main.py
 =======
-The core file to run the CFM
+The core file to run the CFM from the command line. This file creates classes 
+for the spin up and main runs, and it runs the model. This can be bypassed if
+you write your own script to call firn_density_spin and firn_density_nospin.py
 
-This file creates classes for the spin up and main runs and runs the model.
+Copyright © 2021 C. Max Stevens
+
+Distributed under terms of the MIT license.
 """
 
 import sys

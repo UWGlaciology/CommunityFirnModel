@@ -134,6 +134,7 @@ def heatDiff(self,iii):
     if self.c['MELT']:
         if self.c['LWCheat']=='effectiveT':
             pass
+
         elif np.any(self.Tz>273.15):
             print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
             print('Maximum temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))

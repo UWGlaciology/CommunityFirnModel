@@ -14,7 +14,12 @@ from constants import *
 
 def write_nospin_hdf5(self,Mout_dict):
     '''
-    Write the results fromt the main model run
+    Write the results fromt the main model run to hdf file.
+
+    Parameters
+    ----------
+    Mout_dict: dict
+        contains all of the model outputs; each key is the name of the output 
     '''
 
     f4 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']),'w')
@@ -38,71 +43,13 @@ def write_nospin_hdf5(self,Mout_dict):
             wn = VW
 
         f4.create_dataset(wn, data = Mout_dict[VW])
-    
-    # if 'rho' in self.output_list:
-    #     f4.create_dataset('density', data = Mout_dict['rho'])
-    # if 'Tz' in self.output_list:
-    #     f4.create_dataset('temperature', data = Mout_dict['Tz'])
-    # if 'age' in self.output_list:
-    #     f4.create_dataset('age', data = Mout_dict['age']) # use this one if you want a matrix of ages
-    #     # f4.create_dataset('age', data = Mout_dict['age'][-1,:]) # use this one if you want just the last row 
-    # if 'z' in self.output_list:    
-    #     f4.create_dataset('depth', data = Mout_dict['z'])
-    # if 'Dcon' in self.output_list:    
-    #     f4.create_dataset('Dcon', data = Mout_dict['Dcon'])
-    # if 'bdot_mean' in self.output_list:    
-    #     f4.create_dataset('bdot_mean', data = Mout_dict['bdot_mean'])
-    # if 'climate' in self.output_list:    
-    #     f4.create_dataset('Modelclimate', data = Mout_dict['climate'])
-    # if 'compaction' in self.output_list:    
-    #     f4.create_dataset('compaction', data = Mout_dict['compaction'])
 
-    # if self.c['FirnAir']:
-    #     for gas in self.cg['gaschoice']:       
-    #         f4.create_dataset(gas, data = Mout_dict[gas])
-    #     if "diffusivity" in self.cg['outputs']:
-    #         f4.create_dataset('diffusivity', data = Mout_dict['diffusivity'])
-    #     if "gas_age" in self.cg['outputs']:
-    #         f4.create_dataset('gas_age', data = Mout_dict['gas_age'])
-    #     if "advection_rate" in self.cg['outputs']:
-    #         f4.create_dataset('w_air', data = self.w_air_out)
-    #         f4.create_dataset('w_firn', data = self.w_firn_out)
-    # if 'grainsize' in self.output_list:
-    #     f4.create_dataset('r2', data = Mout_dict['r2'])
-    #     f4.create_dataset('dr2_dt', data = Mout_dict['dr2_dt'])
-    # if 'temp_Hx' in self.output_list:    
-    #     f4.create_dataset('temp_Hx',data = Mout_dict['Hx'])
-    # if self.c['isoDiff']:
-    #     for isotope in self.c['iso']:
-    #         f4.create_dataset('isotopes_{}'.format(isotope), data = self.iso_out[isotope])
-    #         f4.create_dataset('iso_sig2_{}'.format(isotope), data = self.iso_sig2_out[isotope])
-    # if 'LWC' in self.output_list:
-    #     f4.create_dataset('LWC',data = Mout_dict['LWC'])
-    # if 'PLWC_mem' in self.output_list:
-    #     f4.create_dataset('PLWC_mem',data = Mout_dict['PLWC_mem'])
-    # if 'DIP' in self.output_list:
-    #     f4.create_dataset('DIP',data = Mout_dict['DIP'])
-    # if 'DIPc' in self.output_list:
-    #     f4.create_dataset('DIPc',data = Mout_dict['DIPc'])
-    # if 'BCO' in self.output_list:
-    #     f4.create_dataset('BCO',data = Mout_dict['BCO']) 
-    # if 'viscosity' in self.output_list:
-    #     f4.create_dataset('viscosity',data = Mout_dict['viscosity'])
-    # if 'meltoutputs' in self.output_list:
-    #     f4.create_dataset('runoff',data = Mout_dict['runoff'])
-    #     f4.create_dataset('refrozen',data = Mout_dict['refrozen'])
-    #     # f4.create_dataset('icecon',data = self.icecon_out)
-    #     # f4.create_dataset('trfrz',data = self.trfrz_out)
-    #     # f4.create_dataset('tfac',data = self.tfac_out)
-    #     # f4.create_dataset('tlwc',data = self.tlwc_out) 
-    #     # f4.create_dataset('totcumrunoff',data = self.totcumrunoff_out)
-    #     # f4.create_dataset('cumrefrozen',data = self.cumrefrozen_out)
     f4.close()
 
 
 def write_spin_hdf5(self):
     '''
-    Write the model outputs at the end of spin up
+    Write the model outputs to hdf file at the end of spin up.
     '''
 
     f5 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['spinFileName']), 'w')
@@ -128,7 +75,15 @@ def write_spin_hdf5(self):
     f5.close()
 
 def SpinUpdate(self,mtime):
-    # tind = np.where(self.rho_out[:,0]>=self.c['spinUpdateDate'])[0][0]
+    '''
+    Overwrite the variables in the spin file to whatever they are 
+    at time = mtime
+
+    Parameters
+    ----------
+    mtime: float
+        Time (model time) at which the 
+    '''
 
     spin_results = h5py.File(os.path.join(self.c['resultsFolder'], self.c['spinFileName']),'r+')
     

@@ -42,7 +42,7 @@ class ModelOutputs:
                 intkind = 'linear'
             
             if varname == 'DIP':
-                self.Mout_dict[varname] = np.zeros((TWlen+1,7), dtype = self.c['output_bits'])
+                self.Mout_dict[varname] = np.zeros((TWlen+1,8), dtype = self.c['output_bits'])
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
             elif varname == 'BCO':
                 self.Mout_dict[varname] = np.zeros((TWlen+1,10), dtype = self.c['output_bits'])
@@ -76,7 +76,7 @@ class ModelOutputs:
 
     def updateMO(self, MOd, mtime, Wtracker):
         '''
-        Function to update teh output matrices in Mout_dict
+        Function to update the output matrices in Mout_dict
         '''
 
         for varname in self.output_list:
@@ -93,15 +93,17 @@ class ModelOutputs:
                 elif varname == 'z':
                     continue
                 else:
-                    try:
-                        Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind, fill_value='extrapolate')           
-                        self.Mout_dict[varname][Wtracker,:] = np.append(mtime,Ifun(self.grid_out))
-                    except:
-                        print(varname)
-                        print(mtime)
-                        sys.exit()
+                    # try:
+                        # Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind, fill_value='extrapolate')
+                    Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind,bounds_error=False,fill_value=np.nan)           
+                    self.Mout_dict[varname][Wtracker,:] = np.append(mtime,Ifun(self.grid_out))
+                    # except:
+                        # print(varname)
+                        # print(mtime)
+                        # sys.exit()
             else:
                 self.Mout_dict[varname][Wtracker,:] = np.append(mtime,MOd[varname])
+                
 
     def RGfun(self, z, var, grid):
         '''
@@ -115,21 +117,8 @@ class ModelOutputs:
 
 
 
+        # old stuff below
 
-
-
-
-
-
-
-
-
-        #         # self.Mout_dict[varname][0,:] = np.append(mtime,var)
-
-
-
-            
-        # self.Mout_dict['rho'] 
 
         # if 'output_bits' not in self.c:
         #     self.c['output_bits']='float32'

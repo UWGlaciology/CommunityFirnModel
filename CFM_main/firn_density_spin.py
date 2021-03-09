@@ -1,8 +1,16 @@
 #!/usr/bin/env python
 
 '''
-
 Class for spinning up the model.
+
+This file spins up to a steady-state firn column using constant temperature,
+accumulation rate, and surface density. This works well for long model runs
+with big time steps (e.g. for ice-core related questions).
+
+To spin up using a climate with a bit of variability (like a reference climate
+interval) for e.g. altimetry or melt related runs, this script will essentially
+create an initial condition. In this case, set 'yearSpin' in your .json file
+to some small number (e.g. 1); otherwise you are wasting computing time.
 
 '''
 
@@ -95,14 +103,14 @@ class FirnDensitySpin:
             self.c['merging'] = False
 
         ### create directory to store results. Deletes if it exists already.
-        # Vincent says we do not want to remove existing (preferential flow?) - 4/24/19
+        # Vincent says we do not want to remove existing directory (preferential flow?) - 4/24/19
         if os.path.exists(self.c['resultsFolder']):
             dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
             dir_unique = list(set(dir_exts))
-            # print('dir_unique',dir_unique)
+            
             CFM_exts = ['.json','.hdf5']
             if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
-                # print('rmtree')
+                
                 rmtree(self.c['resultsFolder'])
                 os.makedirs(self.c['resultsFolder'])
             else:
@@ -120,13 +128,12 @@ class FirnDensitySpin:
         ############################
         ##### load input files #####
         ############################
-        if climateTS != None:
-            input_temp = climateTS['Tskin']
-            input_bdot = climateTS['smb']
-            input_year_temp = input_year_bdot = climateTS['time']
-
         ### temperature ###
-        # if climateTS==None:
+        if climateTS != None:
+            input_temp = climateTS['TSKIN']
+            input_bdot = climateTS['BDOT']
+            input_year_temp = input_year_bdot = climateTS['time']
+       
         else:
             input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
             input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
@@ -144,8 +151,7 @@ class FirnDensitySpin:
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
         
-        ### accumulation rate ###
-               
+        ### accumulation rate ###              
         try:
             if self.c['spinup_climate_type']=='initial':
                 self.bdot0      = input_bdot[0]
@@ -165,15 +171,12 @@ class FirnDensitySpin:
             self.bdot0 = self.c['bdot_long']# *1e-3/0.917 #specify long term accumulation as mean accumulation for spin up calculations (compaction,grain growth) + conversion from mmWE/yr to mIE/yr
             print('make sure "bdot_long" has units of mIE/yr!')
                
-        # print('Spin-up accumulation rate is', self.bdot0)
-        # print('Spin-up temperature is', self.temp0)
         ### could include others, e.g. surface density
         ############################
 
         ############################
         ### set up model grid ######
         ############################
-        # print(self.bdot0)
         self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYear'])) # number of grid points
 
         gridHeight      = np.linspace(self.c['H'], self.c['HbaseSpin'], self.gridLen)
@@ -594,7 +597,7 @@ class FirnDensitySpin:
 
                         self.iso_out[isotope]    = np.concatenate(([self.t * iii + 1], self.Isoz[isotope]))
                         self.iso_sig2_out[isotope] = np.concatenate(([self.t * iii + 1], self.Iso_sig2_z[isotope]))
-                        if 'iso{}'.format(isotope) in list(initfirn):
+                        if ((self.c['initprofile']) and ('iso{}'.format(isotope) in list(initfirn))):
                             print('Interpolating isotope {}'.format(isotope))
                             isoIntFun = interpolate.interp1d(init_depth,initfirn['iso{}'.format(isotope)].values,'nearest',fill_value='extrapolate')
                             self.iso_out[isotope] = np.concatenate(([self.t * iii + 1], isoIntFun(self.z)))
