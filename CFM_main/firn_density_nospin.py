@@ -49,7 +49,7 @@ from ModelOutputs import ModelOutputs
 
 class FirnDensityNoSpin:
     '''
-    Class for the main, transient model run.
+    Class for the main, transient model run. 
 
     Parameters
     ----------
@@ -84,14 +84,19 @@ class FirnDensityNoSpin:
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
 
+
+
     '''
 
     def __init__(self, configName, climateTS = None):
         '''
-        Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
+        Sets up the initial spatial grid, time grid, accumulation rate, age, 
+        density, mass, stress, temperature, and diffusivity of the model run
+        
         :param configName: name of json config file containing model configurations
         
         '''
+
         ### load in json config file and parses the user inputs to a dictionary
         self.spin = False
         with open(configName, "r") as f:
@@ -713,11 +718,12 @@ class FirnDensityNoSpin:
 
     def time_evolve(self):
         '''
-
         Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity through time
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
         
+        Writes to hdf file at end.
         '''
+
         self.steps = 1 / np.mean(self.t) # steps per year
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
 
