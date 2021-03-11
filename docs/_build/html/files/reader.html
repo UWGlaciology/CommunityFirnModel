@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>reader &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>reader &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -113,6 +112,10 @@
 </ul>
 </li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -181,9 +184,9 @@
   <div class="section" id="module-reader">
 <span id="reader"></span><h1>reader<a class="headerlink" href="#module-reader" title="Permalink to this headline">¶</a></h1>
 <p>Functions to read model inputs.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="reader.read_init">
-<code class="sig-prename descclassname">reader.</code><code class="sig-name descname">read_init</code><span class="sig-paren">(</span><em class="sig-param">folder</em>, <em class="sig-param">resultsFileName</em>, <em class="sig-param">varname</em><span class="sig-paren">)</span><a class="headerlink" href="#reader.read_init" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">reader.</code><code class="sig-name descname">read_init</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">folder</span></em>, <em class="sig-param"><span class="n">resultsFileName</span></em>, <em class="sig-param"><span class="n">varname</span></em><span class="sig-paren">)</span><a class="headerlink" href="#reader.read_init" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in data for initial depth, age, density, and temperature to run the model without spinup</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -192,9 +195,9 @@
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="reader.read_input">
-<code class="sig-prename descclassname">reader.</code><code class="sig-name descname">read_input</code><span class="sig-paren">(</span><em class="sig-param">filename</em><span class="sig-paren">)</span><a class="headerlink" href="#reader.read_input" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">reader.</code><code class="sig-name descname">read_input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename</span></em>, <em class="sig-param"><span class="n">StartDate</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#reader.read_input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read in data from csv input files</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -231,7 +234,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

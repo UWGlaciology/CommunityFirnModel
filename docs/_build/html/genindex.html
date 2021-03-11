@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
@@ -9,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>Index &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -22,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -87,6 +85,10 @@
 <p class="caption"><span class="caption-text">Files:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="files/index.html">Files included with the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="extras/index.html">Extra information about running the CFM</a></li>
 </ul>
 
             
@@ -188,8 +190,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/solver.html#solver.A">A() (in module solver)</a>
 </li>
-      <li><a href="running/Maxdoctest.html#Maxdoctest.Person.ageplus1">ageplus1() (Maxdoctest.Person method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/physics.html#physics.FirnPhysics.Arthern_2010S">Arthern_2010S() (physics.FirnPhysics method)</a>
@@ -206,6 +206,8 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="files/physics.html#physics.FirnPhysics.Breant2017">Breant2017() (physics.FirnPhysics method)</a>
+</li>
       <li><a href="files/melt.html#melt.bucketVV">bucketVV() (in module melt)</a>
 </li>
   </ul></td>
@@ -216,12 +218,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.combineCFM">combineCFM() (in module fcts_snowpackflow)</a>
 </li>
-      <li><a href="running/Maxdoctest.html#Maxdoctest.Cone">Cone (class in Maxdoctest)</a>
+      <li>
+    constants
+
+      <ul>
+        <li><a href="files/constants.html#module-constants">module</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/constants.html#module-constants">constants (module)</a>
-</li>
       <li><a href="files/physics.html#physics.FirnPhysics.Crocus">Crocus() (physics.FirnPhysics method)</a>
 </li>
   </ul></td>
@@ -230,8 +235,13 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/diffusion.html#module-diffusion">diffusion (module)</a>
+      <li>
+    diffusion
+
+      <ul>
+        <li><a href="files/diffusion.html#module-diffusion">module</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/firn_air.html#firn_air.FirnAir.diffusivity">diffusivity() (firn_air.FirnAir method)</a>
@@ -242,10 +252,18 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/diffusion.html#diffusion.enthalpyDiff">enthalpyDiff() (in module diffusion)</a>
+      <li><a href="files/melt.html#melt.effectiveT">effectiveT() (in module melt)</a>
+
+      <ul>
+        <li><a href="files/RCMpkl_to_spin.html#RCMpkl_to_spin.effectiveT">(in module RCMpkl_to_spin)</a>
 </li>
+        <li><a href="files/siteClimate_from_RCM.html#siteClimate_from_RCM.effectiveT">(in module siteClimate_from_RCM)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="files/diffusion.html#diffusion.enthalpyDiff">enthalpyDiff() (in module diffusion)</a>
+</li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.entrysuction">entrysuction() (in module fcts_snowpackflow)</a>
 </li>
   </ul></td>
@@ -256,19 +274,50 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/solver.html#solver.F_upwind">F_upwind() (in module solver)</a>
 </li>
-      <li><a href="files/fcts_snowpackflow.html#module-fcts_snowpackflow">fcts_snowpackflow (module)</a>
+      <li>
+    fcts_snowpackflow
+
+      <ul>
+        <li><a href="files/fcts_snowpackflow.html#module-fcts_snowpackflow">module</a>
 </li>
-      <li><a href="files/firn_air.html#module-firn_air">firn_air (module)</a>
+      </ul></li>
+      <li><a href="files/siteClimate_from_RCM.html#siteClimate_from_RCM.find_indices">find_indices() (in module siteClimate_from_RCM)</a>
 </li>
+      <li>
+    firn_air
+
+      <ul>
+        <li><a href="files/firn_air.html#module-firn_air">module</a>
+</li>
+      </ul></li>
       <li><a href="files/firn_air.html#firn_air.FirnAir.firn_air_diffusion">firn_air_diffusion() (firn_air.FirnAir method)</a>
 </li>
-      <li><a href="files/firn_density_nospin.html#module-firn_density_nospin">firn_density_nospin (module)</a>
+      <li>
+    firn_density_nospin
+
+      <ul>
+        <li><a href="files/firn_density_nospin.html#module-firn_density_nospin">module</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/firn_density_spin.html#module-firn_density_spin">firn_density_spin (module)</a>
+      <li>
+    firn_density_spin
+
+      <ul>
+        <li><a href="files/firn_density_spin.html#module-firn_density_spin">module</a>
 </li>
+      </ul></li>
       <li><a href="files/firn_air.html#firn_air.FirnAir">FirnAir (class in firn_air)</a>
+</li>
+      <li>
+    firnbatch_generic
+
+      <ul>
+        <li><a href="files/firnbatch_generic.html#module-firnbatch_generic">module</a>
+</li>
+      </ul></li>
+      <li><a href="files/diffusion.html#diffusion.firnConductivity">firnConductivity() (in module diffusion)</a>
 </li>
       <li><a href="files/firn_density_nospin.html#firn_density_nospin.FirnDensityNoSpin">FirnDensityNoSpin (class in firn_density_nospin)</a>
 </li>
@@ -284,13 +333,15 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/firn_air.html#firn_air.gasses">gasses() (in module firn_air)</a>
 </li>
-      <li><a href="running/Maxdoctest.html#Maxdoctest.Cone.getData">getData() (Maxdoctest.Cone method)</a>
+      <li><a href="files/siteClimate_from_RCM.html#siteClimate_from_RCM.getClimate">getClimate() (in module siteClimate_from_RCM)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/physics.html#physics.FirnPhysics.Goujon_2003">Goujon_2003() (physics.FirnPhysics method)</a>
 </li>
       <li><a href="files/physics.html#physics.FirnPhysics.graincalc">graincalc() (physics.FirnPhysics method)</a>
+</li>
+      <li><a href="files/physics.html#physics.FirnPhysics.GSFC2020">GSFC2020() (physics.FirnPhysics method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -302,8 +353,13 @@
 </li>
       <li><a href="files/physics.html#physics.FirnPhysics.Helsen_2008">Helsen_2008() (physics.FirnPhysics method)</a>
 </li>
-      <li><a href="files/hl_analytic.html#module-hl_analytic">hl_analytic (module)</a>
+      <li>
+    hl_analytic
+
+      <ul>
+        <li><a href="files/hl_analytic.html#module-hl_analytic">module</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/hl_analytic.html#hl_analytic.hl_analytic">hl_analytic() (in module hl_analytic)</a>
@@ -320,16 +376,21 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/regrid.html#regrid.init_regrid">init_regrid() (in module regrid)</a>
 </li>
+      <li><a href="files/regrid.html#regrid.init_regrid22">init_regrid22() (in module regrid)</a>
+</li>
       <li><a href="files/isotopeDiffusion.html#isotopeDiffusion.isotopeDiffusion.isoDiff">isoDiff() (isotopeDiffusion.isotopeDiffusion method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/isotopeDiffusion.html#isotopeDiffusion.isotopeDiffusion">isotopeDiffusion (class in isotopeDiffusion)</a>
+      <li>
+    isotopeDiffusion
 
       <ul>
-        <li><a href="files/isotopeDiffusion.html#module-isotopeDiffusion">(module)</a>
+        <li><a href="files/isotopeDiffusion.html#module-isotopeDiffusion">module</a>
 </li>
       </ul></li>
+      <li><a href="files/isotopeDiffusion.html#isotopeDiffusion.isotopeDiffusion">isotopeDiffusion (class in isotopeDiffusion)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -358,26 +419,41 @@
 </li>
       <li><a href="files/physics.html#physics.FirnPhysics.Ligtenberg_2011">Ligtenberg_2011() (physics.FirnPhysics method)</a>
 </li>
+      <li><a href="files/melt.html#melt.LWC_correct">LWC_correct() (in module melt)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/main.html#module-main">main (module)</a>
+      <li>
+    main
+
+      <ul>
+        <li><a href="files/main.html#module-main">module</a>
+</li>
+      </ul></li>
+      <li><a href="files/RCMpkl_to_spin.html#RCMpkl_to_spin.makeSpinFiles">makeSpinFiles() (in module RCMpkl_to_spin)</a>
 </li>
       <li><a href="files/physics.html#physics.FirnPhysics.Max2018">Max2018() (physics.FirnPhysics method)</a>
 </li>
       <li><a href="files/physics.html#physics.FirnPhysics.Max2018b">Max2018b() (physics.FirnPhysics method)</a>
 </li>
-      <li><a href="running/Maxdoctest.html#module-Maxdoctest">Maxdoctest (module)</a>
+      <li>
+    melt
+
+      <ul>
+        <li><a href="files/melt.html#module-melt">module</a>
 </li>
-      <li><a href="files/melt.html#module-melt">melt (module)</a>
+      </ul></li>
+      <li>
+    merge
+
+      <ul>
+        <li><a href="files/merge.html#module-merge">module</a>
 </li>
-      <li><a href="files/merge.html#module-merge">merge (module)</a>
-</li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      </ul></li>
       <li><a href="files/merge.html#merge.mergeall">mergeall() (in module merge)</a>
 </li>
       <li><a href="files/merge.html#merge.mergenotsurf">mergenotsurf() (in module merge)</a>
@@ -386,6 +462,59 @@
 </li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.Micedryer">Micedryer() (in module fcts_snowpackflow)</a>
 </li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="files/constants.html#module-constants">constants</a>
+</li>
+        <li><a href="files/diffusion.html#module-diffusion">diffusion</a>
+</li>
+        <li><a href="files/fcts_snowpackflow.html#module-fcts_snowpackflow">fcts_snowpackflow</a>
+</li>
+        <li><a href="files/firn_air.html#module-firn_air">firn_air</a>
+</li>
+        <li><a href="files/firn_density_nospin.html#module-firn_density_nospin">firn_density_nospin</a>
+</li>
+        <li><a href="files/firn_density_spin.html#module-firn_density_spin">firn_density_spin</a>
+</li>
+        <li><a href="files/firnbatch_generic.html#module-firnbatch_generic">firnbatch_generic</a>
+</li>
+        <li><a href="files/hl_analytic.html#module-hl_analytic">hl_analytic</a>
+</li>
+        <li><a href="files/isotopeDiffusion.html#module-isotopeDiffusion">isotopeDiffusion</a>
+</li>
+        <li><a href="files/main.html#module-main">main</a>
+</li>
+        <li><a href="files/melt.html#module-melt">melt</a>
+</li>
+        <li><a href="files/merge.html#module-merge">merge</a>
+</li>
+        <li><a href="files/physics.html#module-physics">physics</a>
+</li>
+        <li><a href="files/plotter.html#module-plotter">plotter</a>
+</li>
+        <li><a href="files/prefflow_snowpack.html#module-prefflow_snowpack">prefflow_snowpack</a>
+</li>
+        <li><a href="files/RCMpkl_to_spin.html#module-RCMpkl_to_spin">RCMpkl_to_spin</a>
+</li>
+        <li><a href="files/re_snowpack.html#module-re_snowpack">re_snowpack</a>
+</li>
+        <li><a href="files/reader.html#module-reader">reader</a>
+</li>
+        <li><a href="files/regrid.html#module-regrid">regrid</a>
+</li>
+        <li><a href="files/siteClimate_from_RCM.html#module-siteClimate_from_RCM">siteClimate_from_RCM</a>
+</li>
+        <li><a href="files/solver.html#module-solver">solver</a>
+</li>
+        <li><a href="files/sublim.html#module-sublim">sublim</a>
+</li>
+        <li><a href="files/writer.html#module-writer">writer</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/physics.html#physics.FirnPhysics.Morris_HL_2014">Morris_HL_2014() (physics.FirnPhysics method)</a>
 </li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.Mrefreezing">Mrefreezing() (in module fcts_snowpackflow)</a>
@@ -408,26 +537,39 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/melt.html#melt.percolation_bucket">percolation_bucket() (in module melt)</a>
 </li>
-      <li><a href="running/Maxdoctest.html#Maxdoctest.Person">Person (class in Maxdoctest)</a>
-</li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.PFleave">PFleave() (in module fcts_snowpackflow)</a>
 </li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.PFleaveheat">PFleaveheat() (in module fcts_snowpackflow)</a>
 </li>
-      <li><a href="files/physics.html#module-physics">physics (module)</a>
+      <li>
+    physics
+
+      <ul>
+        <li><a href="files/physics.html#module-physics">module</a>
 </li>
+      </ul></li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.Picedryer">Picedryer() (in module fcts_snowpackflow)</a>
 </li>
+      <li>
+    plotter
+
+      <ul>
+        <li><a href="files/plotter.html#module-plotter">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/plotter.html#module-plotter">plotter (module)</a>
-</li>
       <li><a href="files/plotter.html#plotter.plotter">plotter() (in module plotter)</a>
 </li>
       <li><a href="files/firn_air.html#firn_air.FirnAir.porosity">porosity() (firn_air.FirnAir method)</a>
 </li>
-      <li><a href="files/prefflow_snowpack.html#module-prefflow_snowpack">prefflow_snowpack (module)</a>
+      <li>
+    prefflow_snowpack
+
+      <ul>
+        <li><a href="files/prefflow_snowpack.html#module-prefflow_snowpack">module</a>
 </li>
+      </ul></li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.Prefreezing">Prefreezing() (in module fcts_snowpackflow)</a>
 </li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.Psatexcess">Psatexcess() (in module fcts_snowpackflow)</a>
@@ -438,21 +580,53 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/re_snowpack.html#module-re_snowpack">re_snowpack (module)</a>
+      <li>
+    RCMpkl_to_spin
+
+      <ul>
+        <li><a href="files/RCMpkl_to_spin.html#module-RCMpkl_to_spin">module</a>
 </li>
+      </ul></li>
+      <li>
+    re_snowpack
+
+      <ul>
+        <li><a href="files/re_snowpack.html#module-re_snowpack">module</a>
+</li>
+      </ul></li>
       <li><a href="files/reader.html#reader.read_init">read_init() (in module reader)</a>
 </li>
       <li><a href="files/reader.html#reader.read_input">read_input() (in module reader)</a>
 </li>
-      <li><a href="files/reader.html#module-reader">reader (module)</a>
+      <li><a href="files/siteClimate_from_RCM.html#siteClimate_from_RCM.read_netcdfs_mar">read_netcdfs_mar() (in module siteClimate_from_RCM)</a>
 </li>
+      <li><a href="files/siteClimate_from_RCM.html#siteClimate_from_RCM.read_netcdfs_merra">read_netcdfs_merra() (in module siteClimate_from_RCM)</a>
+</li>
+      <li>
+    reader
+
+      <ul>
+        <li><a href="files/reader.html#module-reader">module</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="files/regrid.html#module-regrid">regrid (module)</a>
+      <li>
+    regrid
+
+      <ul>
+        <li><a href="files/regrid.html#module-regrid">module</a>
 </li>
+      </ul></li>
       <li><a href="files/regrid.html#regrid.regrid">regrid() (in module regrid)</a>
 </li>
+      <li><a href="files/regrid.html#regrid.regrid22">regrid22() (in module regrid)</a>
+</li>
+      <li><a href="files/regrid.html#regrid.regrid22_reciprocal">regrid22_reciprocal() (in module regrid)</a>
+</li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.restrictdom">restrictdom() (in module fcts_snowpackflow)</a>
+</li>
+      <li><a href="files/firnbatch_generic.html#firnbatch_generic.run_CFM">run_CFM() (in module firnbatch_generic)</a>
 </li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.runoff">runoff() (in module fcts_snowpackflow)</a>
 </li>
@@ -464,16 +638,35 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/physics.html#physics.FirnPhysics.Simonsen_2013">Simonsen_2013() (physics.FirnPhysics method)</a>
 </li>
-      <li><a href="files/solver.html#module-solver">solver (module)</a>
+      <li>
+    siteClimate_from_RCM
+
+      <ul>
+        <li><a href="files/siteClimate_from_RCM.html#module-siteClimate_from_RCM">module</a>
 </li>
+      </ul></li>
+      <li>
+    solver
+
+      <ul>
+        <li><a href="files/solver.html#module-solver">module</a>
+</li>
+      </ul></li>
       <li><a href="files/solver.html#solver.solver">solver() (in module solver)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="files/writer.html#writer.SpinUpdate">SpinUpdate() (in module writer)</a>
+</li>
       <li><a href="files/fcts_snowpackflow.html#fcts_snowpackflow.splitCFM">splitCFM() (in module fcts_snowpackflow)</a>
 </li>
-      <li><a href="files/sublim.html#module-sublim">sublim (module)</a>
+      <li>
+    sublim
+
+      <ul>
+        <li><a href="files/sublim.html#module-sublim">module</a>
 </li>
+      </ul></li>
       <li><a href="files/sublim.html#sublim.sublim">sublim() (in module sublim)</a>
 </li>
       <li><a href="files/physics.html#physics.FirnPhysics.surfacegrain">surfacegrain() (physics.FirnPhysics method)</a>
@@ -494,11 +687,9 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="files/RCMpkl_to_spin.html#RCMpkl_to_spin.toYearFraction">toYearFraction() (in module RCMpkl_to_spin)</a>
+</li>
       <li><a href="files/solver.html#solver.transient_solve_EN">transient_solve_EN() (in module solver)</a>
-</li>
-      <li><a href="files/solver.html#solver.transient_solve_EN_new_B">transient_solve_EN_new_B() (in module solver)</a>
-</li>
-      <li><a href="files/solver.html#solver.transient_solve_EN_old">transient_solve_EN_old() (in module solver)</a>
 </li>
       <li><a href="files/solver.html#solver.transient_solve_TR">transient_solve_TR() (in module solver)</a>
 </li>
@@ -530,8 +721,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="files/writer.html#writer.write_spin_hdf5">write_spin_hdf5() (in module writer)</a>
 </li>
-      <li><a href="files/writer.html#module-writer">writer (module)</a>
+      <li>
+    writer
+
+      <ul>
+        <li><a href="files/writer.html#module-writer">module</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -547,7 +743,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

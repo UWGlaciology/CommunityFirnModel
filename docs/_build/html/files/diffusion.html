@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>diffusion &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>diffusion &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -113,6 +112,10 @@
 </ul>
 </li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -181,22 +184,33 @@
   <div class="section" id="diffusion">
 <h1>diffusion<a class="headerlink" href="#diffusion" title="Permalink to this headline">¶</a></h1>
 <p>This module contains the code for the diffusion scheme models.</p>
-<span class="target" id="module-diffusion"></span><p>code to handle diffusion (heat, enthalpy, isotope)
+<span class="target" id="module-diffusion"></span><p>code to handle diffusion (heat, enthalpy)
 calls solver
-Draws from Numerical Heat Transfer and Heat Flow (Patankar, 1980)</p>
-<p>Isotope diffusion now has its own class.</p>
-<dl class="function">
+Draws from Numerical Heat Transfer and Heat Flow (Patankar, 1980)
+Enthalpy from Voller, Swaminathan, and Thomas (1990)
+Isotope diffusion now has its own class.</p>
+<dl class="py function">
 <dt id="diffusion.enthalpyDiff">
-<code class="sig-prename descclassname">diffusion.</code><code class="sig-name descname">enthalpyDiff</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">iii</em><span class="sig-paren">)</span><a class="headerlink" href="#diffusion.enthalpyDiff" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">diffusion.</code><code class="sig-name descname">enthalpyDiff</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#diffusion.enthalpyDiff" title="Permalink to this definition">¶</a></dt>
 <dd><p>enthalpy diffusion function, new
 1/30/19 - method from Voller and Swaminathan
 LWC is in volume (m^3)
 thermal diffusivity: alpha = K_firn / (rho*c_firn)</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
+<dt id="diffusion.firnConductivity">
+<code class="sig-prename descclassname">diffusion.</code><code class="sig-name descname">firnConductivity</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iii</span></em>, <em class="sig-param"><span class="n">K_ice</span></em><span class="sig-paren">)</span><a class="headerlink" href="#diffusion.firnConductivity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to set the firn’s thermal conductivity
+based on one of a number of parameterizations.</p>
+<p>Choose your favorite!
+Default is Calonne et al. 2019.
+References are provided at the end of this script.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="diffusion.heatDiff">
-<code class="sig-prename descclassname">diffusion.</code><code class="sig-name descname">heatDiff</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">iii</em><span class="sig-paren">)</span><a class="headerlink" href="#diffusion.heatDiff" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">diffusion.</code><code class="sig-name descname">heatDiff</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#diffusion.heatDiff" title="Permalink to this definition">¶</a></dt>
 <dd><p>Heat diffusion function</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -237,7 +251,7 @@ thermal diffusivity: alpha = K_firn / (rho*c_firn)</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

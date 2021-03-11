@@ -83,7 +83,7 @@ class FirnDensitySpin:
 
     '''
 
-    def __init__(self, configName, climateTS = None):
+    def __init__(self, config, climateTS = None):
         '''
 
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature of the model run
@@ -92,10 +92,11 @@ class FirnDensitySpin:
         '''
 
         ### load in json config file and parses the user inputs to a dictionary
-        self.spin=True
-        with open(configName, "r") as f:
-            jsonString  = f.read()
-            self.c      = json.loads(jsonString)
+        
+        # with open(configName, "r") as f:
+        #     jsonString  = f.read()
+        #     self.c      = json.loads(jsonString)
+        self.c = config
 
         print('Spin run started')
         print("physics are", self.c['physRho'])
@@ -317,6 +318,7 @@ class FirnDensitySpin:
 
         ### Surface isotope values for each time step
         if self.c['isoDiff']:
+            self.spin=True
             self.Isotopes   = {} #dictionary of class instances
             self.iso_out    = {} # outputs for each isotope
             self.Isoz       = {} # depth profile of each isotope, at each time step

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>firn_density_spin &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>firn_density_spin &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -36,7 +35,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="hl_analytic" href="hl_analytic.html" />
+    <link rel="next" title="firnbatch_generic" href="firnbatch_generic.html" />
     <link rel="prev" title="firn_density_nospin" href="firn_density_nospin.html" /> 
 </head>
 
@@ -96,6 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="firn_air.html">firn_air.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">firn_density_spin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firnbatch_generic.html">firnbatch_generic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hl_analytic.html">hl_analytic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="isotopeDiffusion.html">isotopeDiffusion.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main</a></li>
@@ -104,14 +104,20 @@
 <li class="toctree-l2"><a class="reference internal" href="physics.html">physics.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plotter.html">plotter.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="prefflow_snowpack.html">prefflow_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RCMpkl_to_spin.html">RCMpkl_to_spin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="re_snowpack.html">re_snowpack.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reader.html">reader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regrid.html">regrid.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="siteClimate_from_RCM.html">siteClimate_from_RCM</a></li>
 <li class="toctree-l2"><a class="reference internal" href="solver.html">solver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sublim.html">sublim.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="writer.html">writer</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
 </ul>
 
             
@@ -181,9 +187,16 @@
   <div class="section" id="module-firn_density_spin">
 <span id="firn-density-spin"></span><h1>firn_density_spin<a class="headerlink" href="#module-firn_density_spin" title="Permalink to this headline">¶</a></h1>
 <p>Class for spinning up the model.</p>
-<dl class="class">
+<p>This file spins up to a steady-state firn column using constant temperature,
+accumulation rate, and surface density. This works well for long model runs
+with big time steps (e.g. for ice-core related questions).</p>
+<p>To spin up using a climate with a bit of variability (like a reference climate
+interval) for e.g. altimetry or melt related runs, this script will essentially
+create an initial condition. In this case, set ‘yearSpin’ in your .json file
+to some small number (e.g. 1); otherwise you are wasting computing time.</p>
+<dl class="py class">
 <dt id="firn_density_spin.FirnDensitySpin">
-<em class="property">class </em><code class="sig-prename descclassname">firn_density_spin.</code><code class="sig-name descname">FirnDensitySpin</code><span class="sig-paren">(</span><em class="sig-param">configName</em><span class="sig-paren">)</span><a class="headerlink" href="#firn_density_spin.FirnDensitySpin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">firn_density_spin.</code><code class="sig-name descname">FirnDensitySpin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">config</span></em>, <em class="sig-param"><span class="n">climateTS</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#firn_density_spin.FirnDensitySpin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parameters used in the model, for the initialization as well as the time evolution:</p>
 <dl class="simple">
 <dt>: gridLen: size of grid used in the model run</dt><dd><p>(unit: number of boxes, type: int)</p>
@@ -222,7 +235,7 @@
 (unit: ???, type: array of floats)</p>
 </dd>
 </dl>
-<dl class="method">
+<dl class="py method">
 <dt id="firn_density_spin.FirnDensitySpin.time_evolve">
 <code class="sig-name descname">time_evolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#firn_density_spin.FirnDensitySpin.time_evolve" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature through time
@@ -241,7 +254,7 @@ based on the user specified number of timesteps in the model run. Updates the fi
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="hl_analytic.html" class="btn btn-neutral float-right" title="hl_analytic" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="firnbatch_generic.html" class="btn btn-neutral float-right" title="firnbatch_generic" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="firn_density_nospin.html" class="btn btn-neutral float-left" title="firn_density_nospin" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -253,7 +266,7 @@ based on the user specified number of timesteps in the model run. Updates the fi
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

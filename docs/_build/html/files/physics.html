@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>physics.py &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>physics.py &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -102,7 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="melt.html">melt.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="merge.html">merge.py</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">physics.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#the-community-firn-model-physics-module">The Community Firn Model physics module.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">physics.py</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="plotter.html">plotter.py</a></li>
@@ -115,6 +114,10 @@
 <li class="toctree-l2"><a class="reference internal" href="writer.html">writer</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
 </ul>
 
             
@@ -184,12 +187,13 @@
   <div class="section" id="physics-py">
 <h1>physics.py<a class="headerlink" href="#physics-py" title="Permalink to this headline">¶</a></h1>
 <p>This module contains all of the firn-densification models.</p>
-<span class="target" id="module-physics"></span><div class="section" id="the-community-firn-model-physics-module">
-<h2>The Community Firn Model physics module.<a class="headerlink" href="#the-community-firn-model-physics-module" title="Permalink to this headline">¶</a></h2>
-<p>Something here.</p>
-<dl class="class">
+<span class="target" id="module-physics"></span><div class="section" id="id1">
+<h2>physics.py<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>The Community Firn Model physics module.</p>
+<p>equations for each of the densification models.</p>
+<dl class="py class">
 <dt id="physics.FirnPhysics">
-<em class="property">class </em><code class="sig-prename descclassname">physics.</code><code class="sig-name descname">FirnPhysics</code><span class="sig-paren">(</span><em class="sig-param">PhysParams</em><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">physics.</code><code class="sig-name descname">FirnPhysics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">PhysParams</span></em><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics" title="Permalink to this definition">¶</a></dt>
 <dd><p>class for the various firn densification schemes</p>
 <p>The standard parameters that get passed are: iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain</p>
 <p>if you want to add physics that require more parameters, you need to change the ‘PhysParams’ dictionary in both the spin and nospin classes.</p>
@@ -209,52 +213,67 @@
 <dt class="field-odd">Return viscosity</dt>
 <dd class="field-odd"><p></p></dd>
 </dl>
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Arthern_2010S">
 <code class="sig-name descname">Arthern_2010S</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Arthern_2010S" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the steady-state solution described in the main text of Arthern et al. (2010)
 Accumulation units are kg/m^2/year</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Arthern_2010T">
 <code class="sig-name descname">Arthern_2010T</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Arthern_2010T" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the transient solution described in the appendix of Arthern et al. (2010)</p>
 <p>Uses stress rather than accumulation rate.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Barnola_1991">
 <code class="sig-name descname">Barnola_1991</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Barnola_1991" title="Permalink to this definition">¶</a></dt>
 <dd><p>uses m W.E. (zone 1) and stress (zone 2)</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
+<dt id="physics.FirnPhysics.Breant2017">
+<code class="sig-name descname">Breant2017</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Breant2017" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bréant, C., Martinerie, P., Orsi, A., Arnaud, L., and Landais, A.: Modelling firn thickness evolution during the last deglaciation: constraints on sensitivity to temperature and impurities, Clim. Past, 13, 833–853, <a class="reference external" href="https://doi.org/10.5194/cp-13-833-2017">https://doi.org/10.5194/cp-13-833-2017</a>, 2017.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="physics.FirnPhysics.Crocus">
 <code class="sig-name descname">Crocus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Crocus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses stress</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
+<dt id="physics.FirnPhysics.GSFC2020">
+<code class="sig-name descname">GSFC2020</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.GSFC2020" title="Permalink to this definition">¶</a></dt>
+<dd><p>Taken from Medley et al. (2020)
+Accumulation units are kg/m^2/year
+Subscript here are changed to 1 and 2 (correspond to densification stage)
+(in Medley et al. 2020 they are 0 and 1)</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="physics.FirnPhysics.Goujon_2003">
 <code class="sig-name descname">Goujon_2003</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Goujon_2003" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses stress</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.HL_Sigfus">
 <code class="sig-name descname">HL_Sigfus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.HL_Sigfus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are m W.E. per year (zone 1); uses stress for zone 2</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.HL_dynamic">
 <code class="sig-name descname">HL_dynamic</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.HL_dynamic" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are m W.E. per year
 viscosity doesn’t work</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Helsen_2008">
 <code class="sig-name descname">Helsen_2008</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Helsen_2008" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are m W.E. per year (?)
@@ -262,14 +281,14 @@ Equation is from Arthern et al. 2010 (2)
 (Arthern implies units are m I.E.; not doing that here)</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.KuipersMunneke_2015">
 <code class="sig-name descname">KuipersMunneke_2015</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.KuipersMunneke_2015" title="Permalink to this definition">¶</a></dt>
 <dd><p>Units are mm W.E. per year
 b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Li_2004">
 <code class="sig-name descname">Li_2004</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Li_2004" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are m W.E. per year (?)
@@ -279,7 +298,7 @@ Paper would lead me to believe that it is m W.E.</p>
 <p>Needs to have the vapor flux coded in if we want to use these physics properly.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Li_2011">
 <code class="sig-name descname">Li_2011</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Li_2011" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
@@ -288,7 +307,7 @@ Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)</p>
 <p>beta should be calculated with the long-term mean accumulation rate</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Li_2015">
 <code class="sig-name descname">Li_2015</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Li_2015" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
@@ -297,46 +316,46 @@ Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)</p>
 <p>beta should be calculated with the long-term mean accumulation rate</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Ligtenberg_2011">
 <code class="sig-name descname">Ligtenberg_2011</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Ligtenberg_2011" title="Permalink to this definition">¶</a></dt>
 <dd><p>Units are mm W.E. per year
 b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Max2018">
 <code class="sig-name descname">Max2018</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Max2018" title="Permalink to this definition">¶</a></dt>
 <dd><p>Experimental: based on firn compaction data from FirnCover campaigns</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Max2018b">
 <code class="sig-name descname">Max2018b</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Max2018b" title="Permalink to this definition">¶</a></dt>
 <dd><p>Experimental: based on firn compaction data from FirnCover campaigns</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Morris_HL_2014">
 <code class="sig-name descname">Morris_HL_2014</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Morris_HL_2014" title="Permalink to this definition">¶</a></dt>
 <dd><p>Uses stress instead of accumulation.</p>
 <p>Need to choose physics for zone 2. Herron and Langway here.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.Simonsen_2013">
 <code class="sig-name descname">Simonsen_2013</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Simonsen_2013" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accumulation units are kg/m^2/year</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.graincalc">
-<code class="sig-name descname">graincalc</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.graincalc" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">graincalc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.graincalc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evolve the grain size</p>
 <p>This is the same as graingrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="physics.FirnPhysics.surfacegrain">
 <code class="sig-name descname">surfacegrain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.surfacegrain" title="Permalink to this definition">¶</a></dt>
 <dd><p>function to calculate the surface grain size at each time step</p>
@@ -367,7 +386,7 @@ b_dot is meant to be accumulation over a reference period (20 years for spin up,
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

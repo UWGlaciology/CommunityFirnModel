@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Inputs for the CFM &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>Inputs for the CFM &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -95,6 +94,10 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../files/index.html">Files included with the CFM</a></li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -163,6 +166,7 @@
   <div class="section" id="inputs-for-the-cfm">
 <h1>Inputs for the CFM<a class="headerlink" href="#inputs-for-the-cfm" title="Permalink to this headline">¶</a></h1>
 <p>The CFM is forced by surface-temperature and accumulation-rate boundary conditions. Additionally, the user can specify the surface-melt, surface-density and water-isotope values. These files are .csv formatted. The first row of these files is time (decimal date, i.e. 2015.3487) and the second row is the corresponding temperature/accumulation rate/boundary condition value at that time. Time must be going forward, i.e. the first column is a date some time ago and the last column is the most recent. (If the model is being forced with ice-core data, the user must be careful to ensure this is the case as ice-core data are often presented as years before present.) The times in the various input files do not need to be the same; they are interpolated onto a common axis. The units for temperature can be K or C. The CFM uses K, but it will change the temperature to K if you use C. The units for accumulation rate/surface mass balance are m ice equivalent per year (see note in section 5.3)</p>
+<p><span class="xref std std-ref">Test Linking Pages</span></p>
 </div>
 
 
@@ -185,7 +189,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>The .json-formatted configuration file &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>The .json-formatted configuration file &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -92,6 +91,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#resultsfolder">resultsFolder</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#initfirnfile">initfirnFile</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#initprofile">initprofile</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#input-type">input_type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dfresample">DFresample</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dffile">DFfile</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#physrho">physRho</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#melt">MELT</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reehcorrectedt">ReehCorrectedT</a></li>
@@ -108,6 +110,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#calcgrainsize">calcGrainSize</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#grgrowphysics">GrGrowPhysics</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#heatdiff">heatDiff</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conductivity">conductivity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#variable-srho">variable_srho</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#srho-type">srho_type</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#rhos0">rhos0</a></li>
@@ -120,6 +123,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#hbasespin">HbaseSpin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#d-surf">D_surf</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#bdot-type">bdot_type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#grid-outputs">grid_outputs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#grid-output-res">grid_output_res</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#isodiff">isoDiff</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#iso">iso</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#spacewriteint">spacewriteint</a></li>
@@ -130,7 +135,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#spinfilename">spinFileName</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#doublegrid">doublegrid</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#nodestocombine">nodestocombine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#multnodestocombine">multnodestocombine</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#grid1bottom">grid1bottom</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#grid2bottom">grid2bottom</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#spinup-climate-type">spinup_climate_type</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#manual-climate">manual_climate</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#deept">deepT</a></li>
@@ -142,6 +149,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#liquid">liquid</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#merging">merging</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#merge-min">merge_min</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#manualt">manualT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#no-densification">no_densification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rad-pen">rad_pen</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#site-pressure">site_pressure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output-bits">output_bits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#spinupdate">spinUpdate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#spinupdatedate">spinUpdateDate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#diphorizon">DIPhorizon</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#newspin">NewSpin</a></li>
 </ul>
 </li>
 </ul>
@@ -154,6 +170,10 @@
 <p class="caption"><span class="caption-text">Files:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../files/index.html">Files included with the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
 </ul>
 
             
@@ -228,9 +248,9 @@
 <h2>.json keys<a class="headerlink" href="#json-keys" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="inputfilefolder">
 <h3>InputFileFolder<a class="headerlink" href="#inputfilefolder" title="Permalink to this headline">¶</a></h3>
-<p>Directory where the input csv files are located (usually a subdirectory of the directory that contains main.py, but user can specify an absolute paths as well.) Use ‘’ if the input files are in the same directory as main.py.</p>
 <blockquote>
-<div><dl class="field-list simple">
+<div><p>Directory where the input csv files are located (usually a subdirectory of the directory that contains main.py, but user can specify an absolute paths as well.) Use ‘’ if the input files are in the same directory as main.py.</p>
+<dl class="field-list simple">
 <dt class="field-odd">type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </dd>
@@ -242,9 +262,9 @@
 </div>
 <div class="section" id="inputfilenamexxxx">
 <h3>InputFileNameXXXX<a class="headerlink" href="#inputfilenamexxxx" title="Permalink to this headline">¶</a></h3>
-<p>The names of the input files for temperature, accumulation/smb, water isotopes, surface density, and melt. See ‘Inputs for the CFM’ section for more details.</p>
 <blockquote>
-<div><dl class="field-list simple">
+<div><p>The names of the input files for temperature, accumulation/smb, water isotopes, surface density, and melt. See ‘Inputs for the CFM’ section for more details.</p>
+<dl class="field-list simple">
 <dt class="field-odd">type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </dd>
@@ -256,9 +276,9 @@
 </div>
 <div class="section" id="resultsfolder">
 <h3>resultsFolder<a class="headerlink" href="#resultsfolder" title="Permalink to this headline">¶</a></h3>
-<p>Folder in which results are stored.</p>
 <blockquote>
-<div><dl class="field-list simple">
+<div><p>Folder in which results are stored.</p>
+<dl class="field-list simple">
 <dt class="field-odd">type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </dd>
@@ -270,9 +290,9 @@
 </div>
 <div class="section" id="initfirnfile">
 <h3>initfirnFile<a class="headerlink" href="#initfirnfile" title="Permalink to this headline">¶</a></h3>
-<p>File containing initial conditions if you are using firn measurements/data (e.g. temperature, density) to begin the model run. See ‘Inputs for the CFM’ section for more details.</p>
 <blockquote>
-<div><dl class="field-list simple">
+<div><p>File containing initial conditions if you are using firn measurements/data (e.g. temperature, density) to begin the model run. See ‘Inputs for the CFM’ section for more details.</p>
+<dl class="field-list simple">
 <dt class="field-odd">type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
 </dd>
@@ -284,14 +304,62 @@
 </div>
 <div class="section" id="initprofile">
 <h3>initprofile<a class="headerlink" href="#initprofile" title="Permalink to this headline">¶</a></h3>
-<p>Whether or not the CFM should use the initfirnFile to generate an initial condition.</p>
 <blockquote>
-<div><dl class="field-list simple">
+<div><p>Whether or not the CFM should use the initfirnFile to generate an initial condition.</p>
+<dl class="field-list simple">
 <dt class="field-odd">type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
 </dd>
 <dt class="field-even">default</dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="input-type">
+<h3>input_type<a class="headerlink" href="#input-type" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>(New in version 1.1.0)
+Specify what type of inputs you want to use - .csv (historic behavior) or pandas dataframe that is stored in a pickle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">csv</span></code></p>
+</dd>
+<dt class="field-odd">options</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">csv</span></code>,``dataframe``</p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="dfresample">
+<h3>DFresample<a class="headerlink" href="#dfresample" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>(New in version 1.1.0)
+Specify the resolution you want for your model run, which will be the resample interval for the dataframe (this only has functionality when input_type is <code class="docutils literal notranslate"><span class="pre">dataframe</span></code>)
+See <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timedelta.html">https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timedelta.html</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">pandas</span> <span class="pre">Timedelta</span> <span class="pre">(string)</span></code></p>
+</dd>
+<dt class="field-even">Example</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">1D</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="dffile">
+<h3>DFfile<a class="headerlink" href="#dffile" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>The filename of the pickle containing the climate dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</dd>
+<dt class="field-even">example</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">example.pkl</span></code></p>
 </dd>
 </dl>
 </div></blockquote>
@@ -523,6 +591,20 @@
 </dl>
 </div></blockquote>
 </div>
+<div class="section" id="conductivity">
+<h3>conductivity<a class="headerlink" href="#conductivity" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Which parameterization for heat conductivity to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</dd>
+<dt class="field-even">options</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">Schwander</span></code>,``Yen_fixed``,``Yen_var``,``Anderson``,``Yen_b``,``Sturm``,``VanDusen``,``Schwerdtfeger``,``Riche``,``Jiawen``,``mix``,``Calonne2011``,``Calonne2019``</p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
 <div class="section" id="variable-srho">
 <h3>variable_srho<a class="headerlink" href="#variable-srho" title="Permalink to this headline">¶</a></h3>
 <blockquote>
@@ -689,6 +771,34 @@
 </dl>
 </div></blockquote>
 </div>
+<div class="section" id="grid-outputs">
+<h3>grid_outputs<a class="headerlink" href="#grid-outputs" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Whether or not to put the outputs on a regular grid (i.e. evenly spaced vs. the internal variable grid)</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="grid-output-res">
+<h3>grid_output_res<a class="headerlink" href="#grid-output-res" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>If grid_output is <code class="docutils literal notranslate"><span class="pre">True</span></code>, this is the spacing of the grid nodes in meters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">0.1</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
 <div class="section" id="isodiff">
 <h3>isoDiff<a class="headerlink" href="#isodiff" title="Permalink to this headline">¶</a></h3>
 <blockquote>
@@ -838,16 +948,44 @@
 </dl>
 </div></blockquote>
 </div>
+<div class="section" id="multnodestocombine">
+<h3>multnodestocombine<a class="headerlink" href="#multnodestocombine" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>If <strong>doublegrid</strong> is True, this is how many nodes are combined into a single node at the boundary between the low and very low resolution grid. For example, if nodestocombine is 50, multnodes will combine ‘multnodestocombine’ of those 50-node thick layers into a single node.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p>6</p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
 <div class="section" id="grid1bottom">
 <h3>grid1bottom<a class="headerlink" href="#grid1bottom" title="Permalink to this headline">¶</a></h3>
 <blockquote>
-<div><p>If <strong>doublegrid</strong> is True, the depth at which the high-resolution grid nodes are combined.</p>
+<div><p>If <strong>doublegrid</strong> is True, the depth (m) at which the high-resolution grid nodes are combined.</p>
 <dl class="field-list simple">
 <dt class="field-odd">type</dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p>
 </dd>
 <dt class="field-even">default</dt>
 <dd class="field-even"><p>10</p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="grid2bottom">
+<h3>grid2bottom<a class="headerlink" href="#grid2bottom" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>If <strong>doublegrid</strong> is True, the depth (m) at which the low-resolution grid nodes are combined to make the very-low resolution grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p>20</p>
 </dd>
 </dl>
 </div></blockquote>
@@ -1009,6 +1147,132 @@
 </dl>
 </div></blockquote>
 </div>
+<div class="section" id="manualt">
+<h3>manualT<a class="headerlink" href="#manualt" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Option to use manual temperature measurements, e.g. from a thermistor string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="no-densification">
+<h3>no_densification<a class="headerlink" href="#no-densification" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Option to set densification to false (perhaps you are simulating temperature diffusion in a core in a lab)</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="rad-pen">
+<h3>rad_pen<a class="headerlink" href="#rad-pen" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Option to turn on radiation penetration module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="site-pressure">
+<h3>site_pressure<a class="headerlink" href="#site-pressure" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Set the pressure at the site, which can affect isotope diffusion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">1013.25</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="output-bits">
+<h3>output_bits<a class="headerlink" href="#output-bits" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Set the bits for the outputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">float32</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="spinupdate">
+<h3>spinUpdate<a class="headerlink" href="#spinupdate" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Specify if you want to update the spin file at some date.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="spinupdatedate">
+<h3>spinUpdateDate<a class="headerlink" href="#spinupdatedate" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Specify the date at which to update the spin file. should correspond to the start of your reference climate interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">1980.0</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="diphorizon">
+<h3>DIPhorizon<a class="headerlink" href="#diphorizon" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Depth horizon at which to calculate DIP/FAC (because the bottom of the domain varies a bit).</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">100.0</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="newspin">
+<h3>NewSpin<a class="headerlink" href="#newspin" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><p>Whether or not to perform a new spin up (if the spin file exists already.)</p>
+<dl class="field-list simple">
+<dt class="field-odd">type</dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">boolean</span></code></p>
+</dd>
+<dt class="field-even">default</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
 </div>
 </div>
 
@@ -1032,7 +1296,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

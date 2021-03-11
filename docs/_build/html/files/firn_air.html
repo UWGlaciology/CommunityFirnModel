@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>firn_air.py &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>firn_air.py &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -113,6 +112,10 @@
 </ul>
 </li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -181,16 +184,16 @@
   <div class="section" id="module-firn_air">
 <span id="firn-air-py"></span><h1>firn_air.py<a class="headerlink" href="#module-firn_air" title="Permalink to this headline">¶</a></h1>
 <p>code to deal with modeling firn-air diffusion</p>
-<dl class="class">
+<dl class="py class">
 <dt id="firn_air.FirnAir">
-<em class="property">class </em><code class="sig-prename descclassname">firn_air.</code><code class="sig-name descname">FirnAir</code><span class="sig-paren">(</span><em class="sig-param">air_config</em>, <em class="sig-param">Gs</em>, <em class="sig-param">z</em>, <em class="sig-param">modeltime</em>, <em class="sig-param">Tz</em>, <em class="sig-param">rho</em>, <em class="sig-param">dz</em>, <em class="sig-param">gaschoice</em>, <em class="sig-param">bdot</em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<em class="property">class </em><code class="sig-prename descclassname">firn_air.</code><code class="sig-name descname">FirnAir</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">air_config</span></em>, <em class="sig-param"><span class="n">Gs</span></em>, <em class="sig-param"><span class="n">z</span></em>, <em class="sig-param"><span class="n">modeltime</span></em>, <em class="sig-param"><span class="n">Tz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">gaschoice</span></em>, <em class="sig-param"><span class="n">bdot</span></em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py method">
 <dt id="firn_air.FirnAir.__init__">
-<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param">air_config</em>, <em class="sig-param">Gs</em>, <em class="sig-param">z</em>, <em class="sig-param">modeltime</em>, <em class="sig-param">Tz</em>, <em class="sig-param">rho</em>, <em class="sig-param">dz</em>, <em class="sig-param">gaschoice</em>, <em class="sig-param">bdot</em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir.__init__" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">air_config</span></em>, <em class="sig-param"><span class="n">Gs</span></em>, <em class="sig-param"><span class="n">z</span></em>, <em class="sig-param"><span class="n">modeltime</span></em>, <em class="sig-param"><span class="n">Tz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">gaschoice</span></em>, <em class="sig-param"><span class="n">bdot</span></em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir.__init__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize Firn Air class</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="firn_air.FirnAir.diffusivity">
 <code class="sig-name descname">diffusivity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir.diffusivity" title="Permalink to this definition">¶</a></dt>
 <dd><p>D_0 is CO2 in free air.
@@ -199,14 +202,14 @@ D_x=D_0*gam_x is the free-air (or any) diffusity for that species
 diffu_full has units m^2/s</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="firn_air.FirnAir.firn_air_diffusion">
-<code class="sig-name descname">firn_air_diffusion</code><span class="sig-paren">(</span><em class="sig-param">AirParams</em>, <em class="sig-param">iii</em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir.firn_air_diffusion" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">firn_air_diffusion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">AirParams</span></em>, <em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir.firn_air_diffusion" title="Permalink to this definition">¶</a></dt>
 <dd><p>Solve the diffusion equation.
 Calls solver.py</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="firn_air.FirnAir.porosity">
 <code class="sig-name descname">porosity</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.FirnAir.porosity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the total, open, and closed porosity.
@@ -215,9 +218,9 @@ co is close-off, cl is closed</p>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="firn_air.gasses">
-<code class="sig-prename descclassname">firn_air.</code><code class="sig-name descname">gasses</code><span class="sig-paren">(</span><em class="sig-param">gaschoice</em>, <em class="sig-param">T</em>, <em class="sig-param">p_a</em>, <em class="sig-param">M_air</em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.gasses" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">firn_air.</code><code class="sig-name descname">gasses</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gaschoice</span></em>, <em class="sig-param"><span class="n">T</span></em>, <em class="sig-param"><span class="n">p_a</span></em>, <em class="sig-param"><span class="n">M_air</span></em><span class="sig-paren">)</span><a class="headerlink" href="#firn_air.gasses" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function to set up specifics for different gasses.</p>
 </dd></dl>
 
@@ -243,7 +246,7 @@ co is close-off, cl is closed</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

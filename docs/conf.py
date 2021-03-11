@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.abspath('../CFM_main'))
 # -- Project information -----------------------------------------------------
 
 project = 'The Community Firn Model'
-copyright = '2019, Max Stevens'
+copyright = '2021, Max Stevens'
 author = 'Max Stevens'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.5'
+release = '1.1.0'
 
 
 # -- General configuration ---------------------------------------------------

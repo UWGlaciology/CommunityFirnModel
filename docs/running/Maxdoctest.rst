@@ -1,5 +1,0 @@
-doctest
-=======
-
-.. automodule:: Maxdoctest
-	:members:

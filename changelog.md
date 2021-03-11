@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.9
+1.1.0
 
 ## Full Documentation
 
@@ -23,9 +23,32 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
-## [1.0.9]
+## [1.1.0] 2020-03-10
 ### Notes
+- This is the first major change to the code structure that warrants going from 1.0 to 1.1. Previously, the spin up was done by calling firn_density_spin, getting the output, and then calling firn_density_nospin. This was a bit clunky, because (1) if you were writing your own API (i.e. not using main.py), you would have to call both of those; and (2) if you were using a variable climate spinup, firn_density_spin was just a formality to create an initial condition. 
+- I have now wrapped firn_density_spin into firn_density_nospin. If the model needs to spin up or needs an initial condition, it is called; otherwise it is bypassed. THE UPSHOT IS THAT YOU ONLY NEED TO CREATE AN INSTANCE OF firn_density_nospin IN YOUR API. The behavior of the CFM should be the same as before.
+- You can now input climate data from a dictionary into firn_density_nospin.
 
+### New
+- *RCMpkl_to_spin.py* This new script takes climate data that is packaged in a pandas dataframe and creates a time series (including spin up) that forces the CFM. Returns a dictionary.
+- *siteClimate_from_RCM.py* This script takes climate data from an RCM or analysis product for a specified lat/lon and puts it in a dataframe, which in turn will feed into RCMpkl_to_spin.py.
+- *firnbatch_generic.py* This script is an alternative API to using main.py - it is useful to batch a bunch of runs when you have a common (baseline) .json file and need to change something slightly for each run.
+
+### Changed
+- See Notes above for an overview.
+- *main.py* Now it only calls firn_density_nospin. 
+- *main.py* Changed so that it can now take a pickled pandas dataframe (specified in .json; key: 'input_type') as opposed to .csv files; calls new script 'RCMpkl_to_spin' to generate a spin up time series. That spin up series is put in a dictionary, which is passed to firn_density_nospin
+- *firn_density_nospin.py* Now calls firn_density_spin if no spin file is found, of if NewSpin=True in the .json, or if -n is included as an argument when calling main.py. Otherwise spin up is skipped and uses the spin file for the initial condition.
+- *firn_density_nospin.py* The 'stpsPerYear' parameter in the .json is no longer needed if 'timesetup' is set to exact. In this case, CFM looks at the input climate files and figures out the time step size and updates 'stpsPerYear'; for 'exact' runs, it is only used to calculate the number of nodes in the grid in firn_density_spin. If 'timestep' is 'interp', the model behavior is the same as before (you need to set stpsPerYear correctly.)
+
+### New keys in the .json file
+- *"NewSpin"* true/false - this is whether or not you want to redo the spin if a spinup file exists already. Default false.
+- *"input_type"* 'dataframe' or 'csv' - if the inputs to CFM come from a csv (as has been the case until now) or from a dataframe. Default csv. This only matters at the main.py level. If you write your own API to firn_density_nospin you can pass a dictionary as the climateTS argument passed to firn_density_nospin (as is done with firnbatch_generic.py).
+- *"DFresample"* pandas Timedelta (string) - the resampling frequency (e.g. '5D') for the climate input data. 
+- *"DFfile"* filename as string - the filename, located in "InputFileFolder", of the dataframe to load if "input_type" is 'dataframe'.
+
+
+## [1.0.9]
 ### Added
 - *firn_density_nospin.py* (and outputs): The DIP output now includes an additional column (the last), which is the DIP to a specific depth horizon (DIPhz). This is specified in the .json with key "DIPhorizon". This feature is helpful because the bottom of the model domain at each time step can change through time, which results in inconsistencies in how the (total) DIP changes through time. The default value for DIPhorizon is 80% of the initial bottom of the domain (e.g. if the model domain was initially 200m, the DIPhorizon is 160m). If the firn thickness changes and the bottom of the domain becomes less than DIPhorizon, the DIPhz value output will be NaN. In this case, the density and depth outputs can be used to calculate DIP to any depth horizon. (This is the previous model behavior.) The very first value in the DIPhz column is the horizon depth. 
 
@@ -35,7 +58,6 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 ### Changed
 - *physics.py* B. Medley at NASA GSFC re-ran her calibration, and the model parameters have changed slightly.
 - *firn_density_nospin.py* The CFM would include 'dr2_dt' in the outputs associated with grain size. That variable was initialized, but not updated in the main code (time-stepping loop), which led to the saved file including a bix matrix of zeros. For now this has been disabled (i.e. there is no 'dr2_dt' at all.)
-
 
 ## [1.0.8]
 ### Notes
@@ -194,7 +216,7 @@ Changes should be categorized into *Added*, *Changed*, *Deprecated*, *Removed*, 
 
 - *constants.py* Added specific heat of water
 
-Changes to the .json files (most frequently new fields that are added to the configuration .json files) should be updated in the file generic.json, as then recorded in this document specifying the addition/change, e.g.
+Changes to the .json files (most frequently new fields that are added to the configuration .json files) should be updated in the file example.json, as then recorded in this document specifying the addition/change, e.g.
 
 - *example.json* Added field **initprofile**, (true/false) which specifies whether to use an initial condition from depth/density/temperature measurements, rather than a spin up climate
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Files included with the CFM &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>Files included with the CFM &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -96,6 +95,7 @@
 <li class="toctree-l2"><a class="reference internal" href="firn_air.html">firn_air.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="firn_density_spin.html">firn_density_spin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firnbatch_generic.html">firnbatch_generic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="hl_analytic.html">hl_analytic</a></li>
 <li class="toctree-l2"><a class="reference internal" href="isotopeDiffusion.html">isotopeDiffusion.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main</a></li>
@@ -104,14 +104,20 @@
 <li class="toctree-l2"><a class="reference internal" href="physics.html">physics.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="plotter.html">plotter.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="prefflow_snowpack.html">prefflow_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="RCMpkl_to_spin.html">RCMpkl_to_spin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="re_snowpack.html">re_snowpack.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reader.html">reader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regrid.html">regrid.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="siteClimate_from_RCM.html">siteClimate_from_RCM</a></li>
 <li class="toctree-l2"><a class="reference internal" href="solver.html">solver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sublim.html">sublim.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="writer.html">writer</a></li>
 </ul>
 </li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
 </ul>
 
             
@@ -187,8 +193,12 @@
 <li class="toctree-l1"><a class="reference internal" href="example.html">example.json</a></li>
 <li class="toctree-l1"><a class="reference internal" href="fcts_snowpackflow.html">fcts_snowpackflow.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="firn_air.html">firn_air.py</a></li>
-<li class="toctree-l1"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="firn_density_nospin.html#firn-density-nospin-py">firn_density_nospin.py</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="firn_density_spin.html">firn_density_spin</a></li>
+<li class="toctree-l1"><a class="reference internal" href="firnbatch_generic.html">firnbatch_generic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="hl_analytic.html">hl_analytic</a></li>
 <li class="toctree-l1"><a class="reference internal" href="isotopeDiffusion.html">isotopeDiffusion.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="main.html">main</a><ul>
@@ -198,14 +208,16 @@
 <li class="toctree-l1"><a class="reference internal" href="melt.html">melt.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="merge.html">merge.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="physics.html">physics.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="physics.html#the-community-firn-model-physics-module">The Community Firn Model physics module.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physics.html#id1">physics.py</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="plotter.html">plotter.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="prefflow_snowpack.html">prefflow_snowpack.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RCMpkl_to_spin.html">RCMpkl_to_spin</a></li>
 <li class="toctree-l1"><a class="reference internal" href="re_snowpack.html">re_snowpack.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="reader.html">reader</a></li>
 <li class="toctree-l1"><a class="reference internal" href="regrid.html">regrid.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="siteClimate_from_RCM.html">siteClimate_from_RCM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="solver.html">solver</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sublim.html">sublim.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="writer.html">writer</a><ul>
@@ -236,7 +248,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

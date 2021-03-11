@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>melt.py &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>melt.py &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -113,6 +112,10 @@
 </ul>
 </li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -180,21 +183,40 @@
             
   <div class="section" id="module-melt">
 <span id="melt-py"></span><h1>melt.py<a class="headerlink" href="#module-melt" title="Permalink to this headline">¶</a></h1>
-<dl class="function">
-<dt id="melt.bucketVV">
-<code class="sig-prename descclassname">melt.</code><code class="sig-name descname">bucketVV</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">iii</em><span class="sig-paren">)</span><a class="headerlink" href="#melt.bucketVV" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bucket scheme coded by V. Verjans, used in Verjans et al. (2019)</p>
+<dl class="py function">
+<dt id="melt.LWC_correct">
+<code class="sig-prename descclassname">melt.</code><code class="sig-name descname">LWC_correct</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#melt.LWC_correct" title="Permalink to this definition">¶</a></dt>
+<dd><p>If there is LWC in a layer after temperature diffusion and the temperature
+is less than zero, one option is to just balance the energy to increase the
+temperature and lower the LWC. It isn’t the best way to solve the problem
+but it is one way.</p>
+<p>This should be vectorized but that is not a priority.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
+<dt id="melt.bucketVV">
+<code class="sig-prename descclassname">melt.</code><code class="sig-name descname">bucketVV</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#melt.bucketVV" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bucket scheme for meltwater percolation, retention, refreezing, and runoff</p>
+<p>&#64;author: verjans
+Used in Verjans et al. (2019)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="melt.effectiveT">
+<code class="sig-prename descclassname">melt.</code><code class="sig-name descname">effectiveT</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#melt.effectiveT" title="Permalink to this definition">¶</a></dt>
+<dd><p>trying to see what happens if we raise the temperature to an ‘effective temperature’ that is the temperature plus the latent heat from the liquid. Puts the firn above T_melt.
+Potential issue with this method: there might be effective diffusion of mass because we are now diffusing with volumes warmer than T_melt –&gt; adjacent volumes that were dry might end up as having liquid.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="melt.percolation_bucket">
-<code class="sig-prename descclassname">melt.</code><code class="sig-name descname">percolation_bucket</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">iii</em><span class="sig-paren">)</span><a class="headerlink" href="#melt.percolation_bucket" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">melt.</code><code class="sig-name descname">percolation_bucket</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#melt.percolation_bucket" title="Permalink to this definition">¶</a></dt>
 <dd><p>This is the bucket scheme that allows liquid water to persist in the firn.
 It includes consideration of irreducible liquid water content (LWC) an maximum
 LWC. Water that encounters a slab of a certain density (impermeable_rho) will
 not percolate through.</p>
-<p>LWC is in volume (m^3), and since we are working in one dimension we assume
-that</p>
+<p>LWC is in volume (m^3), and since we are working in one dimension we assume that it is m^3/m^2.</p>
+<p>&#64;author: maxstev</p>
 </dd></dl>
 
 </div>
@@ -219,7 +241,7 @@ that</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

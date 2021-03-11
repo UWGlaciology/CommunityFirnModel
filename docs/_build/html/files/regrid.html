@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>regrid.py &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>regrid.py &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -113,6 +112,10 @@
 </ul>
 </li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -181,18 +184,66 @@
   <div class="section" id="module-regrid">
 <span id="regrid-py"></span><h1>regrid.py<a class="headerlink" href="#module-regrid" title="Permalink to this headline">¶</a></h1>
 <p>Script to change the grid to have different resolutions at different depths.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="regrid.init_regrid">
-<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">init_regrid</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.init_regrid" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">init_regrid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.init_regrid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Used in firn_density_spin for the initial regridding.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
+<dt id="regrid.init_regrid22">
+<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">init_regrid22</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.init_regrid22" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits the column in 5 grids: grid1(high res)-grid2(low res)-grid22(v. low res)-grid23(low res)-grid3(high res)
+Used in firn_density_spin for the initial regridding.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="regrid.regrid">
-<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">regrid</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.regrid" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">regrid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.regrid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called in both firn_density_spin and firn_density_nospin</p>
 <p>There are 3 subgrids in the regrid module. Grid 1 is the high resolution grid near the surface. Grid 2 is the lower resolution grid at greater depths; a user-defined number of nodes (self.c[‘nodestocombine’]; refer as NTC here) are combined occasionally (every NTC time steps) to make one new node within grid 2. Grid 3 is at the bottom and has split up one grid 2 node back into a high-resolution grid (1 node into NTC nodes), which can be removed at each time step to keep the model Lagrangian.</p>
 <p>the variable gridtrack keeps track of which subgrid each node is in.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="regrid.regrid22">
+<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">regrid22</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.regrid22" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called in both firn_density_spin and firn_density_nospin
+5 grids:</p>
+<blockquote>
+<div><p>grid1  -&gt; high resolution determined by accumulation events
+grid2  -&gt; low resolution by merging the batch of lowest nodestocombine layers of grid 1
+grid22 -&gt; very low resolution by merging the batch of lowest multnodestocombine layers of grid 2
+grid23 -&gt; low resolution by splitting the lowest layer of grid22 in multnodestocombine thinner layers
+New layer of grid23 is formed only when their stock is empty
+grid3  -&gt; high resolution by splitting the lowest layer of grid23 in nodestocombine layers</p>
+</div></blockquote>
+<p>gridtrack keeps track of which grid each layer is in</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="regrid.regrid22_reciprocal">
+<code class="sig-prename descclassname">regrid.</code><code class="sig-name descname">regrid22_reciprocal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#regrid.regrid22_reciprocal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reciprocal of regrid22: must be called if we accumulate too many grid3 nodes because of
+heavy melting of surface nodes (problematic in ablation area)
+-&gt; merge k batches of n1 grid3 nodes into k grid23 nodes (k is maximum nb of batches of n1 grid3 nodes available)
+if nb of layers in grid2 is &lt;k:</p>
+<blockquote>
+<div><p>-&gt; calculate the nb of supplementary grid2 layers required
+-&gt; calculate xx: the number of grid22 layers that must be split to provide the supplementary grid2 layers
+-&gt; merge xx batches of n2 grid23 layers into xx grid22 layer
+-&gt; divide xx grid22 layers into xx*n2 grid2 layers</p>
+</div></blockquote>
+<p>-&gt; divide k grid2 layer into n1 grid1 layer</p>
+<dl class="simple">
+<dt>5 grids:</dt><dd><p>grid1  -&gt; high resolution determined by accumulation events
+grid2  -&gt; low resolution
+grid22 -&gt; very low resolution
+grid23 -&gt; low resolution
+grid3  -&gt; high resolution</p>
+</dd>
+</dl>
+<p>gridtrack keeps track of which grid each layer is in</p>
 </dd></dl>
 
 </div>
@@ -217,7 +268,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

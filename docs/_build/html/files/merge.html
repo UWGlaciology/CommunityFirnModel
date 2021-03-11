@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>merge.py &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>merge.py &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -113,6 +112,10 @@
 </ul>
 </li>
 </ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
 
             
           
@@ -191,17 +194,17 @@ CAUTION:
 - not used for all variables (e.g. du_dx)
 - nothing is done considering gas neither for isotopes
 &#64;author: verjans</p>
-<dl class="function">
+<dl class="py function">
 <dt id="merge.mergeall">
-<code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergeall</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">thickmin</em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergeall" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergeall</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">thickmin</span></em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergeall" title="Permalink to this definition">¶</a></dt>
 <dd><p>We spot the layers that are under a certain thickness threshold and we merge these with the underlying layer
 This has to be launched at the end of the spinup, we use other functions in firn_density_nospin.
 Here we change self.compboxes as we modify the number of layers above 80m depth.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="merge.mergenotsurf">
-<code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergenotsurf</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">thickmin</em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergenotsurf" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergenotsurf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">thickmin</span></em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergenotsurf" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function is to call during time_evolve function of firn_density_nospin.
 We merge all the layers below a thickness threshold except the layers of indices 0 and 1.
 This allows layers that became too thin due to compaction to be merged with the layer below.
@@ -209,9 +212,9 @@ Minimum thickness threshold must be specified as thickmin
 We don’t do this for surface layer because that would lead to any newly accumulated layer to be merged if RCM forcing is on a short time scale. The surface layer has its own function mergesurf().</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="merge.mergesurf">
-<code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergesurf</code><span class="sig-paren">(</span><em class="sig-param">self</em>, <em class="sig-param">thickmin</em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergesurf" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">merge.</code><code class="sig-name descname">mergesurf</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">thickmin</span></em><span class="sig-paren">)</span><a class="headerlink" href="#merge.mergesurf" title="Permalink to this definition">¶</a></dt>
 <dd><p>This function is to call during time_evolve function of firn_density_nospin.
 We merge the surface layer[0] with the layer[1] below as long as layer[1] remains under a certain thickness threshold.
 By applying condition on layer[1] instead of layer[0], we avoid merging all newly accumulated layers in the case we use a RCM forcing on a short time scale.
@@ -240,7 +243,7 @@ Thickness threshold must be specified and consistent with the one of mergenotsur
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>

@@ -35,9 +35,14 @@ The CFM should run on Windows, Linux, and OSX platforms. Additionally, plotting 
 .. toctree::
    :maxdepth: 1
    :caption: Files:
-   
 
    files/index.rst
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Extras:
+   
+   extras/index.rst
 
 
 Contributing

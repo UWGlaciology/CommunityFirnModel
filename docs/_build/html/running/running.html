@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Running the CFM &mdash; The Community Firn Model 1.0.5 documentation</title>
+  <title>Running the CFM &mdash; The Community Firn Model 1.1.0 documentation</title>
   
 
   
@@ -21,11 +21,10 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../_static/jquery.js"></script>
-        <script type="text/javascript" src="../_static/underscore.js"></script>
-        <script type="text/javascript" src="../_static/doctools.js"></script>
-        <script type="text/javascript" src="../_static/language_data.js"></script>
-        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="../_static/js/theme.js"></script>
 
@@ -85,6 +84,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Running the CFM</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Running the CFM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-example">Running the example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="json.html">The .json-formatted configuration file</a></li>
 <li class="toctree-l2"><a class="reference internal" href="inputs.html">Inputs for the CFM</a></li>
 <li class="toctree-l2"><a class="reference internal" href="outputs.html">CFM outputs</a></li>
@@ -94,6 +94,10 @@
 <p class="caption"><span class="caption-text">Files:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../files/index.html">Files included with the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
 </ul>
 
             
@@ -162,12 +166,22 @@
             
   <div class="section" id="running-the-cfm">
 <h1>Running the CFM<a class="headerlink" href="#running-the-cfm" title="Permalink to this headline">¶</a></h1>
+<p>NOTE: For a more up-to-date list of changes to the CFM, please check the changelog which is in the CFM’s root folder.</p>
 <p>The CFM is mostly easily run from the command line, though it can alternatively be run from an integrated development environment (IDE) such as Spyder (included with the Anaconda Python distribution). To run the model, the user must set up a .json-formatted configuration file that specifies the settings for a particular model run. Here, we generically use example.json as the name of that configuration file.</p>
 <p>The model is run by calling main.py and specifying the name of the configuration file:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt; python main.py config.json -n
 </pre></div>
 </div>
 <p>If the results folder (specified in config.json) already exists and contains the results of a spin-up run (the spin-up file name is typically CFMspin.hdf5), the model will not run the spin-up routine again. If the user wishes to include the spin-up run, he/she should add the –n at the end of the above command to force the spin-up to run; if he/she wished to omit the spin up run, the –n should be omitted.</p>
+</div>
+<div class="section" id="running-the-example">
+<h1>Running the example<a class="headerlink" href="#running-the-example" title="Permalink to this headline">¶</a></h1>
+<p>The CFM includes an example .json file (cleverly called example.json). To test that the CFM is running on your system properly, you need to make sure that you have a directory called CFMinput with the appropriate file inside of it (<code class="docutils literal notranslate"><span class="pre">MERRA2_CLIM_df_72.5_-38.75.pkl</span></code>).</p>
+<p>Then run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;&gt;&gt; python main.py example.json
+</pre></div>
+</div>
+<p>It takes ~60 seconds to run on my laptop. You can compare the outputs to the resuls provided in the ‘example_results_compare’ directory.</p>
 </div>
 
 
@@ -190,7 +204,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2019, Max Stevens
+        &copy; Copyright 2021, Max Stevens
 
     </p>
   </div>
