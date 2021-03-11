@@ -18,7 +18,9 @@ INSTALL_REQUIRES = [
       'numpy>1.12.0',
       'pandas',
       'scipy>1.0.0',
-      'h5py'
+      'h5py',
+      'xarray',
+      'netCDF4'
 ]
 
 setup(name=PACKAGE_NAME,
