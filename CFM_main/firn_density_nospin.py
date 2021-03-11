@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 '''
 firn_density_nospin.py
 ======================
@@ -19,6 +20,7 @@ from physics import *
 from constants import *
 from melt import *
 from isotopeDiffusion import isotopeDiffusion
+from firn_density_spin import FirnDensitySpin
 import numpy as np
 import csv
 import json
@@ -38,7 +40,6 @@ try:
 except:
     print('You do not have the pandas python package installed.')
     print('It is used to create a running mean temperature.')
-
 from merge import mergeall #VV
 from merge import mergesurf #VV
 from merge import mergenotsurf #VV
@@ -49,7 +50,7 @@ from ModelOutputs import ModelOutputs
 
 class FirnDensityNoSpin:
     '''
-    Class for the main, transient model run.
+    Class for the main, transient model run. 
 
     Parameters
     ----------
@@ -83,20 +84,37 @@ class FirnDensityNoSpin:
                 
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
-
     '''
 
-    def __init__(self, configName, climateTS = None):
+    def __init__(self, configName, climateTS = None, NewSpin = False):
         '''
-        Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
-        :param configName: name of json config file containing model configurations
+        Sets up the initial spatial grid, time grid, accumulation rate, age, 
+        density, mass, stress, temperature, and diffusivity of the model run
         
+        :param configName: name of json config file containing model configurations       
         '''
+
         ### load in json config file and parses the user inputs to a dictionary
-        self.spin = False
+        
         with open(configName, "r") as f:
             jsonString      = f.read()
             self.c          = json.loads(jsonString)
+
+        spinner = os.path.exists(os.path.join(self.c['resultsFolder'], self.c['spinFileName']))
+        
+        if ((not spinner) or NewSpin):
+            if self.c['timesetup']=='exact':
+                if climateTS != None:
+                    self.c['stpsPerYear'] = 1/np.mean(np.diff(climateTS['time']))
+                else:
+                    input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
+                    self.c['stpsPerYear'] = 1/np.mean(np.diff(input_year_bdot))
+
+            firnS = FirnDensitySpin(self.c, climateTS = climateTS)
+            firnS.time_evolve()
+        else:
+            pass
+
         print("Main run starting")
         print("physics are", self.c['physRho'])
 
@@ -138,10 +156,9 @@ class FirnDensityNoSpin:
         if 'spinUpdate' not in self.c:
             self.c['spinUpdate'] = False
         if self.c['spinUpdate']:
-            csvStartDate = initDepth[0]
-            # print('csvStartDate',csvStartDate)
+            updatedStartDate = initDepth[0] # if the spin file has been updated, this is the date to start the run (find this time in the forcing data)
         else:
-            csvStartDate = None
+            updatedStartDate = None
 
         ### get temperature and accumulation rate from input csv file
         try:
@@ -168,10 +185,12 @@ class FirnDensityNoSpin:
 
         else:
             if climateTS != None:
-                input_temp = climateTS['TSKIN']
-                input_year_temp = climateTS['time']
+                start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
+                input_temp = climateTS['TSKIN'][start_ind:]
+                input_year_temp = climateTS['time'][start_ind:]
+                
             else:
-                input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), csvStartDate)
+                input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
             if input_temp[0] < 0.0:
                 input_temp      = input_temp + K_TO_C
             input_temp[input_temp>T_MELT] = T_MELT
@@ -179,10 +198,10 @@ class FirnDensityNoSpin:
 
         ### bdot ############
         if climateTS != None:
-            input_bdot = climateTS['BDOT']
-            input_year_bdot = climateTS['time']        
+            input_bdot = climateTS['BDOT'][start_ind:]
+            input_year_bdot = climateTS['time'][start_ind:]        
         else:
-            input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), csvStartDate)
+            input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), updatedStartDate)
         #####################
 
         #####################
@@ -198,10 +217,10 @@ class FirnDensityNoSpin:
 
         if self.c['MELT']:
             if ((climateTS != None) and ('SMELT' in climateTS.keys())):
-                input_snowmelt = climateTS['SMELT']
-                input_year_snowmelt = climateTS['time']
+                input_snowmelt = climateTS['SMELT'][start_ind:]
+                input_year_snowmelt = climateTS['time'][start_ind:]
             else:
-                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']), csvStartDate)
+                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']), updatedStartDate)
             self.MELT           = True
             try: 
                 self.LWC        = initLWC[1:]
@@ -213,10 +232,10 @@ class FirnDensityNoSpin:
                 self.c['RAIN'] = False
             if self.c['RAIN']:
                 if ((climateTS != None) and ('RAIN' in climateTS.keys())):
-                    input_rain = climateTS['RAIN']
-                    input_year_rain = climateTS['time']
+                    input_rain = climateTS['RAIN'][start_ind:]
+                    input_year_rain = climateTS['time'][start_ind:]
                 else:
-                    input_rain, input_year_rain = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), csvStartDate)
+                    input_rain, input_year_rain = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), updatedStartDate)
             
             if 'liquid' not in self.c:
                 print('Melt is on, but you did not specify which perolation scheme in the .json')
@@ -387,6 +406,7 @@ class FirnDensityNoSpin:
             ssf                 = interpolate.interp1d(input_year_snowmelt,input_snowmelt,int_type,fill_value='extrapolate')
             self.snowmelt       = ssf(self.modeltime)
             self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
+            self.c[LWCheat] = 'enthalpy' # Filler for future testing.
 
             if self.c['RAIN'] == True: ##VV use rain climatic input
                 rsf             = interpolate.interp1d(input_year_rain,input_rain,int_type,fill_value='extrapolate')
@@ -399,7 +419,7 @@ class FirnDensityNoSpin:
         ### Surface Density ####
         if self.c['variable_srho']:
             if self.c['srho_type']=='userinput':
-                input_srho, input_year_srho = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), csvStartDate)
+                input_srho, input_year_srho = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), updatedStartDate)
                 Rsf             = interpolate.interp1d(input_year_srho,input_srho,int_type,fill_value='extrapolate') # interpolation function
                 self.rhos0      = Rsf(self.modeltime) # surface temperature interpolated to model time
             elif self.c['srho_type']=='param':
@@ -429,7 +449,7 @@ class FirnDensityNoSpin:
             
         if self.c['rad_pen']: 
             print('RADIATION PENETRATION STILL IN DEVELOPMENT STAGE')   
-            input_rad, input_year_rad = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']), csvStartDate)
+            input_rad, input_year_rad = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']), updatedStartDate)
             Radsf             = interpolate.interp1d(input_year_rad,input_rad,int_type,fill_value='extrapolate')
             self.E_sw = Radsf(self.modeltime)
         #####################        
@@ -486,7 +506,7 @@ class FirnDensityNoSpin:
 
         ### set up longitudinal strain rate
         if self.c['strain']: # input units are yr^-1
-            input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), csvStartDate)
+            input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), updatedStartDate)
             dusf                        = interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')           
             self.du_dx      = dusf(self.modeltime)
             self.du_dxSec   = self.du_dx / S_PER_YEAR #/ self.c['stpsPerYear'] # strain rate (s^-1) at each time step
@@ -546,6 +566,7 @@ class FirnDensityNoSpin:
 
         ### Isotopes ########
         if self.c['isoDiff']:
+            self.spin = False
             print('Isotope Diffusion is initialized')
             if 'site_pressure' not in self.c:
                 print('site_pressure not in .json')
@@ -571,6 +592,7 @@ class FirnDensityNoSpin:
         each gas of interest gets its own instance of the class, each instance
         is stored in a dictionary
         '''
+
         if self.c['FirnAir']:
             print('Firn air initialized')
             with open(self.c['AirConfigName'], "r") as f:
@@ -589,8 +611,7 @@ class FirnDensityNoSpin:
                     input_year_gas = input_year_temp
                     input_gas = np.ones_like(input_year_temp)
                 else:
-                    input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas), csvStartDate)
-
+                    input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas), updatedStartDate)
                 Gsf     = interpolate.interp1d(input_year_gas,input_gas,'linear',fill_value='extrapolate')
                 Gs      = Gsf(self.modeltime)
 
@@ -713,11 +734,12 @@ class FirnDensityNoSpin:
 
     def time_evolve(self):
         '''
-
         Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity through time
         based on the user specified number of timesteps in the model run. Updates the firn density using a user specified 
         
+        Writes to hdf file at end.
         '''
+
         self.steps = 1 / np.mean(self.t) # steps per year
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
 
@@ -1179,6 +1201,7 @@ class FirnDensityNoSpin:
         '''
         Updates the bubble close-off depth and age based on the Martinerie criteria as well as through assuming the critical density is 815 kg/m^3
         '''
+
         try:
             if (self.c['FirnAir'] and self.cg['runtype']=='steady'):
                 bcoMartRho  = 1 / (1 / (917.0) + self.cg['steady_T'] * 6.95E-7 - 4.3e-5)  # Martinerie density at close off
@@ -1219,6 +1242,7 @@ class FirnDensityNoSpin:
         '''
         Updates the depth-integrated porosity
         '''
+
         bcoMartRho  = 1 / (1 / (917.0) + self.T50* 6.95E-7 - 4.3e-5) # Martinerie density at close off; see Buizert thesis (2011), Blunier & Schwander (2000), Goujon (2003)
         phi         = 1 - self.rho / RHO_I  # total porosity
         phi[phi <= 0] = 1e-16

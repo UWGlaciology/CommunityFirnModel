@@ -62,23 +62,25 @@ def find_indices(points,lon,lat,tree=None):
     # return [(i,j) for i,j in ind]
     return ii,jj #, [(i,j) for i,j in ind]
 
-def toYearFraction(date):
-    '''
-    convert datetime to decimal date 
-    '''
-    def sinceEpoch(date): # returns seconds since epoch
-        return time.mktime(date.timetuple())
-    s = sinceEpoch
 
-    year = date.year
-    startOfThisYear = datetime(year=year, month=1, day=1)
-    startOfNextYear = datetime(year=year+1, month=1, day=1)
+# def toYearFraction(date):
+#     '''
+#     convert datetime to decimal date 
+#     '''
+#     def sinceEpoch(date): # returns seconds since epoch
+#         return time.mktime(date.timetuple())
+#     s = sinceEpoch
 
-    yearElapsed = s(date) - s(startOfThisYear)
-    yearDuration = s(startOfNextYear) - s(startOfThisYear)
-    fraction = yearElapsed/yearDuration
+#     year = date.year
+#     startOfThisYear = datetime(year=year, month=1, day=1)
+#     startOfNextYear = datetime(year=year+1, month=1, day=1)
 
-    return date.year + fraction
+#     yearElapsed = s(date) - s(startOfThisYear)
+#     yearDuration = s(startOfNextYear) - s(startOfThisYear)
+#     fraction = yearElapsed/yearDuration
+
+#     return date.year + fraction
+
 
 def read_netcdfs_merra(files, dim, ii, jj, vv, transform_func=None):
     '''
@@ -368,66 +370,67 @@ def makeSpinFiles(lat_int,lon_int,writer=False,datatype='MERRA',timeres='1D',mel
     ### end MAR ###
     ###############
 
-    res_dict = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean'}
-    df_BDOT_re = df_BDOT.resample(timeres).sum()
-    if Tinterp == 'mean':
-        df_TS_re = df_TS.resample(timeres).mean()
-    elif Tinterp == 'effective':
-        df_TS_re = df_TS.resample(timeres).apply(effectiveT)
-    elif Tinterp == 'weighted':
-        df_TS_re = pd.DataFrame(data=(df_BDOT.BDOT*df_TS.TSKIN).resample(timeres).sum()/(df_BDOT.BDOT.resample(timeres).sum()),columns=['TSKIN'])
-        pass
+    # res_dict = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean'}
+    # df_BDOT_re = df_BDOT.resample(timeres).sum()
+    # if Tinterp == 'mean':
+    #     df_TS_re = df_TS.resample(timeres).mean()
+    # elif Tinterp == 'effective':
+    #     df_TS_re = df_TS.resample(timeres).apply(effectiveT)
+    # elif Tinterp == 'weighted':
+    #     df_TS_re = pd.DataFrame(data=(df_BDOT.BDOT*df_TS.TSKIN).resample(timeres).sum()/(df_BDOT.BDOT.resample(timeres).sum()),columns=['TSKIN'])
+    #     pass
 
-    df_CLIM_re = df_CLIM.resample(timeres).agg(res_dict)
-    df_CLIM_re.TSKIN = df_TS_re.TSKIN
-    df_CLIM_ids = list(df_CLIM_re.columns)
+    # df_CLIM_re = df_CLIM.resample(timeres).agg(res_dict)
+    # df_CLIM_re.TSKIN = df_TS_re.TSKIN
+    # df_CLIM_ids = list(df_CLIM_re.columns)
 
-    df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-    df_CLIM_re = df_CLIM_re.fillna(method='pad')
+    # df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
+    # df_CLIM_re = df_CLIM_re.fillna(method='pad')
 
-    df_TS_re['decdate'] = [toYearFraction(qq) for qq in df_TS_re.index]
-    df_BDOT_re['decdate'] = [toYearFraction(qq) for qq in df_BDOT_re.index]
-    df_TS_re = df_TS_re.fillna(method='pad')
+    # df_TS_re['decdate'] = [toYearFraction(qq) for qq in df_TS_re.index]
+    # df_BDOT_re['decdate'] = [toYearFraction(qq) for qq in df_BDOT_re.index]
+    # df_TS_re = df_TS_re.fillna(method='pad')
 
-    stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
+    # stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
-    BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
-    print('BDOT_mean ',BDOT_mean_IE)
-    T_mean = (df_TS_re['TSKIN']).mean()
+    # BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
+    # print('BDOT_mean ',BDOT_mean_IE)
+    # T_mean = (df_TS_re['TSKIN']).mean()
 
-    hh  = np.arange(0,501)
-    age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
-    desired_depth = hh[np.where(rho>=916)[0][0]]
-    depth_S1 = hh[np.where(rho>=550)[0][0]]
-    depth_S2 = hh[np.where(rho>=750)[0][0]]
+    # hh  = np.arange(0,501)
+    # age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
+    # desired_depth = hh[np.where(rho>=916)[0][0]]
+    # depth_S1 = hh[np.where(rho>=550)[0][0]]
+    # depth_S2 = hh[np.where(rho>=750)[0][0]]
 
-    #### Make spin up series ###
-    RCI_length = spin_date_end-spin_date_st+1
-    num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
-    years = num_reps*RCI_length
-    sub = np.arange(-1*years,0,RCI_length)
+    # #### Make spin up series ###
+    # RCI_length = spin_date_end-spin_date_st+1
+    # num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+    # years = num_reps*RCI_length
+    # sub = np.arange(-1*years,0,RCI_length)
 
-    msk = df_CLIM_re.decdate.values<spin_date_end+1
-    spin_days = df_CLIM_re.decdate.values[msk]
+    # msk = df_CLIM_re.decdate.values<spin_date_end+1
+    # spin_days = df_CLIM_re.decdate.values[msk]
 
-    smb_spin = df_CLIM_re['BDOT'][msk].values
-    tskin_spin = df_CLIM_re['TSKIN'][msk].values
+    # smb_spin = df_CLIM_re['BDOT'][msk].values
+    # tskin_spin = df_CLIM_re['TSKIN'][msk].values
 
-    nu = len(spin_days)
-    spin_days_all = np.zeros(len(sub)*nu)
-    smb_spin_all = np.zeros_like(spin_days_all)
-    tskin_spin_all = np.zeros_like(spin_days_all)
+    # nu = len(spin_days)
+    # spin_days_all = np.zeros(len(sub)*nu)
+    # smb_spin_all = np.zeros_like(spin_days_all)
+    # tskin_spin_all = np.zeros_like(spin_days_all)
 
-    spin_days_all = (sub[:,np.newaxis]+spin_days).flatten()
-    spin_dict = {}
-    for ID in df_CLIM_ids:
-        spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub))
+    # spin_days_all = (sub[:,np.newaxis]+spin_days).flatten()
+    # spin_dict = {}
+    # for ID in df_CLIM_ids:
+    #     spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub))
 
-    df_CLIM_decdate = df_CLIM_re.set_index('decdate')
-    df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
-    df_spin.index.name = 'decdate'
+    # df_CLIM_decdate = df_CLIM_re.set_index('decdate')
+    # df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
+    # df_spin.index.name = 'decdate'
 
-    df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+    # df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+
 
 
     # for idx, kk in enumerate(sub):
@@ -439,22 +442,15 @@ def makeSpinFiles(lat_int,lon_int,writer=False,datatype='MERRA',timeres='1D',mel
     # smb_ret = np.concatenate((smb_spin_all,df_BDOT_re['BDOT'].values))*stepsperyear*3600/917
     # ts_ret = np.concatenate((tskin_spin_all,df_TS_re['TSKIN'].values))
 
-    CD = {}
-    CD['time'] = df_FULL.index
-    for ID in df_CLIM_ids:
-        if ID == 'TSKIN':
-            CD[ID] = df_FULL[ID].values
-        else:
-            CD[ID] = df_FULL[ID].values * stepsperyear / 917
-    # CD['TSKIN'] = ts_ret
-    # if df_MELT != None:
-    #     CD['melt'] = smelt_ret
-    # if df_RAIN != None:
-    #     CD['rain'] = rain_ret
 
-    # smb_ret = (df_BDOT_re['PRECTOT'].values*stepsperyear*3600/917).flatten()
-    # ts_ret = (df_TS_re['TS'].values).flatten()
-    # time_ret = (df_TS_re['decdate'].values).flatten()
+    # CD = {}
+    # CD['time'] = df_FULL.index
+    # for ID in df_CLIM_ids:
+    #     if ID == 'TSKIN':
+    #         CD[ID] = df_FULL[ID].values
+    #     else:
+    #         CD[ID] = df_FULL[ID].values * stepsperyear / 917
+
 
     if writer:
         if datatype =='MERRA':
@@ -462,7 +458,9 @@ def makeSpinFiles(lat_int,lon_int,writer=False,datatype='MERRA',timeres='1D',mel
         elif datatype == 'MAR':
             df_CLIM.to_pickle(pickle_folder + 'MAR_{}_CLIM_df_{}_{}.pkl'.format(dsource,lat_val,lon_val))
 
-    return CD, stepsperyear, depth_S1, depth_S2, desired_depth
+
+    return df_CLIM
+    # return CD, stepsperyear, depth_S1, depth_S2, desired_depth
 
 
 
@@ -477,7 +475,9 @@ if __name__ == '__main__':
     timeres  = '1D'
     runtype = 'local'
     Tinterp = 'mean'
-    CD, StpsPerYr, depth_S1, depth_S2, desired_depth = makeSpinFiles(lat_int,lon_int,timeres=timeres,writer = True,Tinterp = Tinterp, runtype = runtype)
+
+    df_CLIM = makeSpinFiles(lat_int,lon_int,timeres=timeres,writer = True,Tinterp = Tinterp, runtype = runtype)
+
 
 
 

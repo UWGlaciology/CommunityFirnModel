@@ -18,10 +18,11 @@ from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
 import shutil
+import RCMpkl_to_spin as RCM
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annika Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "1.0.8"
+__version__ = "1.1.0"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@umd.edu"
 __status__ = "Production"
@@ -57,23 +58,25 @@ if __name__ == '__main__':
     print("-----------------------------------------------------------------------")
     print("")
     
-    if os.path.isfile(c['resultsFolder']+'/'+c['spinFileName']) and '-n' not in sys.argv:
-        print('Skipping Spin-Up run;', c['resultsFolder']+'/'+c['spinFileName'], 'exists already')
-        try:
-            os.remove(c['resultsFolder']+'/'+c['resultsFileName'])
-            print('deleted', c['resultsFolder']+'/'+c['resultsFileName'])
-        except:
-            pass
-        firn = FirnDensityNoSpin(configName)
-        firn.time_evolve()
-
+    if '-n' in sys.argv:
+        NewSpin = True
+    elif 'NewSpin' in c:
+        NewSpin = c['NewSpin']
     else:
+        NewSpin = False
 
-        firnS = FirnDensitySpin(configName)
-        firnS.time_evolve()
+    if 'input_type' not in c:
+        c['input_type'] = "csv"
 
-        firn = FirnDensityNoSpin(configName)
-        firn.time_evolve()
+    if c['input_type'] == 'dataframe':
+        pkl_name = os.path.join(c['InputFileFolder'],c['DFfile'])
+        timeres = c['DFresample']
+        climateTS, stepsperyear, depth_S1, depth_S2, desired_depth = RCM.makeSpinFiles(pkl_name,timeres = timeres, melt = c['MELT'])
+    else:
+        climateTS = None
+
+    firn = FirnDensityNoSpin(configName, climateTS = climateTS, NewSpin = NewSpin)
+    firn.time_evolve()
 
     shutil.copy(configName,c['resultsFolder'])
     

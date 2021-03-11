@@ -1,0 +1,5 @@
+doctest
+=======
+
+.. automodule:: Maxdoctest
+	:members:

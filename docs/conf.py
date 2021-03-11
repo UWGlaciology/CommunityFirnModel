@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.abspath('../CFM_main'))
 # -- Project information -----------------------------------------------------
 
 project = 'The Community Firn Model'
-copyright = '2019, Max Stevens'
+copyright = '2021, Max Stevens'
 author = 'Max Stevens'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.5'
+release = '1.1.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -30,8 +30,9 @@ release = '1.0.5'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark','sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon','sphinx.ext.mathjax'
-]
+
+
+extensions = ['recommonmark','sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon','sphinx.ext.mathjax']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

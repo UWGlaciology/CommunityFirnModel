@@ -1,0 +1,5 @@
+writer
+======
+
+.. automodule:: writer
+	:members:
