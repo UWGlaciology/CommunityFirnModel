@@ -1,9 +1,10 @@
 import pathlib
 from setuptools import setup, find_packages
+import os
 
 HERE = pathlib.Path(__file__).parent
 
-VERSION = '1.0.8'
+VERSION = '1.1.0'
 PACKAGE_NAME = 'CommunityFirnModel'
 AUTHOR = 'Max Stevens'
 AUTHOR_EMAIL = 'maxstev@umd.edu'
@@ -11,8 +12,10 @@ URL = 'https://github.com/UWGlaciology/CommunityFirnModel'
 
 LICENSE = 'MIT'
 DESCRIPTION = 'An open-source model to simulate firn.'
-LONG_DESCRIPTION = (HERE / "README.md").read_text()
-LONG_DESC_TYPE = "markdown"
+# LONG_DESCRIPTION = (HERE / "README.md").read_text()
+with open(os.path.join(HERE, 'README.md'), encoding='utf-8') as f:
+    LONG_DESCRIPTION = f.read()
+LONG_DESC_TYPE = "text/markdown"
 
 INSTALL_REQUIRES = [
       'numpy>1.12.0',
