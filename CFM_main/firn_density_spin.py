@@ -365,7 +365,7 @@ class FirnDensitySpin:
 
         self.LWC = np.zeros_like(self.z)
         self.MELT = False
-
+        self.c['LWCheat'] = 'enthalpy'
         ### values for Goujon physics
         if self.c['physRho']=='Goujon2003':
             self.Gamma_Gou      = 0 

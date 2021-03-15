@@ -106,6 +106,7 @@ class FirnDensityNoSpin:
             if self.c['timesetup']=='exact':
                 if climateTS != None:
                     self.c['stpsPerYear'] = 1/np.mean(np.diff(climateTS['time']))
+                    print('stepsperyear:', self.c['stpsPerYear'])
                 else:
                     input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
                     self.c['stpsPerYear'] = 1/np.mean(np.diff(input_year_bdot))
@@ -406,7 +407,7 @@ class FirnDensityNoSpin:
             ssf                 = interpolate.interp1d(input_year_snowmelt,input_snowmelt,int_type,fill_value='extrapolate')
             self.snowmelt       = ssf(self.modeltime)
             self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
-            self.c[LWCheat] = 'enthalpy' # Filler for future testing.
+            self.c['LWCheat'] = 'enthalpy' # Filler for future testing.
 
             if self.c['RAIN'] == True: ##VV use rain climatic input
                 rsf             = interpolate.interp1d(input_year_rain,input_rain,int_type,fill_value='extrapolate')

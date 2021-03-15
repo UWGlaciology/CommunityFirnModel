@@ -13,7 +13,7 @@ Distributed under terms of the MIT license.
 
 import sys
 import os
-from firn_density_spin import FirnDensitySpin
+# from firn_density_spin import FirnDensitySpin
 from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
