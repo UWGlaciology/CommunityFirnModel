@@ -273,7 +273,6 @@ class FirnDensityNoSpin:
             self.dt = self.dt * np.ones(self.stp)
             # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
             self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
-            # self.t          = np.ones_like(input_year_temp) / self.c['stpsPerYear']
             # self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
             self.t = (1.0 / self.c['stpsPerYear']) * np.ones_like(self.dt)
             init_time = -9999.0
