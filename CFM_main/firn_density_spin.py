@@ -479,6 +479,8 @@ class FirnDensitySpin:
                         K = (13.5 * r_hor2 + 1.5 * np.sqrt(81 * r_hor2 ** 2 + 12 * r_hor2) + 1) ** (1 / 3)
                         correction_factor_viscosity = (K + 1 / K + 1) / 3
 
+                        #correction_factor_viscosity = (r_hor2 + (1 - 0.418) ** (8 / 3)) ** (3 / 8) + 0.418  # Approximated relation for n=4.
+                        #print(correction_factor_viscosity)
                         z2mask = (self.rho >= RHO_1)
                         eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * correction_factor_viscosity[z2mask]
                         drho_dt[z2mask]        = drho_dt[z2mask] * correction_factor_viscosity[z2mask]
