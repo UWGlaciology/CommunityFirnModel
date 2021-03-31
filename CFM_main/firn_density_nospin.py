@@ -511,11 +511,11 @@ class FirnDensityNoSpin:
         if self.c['strain']: # input units are yr^-1
             input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']), updatedStartDate)
             input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
-            d1sf             = interpolate.interp1d(input_year_eps, input_eps_1, int_type, fill_value='extrapolate')
-            d2sf             = interpolate.interp1d(input_year_eps, input_eps_2, int_type, fill_value='extrapolate')
+            d1sf            = interpolate.interp1d(input_year_eps, input_eps_1, int_type, fill_value='extrapolate')
+            d2sf            = interpolate.interp1d(input_year_eps, input_eps_2, int_type, fill_value='extrapolate')
             self.eps_1      = d1sf(self.modeltime)
             self.eps_2      = d2sf(self.modeltime)
-            self.eps_zz = - (self.eps_1 + self.eps_2)
+            self.eps_zz     = - (self.eps_1 + self.eps_2)
         #######################
         if self.c['manualT']:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
