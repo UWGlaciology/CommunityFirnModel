@@ -1,5 +1,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3585885.svg)](https://doi.org/10.5281/zenodo.3585885)
 
+CAUTION: THIS BRANCH IS WORK IN PROGRESS
+
 # The Community Firn Model
 
 Welcome to the repository for the **Community Firn Model (CFM)**. 
