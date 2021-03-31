@@ -466,6 +466,8 @@ class FirnDensityNoSpin:
             self.c['strain_softening'] = False
         if 'residual_strain' not in self.c:
             self.c['residual_strain'] = 2e-4
+        if 'strain_correction' not in self.c:
+            self.c['strain_correction'] = False
         if 'strain_heating' not in self.c:
             self.c['strain_heating'] = False
 
@@ -477,6 +479,11 @@ class FirnDensityNoSpin:
             self.eps_1         = d1sf(self.modeltime)
             self.eps_2         = d2sf(self.modeltime)
             self.eps_eff_hor_2 = (self.eps_1 ** 2 + self.eps_2 ** 2) / 2
+            if self.c['strain_correction']:
+                eps_eff_hor = np.sqrt(self.eps_eff_hor_2)
+                eps_eff_hor = eps_eff_hor - 4e-4
+                eps_eff_hor[np.where(eps_eff_hor<0)] = 0
+                self.eps_eff_hor_2 = eps_eff_hor**2
             self.eps_zz        = - (self.eps_1 + self.eps_2)
         else:
             if self.c['strain_softening']:

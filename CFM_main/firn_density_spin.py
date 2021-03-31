@@ -308,6 +308,8 @@ class FirnDensitySpin:
             self.c['strain_softening'] = False
         if 'residual_strain' not in self.c:
             self.c['residual_strain'] = 2e-4
+        if 'strain_correction' not in self.c:
+            self.c['strain_correction'] = False
         if 'strain_heating' not in self.c:
             self.c['strain_heating'] = False
 
@@ -325,6 +327,12 @@ class FirnDensitySpin:
                 self.eps_2 = np.mean(input_eps_2)
             print('Spin-up strain rates are', self.eps_1, 'and', self.eps_2)
             self.eps_eff_hor_2 = (self.eps_1 ** 2 + self.eps_2 ** 2) / 2
+            if self.c['strain_correction']:
+                eps_eff_hor = np.sqrt(self.eps_eff_hor_2)
+                eps_eff_hor = eps_eff_hor - 4e-4
+                if eps_eff_hor < 0:
+                    eps_eff_hor = 0
+                self.eps_eff_hor_2 = eps_eff_hor**2
             self.eps_zz        = - (self.eps_1 + self.eps_2)
         else:
             if self.c['strain_softening']:
