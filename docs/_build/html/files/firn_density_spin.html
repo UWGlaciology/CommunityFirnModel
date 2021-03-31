@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>firn_density_spin &mdash; The Community Firn Model 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="firnbatch_generic" href="firnbatch_generic.html" />
+    <link rel="prev" title="firn_density_nospin" href="firn_density_nospin.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> The Community Firn Model
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../running/index.html">Running the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Files:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Files included with the CFM</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="AirConfig.html">airconfig.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">constants.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diffusion.html">diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">example.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fcts_snowpackflow.html">fcts_snowpackflow.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_air.html">firn_air.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">firn_density_spin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firnbatch_generic.html">firnbatch_generic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hl_analytic.html">hl_analytic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="isotopeDiffusion.html">isotopeDiffusion.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="melt.html">melt.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merge.html">merge.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physics.html">physics.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotter.html">plotter.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prefflow_snowpack.html">prefflow_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="re_snowpack.html">re_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reader.html">reader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regrid.html">regrid.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="siteClimate_from_RCM.html">siteClimate_from_RCM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solver.html">solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sublim.html">sublim.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="writer.html">writer</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">The Community Firn Model</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Files included with the CFM</a> &raquo;</li>
+        
+      <li>firn_density_spin</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/files/firn_density_spin.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-firn_density_spin">
+<span id="firn-density-spin"></span><h1>firn_density_spin<a class="headerlink" href="#module-firn_density_spin" title="Permalink to this headline">¶</a></h1>
+<p>Class for spinning up the model.</p>
+<p>This file spins up to a steady-state firn column using constant temperature,
+accumulation rate, and surface density. This works well for long model runs
+with big time steps (e.g. for ice-core related questions).</p>
+<p>To spin up using a climate with a bit of variability (like a reference climate
+interval) for e.g. altimetry or melt related runs, this script will essentially
+create an initial condition. In this case, set ‘yearSpin’ in your .json file
+to some small number (e.g. 1); otherwise you are wasting computing time.</p>
+<dl class="py class">
+<dt id="firn_density_spin.FirnDensitySpin">
+<em class="property">class </em><code class="sig-prename descclassname">firn_density_spin.</code><code class="sig-name descname">FirnDensitySpin</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">config</span></em>, <em class="sig-param"><span class="n">climateTS</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#firn_density_spin.FirnDensitySpin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parameters used in the model, for the initialization as well as the time evolution:</p>
+<dl class="simple">
+<dt>: gridLen: size of grid used in the model run</dt><dd><p>(unit: number of boxes, type: int)</p>
+</dd>
+<dt>: dx: vector of width of each box, used for stress calculations</dt><dd><p>(unit: m, type: array of ints)</p>
+</dd>
+<dt>: dz: vector of thickness of each box</dt><dd><p>(unit: m, type: float)</p>
+</dd>
+<dt>: z:  vector of edge locations of each box (value is the top of the box)</dt><dd><p>(unit: m, type: float)</p>
+</dd>
+<dt>: dt: number of seconds per time step</dt><dd><p>(unit: seconds, type: float)</p>
+</dd>
+<dt>: t: number of years per time step</dt><dd><p>(unit: years, type: float)</p>
+</dd>
+<dt>: modeltime: linearly spaced time vector from indicated start year to indicated end year</dt><dd><p>(unit: years, type: array of floats)</p>
+</dd>
+<dt>: years: total number of years in the model run</dt><dd><p>(unit: years, type: float)</p>
+</dd>
+<dt>: stp: total number of steps in the model run</dt><dd><p>(unit: number of steps, type: int)</p>
+</dd>
+<dt>: T_mean: interpolated temperature vector based on the model time and the initial user temperature data</dt><dd><p>(unit: ???, type: array of floats)</p>
+</dd>
+<dt>: Ts: interpolated temperature vector based on the model time &amp; the initial user temperature data</dt><dd><p>may have a seasonal signal imposed depending on number of years per time step (&lt; 1)
+(unit: ???, type: array of floats)</p>
+</dd>
+<dt>: bdot: bdot is meters of ice equivalent/year. multiply by 0.917 for W.E. or 917.0 for kg/year</dt><dd><p>(unit: ???, type: )</p>
+</dd>
+<dt>: bdotSec: accumulation rate vector at each time step</dt><dd><p>(unit: ???, type: array of floats)</p>
+</dd>
+<dt>: rhos0: surface accumulate rate vector</dt><dd><p>(unit: ???, type: array of floats)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns D_surf</dt>
+<dd class="field-odd"><p>diffusivity tracker
+(unit: ???, type: array of floats)</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="firn_density_spin.FirnDensitySpin.time_evolve">
+<code class="sig-name descname">time_evolve</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#firn_density_spin.FirnDensitySpin.time_evolve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evolve the spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature through time
+based on the user specified number of timesteps in the model run. Updates the firn density using a user specified</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="firnbatch_generic.html" class="btn btn-neutral float-right" title="firnbatch_generic" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="firn_density_nospin.html" class="btn btn-neutral float-left" title="firn_density_nospin" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2021, Max Stevens
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

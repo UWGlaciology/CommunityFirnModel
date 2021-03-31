@@ -1,0 +1,236 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>CFM outputs &mdash; The Community Firn Model 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Files included with the CFM" href="../files/index.html" />
+    <link rel="prev" title="Inputs for the CFM" href="inputs.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> The Community Firn Model
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Running the CFM</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="running.html">Running the CFM</a></li>
+<li class="toctree-l2"><a class="reference internal" href="json.html">The .json-formatted configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="inputs.html">Inputs for the CFM</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CFM outputs</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Files:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../files/index.html">Files included with the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">The Community Firn Model</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Running the CFM</a> &raquo;</li>
+        
+      <li>CFM outputs</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/running/outputs.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cfm-outputs">
+<h1>CFM outputs<a class="headerlink" href="#cfm-outputs" title="Permalink to this headline">¶</a></h1>
+<p>The CFM writes its outputs to a single.hdf5-format file. By default, all nodes are written to file. The output is only saved at the time steps specified by the user with the variable TWrite. Most of the outputs should be self-explanatory. Many of them are big 2D matrices; the first column is time, and the values throughout are the particular values at the depth found in the corresponding cell in the depth output. Set the outputs you want in the .json file. The available outputs are:
+depth: (m) The depth of each model node.
+density: (kg m-3) The density at the depths in ‘depth
+temperature: (K) Temperature at the depths in ‘depth’
+age: (years) Firn Age at the depths in ‘depth’
+dcon: Dcon is a layer-tracking routine; to use it you need to dig into the code a bit and program it how you want, but for example you could set it up so that each model node that has liquid water gets a 1 and all others get a zero. Corresponds to depth.</p>
+<p>bdot_mean: (m a-1 ice equivalent) the mean accumulation rate over the lifetime of each parcel of firn, corresponds with ‘depth’</p>
+<p>climate: The temperature (K) and accumulation rate (m a-1 ice equivalent) at each time step – useful if using interpolation to find determine the climate.</p>
+<p>compaction: (m) Total compaction of each node since the previous time step; corresponds to ‘depth’. To get compaction rate you need to divide by the time-step size. To get compaction over an interval you need to sum numerous boxes.</p>
+<p>grainsize: (mm2) the grain size of the firn, corresponds to ‘depth’
+temp_Hx: the temperature history of the firn (See Morris and Wingham, 2014)</p>
+<p>isotopes: (per mil) water isotope values, corresponds to ‘depth’</p>
+<p>LWC: (m3) volume of liquid present in that node, corresponds to ‘depth’</p>
+<p>DIP: the depth-integrated porosity and change in surface elevation. 4 columns: The first is time, second is DIP to the bottom of the model domain (m), third is change in domain thickness since last time step (m), fourth is change in domain thickness since start of model run (m).
+DIP also saves a variable called DIPc, which is a matrix of the cumulative porosity to the depth in ‘depth’</p>
+<p>BCO: bubble close-off properties. 10 columns: time, Martinerie close-off age, Marinerie close-off depth, age of 830 kg m-3 density horizon, depth of 830 kg m-3 density horizon, Martinerie lock-in age, Marinerie lock-in depth, age of 815 kg m-3 density horizon, depth of 815 kg m-3 density horizon, depth of zero porosity.</p>
+<p>FirnAir: only works if FirnAir is true in the config.json. Saves gas concentrations, diffusivity profile, gas age, and advection rates of air and firn, all corresponding to ‘depth’.</p>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../files/index.html" class="btn btn-neutral float-right" title="Files included with the CFM" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="inputs.html" class="btn btn-neutral float-left" title="Inputs for the CFM" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2021, Max Stevens
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,418 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>physics.py &mdash; The Community Firn Model 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="plotter.py" href="plotter.html" />
+    <link rel="prev" title="merge.py" href="merge.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> The Community Firn Model
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../running/index.html">Running the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Files:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Files included with the CFM</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="AirConfig.html">airconfig.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">constants.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diffusion.html">diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">example.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fcts_snowpackflow.html">fcts_snowpackflow.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_air.html">firn_air.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_density_spin.html">firn_density_spin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hl_analytic.html">hl_analytic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="isotopeDiffusion.html">isotopeDiffusion.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="melt.html">melt.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merge.html">merge.py</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">physics.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">physics.py</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="plotter.html">plotter.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prefflow_snowpack.html">prefflow_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="re_snowpack.html">re_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reader.html">reader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regrid.html">regrid.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solver.html">solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sublim.html">sublim.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="writer.html">writer</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">The Community Firn Model</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Files included with the CFM</a> &raquo;</li>
+        
+      <li>physics.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/files/physics.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="physics-py">
+<h1>physics.py<a class="headerlink" href="#physics-py" title="Permalink to this headline">¶</a></h1>
+<p>This module contains all of the firn-densification models.</p>
+<span class="target" id="module-physics"></span><div class="section" id="id1">
+<h2>physics.py<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>The Community Firn Model physics module.</p>
+<p>equations for each of the densification models.</p>
+<dl class="py class">
+<dt id="physics.FirnPhysics">
+<em class="property">class </em><code class="sig-prename descclassname">physics.</code><code class="sig-name descname">FirnPhysics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">PhysParams</span></em><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics" title="Permalink to this definition">¶</a></dt>
+<dd><p>class for the various firn densification schemes</p>
+<p>The standard parameters that get passed are: iii, steps, gridLen, bdotSec, bdot_mean, bdot_type, Tz, T10m, rho, sigma, dt, Ts, r2, physGrain</p>
+<p>if you want to add physics that require more parameters, you need to change the ‘PhysParams’ dictionary in both the spin and nospin classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>steps</strong> – # of steps per year</p></li>
+<li><p><strong>gridLen</strong> – </p></li>
+<li><p><strong>bdotSec</strong> – </p></li>
+<li><p><strong>Tz</strong> – </p></li>
+<li><p><strong>rho</strong> – </p></li>
+<li><p><strong>sigma</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return drho_dt</dt>
+<dd class="field-even"><p></p></dd>
+<dt class="field-odd">Return viscosity</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<dl class="py method">
+<dt id="physics.FirnPhysics.Arthern_2010S">
+<code class="sig-name descname">Arthern_2010S</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Arthern_2010S" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the steady-state solution described in the main text of Arthern et al. (2010)
+Accumulation units are kg/m^2/year</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Arthern_2010T">
+<code class="sig-name descname">Arthern_2010T</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Arthern_2010T" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the transient solution described in the appendix of Arthern et al. (2010)</p>
+<p>Uses stress rather than accumulation rate.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Barnola_1991">
+<code class="sig-name descname">Barnola_1991</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Barnola_1991" title="Permalink to this definition">¶</a></dt>
+<dd><p>uses m W.E. (zone 1) and stress (zone 2)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Breant2017">
+<code class="sig-name descname">Breant2017</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Breant2017" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bréant, C., Martinerie, P., Orsi, A., Arnaud, L., and Landais, A.: Modelling firn thickness evolution during the last deglaciation: constraints on sensitivity to temperature and impurities, Clim. Past, 13, 833–853, <a class="reference external" href="https://doi.org/10.5194/cp-13-833-2017">https://doi.org/10.5194/cp-13-833-2017</a>, 2017.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Crocus">
+<code class="sig-name descname">Crocus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Crocus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses stress</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.GSFC2020">
+<code class="sig-name descname">GSFC2020</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.GSFC2020" title="Permalink to this definition">¶</a></dt>
+<dd><p>Taken from Medley et al. (2020)
+Accumulation units are kg/m^2/year
+Subscript here are changed to 1 and 2 (correspond to densification stage)
+(in Medley et al. 2020 they are 0 and 1)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Goujon_2003">
+<code class="sig-name descname">Goujon_2003</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Goujon_2003" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses stress</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.HL_Sigfus">
+<code class="sig-name descname">HL_Sigfus</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.HL_Sigfus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are m W.E. per year (zone 1); uses stress for zone 2</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.HL_dynamic">
+<code class="sig-name descname">HL_dynamic</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.HL_dynamic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are m W.E. per year
+viscosity doesn’t work</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Helsen_2008">
+<code class="sig-name descname">Helsen_2008</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Helsen_2008" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are m W.E. per year (?)
+Equation is from Arthern et al. 2010 (2)
+(Arthern implies units are m I.E.; not doing that here)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.KuipersMunneke_2015">
+<code class="sig-name descname">KuipersMunneke_2015</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.KuipersMunneke_2015" title="Permalink to this definition">¶</a></dt>
+<dd><p>Units are mm W.E. per year
+b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Li_2004">
+<code class="sig-name descname">Li_2004</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Li_2004" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are m W.E. per year (?)
+Equation from Arthern, 2010 (eq. 2): not sure where Rob got that?
+(Arthern implies accumulation is m I.E./year for bdot; not doing that here.)
+Paper would lead me to believe that it is m W.E.</p>
+<p>Needs to have the vapor flux coded in if we want to use these physics properly.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Li_2011">
+<code class="sig-name descname">Li_2011</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Li_2011" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
+Temperature in the equation for beta is in C.
+Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)</p>
+<p>beta should be calculated with the long-term mean accumulation rate</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Li_2015">
+<code class="sig-name descname">Li_2015</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Li_2015" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
+Temperature in the equation for beta is in C.
+Temperature in the 8.36(273.15-T)**-2.061 is in K. (implied in Arthern)</p>
+<p>beta should be calculated with the long-term mean accumulation rate</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Ligtenberg_2011">
+<code class="sig-name descname">Ligtenberg_2011</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Ligtenberg_2011" title="Permalink to this definition">¶</a></dt>
+<dd><p>Units are mm W.E. per year
+b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Max2018">
+<code class="sig-name descname">Max2018</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Max2018" title="Permalink to this definition">¶</a></dt>
+<dd><p>Experimental: based on firn compaction data from FirnCover campaigns</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Max2018b">
+<code class="sig-name descname">Max2018b</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Max2018b" title="Permalink to this definition">¶</a></dt>
+<dd><p>Experimental: based on firn compaction data from FirnCover campaigns</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Morris_HL_2014">
+<code class="sig-name descname">Morris_HL_2014</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Morris_HL_2014" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses stress instead of accumulation.</p>
+<p>Need to choose physics for zone 2. Herron and Langway here.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.Simonsen_2013">
+<code class="sig-name descname">Simonsen_2013</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.Simonsen_2013" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accumulation units are kg/m^2/year</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.graincalc">
+<code class="sig-name descname">graincalc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">iii</span></em><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.graincalc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evolve the grain size</p>
+<p>This is the same as graingrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="physics.FirnPhysics.surfacegrain">
+<code class="sig-name descname">surfacegrain</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#physics.FirnPhysics.surfacegrain" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to calculate the surface grain size at each time step</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="plotter.html" class="btn btn-neutral float-right" title="plotter.py" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="merge.html" class="btn btn-neutral float-left" title="merge.py" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2021, Max Stevens
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,395 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>fcts_snowpackflow.py &mdash; The Community Firn Model 1.1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="firn_air.py" href="firn_air.html" />
+    <link rel="prev" title="example.json" href="example.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> The Community Firn Model
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../running/index.html">Running the CFM</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Files:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Files included with the CFM</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="AirConfig.html">airconfig.json</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constants.html">constants.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diffusion.html">diffusion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">example.json</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">fcts_snowpackflow.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_air.html">firn_air.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_density_nospin.html">firn_density_nospin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="firn_density_spin.html">firn_density_spin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hl_analytic.html">hl_analytic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="isotopeDiffusion.html">isotopeDiffusion.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="melt.html">melt.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="merge.html">merge.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="physics.html">physics.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="plotter.html">plotter.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prefflow_snowpack.html">prefflow_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="re_snowpack.html">re_snowpack.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reader.html">reader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regrid.html">regrid.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="solver.html">solver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sublim.html">sublim.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="writer.html">writer</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption"><span class="caption-text">Extras:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../extras/index.html">Extra information about running the CFM</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">The Community Firn Model</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Files included with the CFM</a> &raquo;</li>
+        
+      <li>fcts_snowpackflow.py</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/files/fcts_snowpackflow.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-fcts_snowpackflow">
+<span id="fcts-snowpackflow-py"></span><h1>fcts_snowpackflow.py<a class="headerlink" href="#module-fcts_snowpackflow" title="Permalink to this headline">¶</a></h1>
+<p>This script contains all the functions required to make the pereferential flow scheme of snowpack work
+<a class="reference external" href="https://models.slf.ch/p/snowpack/source/tree/HEAD/branches/dev/snowpack/snowpackCore/ReSolver1d.cc">https://models.slf.ch/p/snowpack/source/tree/HEAD/branches/dev/snowpack/snowpackCore/ReSolver1d.cc</a></p>
+<dl class="py function">
+<dt id="fcts_snowpackflow.Micedryer">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">Micedryer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.Micedryer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This works the same as satexcess but in order to make sure that layers at pore close-off density (rho&gt;rhoimp) are dry in MFdom.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.Mrefreezing">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">Mrefreezing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">zstep</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">grain</span></em>, <em class="sig-param"><span class="n">Tz</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">lwc_min_fr</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">PeffSat</span></em>, <em class="sig-param"><span class="n">Plwc</span></em>, <em class="sig-param"><span class="n">h_e</span></em>, <em class="sig-param"><span class="n">bigF</span></em>, <em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">totrefrozen_lwc</span></em>, <em class="sig-param"><span class="n">refrozenlay</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.Mrefreezing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Proceed to refreezing according to cold content of every layer.
+Adjust porosity and hydraulic properties accordingly.
+Verify that we don’t oversaturate PFdom. If so, we call for Psatexcess</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.Msatexcess">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">Msatexcess</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.Msatexcess" title="Permalink to this definition">¶</a></dt>
+<dd><p>For MFdom
+In case the water content of some layers exceeds the water content at saturation, we move the water to
+the layers below (in priority) and in the layers above (if there is not enough pore space in all the layers below)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.NPtrid">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">NPtrid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">d</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.NPtrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>function to solve tridiagonal matrix –&gt; find x matrix in Ax=d equation</p>
+<p>a,b,c,d are arrays, should be made of floats, not integer
+a and c are 1 index shorter than b and d
+-   [b0 c0 0. 0. …]
+-   [a0 b1 c1 0. …]
+A = [……………]
+-   [. 0. 0. an-1 bn]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.PFleave">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">PFleave</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Tz</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mthetar</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">MeffSat</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">PeffSat</span></em>, <em class="sig-param"><span class="n">Plwc</span></em>, <em class="sig-param"><span class="n">Ptheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">aquif</span></em>, <em class="sig-param"><span class="n">PSatlim</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.PFleave" title="Permalink to this definition">¶</a></dt>
+<dd><p>When the saturation in the PF domain reaches a threshold value (PSatlim), backflow towards MFdom occurs.
+First we transfer as much water as the cold content of the layer can accomodate
+Second, if PSatlim is still exceeded, we equalise saturations in both domains
+Note that at the end, saturation might not be the same if we equalise because Mthetar can change subsequently</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.PFleaveheat">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">PFleaveheat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Tz</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mthetar</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">MeffSat</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">PeffSat</span></em>, <em class="sig-param"><span class="n">Plwc</span></em>, <em class="sig-param"><span class="n">Ptheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">kth</span></em>, <em class="sig-param"><span class="n">bigF</span></em>, <em class="sig-param"><span class="n">bigN</span></em>, <em class="sig-param"><span class="n">aquif</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">deltatime</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.PFleaveheat" title="Permalink to this definition">¶</a></dt>
+<dd><p>This mimics refreezing in the PF domain by transferring water back to the MF dom depending on how much heat would be lost by water in PFdom
+(see paragraph 2.3 of Wever 2016)
+It depends on the tuning parameter bigN which represents number of preferential flow paths per unit area
+Based on equations (6) and (7) of Wever 2016 but caution, misformulation in (7)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.Picedryer">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">Picedryer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">Ptheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">rhoPdr</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.Picedryer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This works the same as satexcess but in order to make sure that layers at pore close-off density (rho&gt;rhoimp) are dry in MFdom.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.Prefreezing">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">Prefreezing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">grain</span></em>, <em class="sig-param"><span class="n">Tz</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">lwc_min_fr</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">PeffSat</span></em>, <em class="sig-param"><span class="n">Plwc</span></em>, <em class="sig-param"><span class="n">bigF</span></em>, <em class="sig-param"><span class="n">h_e</span></em>, <em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">dryfront</span></em>, <em class="sig-param"><span class="n">totrefrozen_lwc</span></em>, <em class="sig-param"><span class="n">refrozenlay</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.Prefreezing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not used in preferential flow scheme of Wever 2016 but might be a good idea to use.
+Proceed to refreezing of Plwc until dryfront according to cold content of every layer.
+Adjust porosity and hydraulic properties accordingly.
+Also needs the variables Mtheta and dryfront as input parameters (vs refreezing())</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.Psatexcess">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">Psatexcess</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">Ptheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.Psatexcess" title="Permalink to this definition">¶</a></dt>
+<dd><p>This works the same as Msatexcess but for PFdom
+In case the water content of some layers exceeds the water content at saturation, we move the water to
+the layers below (in priority) and in the layers above (if there is not enough pore space in all the layers below)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.TDMAsolver">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">TDMAsolver</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">c</span></em>, <em class="sig-param"><span class="n">d</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.TDMAsolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Way faster than NPtrid!!</p>
+<p>TDMA solver –&gt; find x matrix in Ax=d equation
+a,b,c,d are arrays, should be made of floats, not integer
+a and c are 1 index shorter than b and d
+-   [b0 c0 0. 0. …]
+-   [a0 b1 c1 0. …]
+A = [……………]
+-   [. 0. 0. an-1 bn]
+A is nxn tridiagonal matrix with a - b - c as diagonals, x is nx1 matrix, d is nx1 matrix
+Sources:
+<a class="reference external" href="https://gist.github.com/cbellei/8ab3ab8551b8dfc8b081c518ccd9ada9">https://gist.github.com/cbellei/8ab3ab8551b8dfc8b081c518ccd9ada9</a>
+<a class="reference external" href="https://en.wikibooks.org/wiki/Algorithm_Implementation/Linear_Algebra/Tridiagonal_matrix_algorithm#Python">https://en.wikibooks.org/wiki/Algorithm_Implementation/Linear_Algebra/Tridiagonal_matrix_algorithm#Python</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.combineCFM">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">combineCFM</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">split_list</span></em>, <em class="sig-param"><span class="n">rhoF</span></em>, <em class="sig-param"><span class="n">dzF</span></em>, <em class="sig-param"><span class="n">TzF</span></em>, <em class="sig-param"><span class="n">massF</span></em>, <em class="sig-param"><span class="n">lwcF</span></em>, <em class="sig-param"><span class="n">Plwc_memF</span></em>, <em class="sig-param"><span class="n">r2F</span></em>, <em class="sig-param"><span class="n">refrozenF</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.combineCFM" title="Permalink to this definition">¶</a></dt>
+<dd><p>F for fine grid
+C for coarse grid
+Here, we need the vectors that are outputs of the flow routine:
+- combine them back to reintegrate these to the CFM
+- Note that we also need the split_list ! (nb of sublayers into which every CFM layer was split by the split function)
+- Normally, RE routine (including freezing) should not affect dz and r2 variables but only use them
+-&gt; not necessary to combine them and to give them back to CFM (which can keep its own self.dz and self.r2)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.entrysuction">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">entrysuction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mthetar</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">MeffSat</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">PeffSat</span></em>, <em class="sig-param"><span class="n">Plwc</span></em>, <em class="sig-param"><span class="n">Ptheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">aquif</span></em>, <em class="sig-param"><span class="n">MSat_westag</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.entrysuction" title="Permalink to this definition">¶</a></dt>
+<dd><p>When the pressure exceeds the water entry suction of layer below, water penetrates from MFdom layer to PFdom of layer below
+We convert water entry suction in more intuitive saturation value
+If after transfer, saturation of the layer below in PFdom is still inferior to saturation in layer above in MFdom, we equalise saturations</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.layerequaliser_eq">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">layerequaliser_eq</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mthetar</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">MeffSat</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">Ptheta</span></em>, <em class="sig-param"><span class="n">PeffSat</span></em>, <em class="sig-param"><span class="n">Plwc</span></em>, <em class="sig-param"><span class="n">Ptheta_sat</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">aquif</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.layerequaliser_eq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whenever the effective saturation in the MFdom exceeds the saturation in the PFdom within a same layer, we equalise saturations
+Not sure this is physically realistic but that is what is written in Wever 2016
+<a class="reference external" href="https://models.slf.ch/p/snowpack/source/tree/HEAD/branches/dev/snowpack/snowpackCore/ReSolver1d.cc">https://models.slf.ch/p/snowpack/source/tree/HEAD/branches/dev/snowpack/snowpackCore/ReSolver1d.cc</a>
++ confirmed by Nander Wever, email 27 Sept 2018</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.lengthendom">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">lengthendom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em>, <em class="sig-param"><span class="n">rho_short</span></em>, <em class="sig-param"><span class="n">dz_short</span></em>, <em class="sig-param"><span class="n">Tz_short</span></em>, <em class="sig-param"><span class="n">mass_short</span></em>, <em class="sig-param"><span class="n">lwc_short</span></em>, <em class="sig-param"><span class="n">Plwc_mem_short</span></em>, <em class="sig-param"><span class="n">r2_short</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.lengthendom" title="Permalink to this definition">¶</a></dt>
+<dd><p>After having solved the flow, we concatenate back new values with deep values that were not taken into account
+during the flow routine (because all their rho values was above rhoimp from a certain depth).
+!! This function has to be called before the flow routine but AFTER the melting !!</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.restrictdom">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">restrictdom</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">self</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.restrictdom" title="Permalink to this definition">¶</a></dt>
+<dd><p>Limit the domain to reduce computational time of flow solving
+Spot the deepest layer below pore close-off density (rhoimp). The bottom of the domain will be the next layer.
+Thus, we do not take all the column where rho is constantly above pore close-off density (rhoimp).
+But we make sure not to exclude any layer that has liquid water</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.runoff">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">runoff</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dz</span></em>, <em class="sig-param"><span class="n">rho</span></em>, <em class="sig-param"><span class="n">Mhead</span></em>, <em class="sig-param"><span class="n">Mtheta</span></em>, <em class="sig-param"><span class="n">Mthetar</span></em>, <em class="sig-param"><span class="n">Mthetar_old</span></em>, <em class="sig-param"><span class="n">MeffSat</span></em>, <em class="sig-param"><span class="n">Mlwc</span></em>, <em class="sig-param"><span class="n">Mtheta_sat</span></em>, <em class="sig-param"><span class="n">theta_min_fr</span></em>, <em class="sig-param"><span class="n">crtn_theta</span></em>, <em class="sig-param"><span class="n">slope</span></em>, <em class="sig-param"><span class="n">rhoimp</span></em>, <em class="sig-param"><span class="n">aquif</span></em>, <em class="sig-param"><span class="n">deltatime</span></em>, <em class="sig-param"><span class="n">totrunoff</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.runoff" title="Permalink to this definition">¶</a></dt>
+<dd><p>This is the Greenland specific runoff function of Zuo and Oerlemans 1996 (21)
+We proceed to runoff only for layers of which water content is above theta_min_fr. CAUTION: this might be changed!!
+We don’t apply runoff in the aquifer</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="fcts_snowpackflow.splitCFM">
+<code class="sig-prename descclassname">fcts_snowpackflow.</code><code class="sig-name descname">splitCFM</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rhoC</span></em>, <em class="sig-param"><span class="n">dzC</span></em>, <em class="sig-param"><span class="n">TzC</span></em>, <em class="sig-param"><span class="n">massC</span></em>, <em class="sig-param"><span class="n">lwcC</span></em>, <em class="sig-param"><span class="n">Plwc_memC</span></em>, <em class="sig-param"><span class="n">r2C</span></em>, <em class="sig-param"><span class="n">vert_res</span></em><span class="sig-paren">)</span><a class="headerlink" href="#fcts_snowpackflow.splitCFM" title="Permalink to this definition">¶</a></dt>
+<dd><p>F for fine grid
+C for coarse grid
+We split the layers of the CFM in layers of a certain maximal thickness.
+Maximal thickness must be specified in vert_res.
+With the implementation of upstream weighted mean for K at interfaces, we can take large vert_res value!</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="firn_air.html" class="btn btn-neutral float-right" title="firn_air.py" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="example.html" class="btn btn-neutral float-left" title="example.json" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2021, Max Stevens
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

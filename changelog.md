@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.0.5
+1.1.0
 
 ## Full Documentation
 
@@ -23,11 +23,79 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
+## [1.1.0] 2020-03-10
+### Notes
+- This is the first major change to the code structure that warrants going from 1.0 to 1.1. Previously, the spin up was done by calling firn_density_spin, getting the output, and then calling firn_density_nospin. This was a bit clunky, because (1) if you were writing your own API (i.e. not using main.py), you would have to call both of those; and (2) if you were using a variable climate spinup, firn_density_spin was just a formality to create an initial condition. 
+- I have now wrapped firn_density_spin into firn_density_nospin. If the model needs to spin up or needs an initial condition, it is called; otherwise it is bypassed. THE UPSHOT IS THAT YOU ONLY NEED TO CREATE AN INSTANCE OF firn_density_nospin IN YOUR API. The behavior of the CFM should be the same as before.
+- You can now input climate data from a dictionary into firn_density_nospin.
+
+### New
+- *RCMpkl_to_spin.py* This new script takes climate data that is packaged in a pandas dataframe and creates a time series (including spin up) that forces the CFM. Returns a dictionary.
+- *siteClimate_from_RCM.py* This script takes climate data from an RCM or analysis product for a specified lat/lon and puts it in a dataframe, which in turn will feed into RCMpkl_to_spin.py.
+- *firnbatch_generic.py* This script is an alternative API to using main.py - it is useful to batch a bunch of runs when you have a common (baseline) .json file and need to change something slightly for each run.
+
+### Changed
+- See Notes above for an overview.
+- *main.py* Now it only calls firn_density_nospin. 
+- *main.py* Changed so that it can now take a pickled pandas dataframe (specified in .json; key: 'input_type') as opposed to .csv files; calls new script 'RCMpkl_to_spin' to generate a spin up time series. That spin up series is put in a dictionary, which is passed to firn_density_nospin
+- *firn_density_nospin.py* Now calls firn_density_spin if no spin file is found, of if NewSpin=True in the .json, or if -n is included as an argument when calling main.py. Otherwise spin up is skipped and uses the spin file for the initial condition.
+- *firn_density_nospin.py* The 'stpsPerYear' parameter in the .json is no longer needed if 'timesetup' is set to exact. In this case, CFM looks at the input climate files and figures out the time step size and updates 'stpsPerYear'; for 'exact' runs, it is only used to calculate the number of nodes in the grid in firn_density_spin. If 'timestep' is 'interp', the model behavior is the same as before (you need to set stpsPerYear correctly.)
+
+### New keys in the .json file
+- *"NewSpin"* true/false - this is whether or not you want to redo the spin if a spinup file exists already. Default false.
+- *"input_type"* 'dataframe' or 'csv' - if the inputs to CFM come from a csv (as has been the case until now) or from a dataframe. Default csv. This only matters at the main.py level. If you write your own API to firn_density_nospin you can pass a dictionary as the climateTS argument passed to firn_density_nospin (as is done with firnbatch_generic.py).
+- *"DFresample"* pandas Timedelta (string) - the resampling frequency (e.g. '5D') for the climate input data. 
+- *"DFfile"* filename as string - the filename, located in "InputFileFolder", of the dataframe to load if "input_type" is 'dataframe'.
+
+## [1.0.9]
+### Added
+- *firn_density_nospin.py* (and outputs): The DIP output now includes an additional column (the last), which is the DIP to a specific depth horizon (DIPhz). This is specified in the .json with key "DIPhorizon". This feature is helpful because the bottom of the model domain at each time step can change through time, which results in inconsistencies in how the (total) DIP changes through time. The default value for DIPhorizon is 80% of the initial bottom of the domain (e.g. if the model domain was initially 200m, the DIPhorizon is 160m). If the firn thickness changes and the bottom of the domain becomes less than DIPhorizon, the DIPhz value output will be NaN. In this case, the density and depth outputs can be used to calculate DIP to any depth horizon. (This is the previous model behavior.) The very first value in the DIPhz column is the horizon depth. 
+
+### Fixed
+- *ModelOutputs.py* When using the grid outputs option, previous behavior was that values would be extrapolated using the same value for all points outside the interpolation. For example, if the output grid was 0 to 150 m, but the actual model domain only went to 140 m, the same values for density, temperature, etc. would be assigned to the outputs for all depths beyond 140m. Now they are filled in using NaN.
+
+### Changed
+- *physics.py* B. Medley at NASA GSFC re-ran her calibration, and the model parameters have changed slightly.
+- *firn_density_nospin.py* The CFM would include 'dr2_dt' in the outputs associated with grain size. That variable was initialized, but not updated in the main code (time-stepping loop), which led to the saved file including a bix matrix of zeros. For now this has been disabled (i.e. there is no 'dr2_dt' at all.)
+
+## [1.0.8]
+### Notes
+- there is only one quick fix in this release. 
+- Related to this fix, I should note that I use 365.25 to calculate seconds in a year. So, when creating forcing files from climate data, which requires calculating mass fluxes in units of m/year, you should use 365.25 days per year. (And, this then gets divided out when you use 'exact' time stepping.) If you have any suggestions on how to improve this, please let me know! The reality is that it is a bit challenging because each year does not have the same number of seconds due to leap years.
+
+### Fixed
+- *firn_density_nospin.py* Using 'exact' time setup still used the 'stpsPerYear' in the .json file to figure out the specific amount of accumulation (and melt, and rain) at each time step. This led to small errors in the calculated accumulation rate (especially if the time step size was slightly different for each time step.) It now uses the delta time (dt) value to calculate those mass fluxes.
+
+
+## [1.0.7]
+### Notes
+- This release is a bit preemptive, but pushing it now to fix issue with timing of temperature diffusion and new surface temperature in time loop.
+- A few major changes in this release: 
+- The way that the CFM saves its outputs and writes to file has been updated (including a new module, ModelOuputs.py)
+- The regridding scheme has been updated by Vincent Verjans to add a third subgrid.
+
+### Added
+- *ModelOutputs.py, firn_density_nospin.py* ModelOutputs.py is a new module that takes the place of a bunch of code in firn_density_nospin.py. Previously, firn_density_nospin initialized arrays for each variable so be saved/written to file (e.g self.rho_out). ModelOutputs is a class, and it sets up a dictionary to contain all of the output arrays. These arrays are updated at each time step by calling ModelOutputs. The upshot is that firn_density_nospin is cleaned up a fair bit and it is easier to add new features that you might want to write to file.
+- *diffusion.py* Added thermal conductivity parameterization from Calonne et al. (2019) (which is the new default).
+
+### Changed
+- *writer.py* With the new ModelOutputs module, writer.py now loops through the variables to write with a generic line of code, rather than unique bits of code for each variable.
+- *regrid.py* regrid now splits the grid into 3 subgrids of different resolutions. This new scheme is very similar to the original regrid scheme. The difference is that it uses a coarser resolution below grid2, in a grid called grid22. There is still grid1 (high resolution), then grid2 at a coarse resolution and then grid22 at a very coarse resolution. Below grid22, there is the grid23 which is again the same resolution as grid2. As before, the grid3 provides the stock of layers to be removed at each accumulation event. To use this, you need to add 3 new keys to the .json: "multnodestocombine" specifies how many nodes in grid2 to combine to make grid22; "grid2bottom" specifies the depth of the grid2 to grid22 transition. More information about the doublegrid feature is in the CFM documentation.
+- *writer.py, ModelOutputs.py* There is now an option to grid your outputs onto a common grid, which can save some space on your hard drive. Add 'grid_outputs' (True/False) to the .json to enable it, and add 'grid_output_res' to the resolution to specify the resolution (in meters) that you want the grid to be at (e.g. 0.1 will make a 10-cm grid.)
+- *diffusion.py* Calonne 2019 is now the default thermal conductivity.
+
+### Fixed
+- *firn_density_nospin.py* Order of operations in the time-stepping loop has been changed (reverted) - the surface temperature was updated before diffusion was called, which resulted in getting slightly different answers when using doublegrid.
+- *regrid.py* Previously, the CFM did not account for changes in self.gridtrack due to removal of nodes by melt/sublimation. This is fixed for the sublime and bucketVV schemes.
+- *melt.py, bucketVV* When the melt amount was such that the pm_dz became extremely small, the model crashed. pm_dz is now forced to be at least 1e-6 m thick.
+- melt.py, bucketVV* A previous update got rid of a for loop in bucketVV when calculating runoff. There was a small error that computed the runoff term as a vector instead of a scalar. 
+
+
 ## [1.0.6]  2020-11-04
 ### Notes
 - This is a long overdue release, and there will likely be a number of changes that are not documented here. I am pretty confident that nothing should break from 1.0.5 to 1.0.6. 
 
-- The CFM paper to cite has finally be published; it is at https://doi.org/10.5194/gmd-13-4355-2020
+- The CFM paper to cite has finally been published; it is at https://doi.org/10.5194/gmd-13-4355-2020
 
 
 ### Added
@@ -147,7 +215,7 @@ Changes should be categorized into *Added*, *Changed*, *Deprecated*, *Removed*, 
 
 - *constants.py* Added specific heat of water
 
-Changes to the .json files (most frequently new fields that are added to the configuration .json files) should be updated in the file generic.json, as then recorded in this document specifying the addition/change, e.g.
+Changes to the .json files (most frequently new fields that are added to the configuration .json files) should be updated in the file example.json, as then recorded in this document specifying the addition/change, e.g.
 
 - *example.json* Added field **initprofile**, (true/false) which specifies whether to use an initial condition from depth/density/temperature measurements, rather than a spin up climate
 
