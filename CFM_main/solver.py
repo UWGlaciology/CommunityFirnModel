@@ -39,7 +39,7 @@ def solver(a_U, a_D, a_P, b):
 
 ####!!!!
 
-def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, airdict=None, S_C=0):
+def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, airdict=None):
     '''
     transient 1-d diffusion finite volume method
     :param z_edges:
@@ -143,6 +143,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
             Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
+            S_C = 0
             S_C = S_C * np.ones(nz_P)
 
             D_u = (Gamma_u / deltaZ_u)
