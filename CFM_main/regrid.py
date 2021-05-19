@@ -136,7 +136,8 @@ def regrid22(self):
     #g2age   = np.sum(self.age[i1_2]*self.mass[i1_2])/g2mass #VV test weighted average for age -> change is imperceptible
     g2bdm   = np.mean(self.bdot_mean[i1_2]) #mean bdot_mean
     g2lwc   = np.sum(self.LWC[i1_2]) # sum for lwc
-    g2r2    = np.mean(self.r2[i1_2]) # mean for r2
+    if self.r2 is not None:
+        g2r2    = np.mean(self.r2[i1_2]) # mean for r2
     
     if (len(inds23)==0 and n2>0): # No more layer in grid23 -> we have to split a layer from grid22
         ## First: merge n2 layers from grid2 ##
@@ -153,7 +154,8 @@ def regrid22(self):
         g22age   = np.mean(self.age[i2_22])
         g22bdm   = np.mean(self.bdot_mean[i2_22])
         g22lwc   = np.sum(self.LWC[i2_22])
-        g22r2    = np.mean(self.r2[i2_22])
+        if self.r2 is not None:
+            g22r2    = np.mean(self.r2[i2_22])
         
         ## Second: split the last grid22 layer in n2 layers for grid23
         ind22c   = inds22[-1] # current lower layer of grid22 -> to be split (is also the last layer of the column)
@@ -165,7 +167,8 @@ def regrid22(self):
         g23age   = self.age[ind22c]*np.ones(n2)
         g23bdm   = self.bdot_mean[ind22c]*np.ones(n2)
         g23lwc   = self.LWC[ind22c]/n2 * np.ones(n2)
-        g23r2    = self.r2[ind22c]*np.ones(n2)
+        if self.r2 is not None:
+            g23r2    = self.r2[ind22c]*np.ones(n2)
         
         ## Third: split the last layer of the new grid23 in n1 layers for grid3
         g3dz    = g23dz[-1]/n1 * np.ones(n1)
@@ -176,7 +179,8 @@ def regrid22(self):
         g3age   = g23age[-1]*np.ones(n1)
         g3bdm   = g23bdm[-1]*np.ones(n1)
         g3lwc   = g23lwc[-1]/n1 * np.ones(n1)
-        g3r2    = g23r2[-1]*np.ones(n1)
+        if self.r2 is not None:
+            g3r2    = g23r2[-1]*np.ones(n1)
         
         ## Fourth: concatenate everything together
         self.dz         = np.concatenate((self.dz[0:ind2a],g2dz,self.dz[ind2b:ind22a],g22dz,self.dz[ind22b:ind22c],g23dz[0:-1],g3dz))
@@ -192,7 +196,8 @@ def regrid22(self):
         self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*self.dx*GRAVITY
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.gridtrack  = np.concatenate((self.gridtrack[0:ind2a],[g2gt],self.gridtrack[ind2b:ind22a],[g22gt],self.gridtrack[ind22b:ind22c],g23gt[0:-1],g3gt))
-        self.r2         = np.concatenate((self.r2[0:ind2a],[g2r2],self.r2[ind2b:ind22a],[g22r2],self.r2[ind22b:ind22c],g23r2[0:-1],g3r2))
+        if self.r2 is not None:
+            self.r2         = np.concatenate((self.r2[0:ind2a],[g2r2],self.r2[ind2b:ind22a],[g22r2],self.r2[ind22b:ind22c],g23r2[0:-1],g3r2))
         
     if (len(inds23)>0 or n2==0): # Still some layers in grid23 -> no need to split a layer from grid22
         ## Split the last layer of grid23 (layer [-1]) in n1 layers for grid3
@@ -204,7 +209,8 @@ def regrid22(self):
         g3age   = self.age[-1]*np.ones(n1)
         g3bdm   = self.bdot_mean[-1]*np.ones(n1)
         g3lwc   = self.LWC[-1]/n1 * np.ones(n1)
-        g3r2    = self.r2[-1]*np.ones(n1)
+        if self.r2 is not None:
+            g3r2    = self.r2[-1]*np.ones(n1)
         
         ## Concatenate everything together
         self.dz         = np.concatenate((self.dz[0:ind2a],g2dz,self.dz[ind2b:-1],g3dz))
@@ -221,7 +227,8 @@ def regrid22(self):
         self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*self.dx*GRAVITY
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.gridtrack  = np.concatenate((self.gridtrack[0:ind2a],[g2gt],self.gridtrack[ind2b:-1],g3gt))
-        self.r2 = np.concatenate((self.r2[0:ind2a],[g2r2],self.r2[ind2b:-1],g3r2)) 
+        if self.r2 is not None:
+            self.r2 = np.concatenate((self.r2[0:ind2a],[g2r2],self.r2[ind2b:-1],g3r2)) 
 
     #self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
     #print('sum(self.dz):',sum(self.dz))
@@ -278,7 +285,8 @@ def regrid22_reciprocal(self):
         g23age.append(np.mean(self.age[batch])) # mean age
         g23bdm.append(np.mean(self.bdot_mean[batch])) #mean bdotmean
         g23lwc.append(np.sum(self.LWC[batch])) # sum for lwc
-        g23r2.append(np.mean(self.r2[batch])) # mean for r2
+        if self.r2 is not None:
+            g23r2.append(np.mean(self.r2[batch])) # mean for r2
         g23inds.append(batch) #old indices of the nodes merged into grid23
     
     nfl = np.size(i3_23) #nb of fine nodes lost
@@ -309,7 +317,8 @@ def regrid22_reciprocal(self):
                 g22age.append(np.mean(self.age[batch])) # mean age
                 g22bdm.append(np.mean(self.bdot_mean[batch])) #mean bdotmean
                 g22lwc.append(np.sum(self.LWC[batch])) # sum for lwc
-                g22r2.append(np.mean(self.r2[batch])) # mean for r2
+                if self.r2 is not None:
+                    g22r2.append(np.mean(self.r2[batch])) # mean for r2
         ## Not enough nodes in initial grid23 to form the ncl coarse nodes -> also merge g23 nodes ##
         elif ncl*n2>len(inds23):
             hi23  = len(inds23) #no nodes of the self.dz[inds23] will still be part of grid23
@@ -333,7 +342,8 @@ def regrid22_reciprocal(self):
             g23age  = g23age[ng23l:]
             g23bdm  = g23bdm[ng23l:]
             g23lwc  = g23lwc[ng23l:]
-            g23r2   = g23r2[ng23l:]
+            if self.r2 is not None:
+                g23r2   = g23r2[ng23l:]
             g23inds = g23inds[ng23l:]            
             # Initialize the 9 lists of the new grid22 nodes #
             g22dz,g22mass,g22rho,g22Tz,g22gt,g22age,g22bdm,g22lwc,g22r2 = ([] for ii in range(9))
@@ -349,7 +359,8 @@ def regrid22_reciprocal(self):
                 g22age.append(np.mean(self.age[batch])) # mean age
                 g22bdm.append(np.mean(self.bdot_mean[batch])) #mean bdotmean
                 g22lwc.append(np.sum(self.LWC[batch])) # sum for lwc
-                g22r2.append(np.mean(self.r2[batch])) # mean for r2
+                if self.r2 is not None:
+                    g22r2.append(np.mean(self.r2[batch])) # mean for r2
 
         ### Second: split the ncl highest grid22 nodes in ncl*n2 grid2 nodes ###
         i22_2 = inds22[0:ncl] #nodes to transition from grid22 to grid 2
@@ -365,7 +376,8 @@ def regrid22_reciprocal(self):
             g2age  = np.append(g2age,np.linspace(self.age[i22],self.age[i22+1],n2)) #assume linearly increasing age until layer below
             g2bdm  = np.append(g2age,self.bdot_mean[i22]*np.ones(n2)) 
             g2lwc  = np.append(g2lwc,self.LWC[i22]/n2*np.ones(n2))
-            g2r2   = np.append(g2r2,self.r2[i22]*np.ones(n2))
+            if self.r2 is not None:
+                g2r2   = np.append(g2r2,self.r2[i22]*np.ones(n2))
         g2mass = g2dz*g2rho
             
         ### Now there are enough layers in grid2 combined with g2 to form nfl new nodes in grid1 ###
@@ -388,7 +400,8 @@ def regrid22_reciprocal(self):
             g1age  = np.append(g1age,np.linspace(self.age[i2],self.age[i2+1],n1)) #assume linearly increasing age until layer below
             g1bdm  = np.append(g1bdm,self.bdot_mean[i2]*np.ones(n1)) 
             g1lwc  = np.append(g1lwc,self.LWC[i2]/n1*np.ones(n1))
-            g1r2   = np.append(g1r2,self.r2[i2]*np.ones(n1))
+            if self.r2 is not None:
+                g1r2   = np.append(g1r2,self.r2[i2]*np.ones(n1))
         for ig2 in ig2_1: #Then proceed to the splitting of g2 nodes (if necessary, otherwise ig2_1 is empty)
             # Properties of the new grid1 nodes #
             g1dz   = np.append(g1dz,g2dz[ig2]/n1*np.ones(n1))
@@ -398,7 +411,8 @@ def regrid22_reciprocal(self):
             g1age  = np.append(g1age,np.linspace(g2age[ig2],g2age[ig2+1],n1)) #assume linearly increasing age until layer below
             g1bdm  = np.append(g1bdm,g2bdm[ig2]*np.ones(n1))
             g1lwc  = np.append(g1lwc,g2lwc[ig2]/n1*np.ones(n1))
-            g1r2   = np.append(g1r2,g2r2[ig2]*np.ones(n1))
+            if self.r2 is not None:
+                g1r2   = np.append(g1r2,g2r2[ig2]*np.ones(n1))
         g1mass = g1dz*g1rho
         # Remove the g2 nodes that are going to grid1 from the g1 lists #
         g2dz   = g2dz[ng2l:]
@@ -409,7 +423,8 @@ def regrid22_reciprocal(self):
         g2age  = g2age[ng2l:]
         g2bdm  = g2bdm[ng2l:]
         g2lwc  = g2lwc[ng2l:]
-        g2r2   = g2r2[ng2l:]       
+        if self.r2 is not None:
+            g2r2   = g2r2[ng2l:]       
                     
     ##### Enough nodes in grid2 -> simply split nodes from grid2 to grid1 #####
     elif len(inds2)-nmg>0:
@@ -433,7 +448,8 @@ def regrid22_reciprocal(self):
             g1age  = np.append(g1age,np.linspace(self.age[i2],self.age[i2+1],n1)) #assume linearly increasing age until layer below
             g1bdm  = np.append(g1bdm,self.bdot_mean[i2]*np.ones(n1))
             g1lwc  = np.append(g1lwc,self.LWC[i2]/n1*np.ones(n1))
-            g1r2   = np.append(g1r2,self.r2[i2]*np.ones(n1))
+            if self.r2 is not None:
+                g1r2   = np.append(g1r2,self.r2[i2]*np.ones(n1))
         g1mass = g1dz*g1rho
     
     ##### Concatenate everything together #####
@@ -448,7 +464,8 @@ def regrid22_reciprocal(self):
     self.bdot_mean  = np.concatenate((self.bdot_mean[inds1],g1bdm,self.bdot_mean[inds2][nmg:],g2bdm,self.bdot_mean[inds22][ncl:],g22bdm,self.bdot_mean[inds23][hi23:],g23bdm,self.bdot_mean[inds3][nfl:]))
     self.LWC        = np.concatenate((self.LWC[inds1],g1lwc,self.LWC[inds2][nmg:],g2lwc,self.LWC[inds22][ncl:],g22lwc,self.LWC[inds23][hi23:],g23lwc,self.LWC[inds3][nfl:]))
     self.gridtrack  = np.concatenate((self.gridtrack[inds1],g1gt,self.gridtrack[inds2][nmg:],g2gt,self.gridtrack[inds22][ncl:],g22gt,self.gridtrack[inds23][hi23:],g23gt,self.gridtrack[inds3][nfl:]))
-    self.r2         = np.concatenate((self.r2[inds1],g1r2,self.r2[inds2][nmg:],g2r2,self.r2[inds22][ncl:],g22r2,self.r2[inds23][hi23:],g23r2,self.r2[inds3][nfl:]))
+    if self.r2 is not None:
+        self.r2         = np.concatenate((self.r2[inds1],g1r2,self.r2[inds2][nmg:],g2r2,self.r2[inds22][ncl:],g22r2,self.r2[inds23][hi23:],g23r2,self.r2[inds3][nfl:]))
 
     self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*self.dx*GRAVITY
     self.sigma      = self.sigma.cumsum(axis = 0)

@@ -55,7 +55,7 @@ def effectiveT(T):
     km  = np.mean(k)
     return Q/(R*np.log(km))
 
-def makeSpinFiles(pkl_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False):
+def makeSpinFiles(pkl_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None):
     '''
     load a pandas dataframe, called df_CLIM, that will be resampled and then used 
     to create a time series of climate variables for spin up. 
@@ -148,10 +148,14 @@ def makeSpinFiles(pkl_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, sp
 
     hh  = np.arange(0,501)
     age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
-    desired_depth = hh[np.where(rho>=916)[0][0]]
-    depth_S1 = hh[np.where(rho>=550)[0][0]]
-    depth_S2 = hh[np.where(rho>=750)[0][0]]
-
+    if not desired_depth:
+        desired_depth = hh[np.where(rho>=916)[0][0]]
+        depth_S1 = hh[np.where(rho>=550)[0][0]]
+        depth_S2 = hh[np.where(rho>=750)[0][0]]
+    else:
+        desired_depth = desired_depth
+        depth_S1 = desired_depth * 0.5
+        depth_S2 = desired_depth * 0.75
     #### Make spin up series ###
     RCI_length = spin_date_end-spin_date_st+1
     num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))

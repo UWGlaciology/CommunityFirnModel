@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.0
+1.1.1
 
 ## Full Documentation
 
@@ -22,6 +22,19 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.1] 2020-05-19
+### Notes
+- This release could be buggy; it is the first release of two new liquid water schemes developed by Vincent Verjans. My limited testing indicates that they are working, but I am still working on testing. Please let me know if you encounter errors.
+- I am still working on making the pre-CFM workflow smooth; i.e. taking data directly from an RCM, creating a timeseries of the climate varibles, and passing those to the CFM (scripts: siteClimate_from_RCM.py, RCMpkl_to_spin.py). If you are using these (or interested), please let me know if you have suggestions on how to make this workflow easier.
+
+### New
+- *melt.py* Previously there were two bucket schemes (one written by Vincent Verjans, and one written by Max Stevens). Vincent wrote a new bucket scheme that took the best of each of those, so now there is one bucket scheme that we think works as accurately as a bucket scheme could. It has more options than the previous schemes, e.g. set the density and/or thickness of impermeable layers; set the irreducible saturation. At present, you need to dig into the code to change them, but these will be integrated into a .json in a future release.
+- *melt.py* Vincent also wrote a meltwater scheme that uses Darcy flow. The details are on the CFM's readthedocs page. FYI: It is slow compared to the bucket scheme because it uses a sub-time step. 
+- *darcy_funcs.py* This is a new file that contains functions needed to make the darcy scheme work.
+
+### Fixed
+- *firn_density_nospin.py* There are more changes than this (I have been very lazy with documentation recently! Sorry!), but the main fix is adding a bit of code to deal with the instance when the forcing data are passed in a dictionary (i.e. climateTS) but spinUpdate is false. This is implemented around line 185.
 
 ## [1.1.0] 2020-03-10
 ### Notes

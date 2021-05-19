@@ -283,13 +283,13 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
 
         if dsource == 'ERA10k':
             d2 = '/ERA_1958-2019-10km/'
-            vv = ['ME','SF','ST2','RF','SU']
+            vv = ['ME','SF','ST2','RF','SU','TT']
         elif dsource == 'ERA6k':
             d2 = '/ERA_1979-2020-6km/'
-            vv = ['ME','SF','ST2','RF']
+            vv = ['ME','SF','ST2','RF','TT']
         elif dsource == 'NCEP20k':
             d2 = '/NCEP1_1948-2020_20km/'
-            vv = ['ME','SF','ST2','RF','SU']
+            vv = ['ME','SF','ST2','RF','SU','TT']
 
         pickle_folder = ddir + '/pickles' + d2
         print(pickle_folder)
@@ -335,11 +335,12 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
                 df_CLIM['RF'] = df_CLIM['RF']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
                 # df_MELT = pd.DataFrame(df_CLIM['ME']/1000*917/3600).rename(columns={'ME':'MELT'}) #put into equivalent units to the merra data (kg/m^2/s)
                 # df_RAIN = pd.DataFrame(df_CLIM['RF']/1000*917/3600).rename(columns={'RF':'RAIN'}) #put into equivalent units to the merra data (kg/m^2/s)
-            df_TS = pd.DataFrame(df_CLIM['ST2']).rename(columns = {'ST2':'TSKIN'}) + 273.15
+            df_TS = pd.DataFrame(df_CLIM[['ST2','TT']]).rename(columns = {'ST2':'TSKIN','TT':'T2M'}) + 273.15
 
-            drn = {'ME':'SMELT','SU':'SUBLIMATION','SF':'BDOT','RF':'RAIN','ST2':'TSKIN','SMB':'BDOT'}
+            drn = {'ME':'SMELT','SU':'SUBLIMATION','SF':'BDOT','RF':'RAIN','ST2':'TSKIN','SMB':'BDOT','TT':'T2M'}
             df_CLIM.rename(mapper=drn,axis=1,inplace=True)
             df_CLIM.TSKIN = df_CLIM.TSKIN + 273.15
+            df_CLIM.T2M = df_CLIM.T2M + 273.15
     ###############
     ### end MAR ###
     ###############

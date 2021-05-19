@@ -124,6 +124,7 @@ class FirnDensitySpin:
                     os.remove(path_to_file)
         
         else:
+            print('making dir')
             os.makedirs(self.c['resultsFolder'])
 
         ############################
