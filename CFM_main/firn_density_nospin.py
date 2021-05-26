@@ -664,6 +664,10 @@ class FirnDensityNoSpin:
         ######################################
         if 'grid_outputs' not in self.c:
             self.c['grid_outputs'] = False
+        if ((self.c['grid_outputs']) and (self.MELT)):
+            print('grid_outputs currently not supported with melt')
+            print('Switching to non-gridded outputs')
+            self.c['grid_outputs'] = False
         rep_dict = {'density':'rho', 'temperature':'Tz', 'depth':'z', 'dcon':'Dcon', 'temp_Hx':'Hx'} #mapping names from output list to variables in CFM
         self.output_list = [rep_dict.get(n, n) for n in self.c['outputs']]
         if 'grainsize' in self.c['outputs']:
@@ -672,6 +676,7 @@ class FirnDensityNoSpin:
             # self.output_list.append('dr2_dt')
         if ((self.MELT) and ('meltoutputs' not in self.c['outputs'])):
             self.c['outputs'].append('meltoutputs')
+            self.output_list.append('meltoutputs')
             print('Added meltoutputs to model output list.')
         if 'meltoutputs' in self.c['outputs']: # Need to work with Vincent on what should be here.
             self.output_list.remove('meltoutputs')
