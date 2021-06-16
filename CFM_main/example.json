@@ -54,7 +54,7 @@
 "spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "temperature", "age", "DIP"],
+"outputs": ["density", "depth", "temperature", "age", "DIP","LWC","meltoutputs"],
 "outputs_options": ["density", "depth", "temperature", "age", "Dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "DIPc", "DIP", "LWC","gasses", "PLWC_mem", "viscosity", "runoff", "refrozen"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5",

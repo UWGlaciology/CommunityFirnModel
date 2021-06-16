@@ -273,11 +273,10 @@ class FirnDensityNoSpin:
             self.stp        = int(self.years * S_PER_YEAR/self.dt)#-1       # total number of time steps, as integer
             self.dt = self.dt * np.ones(self.stp)
             # self.modeltime  = np.linspace(yr_start, yr_end, self.stp + 1)   # vector of time of each model step
-            self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
+            self.modeltime  = np.linspace(yr_start, yr_end, self.stp+1)[:-1]
             # self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
             self.t = (1.0 / self.c['stpsPerYear']) * np.ones_like(self.dt)
             init_time = -9999.0
-
 
         elif self.c['timesetup']=='exact':
             # print('"Exact" time setup will not work properly if input forcing does not all have the same time')
@@ -870,6 +869,11 @@ class FirnDensityNoSpin:
                     print('WARNING: prefsnowpack and resingledomain liquid schemes are still in development. email Max for more details.')
                 
                 if self.c['liquid'] == 'bucket':
+                    # if ((mtime>2012) and (mtime<2013)):
+                    #     self.snowmeltSec[iii] = self.snowmeltSec[iii] *100
+                    #     printer = True
+                    # else:
+                    #     printer = False
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
                         self.rho,self.age,self.dz,self.Tz,self.r2,self.z,self.mass,self.dzn,self.LWC,meltgridtrack,self.refreezing2,self.runoff2 = bucket(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
@@ -882,7 +886,24 @@ class FirnDensityNoSpin:
                         self.Tz, self.T10m  = heatDiff(self,iii)
                     elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
                         LWC0e = sum(self.LWC)
+                        printer = False
+                        if printer:
+                            print(mtime)
+                            print('##################')
+                            LWCind = np.where(self.LWC>0)[0]
+                            print(LWCind)
+                            print(self.z[LWCind])
+                            print(self.LWC[LWCind])
+                            print(self.Tz[LWCind])
                         self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                        if printer:
+                            print('#####')
+                            LWCind = np.where(self.LWC>0)[0]
+                            print(LWCind)
+                            print(self.z[LWCind])
+                            print(self.LWC[LWCind])
+                            print(self.Tz[LWCind])
+                            print('##################')
                         self.refreezing2 += LWC0e-sum(self.LWC)
                 ### end bucket ##################
 

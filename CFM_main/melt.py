@@ -20,7 +20,6 @@ from darcy_funcs import flux_newtonraphson
 
 '''
 Functions to handle meltwater percolation.
-Bucket schemes only in this file.
 '''
 
 def bucket(self,iii):
@@ -29,8 +28,7 @@ def bucket(self,iii):
     Percolation bucket scheme
     Several parameters can be set by the user (see below ### USER CHOICES ###)
     
-    Implemented by Vincent, not on CFM main branch yet.
-    Please do not share with anyone.                                        
+    Implemented by Vincent
     '''
     
     ### USER CHOICES ###

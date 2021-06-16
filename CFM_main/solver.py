@@ -198,14 +198,14 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ###################################
 
 
-def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH):
+def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz):
     '''
     transient 1-d diffusion finite volume method for enthalpy
 
     :param z_edges:
     :param Z_P:
-    :param nt:
-    :param dt:
+    :param nt: number of iterations; depricated (now uses while loop)
+    :param dt: time step size
     :param Gamma_P:
     :param phi_0:
     :param nz_P:
@@ -221,13 +221,27 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     '''
 
     phi_t = phi_0.copy()
-    g_liq_old = g_liq.copy()
-    g_lig_iter = g_liq.copy() 
-    # g_ice_old = g_ice.copy() 
+    phi_t_old = phi_t.copy()
 
-    for i_time in range(nt):
+    vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
+    vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
+    mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
+    mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
+    rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
+    mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
+    g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
+    # g_liq_alt   = LWC / vol_SL  # alternatively, liquid volume fraction (of the material portion, porosity ignored), (I don't think this one is correct. See code at end of while loop to swap if you want to use this)
+   
+    g_liq_old = g_liq.copy()
+
+    itercheck = 0.9
+    count = 0
+
+    while itercheck>0.001:
+        g_liq_iter = g_liq.copy()
+        deltaH_l = rho_liq_eff * LF_I
+        deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
         phi_t = phi_0.copy()
-        g_lig_iter = g_liq.copy()
         dZ = np.diff(z_edges) #width of nodes
 
         deltaZ_u = np.diff(Z_P)
@@ -245,38 +259,32 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
         Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
+        ### Voller 1990 # Should be same result as 31, 32 from Voller 1991.
         # beta_P = np.zeros_like(Gamma_P)
-        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e9
-        # S_P     = beta_P * deltaH * g_liq_old
-        # S_C = 1 * S_P * 273.15 + deltaH * g_liq_old - deltaH * g_liq 
+        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e12
+        # S_P = beta_P * deltaH * g_liq_old #* dZ * dt
+        # S_C = -S_P*phi_t + deltaH*g_liq_old - deltaH*g_liq #+ deltaH*beta_P*
+        ### end 1990 
 
-        beta_P = np.zeros_like(Gamma_P)
-        beta_P[(g_liq>=0) & (g_liq<=1)]= 1.0e12
-
-        S_P = -1 * beta_P * deltaH * g_liq_old
-        S_C = 1 * S_P * 273.15 + deltaH * g_liq_old - deltaH * g_liq
-        # Vincent Verjans pointed out that Voller et al 1990 use -1*S_P; but it does not
-        # converge as quickly and gives the same answer. Not sure how I figured that out.
+        #### eqs. 31, 32 from Voller 1991
+        dFdT = np.zeros_like(Gamma_P)
+        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e12
+        Finv = np.zeros_like(dFdT)
+        S_P = (-1 * deltaH * dFdT)
+        S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv)
+        ### end 1991
 
         D_u = (Gamma_u / deltaZ_u)
         D_d = (Gamma_d / deltaZ_d)
-
         b_0 = S_C * dZ * dt
-
         a_U = D_u * dt
         a_D = D_d * dt
-
-        # a_P_0 = dZ / dt
-        # a_P_0 = tot_rho * dZ / dt #  (old)
-        a_P_0 = c_vol * dZ #/ dt # (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)
-        # a_P_0 = RHO_I * c_firn * dZ / dt
-            
-        a_P     = a_U + a_D + a_P_0 - S_P*dZ*dt
+        a_P_0 = c_vol * dZ #/ dt # (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
+        a_P     = a_U + a_D + a_P_0 - S_P*dZ*dt # check the multiply on the S_P
 
         bc_u_0  = phi_s # need to pay attention for gas
         bc_type = 1
         bc_u    = np.concatenate(([ bc_u_0], [bc_type]))
-
         bc_d_0  = 0
         bc_type = 2
         bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type ]))
@@ -299,18 +307,34 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         phi_t = solver(a_U, a_D, a_P, b)
         #####
 
-        # a_P = a_U + a_D + a_P_0
-
-        g_liq_old = g_liq.copy()
-        g_liq = g_liq + a_P * ((phi_t - 273.15) / (dZ * deltaH))
+        g_liq[g_liq>0] = g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0])) # dz or dZ?
+        g_liq[g_liq<=0] = 0
         g_liq[g_liq>1] = 1
-        g_liq[g_liq<0] = 0
+        
+        LWC = g_liq*dz
+        mass_liq = LWC * RHO_W_KGM
+        rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
+
+        ### Use the following if you use g_liq_alt above
+        # new_vol = mass_tot/(g_liq*RHO_W_KGM + RHO_I - g_liq*RHO_I)
+        # LWC = g_liq * new_vol
+        # mass_liq = LWC * RHO_W_KGM
+        # rho_liq_eff = mass_liq / dZ #dz or dZ?
+
+        iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
+        if iterdiff==0:
+            itercheck = 0
+            break
+        else:
+            itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
+        count += 1
 
     return phi_t, g_liq
 
 ###################################
 ### end transient_solve_EN ########
 ###################################
+
 
 '''
 Functions below are for firn air
