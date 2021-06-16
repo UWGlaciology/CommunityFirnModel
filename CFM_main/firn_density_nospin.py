@@ -242,7 +242,7 @@ class FirnDensityNoSpin:
             if 'liquid' not in self.c:
                 print('Melt is on, but you did not specify which perolation scheme in the .json')
                 print('Defaulting to original CFM bucket scheme')
-                self.c['liquid'] = 'bucketVV'
+                self.c['liquid'] = 'bucket'
         else:
             self.MELT           = False
             # print("Melt is not turned on.")
@@ -434,7 +434,7 @@ class FirnDensityNoSpin:
         #####
         try:
             if self.c['no_densification']:
-                print('CAUTION: densification if OFF!')
+                print('CAUTION: densification is OFF!')
             else:
                 pass
         except:
@@ -511,7 +511,7 @@ class FirnDensityNoSpin:
         ### Additional melt outputs ###
         ### which of these should go to output?
         if self.MELT:
-            self.runoff         = np.array([0.]) #total runoff, single value for the whole firn column
+            self.Trunoff         = np.array([0.]) #total runoff, single value for the whole firn column
             self.refrozen       = np.zeros_like(self.dz) #vrefreezing in every layer, array of size of our grid
             self.totalrunoff    = np.array([0.]) # Might be useful to have a total final value without having to write every time step
             self.totalrefrozen  = np.zeros_like(self.dz) # Might be useful to have a total final value without having to write every time step
@@ -519,8 +519,8 @@ class FirnDensityNoSpin:
             self.lwcerror       = 0. #VV
             self.totallwcerror  = 0. #
             #VV update (23/03/2021)
-            self.refreezing2 = np.array([0.]) #total liquid water refreezing at each time step [m we]
-            self.runoff2     = np.array([0.]) #total liquid water runoff at each time step [m we]
+            self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
+            self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -663,10 +663,10 @@ class FirnDensityNoSpin:
         ######################################
         if 'grid_outputs' not in self.c:
             self.c['grid_outputs'] = False
-        if ((self.c['grid_outputs']) and (self.MELT)):
-            print('grid_outputs currently not supported with melt')
-            print('Switching to non-gridded outputs')
-            self.c['grid_outputs'] = False
+        # if ((self.c['grid_outputs']) and (self.MELT)):
+        #     print('grid_outputs currently not supported with melt')
+        #     print('Switching to non-gridded outputs')
+        #     self.c['grid_outputs'] = False
         rep_dict = {'density':'rho', 'temperature':'Tz', 'depth':'z', 'dcon':'Dcon', 'temp_Hx':'Hx'} #mapping names from output list to variables in CFM
         self.output_list = [rep_dict.get(n, n) for n in self.c['outputs']]
         if 'grainsize' in self.c['outputs']:
@@ -679,10 +679,10 @@ class FirnDensityNoSpin:
             print('Added meltoutputs to model output list.')
         if 'meltoutputs' in self.c['outputs']: # Need to work with Vincent on what should be here.
             self.output_list.remove('meltoutputs')
-            self.output_list.append('runoff') # This is cumulative for each time step
-            self.output_list.append('refrozen') # Should this be in each grid point, or total?
-            self.output_list.append('refreezing2') #VV (23/03/2021)
-            self.output_list.append('runoff2') #VV (23/03/2021)
+            # self.output_list.append('Trunoff') # This is cumulative for each time step
+            # self.output_list.append('refrozen') # Should this be in each grid point, or total?
+            self.output_list.append('refreeze') #VV (23/03/2021)
+            self.output_list.append('runoff') #VV (23/03/2021)
         
         if ((not self.MELT) and ('LWC' in self.output_list)):
             self.output_list.remove('LWC')
@@ -743,7 +743,7 @@ class FirnDensityNoSpin:
         if self.c['spinUpdate']:
             indUpdate = np.where(self.modeltime>=self.c['spinUpdateDate'])[0][0]
 
-        #VV (23/03/2021) checking that refreezing2 and runoff2 work fine
+        # VV (23/03/2021) checking that refreeze and runoff work fine
         if self.MELT:
             refreezing2check = np.zeros(self.stp)
             runoff2check     = np.zeros(self.stp)
@@ -860,8 +860,6 @@ class FirnDensityNoSpin:
             if self.THist:
                 self.Hx = RD['Hx']
 
-            # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
-
             ######################
             ### MELT #############
             if self.MELT:
@@ -869,55 +867,33 @@ class FirnDensityNoSpin:
                     print('WARNING: prefsnowpack and resingledomain liquid schemes are still in development. email Max for more details.')
                 
                 if self.c['liquid'] == 'bucket':
-                    # if ((mtime>2012) and (mtime<2013)):
-                    #     self.snowmeltSec[iii] = self.snowmeltSec[iii] *100
-                    #     printer = True
-                    # else:
-                    #     printer = False
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
-                        self.rho,self.age,self.dz,self.Tz,self.r2,self.z,self.mass,self.dzn,self.LWC,meltgridtrack,self.refreezing2,self.runoff2 = bucket(self,iii)
+                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
-                        self.refreezing2,self.runoff2 = 0.,0.
+                        self.refreeze, self.runoff = 0.,0.
                     ### Heat ###
                     if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
                         self.Tz, self.T10m  = heatDiff(self,iii)
                     elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
                         LWC0e = sum(self.LWC)
-                        printer = False
-                        if printer:
-                            print(mtime)
-                            print('##################')
-                            LWCind = np.where(self.LWC>0)[0]
-                            print(LWCind)
-                            print(self.z[LWCind])
-                            print(self.LWC[LWCind])
-                            print(self.Tz[LWCind])
                         self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
-                        if printer:
-                            print('#####')
-                            LWCind = np.where(self.LWC>0)[0]
-                            print(LWCind)
-                            print(self.z[LWCind])
-                            print(self.LWC[LWCind])
-                            print(self.Tz[LWCind])
-                            print('##################')
-                        self.refreezing2 += LWC0e-sum(self.LWC)
+                        self.refreeze += LWC0e-sum(self.LWC)
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
                         ### Use Darcy scheme only after spin-up period to reduce computational time ###
                         if self.modeltime[iii]<1980:
-                            self.rho,self.age,self.dz,self.Tz,self.r2,self.z,self.mass,self.dzn,self.LWC,meltgridtrack,self.refreezing2,self.runoff2 = bucket(self,iii)
+                            self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
                         elif self.modeltime[iii]>=1980:
-                            self.rho,self.age,self.dz,self.Tz,self.r2,self.z,self.mass,self.dzn,self.LWC,meltgridtrack,self.refreezing2,self.runoff2 = darcyscheme(self,iii)
+                            self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = darcyscheme(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
                     else: # Dry firn column and no input of meltwater                       
-                        self.refreezing2,self.runoff2 = 0.,0.
+                        self.refreeze, self.runoff = 0.,0.
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
                     if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
@@ -925,24 +901,24 @@ class FirnDensityNoSpin:
                     elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
                         LWC0e = sum(self.LWC)
                         self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
-                        self.refreezing2 += LWC0e-sum(self.LWC)
+                        self.refreeze += LWC0e-sum(self.LWC)
                 ### end darcy ##################               
 
                 elif self.c['liquid'] == 'prefsnowpack':
                     #VV You can choose a date to switch from bucket to prefflow, this should be easy to use from the json file
                     if self.modeltime[iii] >= 1980: # Apply dualperm from a certain date
                         if ((self.snowmeltSec[iii]>0.) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.)): #i.e. there is water
-                            self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.runoff = prefflow(self,iii)
+                            self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.Trunoff = prefflow(self,iii)
                         else: #Dry firn column and no input of meltwater                            
-                            self.runoff     = np.array([0.]) #VV no runoff
+                            self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     elif self.modeltime[iii] < 1980: # Apply bVV until a certain date
                         if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.) or (self.rainSec[iii] > 0.)): #i.e. there is water
-                            self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror = bucket(self,iii)
+                            self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.Trunoff, self.lwcerror = bucket(self,iii)
                         else:
                             #Dry firn column and no input of meltwater
-                            self.runoff     = np.array([0.]) #VV no runoff
+                            self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###        
@@ -953,18 +929,18 @@ class FirnDensityNoSpin:
                     #VV You can choose a date to switch from bucket to prefflow, this should be easy to use from the json file
                     if self.modeltime[iii] >= 1980: # Apply dualperm from a certain date
                         if ((self.snowmeltSec[iii]>0.) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.)): #i.e. there is water
-                            self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.runoff = resingledomain(self,iii)
+                            self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.Trunoff = resingledomain(self,iii)
                         else:
                             #Dry firn column and no input of meltwater
-                            self.runoff     = np.array([0.]) #VV no runoff
+                            self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     elif self.modeltime[iii] < 1980: # Apply bVV until a certain date
                         if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.) or (self.rainSec[iii] > 0.)): #i.e. there is water
-                            self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror = bucket(self,iii)
+                            self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.Trunoff, self.lwcerror = bucket(self,iii)
                         else:
                             #Dry firn column and no input of meltwater
-                            self.runoff     = np.array([0.]) #VV no runoff
+                            self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
@@ -1205,10 +1181,10 @@ class FirnDensityNoSpin:
                 if self.gridtrack[-1]!=3: #VV works for whatever the gridtrack value we have
                     self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self) #VV regrid22
 
-            #VV (23/03/2021) checking that refreezing2 and runoff2 work fine
+            #VV (23/03/2021) checking that refreeze and runoff work fine
             if self.MELT:
-                refreezing2check[iii] = self.refreezing2
-                runoff2check[iii]     = self.runoff2
+                refreezing2check[iii] = self.refreeze
+                runoff2check[iii]     = self.runoff
 
         ##################################
         ##### END TIME-STEPPING LOOP #####

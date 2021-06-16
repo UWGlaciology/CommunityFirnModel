@@ -16,8 +16,6 @@ from scipy import interpolate
 import sys
 import numpy.polynomial.polynomial as poly
 
-
-
 class FirnPhysics:
 
     '''

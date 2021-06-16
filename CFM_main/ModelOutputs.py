@@ -49,14 +49,14 @@ class ModelOutputs:
             elif varname == 'climate':
                 self.Mout_dict[varname] = np.zeros((TWlen+1,3), dtype = self.c['output_bits'])
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
-            elif varname == 'runoff':
-                self.Mout_dict[varname] = np.zeros((TWlen+1,2), dtype = self.c['output_bits'])
-                self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
+            # elif varname == 'runoff':
+            #     self.Mout_dict[varname] = np.zeros((TWlen+1,2), dtype = self.c['output_bits'])
+            #     self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
             #VV (23/03/2021)
-            elif varname == 'refreezing2':
+            elif varname == 'refreeze':
                 self.Mout_dict[varname] = np.zeros((TWlen+1,2), dtype = self.c['output_bits'])
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
-            elif varname == 'runoff2':
+            elif varname == 'runoff':
                 self.Mout_dict[varname] = np.zeros((TWlen+1,2), dtype = self.c['output_bits'])
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
 
@@ -69,7 +69,7 @@ class ModelOutputs:
                         self.Mout_dict[varname] = np.zeros((TWlen+1,len(self.grid_out)+1),dtype=self.c['output_bits'])
 
                     if varname == 'LWC':
-                        self.Mout_dict[varname][0,:] = np.append(init_time,RGfun(MOd['z'], MOd[varname], self.grid_out))
+                        self.Mout_dict[varname][0,:] = np.append(init_time,self.RGfun(MOd['z'], MOd[varname], self.grid_out))
                     elif varname != 'z':
                         Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind = intkind, fill_value='extrapolate')         
                         self.Mout_dict[varname][0,:] = np.append(init_time,Ifun(self.grid_out))
@@ -93,8 +93,8 @@ class ModelOutputs:
 
             if self.MOgrid:
                 if varname == 'LWC':
-                    self.Mout_dict[varname][0,:] = np.append(mtime,RGfun(MOd[z], MOd[varname], self.grid_out))
-                elif ((varname == 'BCO') or (varname == 'DIP') or (varname == 'climate') or (varname == 'runoff')):
+                    self.Mout_dict[varname][0,:] = np.append(mtime,self.RGfun(MOd['z'], MOd[varname], self.grid_out))
+                elif ((varname == 'BCO') or (varname == 'DIP') or (varname == 'climate') or (varname == 'runoff') or (varname == 'refreeze')):
                     self.Mout_dict[varname][Wtracker,:] = np.append(mtime,MOd[varname])
                 elif varname == 'z':
                     continue

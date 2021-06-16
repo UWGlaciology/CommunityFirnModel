@@ -4,7 +4,7 @@ import os
 
 HERE = pathlib.Path(__file__).parent
 
-VERSION = '1.1.1'
+VERSION = '1.1.2'
 PACKAGE_NAME = 'CommunityFirnModel'
 AUTHOR = 'Max Stevens'
 AUTHOR_EMAIL = 'maxstev@umd.edu'

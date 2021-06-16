@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.1
+1.1.2
 
 ## Full Documentation
 
@@ -22,6 +22,17 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.2] 2020-06-16
+### Notes
+- The main work in this release is improving the enthalpy scheme for resolving heat diffusion when there is liquid water present. I cannot say for certain how 'wrong' the previous scheme was (I don't think it was too wrong!), but Vincent Verjans identified that with the new meltwater schemes water would refreeze more quickly than expected. The newest code is actually slower because the solver needs to iterate to find a solution; previously I used a set value of iterations, but now a while loop ensures that the iterations continue until convergence.
+
+### Fixed
+- *diffusion.py, solver.py* See note above regarding the enthalpy routine.
+
+### Changed
+- *ModelOutputs.py* GridOutputs is now compatible with melt functions.
+- The outputs from running the melt module have been reduced to three: **LWC** (liquid water content, in each model node, at each timestep [m w.e.]); **refreeze** (total refreezing within the firn at each time step [m w.e.]); and **runoff** (total runoff from the firn at each timestep [m w.e.]). Note that this assumes a 1m x 1m firn column, so if you want total runoff for e.g. a MERRA-2 grid cell, you will need to multiply by the area of the grid cell. 
 
 ## [1.1.1] 2020-05-19
 ### Notes
