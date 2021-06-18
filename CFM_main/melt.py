@@ -201,7 +201,7 @@ def bucket(self,iii):
         jj0 = indsexc[0] #start from most upper node with excess LWC
         if np.any(stcap1>0): #there is some storage capacity in the firn column
             indb2 = np.where(stcap1>0)[0][-1] #bottom most node where LWCexc can be stored
-            while jj0<=indb1 or tostore>0:
+            while ((jj0<=indb1) or (tostore>0)):
                 jj1 = jj0+np.where(stcap1[jj0:]>0)[0][0] #next node that can store some of the LWCexc
                 if imp[np.where(imp>=jj0)[0][0]]>jj1: #jj0 and jj1 nodes not separated by an impermeable barrier
                     tostore += sum(LWCexc[jj0:jj1+1]) #all LWCexc from jj0 to jj1 are subject to storage
@@ -247,6 +247,7 @@ def bucket(self,iii):
     LWCblocked = (1-DirectRunoff)*LWCblocked #corresponding decrease of LWCblocked
     if np.any(LWCblocked>0):
         if Ponding==True: #ponding is allowed
+            rhofinal = self.rho
             phiempty      = self.dz*(rhoi-rhofinal)/RHO_W_KGM-self.LWC #update total potential pore space available for LWC [m] (Eq.9 in Wever (2014) and Discussion in Yamaguchi (2010))
             phiempty[imp] = 0. #set 0 LWC ponding in impermeable nodes
             for kk in np.flip(np.where(LWCblocked>0)[0]):
@@ -260,6 +261,7 @@ def bucket(self,iii):
                     self.LWC[kk] = self.LWC[kk]+LWCblocked[kk] #update LWC
                     phiempty[kk] = phiempty[kk]-LWCblocked[kk] #update phiempty
                 else:
+                    LWCfinal = self.LWC
                     LWCfinal[kk-ifill+1:kk+1] = LWCfinal[kk-ifill+1:kk+1]+phiempty[kk-ifill+1:kk+1] #fill nodes from kk-ifill (not included)
                     LWCblocked[kk] = LWCblocked[kk] - np.sum(phiempty[kk-ifill+1:kk+1]) #remaining LWC in LWCblocked[kk]
                     phiempty[kk-ifill+1:kk+1] = 0. #update phiempty
