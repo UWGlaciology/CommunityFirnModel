@@ -874,6 +874,124 @@ class FirnDensityNoSpin:
             if self.THist:
                 self.Hx = RD['Hx']
 
+
+
+            ### Calculation of average surface temperature and accumulation rate VV
+            # # Case 1: 1 year has not passed yet -> take averages of 1st year
+            # if iii < self.steps: # VV
+            #     T10m = np.sum(self.Ts[0:int(self.steps+1)])/self.steps # VV
+            # # Case 2: at least 1 year has passed -> take averages of the last year (including the current step)
+            # elif iii >= self.steps: # VV
+            #     T10m = np.sum(self.Ts[int(iii-(self.steps-1)):iii+1])/self.steps # VV
+            
+            ### Firn Air ###############
+            if self.c['FirnAir']: # Update firn air
+                AirParams = {
+                    'Tz':           self.Tz,
+                    'rho':          self.rho,
+                    'dt':           self.dt[iii],
+                    'z':            self.z,
+                    'rhos0':        self.rhos0[iii],
+                    'dz_old':       self.dz_old,
+                    'dz':           self.dz,
+                    'rho_old':      self.rho_old,
+                    'w_firn':       self.w_firn
+                }
+                for gas in self.cg['gaschoice']:        
+                    self.Gz[gas], self.diffusivity, self.w_air, self.gas_age = self.FA[gas].firn_air_diffusion(AirParams,iii)
+            ####################
+
+            ### Isotopes #######
+            if self.c['isoDiff']: # Update isotopes
+                # self.del_z  = isoDiff(self,iii)
+                IsoParams = {
+                    'Tz':           self.Tz,
+                    'rho':          self.rho,
+                    'dt':           self.dt[iii],
+                    'z':            self.z,
+                    'rhos0':        self.rhos0[iii],
+                    'dz':           self.dz,
+                    'drho_dt':      drho_dt,
+                    'bdot':         self.bdotSec[iii]
+                }
+
+                for isotope in self.c['iso']:
+                    self.Isoz[isotope], self.Iso_sig2_z[isotope] = self.Isotopes[isotope].isoDiff(IsoParams,iii)
+                ### new box gets added on within isoDiff function
+                ####################
+
+            if self.c['strain']: #update horizontal strain
+                strain      = (-1 * self.du_dxSec[iii] * self.dt[iii] + 1) * np.ones_like(self.z)
+                self.dz     = strain * self.dz
+                self.mass   = strain * self.mass
+
+            self.sdz_new    = np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
+
+            ### Dcon: user-specific code goes here. 
+            # self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
+
+            ### Update grain growth ###
+            if self.c['physGrain']: # update grain radius
+                self.r2 = FirnPhysics(PhysParams).graincalc(iii) # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
+            self.dzn = np.zeros_like(self.z)
+            ### update model grid, mass, stress, and mean accumulation rate
+            if self.bdotSec[iii]>0: # there is accumulation at this time step
+            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)               
+                self.age        = np.concatenate(([0], self.age[:-1])) + self.dt[iii]      
+                self.dzNew      = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dz         = np.concatenate(([self.dzNew], self.dz[:-1]))
+                self.z          = self.dz.cumsum(axis = 0)
+                znew = np.copy(self.z) 
+                self.z          = np.concatenate(([0], self.z[:-1]))
+                self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
+                if self.c['physGrain']: # update grain radius
+                    r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
+                    self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
+                if not self.c['manualT']:
+                    self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+                
+                self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
+                massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                self.mass       = np.concatenate(([massNew], self.mass[:-1]))
+                self.compaction = np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1]))#/self.dt*S_PER_YEAR)
+                # self.compaction = self.dz_old[0:self.compboxes] - self.dzn[0:self.compboxes]
+                if self.doublegrid:
+                    self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
+                self.LWC        = np.concatenate(([0], self.LWC[:-1]))
+
+            elif self.bdotSec[iii]<0:
+                self.mass_sum   = self.mass.cumsum(axis = 0)
+                self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation
+                
+                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
+                self.dzNew      = 0
+                if self.doublegrid == True: # gridtrack corrected for sublimation
+                    self.gridtrack = np.copy(sublgridtrack)
+                znew = np.copy(self.z)
+                if not self.c['manualT']:
+                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
+            else: # no accumulation during this time step
+                self.age        = self.age + self.dt[iii]
+                self.z          = self.dz.cumsum(axis=0)
+                self.z          = np.concatenate(([0],self.z[:-1]))
+                self.dzNew      = 0
+                znew = np.copy(self.z)                             
+                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
+                if not self.c['manualT']:
+                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
+            self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
+
+            self.sigma      = (self.mass + (self.LWC * RHO_W_KGM)) * self.dx * GRAVITY
+            self.sigma      = self.sigma.cumsum(axis = 0)
+            self.mass_sum   = self.mass.cumsum(axis = 0)
+            
+            self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * np.mean(S_PER_YEAR/self.dt) * S_PER_YEAR
+
+            ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
+
             ######################
             ### MELT #############
             if self.MELT:
@@ -1013,121 +1131,6 @@ class FirnDensityNoSpin:
 
             self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 m
 
-            ### Calculation of average surface temperature and accumulation rate VV
-            # # Case 1: 1 year has not passed yet -> take averages of 1st year
-            # if iii < self.steps: # VV
-            #     T10m = np.sum(self.Ts[0:int(self.steps+1)])/self.steps # VV
-            # # Case 2: at least 1 year has passed -> take averages of the last year (including the current step)
-            # elif iii >= self.steps: # VV
-            #     T10m = np.sum(self.Ts[int(iii-(self.steps-1)):iii+1])/self.steps # VV
-            
-            ### Firn Air ###############
-            if self.c['FirnAir']: # Update firn air
-                AirParams = {
-                    'Tz':           self.Tz,
-                    'rho':          self.rho,
-                    'dt':           self.dt[iii],
-                    'z':            self.z,
-                    'rhos0':        self.rhos0[iii],
-                    'dz_old':       self.dz_old,
-                    'dz':           self.dz,
-                    'rho_old':      self.rho_old,
-                    'w_firn':       self.w_firn
-                }
-                for gas in self.cg['gaschoice']:        
-                    self.Gz[gas], self.diffusivity, self.w_air, self.gas_age = self.FA[gas].firn_air_diffusion(AirParams,iii)
-            ####################
-
-            ### Isotopes #######
-            if self.c['isoDiff']: # Update isotopes
-                # self.del_z  = isoDiff(self,iii)
-                IsoParams = {
-                    'Tz':           self.Tz,
-                    'rho':          self.rho,
-                    'dt':           self.dt[iii],
-                    'z':            self.z,
-                    'rhos0':        self.rhos0[iii],
-                    'dz':           self.dz,
-                    'drho_dt':      drho_dt,
-                    'bdot':         self.bdotSec[iii]
-                }
-
-                for isotope in self.c['iso']:
-                    self.Isoz[isotope], self.Iso_sig2_z[isotope] = self.Isotopes[isotope].isoDiff(IsoParams,iii)
-                ### new box gets added on within isoDiff function
-                ####################
-
-            if self.c['strain']: #update horizontal strain
-                strain      = (-1 * self.du_dxSec[iii] * self.dt[iii] + 1) * np.ones_like(self.z)
-                self.dz     = strain * self.dz
-                self.mass   = strain * self.mass
-
-            self.sdz_new    = np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
-
-            ### Dcon: user-specific code goes here. 
-            # self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
-
-            ### Update grain growth ###
-            if self.c['physGrain']: # update grain radius
-                self.r2 = FirnPhysics(PhysParams).graincalc(iii) # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
-            
-            ### update model grid, mass, stress, and mean accumulation rate
-            if self.bdotSec[iii]>0: # there is accumulation at this time step
-            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)               
-                self.age        = np.concatenate(([0], self.age[:-1])) + self.dt[iii]      
-                self.dzNew      = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-                self.dz         = np.concatenate(([self.dzNew], self.dz[:-1]))
-                self.z          = self.dz.cumsum(axis = 0)
-                znew = np.copy(self.z) 
-                self.z          = np.concatenate(([0], self.z[:-1]))
-                self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-
-                if self.c['physGrain']: # update grain radius
-                    r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
-                    self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
-                if not self.c['manualT']:
-                    self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
-                
-                self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
-                massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-                self.mass       = np.concatenate(([massNew], self.mass[:-1]))
-                self.compaction = np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1]))#/self.dt*S_PER_YEAR)
-                # self.compaction = self.dz_old[0:self.compboxes] - self.dzn[0:self.compboxes]
-                if self.doublegrid:
-                    self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
-                self.LWC        = np.concatenate(([0], self.LWC[:-1]))
-
-            elif self.bdotSec[iii]<0:
-                self.mass_sum   = self.mass.cumsum(axis = 0)
-                self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation
-                
-                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
-                self.dzNew      = 0
-                if self.doublegrid == True: # gridtrack corrected for sublimation
-                    self.gridtrack = np.copy(sublgridtrack)
-                znew = np.copy(self.z)
-                if not self.c['manualT']:
-                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
-
-            else: # no accumulation during this time step
-                self.age        = self.age + self.dt[iii]
-                self.z          = self.dz.cumsum(axis=0)
-                self.z          = np.concatenate(([0],self.z[:-1]))
-                self.dzNew      = 0
-                znew = np.copy(self.z)                             
-                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
-                if not self.c['manualT']:
-                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
-
-            self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
-
-            self.sigma      = (self.mass + (self.LWC * RHO_W_KGM)) * self.dx * GRAVITY
-            self.sigma      = self.sigma.cumsum(axis = 0)
-            self.mass_sum   = self.mass.cumsum(axis = 0)
-            
-            self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * np.mean(S_PER_YEAR/self.dt) * S_PER_YEAR
-
-            ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
 
             #############################################################
             ### write results as often as specified in the init method ##

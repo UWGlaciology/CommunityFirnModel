@@ -34,6 +34,9 @@ class ModelOutputs:
 
         self.output_list = list(MOd.keys())
 
+        self.Mout_dict['modeltime'] = np.zeros((TWlen+1),dtype = 'float64')
+        self.Mout_dict['modeltime'][0] = init_time
+
         for varname in self.output_list:
             if varname == 'Dcon':
                 intkind = 'nearest'
@@ -84,7 +87,8 @@ class ModelOutputs:
         '''
         Function to update the output matrices in Mout_dict
         '''
-
+        self.Mout_dict['modeltime'][Wtracker] = mtime
+         
         for varname in self.output_list:
             if varname == 'Dcon':
                 intkind = 'nearest'
