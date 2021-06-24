@@ -722,6 +722,13 @@ class FirnDensityNoSpin:
                 MOd['iso_sig2_{}'.format(isotope)] = self.Isotopes[isotope].iso_sig2_z
 
         self.MOutputs = ModelOutputs(self.c,MOd,TWlen, init_time, len(self.dz))
+
+        if 'constant_density' not in self.c:
+            self.c['constant_density'] = False
+
+        if self.c['constant_density']:
+            self.constant_rho = self.rho
+            self.constant_depth = self.z
         ### self.MOutputs is a class instance
         ######################################
         ######################################
@@ -843,6 +850,13 @@ class FirnDensityNoSpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+
+            if self.c['constant_density']:
+                # int_rho_fun = sp.interpolate.interp1d()
+                Rif = interpolate.interp1d(self.constant_depth, self.constant_rho,kind='linear',fill_value="extrapolate")
+                self.rho = Rif(self.z)
+                self.rhos0[iii] = self.rho[0]
+
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
