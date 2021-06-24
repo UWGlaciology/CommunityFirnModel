@@ -34,7 +34,8 @@ class ModelOutputs:
 
         self.output_list = list(MOd.keys())
 
-        ### Some test here.
+        self.Mout_dict['modeltime'] = np.zeros((TWlen+1),dtype = 'float64')
+        self.Mout_dict['modeltime'][0] = init_time
 
         for varname in self.output_list:
             if varname == 'Dcon':
@@ -86,7 +87,8 @@ class ModelOutputs:
         '''
         Function to update the output matrices in Mout_dict
         '''
-
+        self.Mout_dict['modeltime'][Wtracker] = mtime
+         
         for varname in self.output_list:
             if varname == 'Dcon':
                 intkind = 'nearest'
@@ -95,7 +97,7 @@ class ModelOutputs:
 
             if self.MOgrid:
                 if varname == 'LWC':
-                    self.Mout_dict[varname][Wtracker,:] = np.append(mtime,self.RGfun(MOd['z'], MOd[varname], self.grid_out))
+                    self.Mout_dict[varname][0,:] = np.append(mtime,self.RGfun(MOd['z'], MOd[varname], self.grid_out))
                 elif ((varname == 'BCO') or (varname == 'DIP') or (varname == 'climate') or (varname == 'runoff') or (varname == 'refreeze')):
                     self.Mout_dict[varname][Wtracker,:] = np.append(mtime,MOd[varname])
                 elif varname == 'z':
