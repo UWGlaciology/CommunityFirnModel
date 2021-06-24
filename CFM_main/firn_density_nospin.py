@@ -755,6 +755,7 @@ class FirnDensityNoSpin:
         print('modeltime',self.modeltime[0],self.modeltime[-1])
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
+            self.mtime = mtime
             self.D_surf[iii] = iii
             if iii==1000:
                 if ((self.MELT) and (self.c['liquid']=='darcy')):
@@ -762,7 +763,7 @@ class FirnDensityNoSpin:
                 else:
                     ntime = time.time()
                     print('estimated model run time (seconds):', self.stp*(ntime-start_time)/1000)
-
+            # print(mtime)
             ### Merging process #VV ###
             if self.c['merging']: # merging may be deprecated (check with VV)
                 if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-4)): # Start with surface merging
@@ -877,10 +878,40 @@ class FirnDensityNoSpin:
                     ### Heat ###
                     if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
                         self.Tz, self.T10m  = heatDiff(self,iii)
+                    # elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
+                    #     LWC0e = sum(self.LWC)
+                    #     self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                    #     self.refreeze += LWC0e-sum(self.LWC)
+
                     elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
                         LWC0e = sum(self.LWC)
+                        printer = False
+                        if printer:
+                            print(mtime)
+                            print('##################')
+                            LWCind = np.where(self.LWC>0)[0]
+                            print(LWCind)
+                            print(self.z[LWCind])
+                            print(self.LWC[LWCind])
+                            print(self.Tz[LWCind])
                         self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                        if printer:
+                            print('#####')
+                            LWCind = np.where(self.LWC>0)[0]
+                            print(LWCind)
+                            print(self.z[LWCind])
+                            print(self.LWC[LWCind])
+                            print(self.Tz[LWCind])
+                            # if len(LWCind)>1:
+                            #     input('kept some water')
+                            print('##################')
                         self.refreeze += LWC0e-sum(self.LWC)
+                ### end bucket ##################
+
+
+
+
+
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -1121,6 +1152,9 @@ class FirnDensityNoSpin:
             if mtime in self.TWrite:                
                 ind         = np.where(self.TWrite == mtime)[0][0]
                 mtime_plus1 = self.TWrite[ind]
+
+                # if np.any(self.LWC>0):
+                #     print('positive vibes')
                 
                 if 'viscosity' in self.output_list:
                     self.viscosity = RD['viscosity']

@@ -129,7 +129,10 @@ def heatDiff(self,iii):
 
     self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    try:
+        self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    except Exception:
+        self.T10m = self.Tz[-1]
 
     if self.c['MELT']:
         if self.c['LWCheat']=='effectiveT':
@@ -179,7 +182,7 @@ def enthalpyDiff(self,iii):
     g_ice_1     = vol_ice / vol_tot     # solid/ice volume fraction 
 
     K_water = 0.55575                         # thermal conductivity, water (W/m/K)
-    K_ice   = 9.828 * np.exp(-0.0057 * self.Tz) # thermal conductivity, ice (W/m/K), Cuffey and Paterson, eq. 9.2 (Yen 1981)
+    K_ice   = 9.828 * np.exp(-0.0057 * self.Tz) # thermal conductivity, ice [W/m/K], Cuffey and Paterson, eq. 9.2 (Yen 1981)
     # K_mix = g_liq_1*K_liq + g_ice_1*K_ice
 
     c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
@@ -187,13 +190,17 @@ def enthalpyDiff(self,iii):
     c_ice = c_firn
     c_liq = 4219.9 # J/kg/K, taken from engineeringtoolbox.com. Ha!
     # c_vol = g_ice_1 * RHO_I * c_ice + g_liq_1 * RHO_W_KGM * c_liq #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
-    c_vol = (g_ice_1 * c_ice + g_liq_1 * c_liq) * tot_rho #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
+    c_vol = (g_ice_1 * c_ice + g_liq_1 * c_liq) * tot_rho # [J K^-1 m^-3] Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
 
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
 
-    phi_ret, g_liq   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz)
+    tot_mass_old = self.mass + self.LWC*1000
+
+    phi_ret, g_liq, count   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz)
+    if count>100:
+        print('count', count)
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
@@ -207,14 +214,35 @@ def enthalpyDiff(self,iii):
     self.LWC = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
+    dmc = delta_mass_liq.copy()
+    dmc[dmc>=0] = 9999
+
+    switch = False
     if np.any(delta_mass_liq<0):
-        if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-10):
+        
+        if np.any(np.abs(dmc[dmc<0])>1e-10):
+            print('max neg ', np.min(dmc))
             print(self.modeltime[iii],'Fixing negative values of delta_mass_liq, min value:',min(delta_mass_liq))
-        delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
+            xii = np.where(delta_mass_liq==np.min(dmc))[0][0]
+            print('xii', xii)
+            print('ts', self.Ts[iii])
+            print('delta', delta_mass_liq[xii])
+            print('depth', self.z[xii])
+            print('temperature', self.Tz[xii-5:xii+5])
+            print('mass_liq', mass_liq[xii])
+            print('new mass liq', self.LWC[xii] * RHO_W_KGM)
+            input('enter to continue')
+            switch = True
+        # delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
 
     tot_mass_new = self.mass + self.LWC*1000
+    if switch:
+        print('old mass: ', np.sum(tot_mass_old))
+        print('new mass: ', np.sum(tot_mass_new))
+        print('old xii: ', tot_mass_old[xii])
+        print('new xii: ', tot_mass_new[xii])
 
     return self.Tz, self.T10m, self.rho, self.mass, self.LWC
 
