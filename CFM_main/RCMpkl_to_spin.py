@@ -25,6 +25,7 @@ import numpy as np
 from datetime import datetime, timedelta, date
 import pandas as pd
 import time
+import calendar
 import hl_analytic as hla
 
 def toYearFraction(date):
@@ -32,7 +33,7 @@ def toYearFraction(date):
     convert datetime to decimal date 
     '''
     def sinceEpoch(date): # returns seconds since epoch
-        return time.mktime(date.timetuple())
+        return calendar.timegm(date.timetuple())
     s = sinceEpoch
 
     year = date.year
@@ -113,10 +114,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     	df_CLIM = CLIM_name
 
     drn = {'TS':'TSKIN'} #customize this to change your dataframe column names to match the required inputs
-    df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
-    df_CLIM['BDOT'] = df_CLIM['PRECSNO'] + df_CLIM['EVAP']
+    # df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
+    # df_CLIM['BDOT'] = df_CLIM['PRECSNO'] + df_CLIM['EVAP']
     df_CLIM.rename(mapper=drn,axis=1,inplace=True)
-    df_CLIM.drop(['EVAP','PRECTOT','PRECSNO'],axis=1,inplace=True)
+    try:
+        df_CLIM.drop(['EVAP','PRECTOT','PRECSNO'],axis=1,inplace=True)
+    except:
+        pass
     l1 = df_CLIM.columns.values.tolist()
     l2 = ['SMELT','BDOT','RAIN','TSKIN']
     notin = list(np.setdiff1d(l1,l2))
