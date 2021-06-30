@@ -97,7 +97,7 @@ class ModelOutputs:
 
             if self.MOgrid:
                 if varname == 'LWC':
-                    self.Mout_dict[varname][0,:] = np.append(mtime,self.RGfun(MOd['z'], MOd[varname], self.grid_out))
+                    self.Mout_dict[varname][Wtracker,:] = np.append(mtime,self.RGfun(MOd['z'], MOd[varname], self.grid_out))
                 elif ((varname == 'BCO') or (varname == 'DIP') or (varname == 'climate') or (varname == 'runoff') or (varname == 'refreeze')):
                     self.Mout_dict[varname][Wtracker,:] = np.append(mtime,MOd[varname])
                 elif varname == 'z':

@@ -226,23 +226,29 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     phi_t = phi_0.copy()
     phi_t_old = phi_t.copy()
 
-    vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
-    vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
+    # vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
+    # vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
     mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
     mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
     rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
-    mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
+    # mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
     g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
-
-    # g_liq_alt   = LWC / vol_SL  # alternatively, liquid volume fraction (of the material portion, porosity ignored), (I don't think this one is correct. See code at end of while loop to swap if you want to use this)
-    # g_liq = g_liq_alt
    
     g_liq_old = g_liq.copy()
 
     itercheck = 0.9
     count = 0
 
-    while itercheck>0.00:
+    # rho_firn = mass_sol/dz
+    # H = rho_firn * CP_I * phi_t
+    # H[g_liq>0] = rho_liq_eff[g_liq>0] * LF_I
+    # H_old = H.copy()
+    # Hinv = H/(rho_firn*CP_I)
+    # Hinv[g_liq>0] = 0
+
+    iter_threshold_st = 0.00
+    iter_threshold = np.copy(iter_threshold_st)
+    while itercheck>iter_threshold:
     # for ii in range(nt):
 
         # g_liq[g_liq>g_liq_old] = g_liq_old[g_liq>g_liq_old] #added these two lines
@@ -251,8 +257,12 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         g_liq_iter = g_liq.copy()
         deltaH_l = rho_liq_eff * LF_I
         deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
-        phi_t = phi_0.copy()
+        # phi_t = phi_0.copy()
         dZ = np.diff(z_edges) #width of nodes
+
+        # H = rho_firn * CP_I * phi_t
+        # H[g_liq>0] = rho_liq_eff[g_liq>0] * LF_I
+        # H_iter = H.copy()
 
         deltaZ_u = np.diff(Z_P)
         deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
@@ -269,35 +279,80 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
         Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
-        ### Voller 1990 # Should be same result as 31, 32 from Voller 1991.
-        # beta_P = np.zeros_like(Gamma_P)
-        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e15
-        # S_P = (beta_P * deltaH * g_liq_old)/dt #* dZ * dt
-        # S_C = (-S_P*phi_t + deltaH*g_liq_old - deltaH*g_liq)/dt #+ deltaH*beta_P*
-        ### end 1990 
+
+        ########################################
+        ### start test
 
         #### eqs. 31, 32 from Voller 1991
         dFdT = np.zeros_like(Gamma_P)
-        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e20
+        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e10
         Finv = np.zeros_like(dFdT)
-        S_P = (-1 * deltaH * dFdT) / dt # [J m^3 K^-1 s^-1]
-        S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt
-        ### end 1991
+        S_P = (-1 * deltaH * dFdT)  # [J m^3 K^-1 s^-1]
+        S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) 
+        # ### end 1991
+
+        #### eqs. 9, 10 from Swaminathan and Voller 1992
+        # dHdT = CP_I * rho_firn
+        # dHdT[g_liq>0] = 1.0e8
+        # # Hinv = H_iter/(rho_firn*CP_I)
+        # # Hinv[g_liq_iter>0] = 0
+        # S_P = (-1 * dHdT) / dt # [J m^3 K^-1 s^-1]
+        # S_C = (1 / dt) * (H_old - H_iter) - (S_P * Hinv)
+        ### end 1992
 
         D_u = (Gamma_u / deltaZ_u) # [J s^-1 m^-1 K^-1]
         D_d = (Gamma_d / deltaZ_d) # Should this be times instead of divide?
 
         b_0 = S_C * dZ #/ dt # [J K^-1 s^-1]
 
-        a_U = D_u # [J s^-1 m^-1 K^-1]
-        a_D = D_d
+        a_U = D_u * dt # [J s^-1 m^-1 K^-1]
+        a_D = D_d * dt
 
-        a_P_0 = c_vol * dZ / dt # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
+        a_P_0 = c_vol * dZ  # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
 
         # b       = b_0 + a_P_0 * phi_t #is this at current iteration, or 'old'?
         b       = b_0 + a_P_0 * phi_t_old # [J s^-1] is this at current iteration, or 'old'?
         a_P     = a_U + a_D + a_P_0 - S_P*dZ #*dt # check the multiply on the S_P
+        ### end test
+        ########################################
 
+
+        ########################################
+        ### working version
+
+        #### eqs. 31, 32 from Voller 1991
+        # dFdT = np.zeros_like(Gamma_P)
+        # dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e20
+        # Finv = np.zeros_like(dFdT)
+        # S_P = (-1 * deltaH * dFdT) / dt # [J m^3 K^-1 s^-1]
+        # S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt
+        # # ### end 1991
+
+        # #### eqs. 9, 10 from Swaminathan and Voller 1992
+        # # dHdT = CP_I * rho_firn
+        # # dHdT[g_liq>0] = 1.0e8
+        # # # Hinv = H_iter/(rho_firn*CP_I)
+        # # # Hinv[g_liq_iter>0] = 0
+        # # S_P = (-1 * dHdT) / dt # [J m^3 K^-1 s^-1]
+        # # S_C = (1 / dt) * (H_old - H_iter) - (S_P * Hinv)
+        # ### end 1992
+
+        # D_u = (Gamma_u / deltaZ_u) # [J s^-1 m^-1 K^-1]
+        # D_d = (Gamma_d / deltaZ_d) # Should this be times instead of divide?
+
+        # b_0 = S_C * dZ #/ dt # [J K^-1 s^-1]
+
+        # a_U = D_u # [J s^-1 m^-1 K^-1]
+        # a_D = D_d
+
+        # a_P_0 = c_vol * dZ / dt # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
+
+        # # b       = b_0 + a_P_0 * phi_t #is this at current iteration, or 'old'?
+        # b       = b_0 + a_P_0 * phi_t_old # [J s^-1] is this at current iteration, or 'old'?
+        # a_P     = a_U + a_D + a_P_0 - S_P*dZ #*dt # check the multiply on the S_P
+
+        ### end working
+        ############################################
         bc_u_0  = phi_s 
         bc_type = 1
         bc_u    = np.concatenate(([ bc_u_0], [bc_type]))
@@ -323,30 +378,54 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         # g_liq[g_liq>0] = (g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
 
+        ### Use with Voller 1991 equations ###
         alpha = 1
         g_liq[g_liq>0] = alpha * (g_liq_iter[g_liq>0] + dFdT[g_liq>0] * (phi_t[g_liq>0] - Finv[g_liq>0])) # dz or dZ?
         g_liq[g_liq<=0] = 0
         g_liq[g_liq>1] = 1
+        ####
+
+        ### Use with Swaminathan and Voller (1992)
+        # H = H_iter + dHdT * (phi_t - Hinv)
+        # rho_liq_eff = np.zeros_like(dz)
+        # rho_liq_eff[H>0] = H[H>0] / LF_I
+        # mass_liq = rho_liq_eff * dz
+        # LWC = mass_liq/RHO_W_KGM
+        # g_liq = LWC / dz
+        # g_liq[g_liq<=0] = 0
+        # g_liq[g_liq>1] = 1
+        # LWC = g_liq * dz
+        # mass_liq = LWC * RHO_W_KGM
+        # rho_liq_eff = mass_liq/ dz
+        # mass_sol = mass_tot - mass_liq
+        # rho_firn = mass_sol / dz
+        # Hinv = H/(rho_firn*CP_I)
+        # Hinv[g_liq>0] = 0
+        ###
 
         
-        #####
+        ##### This goes with 1991
         LWC = g_liq*dz
         mass_liq = LWC * RHO_W_KGM
         rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
 
-        ### Use the following if you use g_liq_alt above
-        # new_vol_SL = mass_tot/(g_liq*RHO_W_KGM + RHO_I - g_liq*RHO_I)
-        # LWC = g_liq * new_vol_SL
-        # mass_liq = LWC * RHO_W_KGM
-        # rho_liq_eff = mass_liq / dZ #dz or dZ?
-
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
-        if iterdiff==0:
+        # iterdiff = np.max(np.abs(Hinv - phi_t))
+        if iterdiff==0.0:
             itercheck = 0
             break
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
+            # itercheck = np.abs(iterdiff)/len(Hinv)
+            # itercheck = 0.3
         count += 1
+
+        if count>200:
+            if iter_threshold_st == 0:
+                iter_threshold = 0.001
+            else:
+                iter_threshold = iter_threshold_st * 10
+
         if count>500:
             print('large count! ', count)
             break
@@ -356,6 +435,146 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ###################################
 ### end transient_solve_EN ########
 ###################################
+
+
+####################################
+### old enthalpy
+
+def transient_solve_EN_old(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH, dz):
+    '''
+    transient 1-d diffusion finite volume method for enthalpy
+    :param z_edges:
+    :param Z_P:
+    :param nt:
+    :param dt:
+    :param Gamma_P:
+    :param phi_0:
+    :param nz_P:
+    :param nz_fv:
+    :param phi_s:
+    :param g_liq
+    :return phi_t:
+    The source terms S_P and S_C come from the linearization described
+    in Voller and Swaminathan, 1991, equations 31 and 32.
+    and Voller, Swaminathan, and Thomas, 1990, equation 61
+    '''
+    
+    phi_t = phi_0.copy()
+    g_liq_old = g_liq.copy()
+    g_liq_iter = g_liq.copy()
+
+    # g_ice_old = g_ice.copy() 
+
+    itercheck = 1.
+    count = 0
+    while itercheck>0.01:
+    # for i_time in range(nt):
+        deltaH   = g_liq * RHO_W_KGM * LF_I
+        # deltaH[g_liq == 0] = c_vol[g_liq == 0] * phi_t[g_liq == 0]
+        # phi_t = phi_0.copy()
+        g_liq_iter = g_liq.copy()
+        dZ = np.diff(z_edges) #width of nodes
+
+        deltaZ_u = np.diff(Z_P)
+        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
+        
+        deltaZ_d = np.diff(Z_P)
+        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
+
+        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
+        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+
+        Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
+        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+
+        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
+        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
+
+        # beta_P = np.zeros_like(Gamma_P)
+        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e9
+        # S_P     = beta_P * deltaH * g_liq_old
+        # S_C = 1 * S_P * 273.15 + deltaH * g_liq_old - deltaH * g_liq 
+
+        dFdT = np.zeros_like(Gamma_P)
+        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e20
+        Finv = np.zeros_like(dFdT)
+        Finv[g_liq>0] = 0
+
+        S_P = -1 * deltaH * dFdT
+        S_C = deltaH * (g_liq_old - g_liq) + deltaH * dFdT * Finv
+
+        # S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt
+        
+        D_u = (Gamma_u / deltaZ_u)
+        D_d = (Gamma_d / deltaZ_d)
+        a_U = D_u * dt
+        a_D = D_d * dt
+
+        b_0 = S_C * dZ #* dt
+
+        a_P_0 = c_vol * dZ #/ dt # (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)
+            
+        a_P     = a_U + a_D + a_P_0 - S_P*dZ #*dt
+
+        b       = b_0 + a_P_0 * phi_t
+
+        ### Boundaries
+        # Upper
+        bc_u_0  = phi_s
+        bc_type = 1
+        bc_u    = np.concatenate(([ bc_u_0], [bc_type]))
+
+        a_P[0]  = 1
+        a_U[0]  = 0
+        a_D[0]  = 0
+        b[0]    = bc_u[0]
+
+        # Lower
+        bc_d_0  = 0
+        bc_type = 2
+        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type ]))
+
+        a_P[-1] = 1
+        a_D[-1] = 0
+        a_U[-1] = 1
+        b[-1]   = deltaZ_u[-1] * bc_d[0]
+        #######
+
+        #####
+        phi_t_iter = phi_t.copy()
+        phi_t = solver(a_U, a_D, a_P, b)
+        #####
+
+        # g_liq_old = g_liq.copy()
+        # g_liq_a = g_liq.copy()
+        # g_liq = 0*g_liq
+        # g_liq[g_liq_a>0] = g_liq_a[g_liq_a>0] + a_P[g_liq_a>0] * ((phi_t[g_liq_a>0] - 273.15) / (dZ[g_liq_a>0] * deltaH[g_liq_a>0]))
+        # g_liq = g_liq + dFdT * (phi_t - Finv)
+        alpha = 1
+        g_liq[g_liq>0] = alpha * (g_liq_iter[g_liq>0] + dFdT[g_liq>0] * (phi_t[g_liq>0] - Finv[g_liq>0])) # dz or dZ?
+
+        g_liq[g_liq>1] = 1
+        g_liq[g_liq<0] = 0
+
+        iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
+        if iterdiff == 0:
+            itercheck = 0
+        else:
+            itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
+
+        count += 1
+    if count>100:
+        print('count', count)
+        # input('count')
+    phi_ret = phi_t #+ 273.15
+    return phi_ret, g_liq, count
+
+
+
+
+
+
+####################################
 
 
 '''

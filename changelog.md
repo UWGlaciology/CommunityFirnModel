@@ -23,6 +23,12 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
+## [1.1.3]
+### Notes
+
+### Changed
+- *firn_density_nospin.py* I changed the order of operations within the time stepping loop. This was motivated by high-temporal resolution runs in which the surface temperature in the outputs was clearly out of sync (by one time step) from the rest of the firn. Previously, in general, the order was: densify, (optional melt), heat diffusion, add new accumulation layer (or sublimate, or update surface layer properties). Now, the order is: densify, add update surface (new layer if accumulation), (optional melt), heat diffusion. 
+
 ## [1.1.2] 2020-06-16
 ### Notes
 - The main work in this release is improving the enthalpy scheme for resolving heat diffusion when there is liquid water present. I cannot say for certain how 'wrong' the previous scheme was (I don't think it was too wrong!), but Vincent Verjans identified that with the new meltwater schemes water would refreeze more quickly than expected. The newest code is actually slower because the solver needs to iterate to find a solution; previously I used a set value of iterations, but now a while loop ensures that the iterations continue until convergence.

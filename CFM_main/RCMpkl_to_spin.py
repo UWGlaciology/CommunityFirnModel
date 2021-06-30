@@ -26,13 +26,14 @@ from datetime import datetime, timedelta, date
 import pandas as pd
 import time
 import hl_analytic as hla
+import calendar
 
 def toYearFraction(date):
     '''
     convert datetime to decimal date 
     '''
     def sinceEpoch(date): # returns seconds since epoch
-        return time.mktime(date.timetuple())
+        return calendar.timegm(date.timetuple())
     s = sinceEpoch
 
     year = date.year

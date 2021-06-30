@@ -8,7 +8,7 @@ Isotope diffusion now has its own class.
 '''
 
 from solver import transient_solve_TR
-# from solver import transient_solve_EN_old
+from solver import transient_solve_EN_old
 # from solver import transient_solve_EN_new
 from solver import transient_solve_EN
 from constants import *
@@ -198,10 +198,26 @@ def enthalpyDiff(self,iii):
 
     tot_mass_old = self.mass + self.LWC*1000
 
-    phi_ret, g_liq, count   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz)
-    if count>100:
-        print('count', count)
-    self.Tz = phi_ret + 273.15
+    escheme = 'new'
+    ### NEW
+    if escheme == 'new':
+        phi_ret, g_liq, count   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz)
+        self.Tz = phi_ret + 273.15
+        # if count>100:
+        #     print(self.modeltime[iii])
+        #     print('high count:', count)
+    #### end NEW
+
+    ###### old
+    elif escheme == 'old':
+        # phi_s    = self.Tz[0] - 273.15 # work in [C] so that reference Temperature is 0 for enthalpy
+        # phi_0    = self.Tz - 273.15
+        g_liq    = self.LWC / self.dz    # liquid volume fraction, total volume
+        deltaH   = g_liq * RHO_W_KGM * LF_I #Voller 1990, eq 11. (letting T_ref = T_melt) units: J/m^3
+        phi_ret, g_liq, count   = transient_solve_EN_old(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, g_liq, deltaH, self.dz)
+        self.Tz = phi_ret +273.15
+    ######
+   
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
     if np.any(self.Tz>273.15):
@@ -211,6 +227,7 @@ def enthalpyDiff(self,iii):
         print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
         self.Tz[self.Tz>=273.15]=273.15
     
+    LWC_old = self.LWC.copy()
     self.LWC = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
@@ -231,11 +248,21 @@ def enthalpyDiff(self,iii):
             print('temperature', self.Tz[xii-5:xii+5])
             print('mass_liq', mass_liq[xii])
             print('new mass liq', self.LWC[xii] * RHO_W_KGM)
-            input('enter to continue')
+            # input('enter to continue')
             switch = True
         # delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
+    rho_prev = self.rho.copy()
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
+    if np.any(self.rho>917.0):
+        print(self.modeltime[iii])
+        xhi = np.where(self.rho>917.0)
+        print(self.rho[xhi])
+        print(rho_prev[xhi])
+        print('LWC old',LWC_old[xhi])
+        print('z', self.dz[xhi])
+        print('lwc new', self.LWC[xhi])
+        input()
 
     tot_mass_new = self.mass + self.LWC*1000
     if switch:
