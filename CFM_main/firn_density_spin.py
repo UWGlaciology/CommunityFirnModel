@@ -476,15 +476,22 @@ class FirnDensitySpin:
                     if self.c['strain_softening']:
                         eps_eff_classic_2 = 0.5 * (eps_zz_classic ** 2)
                         r_hor2 = self.eps_eff_hor_2 / eps_eff_classic_2
-                        K = (13.5 * r_hor2 + 1.5 * np.sqrt(81 * r_hor2 ** 2 + 12 * r_hor2) + 1) ** (1 / 3)
-                        correction_factor_viscosity = (K + 1 / K + 1) / 3
 
-                        #correction_factor_viscosity = (r_hor2 + (1 - 0.418) ** (8 / 3)) ** (3 / 8) + 0.418  # Approximated relation for n=4.
-                        #print(correction_factor_viscosity)
+                        # Solution for n=3
+                        # K = (13.5 * r_hor2 + 1.5 * np.sqrt(81 * r_hor2 ** 2 + 12 * r_hor2) + 1) ** (1 / 3)
+                        # scale_factor_softening = (K + 1 / K + 1) / 3
+
+                        # Solution for n=4
+                        a1 = (9 * r_hor2**4 + np.sqrt(768 * r_hor2**9 + 81 * r_hor2**8))**(1/3)
+                        a2 = np.sqrt(8 * r_hor2 + 2 * (2/3)**(2/3) * a1 - (16 * (2/3)**(1/3) * r_hor2**3)/a1 + 1)
+                        a3 = np.sqrt(4 * r_hor2 - a1/(2**(1/3) * 3**(2/3)) + (4 * (2/3)**(1/3) * r_hor2**3)/a1
+                                     + (24 * r_hor2**2 + 12 * r_hor2 + 1)/(2 * a2) + 1/2)
+                        scale_factor_softening = np.sqrt(1/4 * a2 + 1/2 * a3 + 1/4)
+
                         z2mask = (self.rho >= RHO_1)
-                        eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * correction_factor_viscosity[z2mask]
-                        drho_dt[z2mask]        = drho_dt[z2mask] * correction_factor_viscosity[z2mask]
-                        self.viscosity[z2mask] = self.viscosity[z2mask] / correction_factor_viscosity[z2mask]
+                        eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * scale_factor_softening[z2mask]
+                        drho_dt[z2mask]        = drho_dt[z2mask] * scale_factor_softening[z2mask]
+                        self.viscosity[z2mask] = self.viscosity[z2mask] / scale_factor_softening[z2mask]
 
                 if 'strain_heating' in self.c:
                     if self.c['strain_heating']:
