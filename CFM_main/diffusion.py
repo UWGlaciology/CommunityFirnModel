@@ -262,7 +262,7 @@ def enthalpyDiff(self,iii):
         print('LWC old',LWC_old[xhi])
         print('z', self.dz[xhi])
         print('lwc new', self.LWC[xhi])
-        input()
+        # input()
 
     tot_mass_new = self.mass + self.LWC*1000
     if switch:

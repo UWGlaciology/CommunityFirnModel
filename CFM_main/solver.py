@@ -283,49 +283,12 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         ########################################
         ### start test
 
-        #### eqs. 31, 32 from Voller 1991
-        dFdT = np.zeros_like(Gamma_P)
-        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e10
-        Finv = np.zeros_like(dFdT)
-        S_P = (-1 * deltaH * dFdT)  # [J m^3 K^-1 s^-1]
-        S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) 
-        # ### end 1991
-
-        #### eqs. 9, 10 from Swaminathan and Voller 1992
-        # dHdT = CP_I * rho_firn
-        # dHdT[g_liq>0] = 1.0e8
-        # # Hinv = H_iter/(rho_firn*CP_I)
-        # # Hinv[g_liq_iter>0] = 0
-        # S_P = (-1 * dHdT) / dt # [J m^3 K^-1 s^-1]
-        # S_C = (1 / dt) * (H_old - H_iter) - (S_P * Hinv)
-        ### end 1992
-
-        D_u = (Gamma_u / deltaZ_u) # [J s^-1 m^-1 K^-1]
-        D_d = (Gamma_d / deltaZ_d) # Should this be times instead of divide?
-
-        b_0 = S_C * dZ #/ dt # [J K^-1 s^-1]
-
-        a_U = D_u * dt # [J s^-1 m^-1 K^-1]
-        a_D = D_d * dt
-
-        a_P_0 = c_vol * dZ  # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
-
-        # b       = b_0 + a_P_0 * phi_t #is this at current iteration, or 'old'?
-        b       = b_0 + a_P_0 * phi_t_old # [J s^-1] is this at current iteration, or 'old'?
-        a_P     = a_U + a_D + a_P_0 - S_P*dZ #*dt # check the multiply on the S_P
-        ### end test
-        ########################################
-
-
-        ########################################
-        ### working version
-
-        #### eqs. 31, 32 from Voller 1991
+        # #### eqs. 31, 32 from Voller 1991
         # dFdT = np.zeros_like(Gamma_P)
-        # dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e20
+        # dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e10
         # Finv = np.zeros_like(dFdT)
-        # S_P = (-1 * deltaH * dFdT) / dt # [J m^3 K^-1 s^-1]
-        # S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt
+        # S_P = (-1 * deltaH * dFdT)  # [J m^3 K^-1 s^-1]
+        # S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) 
         # # ### end 1991
 
         # #### eqs. 9, 10 from Swaminathan and Voller 1992
@@ -342,14 +305,51 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         # b_0 = S_C * dZ #/ dt # [J K^-1 s^-1]
 
-        # a_U = D_u # [J s^-1 m^-1 K^-1]
-        # a_D = D_d
+        # a_U = D_u * dt # [J s^-1 m^-1 K^-1]
+        # a_D = D_d * dt
 
-        # a_P_0 = c_vol * dZ / dt # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
+        # a_P_0 = c_vol * dZ  # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
 
         # # b       = b_0 + a_P_0 * phi_t #is this at current iteration, or 'old'?
         # b       = b_0 + a_P_0 * phi_t_old # [J s^-1] is this at current iteration, or 'old'?
         # a_P     = a_U + a_D + a_P_0 - S_P*dZ #*dt # check the multiply on the S_P
+        ### end test
+        ########################################
+
+
+        ########################################
+        ### working version
+
+        ### eqs. 31, 32 from Voller 1991
+        dFdT = np.zeros_like(Gamma_P)
+        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e20
+        Finv = np.zeros_like(dFdT)
+        S_P = (-1 * deltaH * dFdT) / dt # [J m^3 K^-1 s^-1]
+        S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt
+        # ### end 1991
+
+        #### eqs. 9, 10 from Swaminathan and Voller 1992
+        # dHdT = CP_I * rho_firn
+        # dHdT[g_liq>0] = 1.0e8
+        # # Hinv = H_iter/(rho_firn*CP_I)
+        # # Hinv[g_liq_iter>0] = 0
+        # S_P = (-1 * dHdT) / dt # [J m^3 K^-1 s^-1]
+        # S_C = (1 / dt) * (H_old - H_iter) - (S_P * Hinv)
+        ### end 1992
+
+        D_u = (Gamma_u / deltaZ_u) # [J s^-1 m^-1 K^-1]
+        D_d = (Gamma_d / deltaZ_d) # Should this be times instead of divide?
+
+        b_0 = S_C * dZ #/ dt # [J K^-1 s^-1]
+
+        a_U = D_u # [J s^-1 m^-1 K^-1]
+        a_D = D_d
+
+        a_P_0 = c_vol * dZ / dt # [J K^-1 s^-1] Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30) 
+
+        # b       = b_0 + a_P_0 * phi_t #is this at current iteration, or 'old'?
+        b       = b_0 + a_P_0 * phi_t_old # [J s^-1] is this at current iteration, or 'old'?
+        a_P     = a_U + a_D + a_P_0 - S_P*dZ #*dt # check the multiply on the S_P
 
         ### end working
         ############################################
