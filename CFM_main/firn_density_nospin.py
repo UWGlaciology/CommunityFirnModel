@@ -4,7 +4,7 @@ firn_density_nospin.py
 ======================
 The script for the transient model run.
 
-Copyright © 2021 C. Max Stevens
+Copyright 2021 C. Max Stevens
 
 Distributed under terms of the MIT license. 
 '''
