@@ -117,7 +117,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     # df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
     # df_CLIM['BDOT'] = df_CLIM['PRECSNO'] + df_CLIM['EVAP']
     df_CLIM.rename(mapper=drn,axis=1,inplace=True)
-    df_CLIM.drop(['EVAP','PRECTOT','PRECSNO'],axis=1,inplace=True)
+    try:
+        df_CLIM.drop(['EVAP','PRECTOT','PRECSNO'],axis=1,inplace=True)
+    except:
+        pass
     l1 = df_CLIM.columns.values.tolist()
     l2 = ['SMELT','BDOT','RAIN','TSKIN']
     notin = list(np.setdiff1d(l1,l2))
