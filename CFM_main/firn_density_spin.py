@@ -127,8 +127,8 @@ class FirnDensitySpin:
         
         else:
             print('making dir')
-            # os.makedirs(self.c['resultsFolder'])
-            pathlib.Path(self.c['resultsFolder']).mkdir(parents=True,exist_ok=True)
+            os.makedirs(self.c['resultsFolder'])
+            # pathlib.Path(self.c['resultsFolder']).mkdir(parents=True,exist_ok=True)
 
         ############################
         ##### load input files #####
