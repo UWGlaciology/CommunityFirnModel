@@ -246,7 +246,8 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     # Hinv = H/(rho_firn*CP_I)
     # Hinv[g_liq>0] = 0
 
-    iter_threshold_st = 0.00
+    # iter_threshold_st = 0.0
+    iter_threshold_st = 0.01
     iter_threshold = np.copy(iter_threshold_st)
     while itercheck>iter_threshold:
     # for ii in range(nt):
