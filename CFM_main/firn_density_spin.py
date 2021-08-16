@@ -97,6 +97,7 @@ class FirnDensitySpin:
         # with open(configName, "r") as f:
         #     jsonString  = f.read()
         #     self.c      = json.loads(jsonString)
+        
         self.c = config
 
         print('Spin run started')
