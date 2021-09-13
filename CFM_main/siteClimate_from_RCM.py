@@ -204,7 +204,8 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             elif runtype=='remote':
                 ddir = 'PATH/TO/REMOTE/DATA/MERRA/Greenland/Hourly'
             elif runtype == 'loki':
-                ddir = '/home/maxstev/CFM_main/MERRA/Greenland/daily_melt'
+                # ddir = '/home/maxstev/CFM_main/MERRA/Greenland/daily_melt'
+                ddir = '/Users/cdsteve2/RCMdata/MERRA2/Greenland/daily_melt'
             
             # Adjust these as you see fit to set the Reference Climate Interval (RCI)
             spin_date_st = 1980
