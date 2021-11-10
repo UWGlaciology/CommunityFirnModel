@@ -209,7 +209,7 @@ def enthalpyDiff(self,iii):
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
-            print(self.modeltime[iii]:'Fixing negative values of delta_mass_liq')
+            print(self.modeltime[iii], 'Fixing negative values of delta_mass_liq')
             print('If you are getting this message, (diffusion.py, L214), you ')
             print('may need to reduce the ICT (itercheck threshold in solver.py')
             print('If you are seeing this message, please email maxstev@umd.edu so I can fix it.')

@@ -40,7 +40,7 @@ def bucket(self,iii):
     DownToIce          = True  # allows water to bypass all ice lenses until ice sheet is reached (depth where RhoImp density is definitely reached)
     if DownToIce == False:
         ThickImp       = 0.1    # thickness threshold for ice lens to be impermeable (all ice layers are impermeable if set to 0m) [m] # Using this is slow
-    Ponding            = True  # allowing LWC ponding above impermeable ice lenses [True/False]
+    Ponding            = False  # allowing LWC ponding above impermeable ice lenses [True/False]
     DirectRunoff       = 0.0    # (applicable if Ponding==True) fraction of excess LWC not considered for ponding but running off directly [between 0 and 1]
     RunoffZuoOerlemans = False  # (applicable if Ponding==True) computing lateral runoff following Zuo and Oerlemans (1996) Eqs.(21,22) [True/False]
     Slope              = 0.     # (used only if RunoffZuoOerlemans==True) slope value used in Zuo and Oerlemans (1996) Eq.(22) [/]
