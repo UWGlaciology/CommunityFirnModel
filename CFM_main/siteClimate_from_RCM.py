@@ -274,16 +274,17 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         #### end MERRA #####
 
     elif datatype == 'MAR':
-        spin_date_st = 1980
-        spin_date_end = 1995
+        spin_date_st = 1950
+        spin_date_end = 1979
         print('Using MAR')
         if lat_int < 0:
             print('no Antarctic MAR data')
             sys.exit()            
         else:
             if runtype=='local':
-                ddir = '/Volumes/Samsung_T1/MAR311/Greenland/Daily'
+                ddir = '/Volumes/Samsung_T1/MAR312/Greenland/daily'
 
+        
         if not dsource:
             dsource = 'ERA10k'
             print('using MAR ', dsource)
@@ -297,6 +298,12 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         elif dsource == 'NCEP20k':
             d2 = '/NCEP1_1948-2020_20km/'
             vv = ['ME','SF','ST2','RF','SU','TT']
+        
+        elif dsource == 'ERA5_20km': # MAR3.12
+            d2 = '/ERA5_20km/'
+            vv = ['ME','SF','ST2','RF','SU','TT']
+
+        
 
         pickle_folder = ddir + '/pickles' + d2
         print(pickle_folder)

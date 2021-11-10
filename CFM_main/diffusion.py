@@ -159,7 +159,7 @@ def enthalpyDiff(self,iii):
     nz_fv           = nz_P - 2
 
     if np.any(self.LWC>0): # this behavior is depricated; keeping code for now. (6/16/21)
-        nt              = 10 # number of iterations for the solver
+        nt = 10 # number of iterations for the solver
     else:
         nt = 1
 
@@ -193,7 +193,7 @@ def enthalpyDiff(self,iii):
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
 
-    phi_ret, g_liq   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz)
+    phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,iii)
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
@@ -208,8 +208,11 @@ def enthalpyDiff(self,iii):
     # self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
     if np.any(delta_mass_liq<0):
-        if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-10):
-            print(self.modeltime[iii],'Fixing negative values of delta_mass_liq, min value:',min(delta_mass_liq))
+        if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
+            print(self.modeltime[iii]:'Fixing negative values of delta_mass_liq')
+            print('If you are getting this message, (diffusion.py, L214), you ')
+            print('may need to reduce the ICT (itercheck threshold in solver.py')
+            print('If you are seeing this message, please email maxstev@umd.edu so I can fix it.')
         delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz

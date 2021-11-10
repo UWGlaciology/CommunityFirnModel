@@ -18,7 +18,7 @@ CAUTION:
 import numpy as np
 from constants import *
 
-def mergesurf(self,thickmin):
+def mergesurf(self,thickmin,iii):
     '''
     This function is to call during time_evolve function of firn_density_nospin.
     We merge the surface layer[0] with the layer[1] below as long as layer[1] remains under a certain thickness threshold.
@@ -66,9 +66,9 @@ def mergesurf(self,thickmin):
         self.mass_sum = self.mass.cumsum(axis = 0)
         self.sigma = (self.mass + self.LWC * RHO_W_KGM) * self.dx * GRAVITY
         self.sigma = self.sigma.cumsum(axis = 0)
-        self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
+        self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t[iii]))))*self.c['stpsPerYear']*S_PER_YEAR
         #Not sure recalculation of T_mean and T10m are necessary
-        self.T_mean         = np.mean(self.Tz[self.z<50])
+        # self.T_mean         = np.mean(self.Tz[self.z<50])
         self.T10m           = self.T_mean
         # No change of self.compboxes as it keeps value at end of spin up during entire time evolve (nb of layers above 80m depth at end of spinup)
 
@@ -76,7 +76,7 @@ def mergesurf(self,thickmin):
                     self.Dcon,self.T_mean,self.T10m,self.r2)
 
 
-def mergenotsurf(self,thickmin):
+def mergenotsurf(self,thickmin,iii):
     '''
     This function is to call during time_evolve function of firn_density_nospin.
     We merge all the layers below a thickness threshold except the layers of indices 0 and 1.
@@ -100,9 +100,10 @@ def mergenotsurf(self,thickmin):
             self.LWC[index+1] = (self.LWC[index]+self.LWC[index+1])
             self.PLWC_mem[index+1] = (self.PLWC_mem[index]+self.PLWC_mem[index+1])
 
-            self.dz[index+1] += self.dz[index] # add thickness to underlying layer
+            self.dz[index+1] += self.dz[index] # add thickness to underlying 
             rmind = np.append(rmind,index) # add index to the list to remove
-        
+    
+    rmind = (rmind.astype(np.int32)).tolist()   
     ### Remove the thin layers ###
     self.rho = np.delete(self.rho,rmind)
     self.Tz = np.delete(self.Tz,rmind)
@@ -133,16 +134,16 @@ def mergenotsurf(self,thickmin):
     self.mass_sum = self.mass.cumsum(axis = 0)
     self.sigma = (self.mass + self.LWC * RHO_W_KGM) * self.dx * GRAVITY
     self.sigma = self.sigma.cumsum(axis = 0)
-    self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
+    self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t[iii]))))*self.c['stpsPerYear']*S_PER_YEAR
     #Not sure recalculation of T_mean and T10m are necessary
-    self.T_mean         = np.mean(self.Tz[self.z<50])
+    # self.T_mean         = np.mean(self.Tz[self.z<50])
     self.T10m           = self.T_mean
     
     return (self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
                     self.Dcon,self.T_mean,self.T10m,self.r2)
     
 
-def mergeall(self,thickmin):
+def mergeall(self,thickmin,iii):
     ''' 
     We spot the layers that are under a certain thickness threshold and we merge these with the underlying layer
     This has to be launched at the end of the spinup, we use other functions in firn_density_nospin.
@@ -180,10 +181,10 @@ def mergeall(self,thickmin):
     self.mass_sum = self.mass.cumsum(axis = 0)
     self.sigma = (self.mass + self.LWC * RHO_W_KGM) * self.dx * GRAVITY
     self.sigma = self.sigma.cumsum(axis = 0)
-    self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t))))*self.c['stpsPerYear']*S_PER_YEAR
+    self.bdot_mean = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / self.t[iii]))))*self.c['stpsPerYear']*S_PER_YEAR
     self.compboxes = len(self.z[self.z<80])
     #Not sure recalculation of T_mean and T10m are necessary
-    self.T_mean         = np.mean(self.Tz[self.z<50])
+    # self.T_mean         = np.mean(self.Tz[self.z<50])
     self.T10m           = self.T_mean
     
     

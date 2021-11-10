@@ -163,13 +163,18 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         S_P     = 0.0
         a_P     = a_U + a_D + a_P_0 - S_P*dZ
 
+        #######################################
+        ### Boundary conditions:
+        ### type 1 is a specified value, type 2 is a specified gradient
+        ### (units for gradient are degrees/meter)
         bc_u_0  = phi_s # need to pay attention to surface boundary for gas
-        bc_type = 1
-        bc_u    = np.concatenate(([ bc_u_0], [bc_type]))
+        bc_type_u = 1
+        bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
 
         bc_d_0  = 0
-        bc_type = 2
-        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type ]))
+        bc_type_d = 2
+        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
+        #########################################
 
         b       = b_0 + a_P_0 * phi_t #Patankar 4.41d
 
@@ -198,7 +203,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ###################################
 
 
-def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz):
+def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz,iii=0):
     '''
     transient 1-d diffusion finite volume method for enthalpy
 
@@ -237,7 +242,9 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     itercheck = 0.9
     count = 0
 
-    while itercheck>0.001:
+    ICT = 0 # itercheck threshold 
+
+    while itercheck>ICT:
         g_liq_iter = g_liq.copy()
         deltaH_l = rho_liq_eff * LF_I
         deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
@@ -261,14 +268,14 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         ### Voller 1990 # Should be same result as 31, 32 from Voller 1991.
         # beta_P = np.zeros_like(Gamma_P)
-        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e12
+        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e16
         # S_P = beta_P * deltaH * g_liq_old #* dZ * dt
         # S_C = -S_P*phi_t + deltaH*g_liq_old - deltaH*g_liq #+ deltaH*beta_P*
         ### end 1990 
 
         #### eqs. 31, 32 from Voller 1991
         dFdT = np.zeros_like(Gamma_P)
-        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e12
+        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e15
         Finv = np.zeros_like(dFdT)
         S_P = (-1 * deltaH * dFdT)
         S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv)
@@ -276,18 +283,22 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         D_u = (Gamma_u / deltaZ_u)
         D_d = (Gamma_d / deltaZ_d)
+
         b_0 = S_C * dZ * dt
         a_U = D_u * dt
         a_D = D_d * dt
         a_P_0 = c_vol * dZ #/ dt # (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
         a_P     = a_U + a_D + a_P_0 - S_P*dZ*dt # check the multiply on the S_P
 
+        ### Boundary conditions:
+        ### type 1 is a specified value, type 2 is a specified gradient
+        ### (units for gradient are degrees/meter)
         bc_u_0  = phi_s # need to pay attention for gas
-        bc_type = 1
-        bc_u    = np.concatenate(([ bc_u_0], [bc_type]))
+        bc_type_u = 1
+        bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
         bc_d_0  = 0
-        bc_type = 2
-        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type ]))
+        bc_type_d = 2
+        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
 
         b       = b_0 + a_P_0 * phi_t
 
@@ -307,7 +318,20 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         phi_t = solver(a_U, a_D, a_P, b)
         #####
 
-        g_liq[g_liq>0] = g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0])) # dz or dZ?
+        ### Use underrelaxation
+        # g_delta = np.zeros_like(g_liq_old)
+        # g_delta[g_liq>0] = (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
+        # print('g_delta',max(g_delta),min(g_delta))
+        # UF = 0.9 # underrelaxation parameter
+        # g_liq[g_liq>0] = g_liq[g_liq>0] + UF * g_delta[g_liq>0]
+
+        ### Do not use underrelaxation (Voller says should not need to)
+        # g_liq[g_liq>0] = g_liq[g_liq>0] + (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
+        
+
+        ### Voller 1991 eq. 29
+        g_liq[g_liq>0] = g_liq[g_liq>0] + (dFdT[g_liq>0] * (phi_t[g_liq>0]-Finv[g_liq>0]))
+
         g_liq[g_liq<=0] = 0
         g_liq[g_liq>1] = 1
         
@@ -324,12 +348,19 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
         if iterdiff==0:
             itercheck = 0
-            break
+            # break
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
         count += 1
+        if count==100:
+            if ICT == 0:
+                ICT = 1e-8
+            else:
+                ICT = ICT * 10
+        if count==200:
+            ICT = ICT * 10
 
-    return phi_t, g_liq
+    return phi_t, g_liq, count, iterdiff
 
 ###################################
 ### end transient_solve_EN ########
@@ -407,13 +438,6 @@ def w(airdict, z_edges, rho_edges, Z_P, dZ):
         # w_ad[co_ind:+1] = 0
 
         # veldiff = velocity
-        # print('dt',airdict['dt'])
-        # print('flux',flux)
-        # print('vel',velocity[co_ind-5:co_ind+5])
-        # print('w_firn',w_firn_edges[co_ind-5:co_ind+5])
-        # print('w_ad',w_ad[co_ind-5:co_ind+5])
-        # print('w_ad',w_ad)
-        # input() 
 
     elif airdict['advection_type']=='zero':
         w_ad = np.zeros_like(rho_edges)

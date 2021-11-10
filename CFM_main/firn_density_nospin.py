@@ -161,6 +161,8 @@ class FirnDensityNoSpin:
             updatedStartDate = None
 
         ### get temperature and accumulation rate from input csv file
+        self.forcing_dict = {} # This dictionary holds all forcing data and will be saved
+
         try:
             if self.c['manualT']:
                 if self.c['timesetup']!= 'exact':
@@ -190,20 +192,29 @@ class FirnDensityNoSpin:
                     start_ind = 0
                 input_temp = climateTS['TSKIN'][start_ind:]
                 input_year_temp = climateTS['time'][start_ind:]
+                input_temp_full = climateTS['TSKIN']
+                input_year_temp_full = climateTS['time']
                 
             else:
-                input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
+                input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
             if input_temp[0] < 0.0:
                 input_temp      = input_temp + K_TO_C
             input_temp[input_temp>T_MELT] = T_MELT
+
+            self.forcing_dict['TSKIN'] = input_temp_full
+            self.forcing_dict['dectime'] = input_year_temp_full
+
         #####################
 
         ### bdot ############
         if climateTS != None:
-            input_bdot = climateTS['BDOT'][start_ind:]
-            input_year_bdot = climateTS['time'][start_ind:]        
+            input_bdot = climateTS['BDOT'][start_ind:]            
+            input_year_bdot = climateTS['time'][start_ind:]
+            input_bdot_full = climateTS['BDOT']
+
         else:
-            input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), updatedStartDate)
+            input_bdot, input_year_bdot,input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), updatedStartDate)
+        self.forcing_dict['BDOT'] = input_bdot_full
         #####################
 
         #####################
@@ -221,8 +232,10 @@ class FirnDensityNoSpin:
             if ((climateTS != None) and ('SMELT' in climateTS.keys())):
                 input_snowmelt = climateTS['SMELT'][start_ind:]
                 input_year_snowmelt = climateTS['time'][start_ind:]
+                input_snowmelt_full = climateTS['SMELT']
             else:
-                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']), updatedStartDate)
+                input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']), updatedStartDate)
+            self.forcing_dict['SMELT'] = input_snowmelt_full
             self.MELT           = True
             try: 
                 self.LWC        = initLWC[1:]
@@ -236,16 +249,22 @@ class FirnDensityNoSpin:
                 if ((climateTS != None) and ('RAIN' in climateTS.keys())):
                     input_rain = climateTS['RAIN'][start_ind:]
                     input_year_rain = climateTS['time'][start_ind:]
+                    input_rain_full = climateTS['RAIN']
                 else:
-                    input_rain, input_year_rain = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), updatedStartDate)
+                    input_rain, input_year_rain, input_rain_full, input_year_rain_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), updatedStartDate)
+                self.forcing_dict['RAIN'] = input_rain_full
             
             if 'liquid' not in self.c:
                 print('Melt is on, but you did not specify which perolation scheme in the .json')
                 print('Defaulting to original CFM bucket scheme')
                 self.c['liquid'] = 'bucket'
+
+            if self.c['liquid'] == 'bucketVV':
+                print('bucketVV is now just "bucket". Update your config file.')
+                self.c['liquid'] = 'bucket'
+        
         else:
             self.MELT           = False
-            # print("Melt is not turned on.")
             input_snowmelt      = None
             input_year_snowmelt = None
             self.LWC            = np.zeros_like(self.z)
@@ -521,6 +540,7 @@ class FirnDensityNoSpin:
             #VV update (23/03/2021)
             self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
+            self.meltvol    = np.array([0.]) #total melt volume
 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -683,6 +703,7 @@ class FirnDensityNoSpin:
             # self.output_list.append('refrozen') # Should this be in each grid point, or total?
             self.output_list.append('refreeze') #VV (23/03/2021)
             self.output_list.append('runoff') #VV (23/03/2021)
+            self.output_list.append('meltvol')
         
         if ((not self.MELT) and ('LWC' in self.output_list)):
             self.output_list.remove('LWC')
@@ -765,12 +786,14 @@ class FirnDensityNoSpin:
 
             ### Merging process #VV ###
             if self.c['merging']: # merging may be deprecated (check with VV)
-                if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-4)): # Start with surface merging
+                if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergesurf(self,self.c['merge_min'])
+                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergesurf(self,self.c['merge_min'],iii)
+                    print('merging1 at ', iii)
                 if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                       
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergenotsurf(self,self.c['merge_min'])
+                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergenotsurf(self,self.c['merge_min'],iii)
+                    print('merging2 at ', iii)
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -867,13 +890,15 @@ class FirnDensityNoSpin:
                     print('WARNING: prefsnowpack and resingledomain liquid schemes are still in development. email Max for more details.')
                 
                 if self.c['liquid'] == 'bucket':
+
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
                         self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
+                        self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
-                        self.refreeze, self.runoff = 0.,0.
+                        self.refreeze, self.runoff, self.meltvol = 0.,0.,0.
                     ### Heat ###
                     if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
                         self.Tz, self.T10m  = heatDiff(self,iii)
@@ -892,8 +917,9 @@ class FirnDensityNoSpin:
                             self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = darcyscheme(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
+                        self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                     else: # Dry firn column and no input of meltwater                       
-                        self.refreeze, self.runoff = 0.,0.
+                        self.refreeze, self.runoff,self.meltvol = 0.,0.,0.
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
                     if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
@@ -932,7 +958,7 @@ class FirnDensityNoSpin:
                             self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.Trunoff = resingledomain(self,iii)
                         else:
                             #Dry firn column and no input of meltwater
-                            self.Trunoff     = np.array([0.]) #VV no runoff
+                            self.Trunoff    = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     elif self.modeltime[iii] < 1980: # Apply bVV until a certain date
@@ -940,7 +966,7 @@ class FirnDensityNoSpin:
                             self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.Trunoff, self.lwcerror = bucket(self,iii)
                         else:
                             #Dry firn column and no input of meltwater
-                            self.Trunoff     = np.array([0.]) #VV no runoff
+                            self.Trunoff    = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
@@ -1192,7 +1218,7 @@ class FirnDensityNoSpin:
 
         if self.MELT:
             print(f'Totals\nMelt+Rain: {sum(self.snowmeltSec+self.rainSec)*S_PER_YEAR*RHO_I_MGM}\nRefreezing: {sum(refreezing2check)}\nRunoff: {sum(runoff2check)}')
-        write_nospin_hdf5(self,self.MOutputs.Mout_dict)
+        write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
     ###########################
     ##### END time_evolve #####

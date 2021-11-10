@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.2
+1.1.3
 
 ## Full Documentation
 
@@ -23,7 +23,21 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
-## [1.1.2] 2020-06-16
+## [1.1.3] 2021-11-10
+### Notes
+- There are a fair number of changes and fixes in this release, and admittedly I did a poor job of documenting them over the last few months as I worked on things. Most of the work deals with the meltwater bucket scheme and the associated enthalpy scheme.
+
+### In Progress
+- I have moved away from using main.py to run the CFM. Instead, I am using either (1) a script similar to main.py but that includes forcing file generation and model configuration right in that script (i.e. you edit json parameters in that script rather than in a .json file directly); or (2) a jupyter notebook to configure the run and then start the run. Please let me (Max) know if you want those scripts or notebooks prior to them making it to Github.
+
+### Fixed
+- *diffusion.py, solver.py* The enthalpy scheme was continuing to give me issues. The solver needs to iterate to converge on a solution. In order to save computing time, the iteration loop would terminate once one iteration was within some percentage threshold of the previous iteration - but that is not full convergence. It turns out that that method could lead to a mass conservation issue. There is a new variable called ICT (itercheck threshold) that determines how close one iteration needs to be to the previous one in order to terminate the loop. By default I set this to zero (full convergence), but you can change it to something like 1e-8 if you want to speed things up a little bit. (The metric I am using for convergence is the total LWC in the firn). If there are more than 100 iterations, ICT is set to 1e-8 (if initially zero), or multiplied by 10 (if ICT was initially >0). After 200 iterations, ICT is again multiplied by 10. My testing has indicated that this works, but please let me know if you are having issues with this. 
+- *melt.py* There were a few issues with the bucket scheme. In particular, there is a loop to deal with distributing water based on available pore space and cold content, which would throw an error when there was available pore space at a shallower depth then where the water existed. Also, the code that allows ponding atop impermeable layers did not remove 'excess' water (more than could be accomodated with full saturation), which led to mass conservation issues. Finally, the temperature of the uppermost node where melt occurs (the PM, or partial melt, layer) did not previously have its temperature set to the melting temperature; it now does. 
+
+### New
+- *ModelOutputs.py, writer.py* the output file now by default includes the original forcing data (including spin up period) that was fed to the CFM. This facilitates reproducibility. The columns in the 'forcing' output variable are: [decimal time, skin temperature, smb, melt, rain].
+
+## [1.1.2] 2021-06-16
 ### Notes
 - The main work in this release is improving the enthalpy scheme for resolving heat diffusion when there is liquid water present. I cannot say for certain how 'wrong' the previous scheme was (I don't think it was too wrong!), but Vincent Verjans identified that with the new meltwater schemes water would refreeze more quickly than expected. The newest code is actually slower because the solver needs to iterate to find a solution; previously I used a set value of iterations, but now a while loop ensures that the iterations continue until convergence.
 
@@ -34,7 +48,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 - *ModelOutputs.py* GridOutputs is now compatible with melt functions.
 - The outputs from running the melt module have been reduced to three: **LWC** (liquid water content, in each model node, at each timestep [m w.e.]); **refreeze** (total refreezing within the firn at each time step [m w.e.]); and **runoff** (total runoff from the firn at each timestep [m w.e.]). Note that this assumes a 1m x 1m firn column, so if you want total runoff for e.g. a MERRA-2 grid cell, you will need to multiply by the area of the grid cell. 
 
-## [1.1.1] 2020-05-19
+## [1.1.1] 2021-05-19
 ### Notes
 - This release could be buggy; it is the first release of two new liquid water schemes developed by Vincent Verjans. My limited testing indicates that they are working, but I am still working on testing. Please let me know if you encounter errors.
 - I am still working on making the pre-CFM workflow smooth; i.e. taking data directly from an RCM, creating a timeseries of the climate varibles, and passing those to the CFM (scripts: siteClimate_from_RCM.py, RCMpkl_to_spin.py). If you are using these (or interested), please let me know if you have suggestions on how to make this workflow easier.
@@ -47,7 +61,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 ### Fixed
 - *firn_density_nospin.py* There are more changes than this (I have been very lazy with documentation recently! Sorry!), but the main fix is adding a bit of code to deal with the instance when the forcing data are passed in a dictionary (i.e. climateTS) but spinUpdate is false. This is implemented around line 185.
 
-## [1.1.0] 2020-03-10
+## [1.1.0] 2021-03-10
 ### Notes
 - This is the first major change to the code structure that warrants going from 1.0 to 1.1. Previously, the spin up was done by calling firn_density_spin, getting the output, and then calling firn_density_nospin. This was a bit clunky, because (1) if you were writing your own API (i.e. not using main.py), you would have to call both of those; and (2) if you were using a variable climate spinup, firn_density_spin was just a formality to create an initial condition. 
 - I have now wrapped firn_density_spin into firn_density_nospin. If the model needs to spin up or needs an initial condition, it is called; otherwise it is bypassed. THE UPSHOT IS THAT YOU ONLY NEED TO CREATE AN INSTANCE OF firn_density_nospin IN YOUR API. The behavior of the CFM should be the same as before.

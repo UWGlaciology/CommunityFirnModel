@@ -31,6 +31,9 @@ def read_input(filename,StartDate=None):
         input_year = data[0, :]
         input_data = data[1, :]
 
+    input_year_full = input_year.copy()
+    input_data_full = input_data.copy()
+
     if StartDate==None:
         pass
     else:
@@ -38,7 +41,7 @@ def read_input(filename,StartDate=None):
         input_year = input_year[StartInd]
         input_data = input_data[StartInd]
 
-    return input_data, input_year
+    return input_data, input_year, input_data_full, input_year_full
 
 def read_init(folder, resultsFileName, varname):
 
