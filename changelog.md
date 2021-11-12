@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.3
+1.1.4
 
 ## Full Documentation
 
@@ -22,6 +22,25 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.4] 2021-11-12
+### Notes 
+- Addition of melt scheme parameters to .json and several small bug fixes.
+
+### New
+- *melt.py, example.json* I added the 'user choices' from melt.py to the .json config file. They are: 
+	- `ColeouLesaffre` (True/False; whether or not to use the ColeouLesaffre parameterization for irreducible water content); 
+	- `IrrVal` (float [%], default 0.02; Irreducible water content if ColeouLesaffre is false); 
+	- `RhoImp` (float, [kg m^-3], default 830; impermeable density threshold); 
+	- `DownToIce` (True/False; if True all water will permeate through any ice lenses above the firn/ice transition); 
+	- `Ponding` (True/False; True allows water to saturate (pond) atop impermeable layers, e.g. to form an aquifer. Otherwise water above irreducible content becomes runoff); 
+	- `DirectRunoff` (float; applicable if Ponding==True; fraction of excess LWC not considered for ponding but running off directly [between 0 and 1]); 
+	- `RunoffZuoOerlemans` (True/False; applicable if Ponding==True; computes lateral runoff following Zuo and Oerlemans (1996) Eqs.(21,22)); 
+	- `Slope` (float, used only if RunoffZuoOerlemans==True: slope value used in Zuo and Oerlemans (1996) Eq.(22)).
+
+### Fixed
+- *melt.py* Fixed issue in the ColeouLesaffre parameterization for the case when rho = rho_ice, which put a zero in a denominator
+- *firn_density_nospin.py, firn_density_spin.py* Fixed issue with reader.py, which now returns 4 values (associated with new feature that saves model forcing to the output file)
 
 ## [1.1.3] 2021-11-10
 ### Notes

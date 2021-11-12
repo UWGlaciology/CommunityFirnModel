@@ -54,7 +54,7 @@
 "spacewriteint": 1,
 "strain": false,
 "du_dx": 1e-5,
-"outputs": ["density", "depth", "temperature", "age", "DIP","LWC","meltoutputs"],
+"outputs": ["density", "depth", "temperature", "age", "DIP","LWC","meltoutputs","climate"],
 "outputs_options": ["density", "depth", "temperature", "age", "Dcon", "bdot_mean", "climate", "compaction", "grainsize", "temp_Hx", "isotopes", "BCO", "DIPc", "DIP", "LWC","gasses", "PLWC_mem", "viscosity", "runoff", "refrozen"],
 "resultsFileName": "CFMresults.hdf5",
 "spinFileName": "CFMspin.hdf5",
@@ -86,5 +86,20 @@
 "spinUpdate": true,
 "spinUpdateDate": 1980.0,
 "DIPhorizon": 100.0,
-"NewSpin": false
+"NewSpin": false,
+"ColeouLesaffre": true,
+"IrrVal": 0.02,
+"RhoImp": 830,
+"DownToIce": false,
+"ThickImp": 0.1,
+"Ponding": false,
+"DirectRunoff": 0.0,
+"RunoffZuoOerlemans": false,
+"Slope": 0.1
 }
+
+
+
+
+
+

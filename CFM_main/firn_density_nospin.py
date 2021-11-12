@@ -107,7 +107,7 @@ class FirnDensityNoSpin:
                     self.c['stpsPerYear'] = 1/np.mean(np.diff(climateTS['time']))
                     print('stepsperyear:', self.c['stpsPerYear'])
                 else:
-                    input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
+                    input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
                     self.c['stpsPerYear'] = 1/np.mean(np.diff(input_year_bdot))
 
             firnS = FirnDensitySpin(self.c, climateTS = climateTS)
@@ -435,7 +435,7 @@ class FirnDensityNoSpin:
         ### Surface Density ####
         if self.c['variable_srho']:
             if self.c['srho_type']=='userinput':
-                input_srho, input_year_srho = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), updatedStartDate)
+                input_srho, input_year_srho, input_srho_full, input_year_srho_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), updatedStartDate)
                 Rsf             = interpolate.interp1d(input_year_srho,input_srho,int_type,fill_value='extrapolate') # interpolation function
                 self.rhos0      = Rsf(self.modeltime) # surface temperature interpolated to model time
             elif self.c['srho_type']=='param':
@@ -465,7 +465,7 @@ class FirnDensityNoSpin:
             
         if self.c['rad_pen']: 
             print('RADIATION PENETRATION STILL IN DEVELOPMENT STAGE')   
-            input_rad, input_year_rad = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']), updatedStartDate)
+            input_rad, input_year_rad, input_rad_full, input_year_rad_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']), updatedStartDate)
             Radsf             = interpolate.interp1d(input_year_rad,input_rad,int_type,fill_value='extrapolate')
             self.E_sw = Radsf(self.modeltime)
         #####################        
@@ -511,7 +511,7 @@ class FirnDensityNoSpin:
 
         ### set up longitudinal strain rate
         if self.c['strain']: # input units are yr^-1
-            input_dudx, input_year_dudx = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), updatedStartDate)
+            input_dudx, input_year_dudx, input_dudx_full, input_year_dudx_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), updatedStartDate)
             dusf                        = interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')           
             self.du_dx      = dusf(self.modeltime)
             self.du_dxSec   = self.du_dx / S_PER_YEAR #/ self.c['stpsPerYear'] # strain rate (s^-1) at each time step
@@ -619,7 +619,7 @@ class FirnDensityNoSpin:
                     input_year_gas = input_year_temp
                     input_gas = np.ones_like(input_year_temp)
                 else:
-                    input_gas, input_year_gas = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas), updatedStartDate)
+                    input_gas, input_year_gas, input_gas_full, input_year_gas_full = read_input(os.path.join(self.c['InputFileFolder'],'%s.csv' %gas), updatedStartDate)
                 Gsf     = interpolate.interp1d(input_year_gas,input_gas,'linear',fill_value='extrapolate')
                 Gs      = Gsf(self.modeltime)
 
