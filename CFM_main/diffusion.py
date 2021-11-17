@@ -190,6 +190,7 @@ def enthalpyDiff(self,iii):
     c_vol = (g_ice_1 * c_ice + g_liq_1 * c_liq) * tot_rho #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
 
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
+
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
 
@@ -207,19 +208,23 @@ def enthalpyDiff(self,iii):
     self.LWC = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
+    dml_sum = 0.0
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
             print(self.modeltime[iii], 'Fixing negative values of delta_mass_liq')
+            idml = np.where(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7)[0]
+            print('Negative values:', delta_mass_liq[idml])
             print('If you are getting this message, (diffusion.py, L214), you ')
             print('may need to reduce the ICT (itercheck threshold in solver.py')
             print('If you are seeing this message, please email maxstev@umd.edu so I can fix it.')
+        dml_sum = np.sum(delta_mass_liq[delta_mass_liq<0])
         delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
 
     tot_mass_new = self.mass + self.LWC*1000
 
-    return self.Tz, self.T10m, self.rho, self.mass, self.LWC
+    return self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum
 
 ##############################
 ### end enthalpy diffusion ###

@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.4
+1.1.5
 
 ## Full Documentation
 
@@ -22,6 +22,17 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.5] 2021-11-17
+### Notes 
+- There was an issue with the previous release in the order of operations within the model when melt was enabled. Prior to CFMv1.1.3, within a time step the firn first densified, then the melt routine occured, then heat diffusion, and then addition of a new snow layer with some density and temperature. Within the melt scheme, layers would melt, and the uppermost layer after melt (ie. the new surface) would take on the temperature of the old surface (which would often be colder than the melting temperature), which was not realistic. I switched the code so that that layer (called the 'partial melt' layer in the CFM) would have temperature of 273.15. However, this caused the surface temperature to always become the melting temperature, and the cold from a new snow layer would not ever diffuse into the firn if the next time step included melt. The solution was to move the diffusion to the end of the time step, so now the process goes: densification, meltwater percolation and refreezing (due to cold content), addition of new layer, heat diffusion. (Also: admitedly in reality the skin temperature should be zero during a time step when there is melt, but in model world with larger time steps, e.g. daily, there can be melt but the mean temperature for the day is still below freezing.)
+
+### Fixed
+- *ModelOutputs.py* There was an issue with the gridding feature for liquid water content, which is fixed. (The interpolation was just a linear interpolation of LWC, but it needs to be calculated by linearly interpolating the cumulative sum and then differencing to get the mass correct.)
+
+### Changed
+- *firn_density_nospin.py* See above under notes. Heat diffusion now comes at the end of the time step loop.
+- *melt.py* When ponding is turned on, layers that reached impermeable density during the refreeze process are now set to have zero available pore space for accomodating excess water. These layers could form above a volume of excess liquid. This change caused some nodes to have very small negative LWC, which was a rounding issue; now the code sets negative LWC to be zero.
 
 ## [1.1.4] 2021-11-12
 ### Notes 

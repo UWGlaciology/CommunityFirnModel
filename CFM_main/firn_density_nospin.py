@@ -541,7 +541,7 @@ class FirnDensityNoSpin:
             self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
             self.meltvol    = np.array([0.]) #total melt volume
-
+ 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
@@ -768,6 +768,7 @@ class FirnDensityNoSpin:
         if self.MELT:
             refreezing2check = np.zeros(self.stp)
             runoff2check     = np.zeros(self.stp)
+            dml2check        = np.zeros(self.stp)
         
         ####################################
         ##### START TIME-STEPPING LOOP #####
@@ -899,13 +900,21 @@ class FirnDensityNoSpin:
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                         self.refreeze, self.runoff, self.meltvol = 0.,0.,0.
+
                     ### Heat ###
-                    if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
-                        self.Tz, self.T10m  = heatDiff(self,iii)
-                    elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
-                        LWC0e = sum(self.LWC)
-                        self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
-                        self.refreeze += LWC0e-sum(self.LWC)
+                    # if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
+                    #     self.Tz, self.T10m  = heatDiff(self,iii)
+                    #     dml_sum = 0
+                    # elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
+                    #     LWC0e = sum(self.LWC)
+                    #     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
+                    #     self.refreeze += LWC0e-sum(self.LWC) 
+                    
+                    # ### Testing refreeze
+                    # LWC0e = sum(self.LWC)
+                    # self.Tz, self.T10m  = heatDiff(self,iii)
+                    # self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
+                    # self.refreeze += sum(refrozen_mass/1000)
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -1009,21 +1018,21 @@ class FirnDensityNoSpin:
             ############################
 
             ### heat diffusion #########
-            Ts_old = self.Tz[0]
+            # Ts_old = self.Tz[0]
 
-            if (self.c['heatDiff'] and not self.MELT): # no melt, so use regular heat diffusion
-                self.Tz, self.T10m  = heatDiff(self,iii)
+            # if (self.c['heatDiff'] and not self.MELT): # no melt, so use regular heat diffusion
+            #     self.Tz, self.T10m  = heatDiff(self,iii)
 
-            elif self.c['manualT']: # manual temperature measurements are fed into CFM
-                tif = interpolate.interp1d(self.manualT_dep, self.manualT_temp[:,iii],kind='cubic')
-                self.Tz = tif(self.z)
+            # elif self.c['manualT']: # manual temperature measurements are fed into CFM
+            #     tif = interpolate.interp1d(self.manualT_dep, self.manualT_temp[:,iii],kind='cubic')
+            #     self.Tz = tif(self.z)
 
-            elif (not self.c['heatDiff'] and not self.MELT): # user says no heat diffusion, so just set the temperature of the new box on top.
-                self.Tz = self.Ts[iii]*np.ones_like(self.Tz)
-                if iii==0:
-                    print('warning:diffusion off, setting temp to Ts[iii]')
+            # elif (not self.c['heatDiff'] and not self.MELT): # user says no heat diffusion, so just set the temperature of the new box on top.
+            #     self.Tz = self.Ts[iii]*np.ones_like(self.Tz)
+            #     if iii==0:
+            #         print('warning:diffusion off, setting temp to Ts[iii]')
 
-            self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 m
+            # self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 m
 
             ### Calculation of average surface temperature and accumulation rate VV
             # # Case 1: 1 year has not passed yet -> take averages of 1st year
@@ -1032,6 +1041,7 @@ class FirnDensityNoSpin:
             # # Case 2: at least 1 year has passed -> take averages of the last year (including the current step)
             # elif iii >= self.steps: # VV
             #     T10m = np.sum(self.Ts[int(iii-(self.steps-1)):iii+1])/self.steps # VV
+            ### end heat ##################
             
             ### Firn Air ###############
             if self.c['FirnAir']: # Update firn air
@@ -1141,10 +1151,40 @@ class FirnDensityNoSpin:
 
             ###NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
 
+            ### Trying: all temperature work at the end
+
+
+            Ts_old = self.Tz[0]
+            if self.c['manualT']: # manual temperature measurements are fed into CFM
+                tif = interpolate.interp1d(self.manualT_dep, self.manualT_temp[:,iii],kind='cubic')
+                self.Tz = tif(self.z)
+
+            elif (self.c['heatDiff'] and not self.MELT): # no melt, so use regular heat diffusion
+                self.Tz, self.T10m  = heatDiff(self,iii)
+
+            elif (not self.c['heatDiff'] and not self.MELT): # user says no heat diffusion, so just set the temperature of the new box on top.
+                self.Tz = self.Ts[iii]*np.ones_like(self.Tz)
+                if iii==0:
+                    print('warning:diffusion off, setting temp to Ts[iii]')
+
+            elif ((self.MELT) and (np.all(self.LWC==0.))): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
+                self.Tz, self.T10m  = heatDiff(self,iii)
+                dml_sum = 0
+
+            elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
+                LWC0e = sum(self.LWC)
+                self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
+                self.refreeze += LWC0e-sum(self.LWC) 
+
+            self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 
+
+            self.rho[self.rho>RHO_I] = RHO_I
+            #########
+
             #############################################################
             ### write results as often as specified in the init method ##
             #############################################################
-            if mtime in self.TWrite:                
+            if mtime in self.TWrite:
                 ind         = np.where(self.TWrite == mtime)[0][0]
                 mtime_plus1 = self.TWrite[ind]
                 
@@ -1211,13 +1251,14 @@ class FirnDensityNoSpin:
             if self.MELT:
                 refreezing2check[iii] = self.refreeze
                 runoff2check[iii]     = self.runoff
+                dml2check[iii]        = dml_sum
 
         ##################################
         ##### END TIME-STEPPING LOOP #####
         ##################################
 
         if self.MELT:
-            print(f'Totals\nMelt+Rain: {sum(self.snowmeltSec+self.rainSec)*S_PER_YEAR*RHO_I_MGM}\nRefreezing: {sum(refreezing2check)}\nRunoff: {sum(runoff2check)}')
+            print(f'Totals\nMelt+Rain: {sum(self.snowmeltSec+self.rainSec)*S_PER_YEAR*RHO_I_MGM}\nRefreezing: {sum(refreezing2check)}\nRunoff: {sum(runoff2check)}\nLWC (current): {sum(self.LWC)}\nDML: {sum(dml2check)}')
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
     ###########################

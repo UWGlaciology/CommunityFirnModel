@@ -339,12 +339,19 @@ def bucket(self,iii):
             rhofinal        = self.rho
             phiempty        = self.dz * (rhoi - rhofinal) / RHO_W_KGM - self.LWC # updte tot pot pore space avbl for LWC [m] (Eq.9; Wever(2014); Discussion in Yamaguchi(2010))
             phiempty[imp] = 0. # set 0 LWC ponding in impermeable nodes
-                
+            phiempty[self.rho>RhoImp] = 0 #Max added to deal with situation where refreezing causes impermeability
+
             for kk in np.flip(np.where(LWCblocked > 0)[0]): 
-                phiempty_cumf = np.cumsum(np.flip(phiempty[0:kk+1])) #cumulative empty porespace until kk included, flipped
+                phiempty_cumf = np.cumsum(np.flip(phiempty[0:kk+1])) #cumulative empty porespace until kk (inclusive), flipped
                 
                 if phiempty_cumf[-1] >= LWCblocked[kk]: # enough porosity to accomodate ponding LWC
-                    ifill = np.where(phiempty_cumf > LWCblocked[kk])[0][0] # [kk-ifill] is most upper node that accomodates LWCblocked[kk]                 
+                    ifill = np.where(phiempty_cumf > LWCblocked[kk])[0][0] # [kk-ifill] is most upper node that accomodates LWCblocked[kk]
+
+                # elif np.any(self.rho[0:kk]>=RhoImp): #freezing has caused an impermeable layer atop the water
+                #     ifill = np.where(self.rho[0:kk]>=RhoImp)[0][-1] + 1
+                #     runofftot = runofftot + LWCblocked[kk] - phiempty_cumf[kk] # remove LWC that cannot be accomodated as runoff
+                #     LWCblocked[kk] = phiempty_cumf[kk] # MS added: need to also remove that volume from LWCblocked
+
                 else:
                     ifill = kk # ponding until surface node
                     runofftot = runofftot + LWCblocked[kk] - phiempty_cumf[kk] # remove LWC that cannot be accomodated as runoff
@@ -353,13 +360,18 @@ def bucket(self,iii):
                 if ifill == 0: # The excess water can be contained in the kk node 
                     self.LWC[kk] = self.LWC[kk]+LWCblocked[kk] # update LWC
                     phiempty[kk] = phiempty[kk]-LWCblocked[kk] # update phiempty
+
                 else:
-                    LWCfinal                    = self.LWC
+                    LWCfinal                    = self.LWC              
                     LWCfinal[kk-ifill+1:kk+1]   = LWCfinal[kk-ifill+1:kk+1] + phiempty[kk-ifill+1:kk+1] # fill nodes from kk-ifill (not included)
                     LWCblocked[kk]              = LWCblocked[kk] - np.sum(phiempty[kk-ifill+1:kk+1])  # remaining LWC in LWCblocked[kk]
                     phiempty[kk-ifill+1:kk+1]   = 0. # update phiempty
                     self.LWC[kk-ifill]          = self.LWC[kk-ifill] + LWCblocked[kk] # node[kk-ifill] accomodates remaining of LWCblocked[kk]
                     phiempty[kk-ifill]          = phiempty[kk-ifill] - LWCblocked[kk] # update phiempty
+
+                    if np.any(self.LWC<0):
+                        self.LWC[self.LWC<0] = 0.0
+
                 LWCblocked[kk]                  = 0. # LWCblocked[kk] has been accomodated
         
         elif Ponding == False: #no ponding
@@ -406,6 +418,8 @@ def bucket(self,iii):
         self.LWC[coldlayers] = 0.
     if np.any(self.LWC[coldlayers] > 0.):
         print('Problem: water content in a cold layer')
+
+    self.rho[self.rho>RHO_I] = RHO_I
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot
 
@@ -751,22 +765,32 @@ def LWC_correct(self):
     '''
 
     ind_wetcold = np.where((self.Tz<T_MELT) & (self.LWC>0))[0]
+    refrozen_mass = np.zeros_like(self.rho)
     if ind_wetcold.size!=0:
-        cold_content = CP_I * self.mass * (T_MELT - self.Tz)
-        heattofreeze = self.LWC*1000*LF_I
+        cold_content = CP_I * self.mass * (T_MELT - self.Tz) # [J]
+        ### LWC is volume (m^3)
+        heattofreeze = self.LWC*1000*LF_I # [J]
+        
         for kk in ind_wetcold:
             if cold_content[kk] < heattofreeze[kk]:
                 # not enough cold content
-                # temp needs to be melt
-                # some water refreeze to bring T to T_melt
+                # temperature raised to T_MELT
+                # some water refreeze to bring T to T_MELT
 
                 self.Tz[kk] = T_MELT
                 self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
+                refrozen_mass[kk] = cold_content[kk]/LF_I
+                self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
+                self.rho[kk] = self.mass[kk]/self.dz[kk]
                 # self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
             else: #enough cold content, all LWC refreezes
                 # Temperature is raised from refreezing
+                refrozen_mass[kk] = self.LWC[kk] * 1000
                 self.LWC[kk] = 0
                 self.Tz[kk] = self.Tz[kk] + heattofreeze[kk]/CP_I/self.mass[kk]
+                self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
+                self.rho[kk] = self.mass[kk]/self.dz[kk]
+
                 # self.Tz[kk] = self.Tz[kk] + (heattofreeze[kk]/1000/LF_I)
         if np.any(self.LWC<0):
             print("negative LWC from correction")
@@ -774,8 +798,7 @@ def LWC_correct(self):
         if np.any(self.Tz > T_MELT):
             print("temps above T_MELT from correction")
             self.Tz[self.Tz>T_MELT] = T_MELT
-
-    return self.Tz, self.LWC
+    return self.Tz, self.LWC, self.rho, self.mass, refrozen_mass
 
 def effectiveT(self,iii):
     '''

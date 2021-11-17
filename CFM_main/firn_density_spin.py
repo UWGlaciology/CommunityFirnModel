@@ -245,7 +245,6 @@ class FirnDensitySpin:
             # Recompute HL analytic on the regridded profile #
             self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
             print('After doublegrid, grid length is ', self.gridLen)
-            # print('z ', self.z[-5:])
         
         # except:
         #     self.doublegrid = False
@@ -382,7 +381,6 @@ class FirnDensitySpin:
             else:
                 pass
         except:
-            # print('no_densification not in .json; setting to false')
             self.c['no_densification']=False
         #######################
 

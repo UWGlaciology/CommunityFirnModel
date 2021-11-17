@@ -114,7 +114,7 @@ class ModelOutputs:
         '''
 
         varC = np.cumsum(var)
-        newVar = np.interp(grid, z, var)
+        newVar = np.interp(grid, z, varC)
         return np.diff(newVar,append = newVar[-1])
 
 
