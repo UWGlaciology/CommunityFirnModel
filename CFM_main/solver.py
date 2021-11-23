@@ -242,7 +242,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     itercheck = 0.9
     count = 0
 
-    ICT = 0 # itercheck threshold 
+    ICT = 0.001 # itercheck threshold 
 
     while itercheck>ICT:
         g_liq_iter = g_liq.copy()
@@ -329,12 +329,11 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         # g_liq[g_liq>0] = g_liq[g_liq>0] + (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
         
 
-        ### Voller 1991 eq. 29
-        g_liq[g_liq>0] = g_liq[g_liq>0] + (dFdT[g_liq>0] * (phi_t[g_liq>0]-Finv[g_liq>0]))
-
+        ### taken from v1.1.2; bit in v1.1.5 does not work!
+        g_liq[g_liq>0] = g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0])) # dz or dZ?
         g_liq[g_liq<=0] = 0
         g_liq[g_liq>1] = 1
-        
+       
         LWC = g_liq*dz
         mass_liq = LWC * RHO_W_KGM
         rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
@@ -348,17 +347,17 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
         if iterdiff==0:
             itercheck = 0
-            # break
+            break
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
         count += 1
-        if count==100:
-            if ICT == 0:
-                ICT = 1e-8
-            else:
-                ICT = ICT * 10
-        if count==200:
-            ICT = ICT * 10
+        # if count==100:
+        #     if ICT == 0:
+        #         ICT = 1e-8
+        #     else:
+        #         ICT = ICT * 10
+        # if count==200:
+        #     ICT = ICT * 10
 
     return phi_t, g_liq, count, iterdiff
 

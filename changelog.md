@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.5
+1.1.6
 
 ## Full Documentation
 
@@ -22,6 +22,13 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.6] 2021-11-22
+### Notes
+- The enthalpy solver scheme's routine to correct the amount of LWC after each iteration was wrong, which caused the firn to densify too quickly when there was melt present.
+
+### Fixed
+- *solver.py* See above note. The g_liq correction at the end of the iteration loop is reverted to what was used in v1.1.2.  
 
 ## [1.1.5] 2021-11-17
 ### Notes 
