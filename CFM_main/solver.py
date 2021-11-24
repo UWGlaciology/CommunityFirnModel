@@ -330,7 +330,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         
 
         ### taken from v1.1.2; bit in v1.1.5 does not work!
-        g_liq[g_liq>0] = g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0])) # dz or dZ?
+        g_liq[g_liq>0] = (g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
         g_liq[g_liq<=0] = 0
         g_liq[g_liq>1] = 1
        
@@ -345,6 +345,8 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         # rho_liq_eff = mass_liq / dZ #dz or dZ?
 
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
+        # print(iii)
+        # print(iterdiff)
         if iterdiff==0:
             itercheck = 0
             break
@@ -361,7 +363,8 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
                 pass
             else:
                 ICT = ICT * 10
-
+    # print(count)
+    # input('waiting')
     return phi_t, g_liq, count, iterdiff
 
 ###################################
