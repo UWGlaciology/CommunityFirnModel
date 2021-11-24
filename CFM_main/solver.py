@@ -203,7 +203,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ###################################
 
 
-def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz,iii=0):
+def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT,iii=0):
     '''
     transient 1-d diffusion finite volume method for enthalpy
 
@@ -242,7 +242,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     itercheck = 0.9
     count = 0
 
-    ICT = 0.001 # itercheck threshold 
+    # ICT = ICT # itercheck threshold 
 
     while itercheck>ICT:
         g_liq_iter = g_liq.copy()
@@ -351,13 +351,16 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
         count += 1
-        # if count==100:
-        #     if ICT == 0:
-        #         ICT = 1e-8
-        #     else:
-        #         ICT = ICT * 10
-        # if count==200:
-        #     ICT = ICT * 10
+        if count==100:
+            if ICT == 0:
+                ICT = 1e-12
+            else:
+                pass
+        if count==200:
+            if ICT < 1e-12:
+                pass
+            else:
+                ICT = ICT * 10
 
     return phi_t, g_liq, count, iterdiff
 

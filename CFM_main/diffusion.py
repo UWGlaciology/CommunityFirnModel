@@ -193,8 +193,24 @@ def enthalpyDiff(self,iii):
 
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
+    ICT = 1e-3
+    phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,iii)
+    
+    LWC_ret = g_liq * self.dz
+    # self.LWC        = g_liq * vol_tot
+    delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
+    dml_sum = 0.0
 
-    phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,iii)
+    if np.any(delta_mass_liq<-1e-7):
+        print('Too close for missles', iii)
+        ICT = 0.0
+        phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,ICT)
+        LWC_ret = g_liq * self.dz
+        # self.LWC        = g_liq * vol_tot
+        delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
+        dml_sum = 0.0
+
+    self.LWC = LWC_ret.copy()
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
@@ -205,13 +221,13 @@ def enthalpyDiff(self,iii):
         print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
     self.Tz[self.Tz>=273.15]=273.15
     
-    self.LWC = g_liq * self.dz
-    # self.LWC        = g_liq * vol_tot
-    delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
-    dml_sum = 0.0
+    # self.LWC = g_liq * self.dz
+    # # self.LWC        = g_liq * vol_tot
+    # delta_mass_liq  = mass_liq - (self.LWC * RHO_W_KGM)
+    # dml_sum = 0.0
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
-            print(self.modeltime[iii], 'Fixing negative values of delta_mass_liq')
+            print(self.modeltime[iii],iii, 'Fixing negative values of delta_mass_liq')
             idml = np.where(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7)[0]
             print('Negative values:', delta_mass_liq[idml])
             print('If you are getting this message, (diffusion.py, L214), you ')
