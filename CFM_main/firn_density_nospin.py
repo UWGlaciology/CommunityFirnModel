@@ -827,8 +827,15 @@ class FirnDensityNoSpin:
                 'dz':           self.dz,
                 'LWC':          self.LWC,
                 'MELT':         self.MELT,
-                'FirnAir':      self.c['FirnAir']
+                'FirnAir':      self.c['FirnAir'],
+                'MQ':           self.c['MQ']
             }
+
+            if self.c['physRho']=='MaxSP':
+                try:
+                    PhysParams['MQ'] = self.c['MQ']
+                except:
+                    PhysParams['MQ'] = 60
             
             if self.c['physRho']=='Morris2014':
                 PhysParams['Hx'] = self.Hx

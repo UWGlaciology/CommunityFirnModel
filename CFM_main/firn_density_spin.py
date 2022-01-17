@@ -429,7 +429,8 @@ class FirnDensitySpin:
                 'LWC':          self.LWC,
                 'MELT':         self.MELT,
                 'FirnAir':      False,
-                'bdot_av':      self.bdot_av
+                'bdot_av':      self.bdot_av,
+                'MQ':           self.c['MQ']
             }
 
             if self.c['physRho']=='Morris2014':
