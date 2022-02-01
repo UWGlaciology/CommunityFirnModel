@@ -430,6 +430,7 @@ class FirnDensityNoSpin:
                 self.rainSec    = self.rain / S_PER_YEAR / (S_PER_YEAR/self.dt) # rain for each time step (mIE/s)
             else:
                 self.rainSec    = np.zeros(self.stp) #VV to avoid problem in the conditions to call for liquid water routine
+        self.ICT = 0.001
         #####################
  
         ### Surface Density ####

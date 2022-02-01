@@ -194,7 +194,7 @@ def enthalpyDiff(self,iii):
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
 
-    phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,iii)
+    phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,iii,self.ICT)
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
@@ -217,6 +217,9 @@ def enthalpyDiff(self,iii):
             print('If you are getting this message, (diffusion.py, L214), you ')
             print('may need to reduce the ICT (itercheck threshold in solver.py')
             print('If you are seeing this message, please email maxstev@umd.edu so I can fix it.')
+            self.ICT = self.ICT*0.1
+            if self.ICT<1.0e-8:
+                self.ICT=1.0e-8
         dml_sum = np.sum(delta_mass_liq[delta_mass_liq<0])
         delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
     self.mass       = self.mass + delta_mass_liq

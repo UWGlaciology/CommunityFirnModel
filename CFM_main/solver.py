@@ -203,7 +203,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ###################################
 
 
-def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz,iii=0):
+def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz,iii=0,ICT=0.001):
     '''
     transient 1-d diffusion finite volume method for enthalpy
 
@@ -242,7 +242,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     itercheck = 0.9
     count = 0
 
-    ICT = 0.001 # itercheck threshold 
+    # ICT = 0.001 # itercheck threshold 
 
     while itercheck>ICT:
         g_liq_iter = g_liq.copy()
