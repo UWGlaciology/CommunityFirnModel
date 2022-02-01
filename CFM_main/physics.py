@@ -647,6 +647,13 @@ class FirnPhysics:
             A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
             A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
 
+            # if self.iii==0:
+            #     print('physics A_mean_1', A_mean_1[0:5])
+            #     print(self.bdot_mean[0:5])
+            #     print(self.T_mean[self.iii])
+            #     print(self.Tz[0:5])
+            #     input('phys')
+
             M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
             M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
 

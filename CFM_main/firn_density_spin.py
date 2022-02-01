@@ -21,6 +21,7 @@ from writer import write_spin_hdf5
 from physics import *
 from constants import *
 from isotopeDiffusion import isotopeDiffusion
+from SEB import SurfaceEnergyBudget
 import numpy as np
 import scipy.interpolate as interpolate
 import csv
@@ -304,7 +305,6 @@ class FirnDensitySpin:
             self.Tz         = np.minimum(self.Tz,273.15)
             self.T_mean     = np.mean(self.Tz[self.z<50])
             self.T10m       = self.T_mean
-
         try:
             ctest = self.c['conductivity']
         except:
@@ -430,8 +430,13 @@ class FirnDensitySpin:
                 'MELT':         self.MELT,
                 'FirnAir':      False,
                 'bdot_av':      self.bdot_av,
-                'MQ':           self.c['MQ']
             }
+
+            if self.c['physRho']=='MaxSP':
+                try:
+                    PhysParams['MQ'] = self.c['MQ']
+                except:
+                    PhysParams['MQ'] = 60
 
             if self.c['physRho']=='Morris2014':
                 PhysParams['Hx'] = self.Hx
