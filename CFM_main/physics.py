@@ -280,8 +280,11 @@ class FirnPhysics:
             dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
-        # self.viscosity = np.ones(self.gridLen)
+        viscosity = np.ones(self.gridLen)
+        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
         self.RD['drho_dt'] = drho_dt
+        self.RD['viscosity'] = viscosity
         return self.RD
     ### end Li_2015 ###
     ###################
@@ -1257,6 +1260,7 @@ class FirnPhysics:
         # dr_dt[top1m] = 
         
         self.RD['drho_dt'] = dr_dt # units are (kg m^-3) s^-1
+        self.RD['viscosity'] = viscosity
         # if self.iii<10:
         #     print(dr_dt[0:20])
         return self.RD

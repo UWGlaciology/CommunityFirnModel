@@ -183,6 +183,8 @@ class FirnDensityNoSpin:
             input_temp = bigTmat[1,1:] # surface
             input_year_temp = self.manualT_time # time again, just to gel with other code
             init_Tz = bigTmat[1:,1] # temp at zeroeth time step (i.e. at init)
+            self.forcing_dict['TSKIN'] = input_temp
+            self.forcing_dict['dectime'] = input_year_temp
 
         else:
             if climateTS != None:
@@ -343,6 +345,8 @@ class FirnDensityNoSpin:
             # self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
             # self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
         #####################
+
+        # self.forcing_dict['dt'] = self.dt
       
         ###############################
         ### surface boundary conditions
@@ -1140,6 +1144,14 @@ class FirnDensityNoSpin:
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 if not self.c['manualT']:
                     self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
+            # if ((mtime>2017.22) and (mtime<2017.25)):
+            #     print(mtime)
+            #     print(iii)
+            #     print(np.sum(self.compaction))
+            #     print(self.dt[iii])
+            #     print('########')
+
 
             self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
 
