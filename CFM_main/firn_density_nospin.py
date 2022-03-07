@@ -738,6 +738,8 @@ class FirnDensityNoSpin:
             self.output_list.append('refreeze') #VV (23/03/2021)
             self.output_list.append('runoff') #VV (23/03/2021)
             self.output_list.append('meltvol')
+            if 'LWC' not in self.output_list:
+                self.output_list.append('LWC')
         
         if ((not self.MELT) and ('LWC' in self.output_list)):
             self.output_list.remove('LWC')

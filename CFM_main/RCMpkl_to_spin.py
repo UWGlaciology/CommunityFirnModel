@@ -59,7 +59,8 @@ def effectiveT(T):
     '''
     The Arrhenius mean temperature.
     '''
-    Q   = -1 * 60.0e3
+    # Q   = -1 * 60.0e3
+    Q   = -1 * 59500.0
     R   = 8.314
     k   = np.exp(Q/(R*T))
     km  = np.mean(k)

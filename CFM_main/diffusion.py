@@ -204,7 +204,7 @@ def enthalpyDiff(self,iii):
     if np.any(delta_mass_liq<-1e-6):
         # print('Too close for missles', iii)
         ICT = 0.0
-        phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,ICT)
+        phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,iii)
         LWC_ret = g_liq * self.dz
         # self.LWC        = g_liq * vol_tot
         delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)

@@ -282,17 +282,17 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             sys.exit()            
        
         if not dsource:
-            dsource = 'ERA10k'
+            dsource = 'ERA10km'
             print('using MAR ', dsource)
 
-        if dsource == 'ERA10k':
-            MARver='311'
-            d2 = '/ERA_1958-2019-10km/'
+        if dsource == 'ERA10km':
+            MARver='312'
+            d2 = '/ERA_10km/'
             if SEB:
                 vv = ['AL2','LHF','ME','RF','SF','SHF','ST2','SU','SWD','TT']
             else:
                 vv = ['ME','SF','ST2','RF','SU','TT']
-            spin_date_st = 1958
+            spin_date_st = 1950
             spin_date_end = 1979
         elif dsource == 'ERA6k':
             MARver='311'
@@ -316,8 +316,10 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             spin_date_st = 1958
             spin_date_end = 1979
 
-
-        ddir = f'/Volumes/Samsung_T1/MAR{MARver}/Greenland/daily'
+        if MARver == '311':
+            ddir = f'/Volumes/Samsung_T1/MAR{MARver}/Greenland/daily'
+        elif MARver == '312':
+            ddir = '/Volumes/LaCie'
         
 
         pickle_folder = ddir + '/pickles' + d2
