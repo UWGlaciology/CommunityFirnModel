@@ -417,8 +417,13 @@ def bucket(self,iii):
     if np.all(self.LWC[coldlayers] < 1e-9):
         self.LWC[coldlayers] = 0.
     if np.any(self.LWC[coldlayers] > 0.):
-        print('Problem: water content in a cold layer')
-
+        print('Problem: water content in a cold layer', iii)
+        pli = np.where(self.LWC[coldlayers] > 0.)[0]
+        print('Layers:', pli)
+        print('LWC:', self.LWC[coldlayers][pli])
+        print('Tz', self.Tz[coldlayers][pli])
+        print('dz', self.dz[coldlayers][pli])
+        print('rho', self.rho[coldlayers][pli])
     self.rho[self.rho>RHO_I] = RHO_I
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot

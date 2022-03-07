@@ -353,16 +353,17 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
         count += 1
-        if count==100:
+        if count==2000:
             if ICT == 0:
-                ICT = 1e-12
+                ICT = 1.0e-14
             else:
                 pass
-        if count==200:
-            if ICT < 1e-12:
-                pass
-            else:
+        if count==4000:
+            if ICT == 1.0e-14:
                 ICT = ICT * 10
+            else:
+                pass
+                
     # print(count)
     # input('waiting')
     return phi_t, g_liq, count, iterdiff
