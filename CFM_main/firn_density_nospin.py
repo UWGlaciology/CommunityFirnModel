@@ -966,7 +966,7 @@ class FirnDensityNoSpin:
                         # print('iLWC',iLWC)
                         # print('LWC',self.LWC[iLWC])
                         # print('zLWC',self.z[iLWC])
-                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
+                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucketDev(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
                         self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
@@ -1041,7 +1041,8 @@ class FirnDensityNoSpin:
                 ### end prefsnowpack ##################
 
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
-                    print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
+                    pass
+                    # print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
                     # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
                     # This should never happen if bottom of modelled firn column is at rho >= 830
                 # self.LWC        = np.concatenate(([0], self.LWC[:-1]))

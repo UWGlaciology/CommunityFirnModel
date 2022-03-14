@@ -173,6 +173,8 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         bc_d_0  = 0
         bc_type_d = 2
+        # bc_d_0  = 273.149
+        # bc_type_d = 1
         bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
         #########################################
 
@@ -191,6 +193,8 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         b[-1]   = deltaZ_u[-1] * bc_d[0]
 
         phi_t = solver(a_U, a_D, a_P, b)
+        # print(phi_t[-1])
+        # input('waiting')
         a_P = a_U + a_D + a_P_0
 
     if airdict!=None:
@@ -243,6 +247,9 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     count = 0
 
     # ICT = ICT # itercheck threshold 
+    # print('###############')
+    # print(f'iii = {iii}')
+    # print(f'g_liq_old: {np.sum(g_liq_old)}')
 
     while itercheck>ICT:
         g_liq_iter = g_liq.copy()
@@ -276,6 +283,9 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         #### eqs. 31, 32 from Voller 1991
         dFdT = np.zeros_like(Gamma_P)
         dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e15
+        ### Finv has units of temperature: T=F^-1(g_liq). When g_liq>0, T=0C, and Finv=0. For g_liq<=0, T<=0 - but
+        ### the equation for S_C contains deltaH multiplying Finv. deltaH is zero for nodes with T<0, so we can 
+        ### just set Finv=0 at those nodes.
         Finv = np.zeros_like(dFdT)
         S_P = (-1 * deltaH * dFdT)
         S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv)
@@ -296,8 +306,11 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         bc_u_0  = phi_s # need to pay attention for gas
         bc_type_u = 1
         bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
+
         bc_d_0  = 0
-        bc_type_d = 2
+        bc_type_d = 1
+        # bc_d_0  = 0
+        # bc_type_d = 2
         bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
 
         b       = b_0 + a_P_0 * phi_t
@@ -345,25 +358,33 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         # rho_liq_eff = mass_liq / dZ #dz or dZ?
 
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
-        # print(iii)
-        # print(iterdiff)
         if iterdiff==0:
             itercheck = 0
+            # print(f'g_liq_iter: {np.sum(g_liq_iter)}')
+            # print(f'g_liq: {np.sum(g_liq)}')
+            # print('break!')
             break
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
+        # print(f'count: {count}')
+        # print(f'itercheck: {itercheck}')
+        # print(f'g_liq_old: {np.sum(g_liq_old)}')
+        # print(f'g_liq_iter: {np.sum(g_liq_iter)}')
+        # print(f'g_liq: {np.sum(g_liq)}')
+        # print(f'ICT: {ICT}')
         count += 1
         if count==100:
             if ICT == 0:
                 ICT = 1e-12
             else:
                 pass
-        if count==200:
-            if ICT < 1e-12:
-                pass
-            else:
-                ICT = ICT * 10
+        if ((count==200) and (ICT==1e-12)):
+            # if ICT > 1e-12:
+            #     pass
+            # else:
+            ICT = ICT * 10
     # print(count)
+    # print('###############')
     # input('waiting')
     return phi_t, g_liq, count, iterdiff
 

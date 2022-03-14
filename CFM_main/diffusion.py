@@ -135,9 +135,10 @@ def heatDiff(self,iii):
         if self.c['LWCheat']=='effectiveT':
             pass
 
-        elif np.any(self.Tz>273.15):
-            print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
+        elif np.any(self.Tz>273.1500001):
+            print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
             print('Maximum temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))
+            print(f'LWC: {np.max(self.LWC)}')
             print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
         self.Tz[self.Tz>=273.15]=273.15
 
@@ -214,7 +215,7 @@ def enthalpyDiff(self,iii):
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
-    if np.any(self.Tz>273.15):
+    if np.any(self.Tz>273.1500001):
         print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
         print('Maximal temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))
         print('iii, modeltime', iii, self.modeltime[iii])
@@ -228,7 +229,7 @@ def enthalpyDiff(self,iii):
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
             print('XXXX')
-            print(self.modeltime[iii],iii, 'Fixing negative values of delta_mass_liq')
+            print(f'{self.modeltime[iii]},{iii}, Fixing negative values of delta_mass_liq')
             # idml = np.where(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7)[0]
             idml = np.where(delta_mass_liq<-1e-7)[0]
             print('Negative values:', delta_mass_liq[idml])

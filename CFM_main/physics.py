@@ -993,7 +993,7 @@ class FirnPhysics:
         drho_dt = dr_dt #/ S_PER_YEAR
 
         ##########
-        CHybrid = False
+        CHybrid = True
         if CHybrid:
             if self.iii==0:
                 print("You are using CROCUS hybrid")

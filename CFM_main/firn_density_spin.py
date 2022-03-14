@@ -140,7 +140,7 @@ class FirnDensitySpin:
         else:
             input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
             input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
- 
+
         if input_temp[0] < 0.0:
             input_temp              = input_temp + K_TO_C
         try:
@@ -162,6 +162,12 @@ class FirnDensitySpin:
                 self.bdot0      = np.mean(input_bdot)
         except:
             self.bdot0      = np.mean(input_bdot)
+
+        try:
+            if self.c['MELT']:
+                self.bdot0 = self.bdot0 - np.mean(climateTS['SMELT'])
+        except:
+            pass
 
         if 'manual_climate' in self.c:
             pass
@@ -209,9 +215,13 @@ class FirnDensitySpin:
         THL                 = self.temp0
         AHL                 = self.bdot0
 
+
         try: #VV use Reeh corrected T
             if self.c['ReehCorrectedT'] and self.c['MELT']:
-                input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
+                if climateTS != None:
+                    input_snowmelt = climateTS['SMELT']
+                else:
+                    input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
                 meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
                 meanacc  = self.bdot0 # mean annual accumulation [mIE/yr]
                 self.SIR = min(meanmelt,0.6*meanacc) # Reeh 1991 and Reeh 2008 PMAX value is set at 0.6 melt becomes superimposed ice until it reaches 0.6 of annual acc, then runoff
@@ -226,6 +236,8 @@ class FirnDensitySpin:
             self.c['ReehCorrectedT'] = False
             pass
 
+        print(f'AHL: {AHL}')
+        print(f'THL: {THL}')
         self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
 
         # try:
@@ -303,7 +315,7 @@ class FirnDensitySpin:
         if self.c['ReehCorrectedT']:
             self.Tz         = self.Tz + 26.6*self.SIR # temperature correction accounting for latent heat, Reeh 1991 (5) Reeh 2008 (16)
             self.Tz         = np.minimum(self.Tz,273.15)
-            self.T_mean     = np.mean(self.Tz[self.z<50])
+            self.T_mean     = np.mean(self.Tz[self.z<50]) * np.ones(self.stp)
             self.T10m       = self.T_mean
         try:
             ctest = self.c['conductivity']
@@ -524,7 +536,8 @@ class FirnDensitySpin:
             ### VV corrected temperature profile with latent heat release from meltwater, 
             ### following Reeh 1991 parameterisation ##
             if self.c['ReehCorrectedT']:
-                self.Tz         = np.concatenate(([self.Ts[iii]]+26.6*self.SIR, self.Tz[:-1]))
+                upperT = np.min((self.Ts[iii]+26.6*self.SIR,T_MELT))
+                self.Tz         = np.concatenate(([upperT], self.Tz[:-1]))
             else:
                 self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
             ##
