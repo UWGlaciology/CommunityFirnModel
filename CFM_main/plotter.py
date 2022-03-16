@@ -13,8 +13,11 @@ import sys
 import numpy as np
 import scipy as sp
 import pickle
-import seaborn as sns 
-sns.set()
+try:
+	import seaborn as sns 
+	sns.set()
+except:
+	pass
 
 def plotter(rfolder,saver):
 	'''

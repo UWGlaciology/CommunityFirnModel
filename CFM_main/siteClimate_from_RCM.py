@@ -32,9 +32,9 @@ from datetime import datetime, timedelta, date
 import pandas as pd
 import fnmatch
 from scipy.spatial import cKDTree
-from sklearn import datasets, linear_model
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.svm import SVR
+# from sklearn import datasets, linear_model
+# from sklearn.metrics import mean_squared_error, r2_score
+# from sklearn.svm import SVR
 import time
 import xarray as xr
 import glob
