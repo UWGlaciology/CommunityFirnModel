@@ -138,13 +138,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         except:
             pass
         l1 = df_CLIM.columns.values.tolist()
-        l2 = ['SMELT','BDOT','RAIN','TSKIN']
+        l2 = ['SMELT','BDOT','RAIN','TSKIN','SRHO']
         notin = list(np.setdiff1d(l1,l2))
         df_CLIM.drop(notin,axis=1,inplace=True)
         # df_BDOT = pd.DataFrame(df_CLIM.BDOT)
         df_TS = pd.DataFrame(df_CLIM.TSKIN)
 
-        res_dict_all = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean'} # resample type for all possible variables
+        res_dict_all = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','SRHO':'mean'} # resample type for all possible variables
         res_dict = {key:res_dict_all[key] for key in df_CLIM.columns} # resample type for just the data types in df_CLIM
 
         # df_BDOT_re = df_BDOT.resample(timeres).sum()
@@ -216,12 +216,14 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        print('df_full:',df_FULL.head())
+        print('df_full (no seb):',df_FULL.head())
 
         CD = {}
         CD['time'] = df_FULL.index
         for ID in df_CLIM_ids:
             if ID == 'TSKIN':
+                CD[ID] = df_FULL[ID].values
+            elif ID=='SRHO':
                 CD[ID] = df_FULL[ID].values
             else:
                 CD[ID] = df_FULL[ID].values * stepsperyear / 917

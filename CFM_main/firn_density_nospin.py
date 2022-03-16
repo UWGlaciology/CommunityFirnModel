@@ -467,11 +467,20 @@ class FirnDensityNoSpin:
         # Should check that if variable_srho, surface density never decreases in event of zero-snowfall timestep (1.24.22)
         if self.c['variable_srho']:
             if self.c['srho_type']=='userinput':
-                input_srho, input_year_srho, input_srho_full, input_year_srho_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), updatedStartDate)
+                if ((climateTS != None) and ('SRHO' in climateTS.keys())):
+                    input_srho = climateTS['SRHO'][self.start_ind:]
+                    input_year_srho = climateTS['time'][self.start_ind:]
+                    input_srho_full = climateTS['SRHO']
+                    input_year_srho_full = climateTS['time']
+                else:
+                    input_srho, input_year_srho, input_srho_full, input_year_srho_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerho']), updatedStartDate)
+                
                 Rsf             = interpolate.interp1d(input_year_srho,input_srho,int_type,fill_value='extrapolate') # interpolation function
-                self.rhos0      = Rsf(self.modeltime) # surface temperature interpolated to model time
+                self.rhos0      = Rsf(self.modeltime) # surface density interpolated to model time
+            
             elif self.c['srho_type']=='param':
                 self.rhos0      = 481.0 + 4.834 * (self.T_av - T_MELT) # Kuipers Munneke, 2015
+            
             elif self.c['srho_type']=='noise':
                 rho_stdv        = 25 # the standard deviation of the surface density (I made up 25)
                 self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
