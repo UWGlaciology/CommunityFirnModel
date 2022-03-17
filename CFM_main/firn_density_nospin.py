@@ -835,11 +835,11 @@ class FirnDensityNoSpin:
                 if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
                         self.Dcon,self.T_mean,self.T10m,self.r2 = mergesurf(self,self.c['merge_min'],iii)
-                    print('merging1 at ', iii)
+                    # print('merging1 at ', iii)
                 if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                       
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
                         self.Dcon,self.T_mean,self.T10m,self.r2 = mergenotsurf(self,self.c['merge_min'],iii)
-                    print('merging2 at ', iii)
+                    # print('merging2 at ', iii)
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -975,7 +975,7 @@ class FirnDensityNoSpin:
                         # print('iLWC',iLWC)
                         # print('LWC',self.LWC[iLWC])
                         # print('zLWC',self.z[iLWC])
-                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucketDev(self,iii)
+                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
                         self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]

@@ -163,11 +163,11 @@ class FirnDensitySpin:
         except:
             self.bdot0      = np.mean(input_bdot)
 
-        try:
-            if self.c['MELT']:
-                self.bdot0 = self.bdot0 - np.mean(climateTS['SMELT'])
-        except:
-            pass
+        # try:
+        #     if self.c['MELT']:
+        #         self.bdot0 = self.bdot0 - np.mean(climateTS['SMELT'])
+        # except:
+        #     pass
 
         if 'manual_climate' in self.c:
             pass

@@ -137,9 +137,19 @@ def heatDiff(self,iii):
 
         elif np.any(self.Tz>273.1500001):
             print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
-            print('Maximum temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))
+            wls = np.where(self.Tz == np.max(self.Tz))[0]
+            print('Maximum temperature was:',np.max(self.Tz),' at layers:', wls)
             print(f'LWC: {np.max(self.LWC)}')
+            print(f'Ts: {self.Ts[iii]}')
+            ist = wls[0]-1
+            ien = wls[-1]+2
+            print(f'Tz: {self.Tz[ist:ien]}')
+            print(f'rho: {self.rho[ist:ien]}')
+            print(f'LWC: {self.LWC[ist:ien]}')
+            print(f'dz: {self.dz[ist:ien]}')
+            print(f'modeltime: {self.modeltime[iii]}')
             print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
+
         self.Tz[self.Tz>=273.15]=273.15
 
     return self.Tz, self.T10m
