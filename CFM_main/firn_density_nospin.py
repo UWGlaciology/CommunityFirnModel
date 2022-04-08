@@ -569,6 +569,17 @@ class FirnDensityNoSpin:
             self.THist          = False
         #####################
 
+        ### Arhennius Q for USP50
+        if self.c['physRho'] == 'MaxSP':
+            if 'Q_USP50' not in self.c:
+                self.c['Q_USP50'] = 60
+                print('using default USP50 Q (60)')
+            else:
+                print(f'Q is {self.c["Q_USP50"]}')
+
+
+        #####################
+
         ### values for Goujon physics
         if self.c['physRho']=='Goujon2003':
             self.Gamma_Gou      = 0 
@@ -835,6 +846,8 @@ class FirnDensityNoSpin:
             if self.c['physRho']=='Morris2014':
                 PhysParams['Hx'] = self.Hx
                 PhysParams['QMorris'] = self.c['QMorris']
+            elif self.c['physRho']=='MaxSP':
+                PhysParams['Q_USP50'] = self.c['Q_USP50']
 
             if self.c['FirnAir']:
                 PhysParams['AirRunType'] = self.cg['runtype']

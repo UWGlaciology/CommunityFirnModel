@@ -47,7 +47,7 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
     if forcing_dict:
         ks = list(forcing_dict)
         ll = len(forcing_dict[ks[0]])
-        forcing_out = np.zeros([ll,6])
+        forcing_out = np.zeros([ll,5])
         forcing_out[:,0] = forcing_dict['dectime']
         forcing_out[:,1] = forcing_dict['TSKIN']
         forcing_out[:,2] = forcing_dict['BDOT']
@@ -60,7 +60,7 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
         except:
             forcing_out[:,4] = -9999* np.ones_like(forcing_dict['dectime'])
         # try:
-        forcing_out[:,5] = forcing_dict['dt']
+        # forcing_out[:,5] = forcing_dict['dt']
         # except:
             # forcing_out[:,5] = -9999* np.ones_like(forcing_dict['dectime'])
         f4.create_dataset('forcing',data=forcing_out,dtype='float64')

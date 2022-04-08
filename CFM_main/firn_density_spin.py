@@ -435,6 +435,8 @@ class FirnDensitySpin:
             if self.c['physRho']=='Morris2014':
                 PhysParams['Hx'] = self.Hx
                 PhysParams['QMorris'] = self.c['QMorris']
+            elif self.c['physRho']=='MaxSP':
+                PhysParams['Q_USP50'] = self.c['Q_USP50']
 
             if self.c['physRho']=='Goujon2003':
                 PhysParams['Gamma_Gou']      = self.Gamma_Gou
