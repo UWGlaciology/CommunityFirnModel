@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.6
+1.1.7
 
 ## Full Documentation
 
@@ -22,6 +22,17 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.7] 2022-04-19
+### Notes
+- This update fixes an issue where sublimation was automatically turned off.
+- Hopefully this is a short-lived release; the next release should include an improved enthaply solver to avoid the ICT threshold error and still run quickly. A surface energy balance module is also in development.
+
+### Fixed
+- *firn_density_nospin.py, sublim.py* firn_density_nospin had a line that set any accumulation below a threshold to 0. This prevented sublimation from occuring because sublimation flux was inferred from the assumption that any negative values in the accumulation input was sublimation. The code now explicitly takes sublimation inputs, either through a field in the input dictionary (climateTS in firn_density_nospin.py) or a .csv file ('InputFileNameSublim' in .json). The .json should now include a boolean key/value 'SUBLIM' (default True). If that key is not in .json the code will automatically set to be true. (The design is that sublimation can be turned off, but only deliberately.) The code retains the ability to infer sublimation from negative values of accumulation (it does this if (1) inputs come from climateTS but SUBLIM is not a field in climateTS; or (2) if 'InputFileNameSublim' is NOT in the .json.)
+- Note that sublim.py still does not alter the temperature. The reason for this presently is that we assume that the surface (skin) temperature calcuated by the forcing RCM (e.g. TS in MERRA-2) already accounts for that energy balance, so we just set the surface temperature to equal the input skin temperature at that time step.
+- *physics.py* The viscosity calculations would throw a divide by zero error for layers that are at the ice density. This is now fixed so that those layers will have viscosity equal to zero (which is of course not true, but can be dealt with in post processing.)
+
 
 ## [1.1.6] 2021-11-22
 ### Notes

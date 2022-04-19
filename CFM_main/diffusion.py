@@ -238,7 +238,7 @@ def enthalpyDiff(self,iii):
     # dml_sum = 0.0
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
-            print('XXXX')
+            print('------')
             print(f'{self.modeltime[iii]},{iii}, Fixing negative values of delta_mass_liq')
             # idml = np.where(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7)[0]
             idml = np.where(delta_mass_liq<-1e-7)[0]

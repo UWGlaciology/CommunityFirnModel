@@ -80,8 +80,9 @@ class FirnPhysics:
                 drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
                 drho_dt[self.rho >= RHO_1]    = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
                 
-                viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
-                viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]
+                viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+                # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+                # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]
 
         elif self.bdot_type == 'mean':
             drho_dt[self.rho < RHO_1]     = k1 * np.exp(-Q1 / (R * self.Tz[self.rho < RHO_1])) * (RHO_I_MGM - self.rho[self.rho < RHO_1] / 1000) * (A_mean[self.rho < RHO_1])**aHL * 1000 / S_PER_YEAR
@@ -131,8 +132,9 @@ class FirnPhysics:
         drho_dt[z2mask]  = kSig * (sigmaDiff * rhoDiff[z2mask]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[(self.rho >= RHO_1) & (self.rho < RHO_I)])))
         drho_dt[zImask]  = 0
         
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]
 
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -163,8 +165,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        viscosity[self.rho < RHO_1]     = (self.rho[self.rho < RHO_1] * self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]    = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]     = (self.rho[self.rho < RHO_1] * self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]    = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
     
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -216,8 +219,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] ) / (2)/drho_dt[self.rho >= RHO_1]  
           
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -280,9 +284,10 @@ class FirnPhysics:
             dr_dt[self.rho > RHO_1]  = (RHO_I - self.rho[self.rho > RHO_1]) * A_mean[self.rho > RHO_1] * beta2[self.rho > RHO_1] * 8.36 * (K_TO_C - self.Tz[self.rho > RHO_1]) ** -2.061
 
         drho_dt = dr_dt / S_PER_YEAR
-        # self.viscosity = np.ones(self.gridLen)
         
-        viscosity  = (self.rho * self.sigma) / (2*drho_dt)
+        self.viscosity = np.ones(self.gridLen)
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        
         self.RD['drho_dt'] = drho_dt
         self.RD['viscosity'] = viscosity
         return self.RD
@@ -318,8 +323,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]  
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]  
           
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -349,8 +355,9 @@ class FirnPhysics:
         drho_dt[self.rho < RHO_1]  = kc1 * (RHO_I - self.rho[self.rho < RHO_1]) * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1])) * self.sigma[self.rho < RHO_1] / (self.r2[self.rho < RHO_1]) 
         drho_dt[self.rho >= RHO_1] = kc2 * (RHO_I - self.rho[self.rho >= RHO_1]) * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])) * self.sigma[self.rho >= RHO_1] / (self.r2[self.rho >= RHO_1])
        
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] )/ (2 )/drho_dt[self.rho >= RHO_1]  
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] )/ (2 )/drho_dt[self.rho >= RHO_1]  
           
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -379,7 +386,8 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR    #To get into (kg m^3)/seconds
       
-        viscosity = ((self.rho* self.sigma )/2)* (1/(drho_dt))  #In Pascal seconds
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity = ((self.rho* self.sigma )/2)* (1/(drho_dt))  #In Pascal seconds
 
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -421,8 +429,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        viscosity[self.rho < RHO_1]   = ((self.rho[self.rho < RHO_1]*(self.sigma[self.rho < RHO_1]))/2)/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = ((self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/2)/drho_dt[self.rho >= RHO_1] 
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = ((self.rho[self.rho < RHO_1]*(self.sigma[self.rho < RHO_1]))/2)/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = ((self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/2)/drho_dt[self.rho >= RHO_1] 
         
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -479,8 +488,9 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2) /drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/ (2)/drho_dt[self.rho >= RHO_1] 
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2) /drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/ (2)/drho_dt[self.rho >= RHO_1] 
 
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -536,8 +546,9 @@ class FirnPhysics:
         fs = (3. / 16.) * (1 - self.rho[condition_zn3] / RHO_I) / (1 - (1 - self.rho[condition_zn3] / RHO_I) ** (1. / 3.)) ** 3.
         drho_dt[condition_zn3] = self.rho[condition_zn3] * A0[condition_zn3] * np.exp(-QBarnola / (R * self.Tz[condition_zn3])) * fs * (sigmaEff[condition_zn3] ** nBa[condition_zn3])
         
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/ (2)/drho_dt[self.rho >= RHO_1] 
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1] )/ (2)/drho_dt[self.rho >= RHO_1] 
     
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -602,8 +613,9 @@ class FirnPhysics:
         elif self.bdot_type == 'mean':
             drho_dt[self.rho >= RHO_1]   = k2 * np.exp(-Q2 / (R * self.Tz[self.rho >= RHO_1])) * (RHO_I_MGM - self.rho[self.rho >= RHO_1] / 1000) * A_mean_2 ** bHL * 1000 / S_PER_YEAR
         
-        viscosity[self.rho < RHO_1]   = -(self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1]) / (2)/drho_dt[self.rho >= RHO_1] 
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = -(self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2)/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1]* self.sigma[self.rho >= RHO_1]) / (2)/drho_dt[self.rho >= RHO_1] 
 
         self.Hx = self.Hx + np.exp(-1*self.QMorris / (R * self.Tz)) * self.dt
         Hx_new  = np.exp(-1 * self.QMorris / (R * self.Tz[0])) * self.dt 
@@ -683,8 +695,9 @@ class FirnPhysics:
         drho_dt = dr_dt / S_PER_YEAR
         drho_dt[self.rho>=RHO_I] = 0
         
-        viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
-        viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] )/ (2 )/drho_dt[self.rho >= RHO_1] 
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]* self.sigma[self.rho < RHO_1])/ (2 )/drho_dt[self.rho < RHO_1] 
+        # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] * self.sigma[self.rho >= RHO_1] )/ (2 )/drho_dt[self.rho >= RHO_1] 
         
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
@@ -815,9 +828,9 @@ class FirnPhysics:
         drho_dt         = dDdt*rhoi2
         # drho_dt[top2m]  = 0.0
         
-        # viscosity = np.zeros(self.gridLen)
+        viscosity = np.zeros(self.gridLen)
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
         
-        viscosity  = (self.rho * self.sigma) / (2*drho_dt)
         self.RD['drho_dt'] = drho_dt
         self.RD['viscosity'] = viscosity
         # global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
@@ -959,6 +972,7 @@ class FirnPhysics:
         # drho_dt[top2m]  = 0.0
         
         viscosity = np.zeros(self.gridLen)
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
         
         self.RD['drho_dt'] = drho_dt
         # global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
@@ -1085,13 +1099,12 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
         # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
         # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]  
-        
-        viscosity_c  = (self.rho * self.sigma) / (2*drho_dt) #to be consistent with other models
 
         self.RD['drho_dt']   = drho_dt
-        self.RD['viscosity'] = viscosity_c
+        self.RD['viscosity'] = viscosity
 
         return self.RD
     ### end GSFC2020 ###
