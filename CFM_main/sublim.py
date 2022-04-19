@@ -16,10 +16,9 @@ def sublim(self,iii):
     Liquid water is sublimated before the ice matrix
     '''
     
-    
     lwc_initial = sum(self.LWC)
     
-    sublim_volume_IE      = abs(self.bdotSec[iii]) * S_PER_YEAR #/ self.c['stpsPerYear'] # [m]
+    sublim_volume_IE      = abs(self.sublimSec[iii]) * S_PER_YEAR #/ self.c['stpsPerYear'] # [m]
     sublim_volume_WE      = sublim_volume_IE * RHO_I_MGM # [m]
     sublim_mass           = sublim_volume_WE * 1000. # [kg]
     ind1a               = np.where((np.cumsum(self.mass)+np.cumsum(1000*self.LWC)) <= sublim_mass)[0] # indices of boxes that will be sublimated away
@@ -33,7 +32,7 @@ def sublim(self,iii):
         print('sublim_mass',sublim_mass)
         print('rho',self.rho[0:20])
         print('tz',self.Tz[0:20])
-        print('bdotsec',(self.bdotSec[iii] * S_PER_YEAR))
+        print('sublimsec',(self.sublimSec[iii] * S_PER_YEAR))
         sys.exit()
  
     # ps is the partial sublimation (the model volume that has a portion sublimated away)   
@@ -59,7 +58,7 @@ def sublim(self,iii):
     self.PLWC_mem[0]= ps_plwc
     # all the water that was in the PFdom of the sublimated layers is also for input
     
-    self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_sublim))) + self.dt[iii] # age of each layer increases of dt
+    self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_sublim))) #+ self.dt[iii] # age of each layer increases of dt
     # self.dz                  = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_sublim))) # this splits the last box into many.
     self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_sublim))) # this adds new boxes at the bottom.
     self.dz[0]      = ps_dz #VV dz calculated for the partially sublimated layer

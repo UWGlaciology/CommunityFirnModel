@@ -71,7 +71,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     to create a time series of climate variables for spin up. 
     the index of must be datetimeindex for resampling.
     df_CLIM can have any number of columns: BDOT, TSKIN, SMELT, RAIN, 
-    SUBLIMATION (use capital letters. We use SMELT because melt is a pandas function)
+    SUBLIM (use capital letters. We use SMELT because melt is a pandas function)
     Hopefully this makes it easy to adapt for the different climate products.
 
     UNITS FOR MASS FLUXES IN THE DATAFRAMES ARE kg/m^2 PER TIME STEP SIZE IN
@@ -124,10 +124,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     else: #CLIM_name is not a pickle, it is the dataframe being passed
     	df_CLIM = CLIM_name
 
-    drn = {'TS':'TSKIN'} #customize this to change your dataframe column names to match the required inputs
+    drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
     try:
         df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
-        df_CLIM['BDOT'] = df_CLIM['PRECSNO'] + df_CLIM['EVAP']
+        df_CLIM['BDOT'] = df_CLIM['PRECSNO'] #+ df_CLIM['EVAP']
+        # df_CLIM['SUBLIM'] = df_CLIM[]
+
     except:
         pass
     df_CLIM.rename(mapper=drn,axis=1,inplace=True)
@@ -136,13 +138,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     except:
         pass
     l1 = df_CLIM.columns.values.tolist()
-    l2 = ['SMELT','BDOT','RAIN','TSKIN']
+    l2 = ['SMELT','BDOT','RAIN','TSKIN','SUBLIM']
     notin = list(np.setdiff1d(l1,l2))
     df_CLIM.drop(notin,axis=1,inplace=True)
     # df_BDOT = pd.DataFrame(df_CLIM.BDOT)
     df_TS = pd.DataFrame(df_CLIM.TSKIN)
 
-    res_dict_all = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean'} # resample type for all possible variables
+    res_dict_all = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','SUBLIM':'sum'} # resample type for all possible variables
     res_dict = {key:res_dict_all[key] for key in df_CLIM.columns} # resample type for just the data types in df_CLIM
 
     # df_BDOT_re = df_BDOT.resample(timeres).sum()
@@ -167,7 +169,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
     stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
-    BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
+    BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
     T_mean = (df_TS_re['TSKIN']).mean()
     print(BDOT_mean_IE)
     print(T_mean)

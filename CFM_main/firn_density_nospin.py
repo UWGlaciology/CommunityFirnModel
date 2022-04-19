@@ -185,7 +185,7 @@ class FirnDensityNoSpin:
             init_Tz = bigTmat[1:,1] # temp at zeroeth time step (i.e. at init)
 
         else:
-            if climateTS != None:
+            if climateTS != None: # Input data comes from the input dictionary
                 if updatedStartDate is not None:
                     start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
                 else:
@@ -195,7 +195,7 @@ class FirnDensityNoSpin:
                 input_temp_full = climateTS['TSKIN']
                 input_year_temp_full = climateTS['time']
                 
-            else:
+            else: # Input data comes from a .csv
                 input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
             if input_temp[0] < 0.0:
                 input_temp      = input_temp + K_TO_C
@@ -207,15 +207,49 @@ class FirnDensityNoSpin:
         #####################
 
         ### bdot ############
-        if climateTS != None:
+        if climateTS != None: # Input data comes from the input dictionary                            
             input_bdot = climateTS['BDOT'][start_ind:]            
             input_year_bdot = climateTS['time'][start_ind:]
             input_bdot_full = climateTS['BDOT']
 
-        else:
+        else: # Input data comes from a .csv
             input_bdot, input_year_bdot,input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), updatedStartDate)
         self.forcing_dict['BDOT'] = input_bdot_full
         #####################
+
+        ### sublimation ####
+        ### new feature, April 2022.
+        if 'SUBLIM' not in self.c:
+            self.c['SUBLIM'] = True #Default is true
+            print('Please add "SUBLIM" to your .json')
+        if self.c['SUBLIM']:
+            ## option 1: sublim comes explicitly from climateTS
+            if ((climateTS != None) and ('SUBLIM' in climateTS)): #sublim should be negative values, ie. a flux out of the snowpack
+                input_sublim = climateTS['SUBLIM'][start_ind:]            
+                input_year_sublim = climateTS['time'][start_ind:]
+                input_sublim_full = climateTS['SUBLIM']
+            ## option 2: sublim comes explicitly from a .csv file
+            elif ((climateTS==None) and ('InputFileNameSublim' in self.c)):
+                ## to get sublim flux from csv, you need to add 'InputFileNameSublim' to .json
+                print(f'SUBLIM coming from {self.c["InputFileNameSublim"]}')
+                input_sublim, input_year_sublim,input_sublim_full, input_year_sublim_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSublim']), updatedStartDate) 
+            ## option 3: sublim is implied by negative values in bdot
+            else:
+                print('SUBLIM is calculated using negative values of bdot')
+                input_year_sublim = climateTS['time'][start_ind:]
+                input_sublim = input_bdot.copy()
+                input_sublim[input_sublim>0] = 0.0             
+                input_sublim_full = input_bdot_full.copy()
+                input_sublim_full[input_sublim_full>0] = 0.0
+                input_bdot[input_bdot<0] = 0.0
+                input_bdot_full[input_bdot_full<0] = 0.0
+
+        elif not self.c['SUBLIM']:
+            print('SUBLIM is OFF')
+            input_bdot[input_bdot<0] = 0.0
+            input_bdot_full[input_bdot_full<0] = 0.0
+        #####################           
+
 
         #####################
         ### MELT ##############
@@ -373,11 +407,15 @@ class FirnDensityNoSpin:
         #####################
 
         ### Accumulation ####
-        bsf                 = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
-        self.bdot           = bsf(self.modeltime) # m ice equivalent per year
-        self.bdot[self.bdot<1e-6] = 0.0
-        
-        self.bdotSec        = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
+        bsf             = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
+        self.bdot       = bsf(self.modeltime) # m ice equivalent per year
+        # self.bdot[self.bdot<1e-6] = 0.0 #this may be needed for numerical stability     
+        self.bdotSec    = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
+
+        if self.c['SUBLIM']:
+            susf            = interpolate.interp1d(input_year_sublim,input_sublim,int_type,fill_value='extrapolate') # interpolation function
+            self.sublim     = susf(self.modeltime) # [m ice eq per year]
+            self.sublimSec  = self.sublim / S_PER_YEAR / (S_PER_YEAR/self.dt) # sublimation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
 
         try: #Rolling mean average surface temperature and accumulation rate (vector)
         # (i.e. the long-term average climate)
@@ -1119,18 +1157,6 @@ class FirnDensityNoSpin:
                     self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
                 self.LWC        = np.concatenate(([0], self.LWC[:-1]))
 
-            elif self.bdotSec[iii]<0:
-                self.mass_sum   = self.mass.cumsum(axis = 0)
-                self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation
-                
-                self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
-                self.dzNew      = 0
-                if self.doublegrid == True: # gridtrack corrected for sublimation
-                    self.gridtrack = np.copy(sublgridtrack)
-                znew = np.copy(self.z)
-                if not self.c['manualT']:
-                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
-
             else: # no accumulation during this time step
                 self.age        = self.age + self.dt[iii]
                 self.z          = self.dz.cumsum(axis=0)
@@ -1140,6 +1166,21 @@ class FirnDensityNoSpin:
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 if not self.c['manualT']:
                     self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
+
+            # elif self.bdotSec[iii]<0:
+            if self.c['SUBLIM']:
+                if self.sublimSec[iii]<0:
+                    self.mass_sum   = self.mass.cumsum(axis = 0)
+                    self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation                    
+                    self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
+                    self.dzNew      = 0
+                    if self.doublegrid == True: # gridtrack corrected for sublimation
+                        self.gridtrack = np.copy(sublgridtrack)
+                    znew = np.copy(self.z)
+                    if not self.c['manualT']:
+                        self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
 
             self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
 

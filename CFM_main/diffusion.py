@@ -212,7 +212,7 @@ def enthalpyDiff(self,iii):
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
             print(self.modeltime[iii], 'Fixing negative values of delta_mass_liq')
-            idml = np.where(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7)[0]
+            idml = np.where(delta_mass_liq<-1e-7)[0]
             print('Negative values:', delta_mass_liq[idml])
             print('If you are getting this message, (diffusion.py, L214), you ')
             print('may need to reduce the ICT (itercheck threshold in solver.py')
