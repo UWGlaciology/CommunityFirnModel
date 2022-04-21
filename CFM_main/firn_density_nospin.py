@@ -223,8 +223,8 @@ class FirnDensityNoSpin:
 
         ### bdot ############
         if climateTS != None: # Input data comes from the input dictionary                            
-            input_bdot = climateTS['BDOT'][start_ind:]            
-            input_year_bdot = climateTS['time'][start_ind:]
+            input_bdot = climateTS['BDOT'][self.start_ind:]            
+            input_year_bdot = climateTS['time'][self.start_ind:]
             input_bdot_full = climateTS['BDOT']
 
         else: # Input data comes from a .csv
@@ -240,8 +240,8 @@ class FirnDensityNoSpin:
         if self.c['SUBLIM']:
             ## option 1: sublim comes explicitly from climateTS
             if ((climateTS != None) and ('SUBLIM' in climateTS)): #sublim should be negative values, ie. a flux out of the snowpack
-                input_sublim = climateTS['SUBLIM'][start_ind:]            
-                input_year_sublim = climateTS['time'][start_ind:]
+                input_sublim = climateTS['SUBLIM'][self.start_ind:]            
+                input_year_sublim = climateTS['time'][self.start_ind:]
                 input_sublim_full = climateTS['SUBLIM']
             ## option 2: sublim comes explicitly from a .csv file
             elif ((climateTS==None) and ('InputFileNameSublim' in self.c)):
@@ -251,7 +251,7 @@ class FirnDensityNoSpin:
             ## option 3: sublim is implied by negative values in bdot
             else:
                 print('SUBLIM is calculated using negative values of bdot')
-                input_year_sublim = climateTS['time'][start_ind:]
+                input_year_sublim = climateTS['time'][self.start_ind:]
                 input_sublim = input_bdot.copy()
                 input_sublim[input_sublim>0] = 0.0             
                 input_sublim_full = input_bdot_full.copy()
