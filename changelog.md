@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.7
+1.1.8
 
 ## Full Documentation
 
@@ -22,6 +22,17 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.8]
+### Notes
+- This is a minor update. The main point is to add example .csv files and update the input climate .pkl file. The example .csv files were made using the .pkl files, so the outputs should match.
+- There is a readme.txt file in the CFMinput_example directory with some details about those forcing files.
+
+### Fixed
+- *isotopeDiffusion.py* This file had not been updated to deal with the 'updatedStartDate' feature, which it now does. Current fuctionality limits its use to using .csv files as inputs.
+
+### Updated
+- Documentation: I updated the model output documentation.
 
 ## [1.1.7] 2022-04-19
 ### Notes

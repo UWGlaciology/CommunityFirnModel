@@ -101,6 +101,10 @@ class FirnDensityNoSpin:
 
         spinner = os.path.exists(os.path.join(self.c['resultsFolder'], self.c['spinFileName']))
         
+        if ((self.c['isoDiff']) and (climateTS != None)):
+            print('currently isotope diffusion only available using csv inputs')
+            self.c['isoDiff']=False
+
         if ((not spinner) or NewSpin):
             if self.c['timesetup']=='exact':
                 if climateTS != None:
@@ -285,7 +289,7 @@ class FirnDensityNoSpin:
                     input_year_rain = climateTS['time'][start_ind:]
                     input_rain_full = climateTS['RAIN']
                 else:
-                    input_rain, input_year_rain, input_rain_full, input_year_rain_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), updatedStartDate)
+                    input_rain, input_year_rain, input_rain_full, input_year_rain_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameRain']), updatedStartDate)
                 self.forcing_dict['RAIN'] = input_rain_full
             
             if 'liquid' not in self.c:
@@ -293,8 +297,8 @@ class FirnDensityNoSpin:
                 print('Defaulting to original CFM bucket scheme')
                 self.c['liquid'] = 'bucket'
 
-            if self.c['liquid'] == 'bucketVV':
-                print('bucketVV is now just "bucket". Update your config file.')
+            if ((self.c['liquid'] == 'bucketVV') or (self.c['liquid'] == 'percolation_bucket')):
+                print('bucketVV and percolation_bucket are now just "bucket". Update your config file.')
                 self.c['liquid'] = 'bucket'
         
         else:
@@ -626,7 +630,9 @@ class FirnDensityNoSpin:
             self.iso_sig2_out = {}
 
             for isotope in self.c['iso']:
-                self.Isotopes[isotope]  = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,self.modeltime)
+                if ((isotope=='d18') or (isotope=='18')):
+                    print('rename isotope in .json and forcing file to be d180')
+                self.Isotopes[isotope]  = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,updatedStartDate,self.modeltime)
                 # self.iso_out[isotope]       = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
                 # self.iso_out[isotope][0,:]  = np.append(init_time, self.Isotopes[isotope].del_z)               
                 # self.iso_sig2_out[isotope]  = np.zeros((TWlen+1,len(self.dz)+1),dtype='float32')
@@ -938,21 +944,6 @@ class FirnDensityNoSpin:
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                         self.refreeze, self.runoff, self.meltvol = 0.,0.,0.
-
-                    ### Heat ###
-                    # if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
-                    #     self.Tz, self.T10m  = heatDiff(self,iii)
-                    #     dml_sum = 0
-                    # elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
-                    #     LWC0e = sum(self.LWC)
-                    #     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
-                    #     self.refreeze += LWC0e-sum(self.LWC) 
-                    
-                    # ### Testing refreeze
-                    # LWC0e = sum(self.LWC)
-                    # self.Tz, self.T10m  = heatDiff(self,iii)
-                    # self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
-                    # self.refreeze += sum(refrozen_mass/1000)
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -969,12 +960,12 @@ class FirnDensityNoSpin:
                         self.refreeze, self.runoff,self.meltvol = 0.,0.,0.
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                     ### Heat ###
-                    if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
-                        self.Tz, self.T10m  = heatDiff(self,iii)
-                    elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
-                        LWC0e = sum(self.LWC)
-                        self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
-                        self.refreeze += LWC0e-sum(self.LWC)
+                    # if np.all(self.LWC==0.): #VV regular heat diffusion if no water in column (all refrozen or 0 water holding cap)
+                    #     self.Tz, self.T10m  = heatDiff(self,iii)
+                    # elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
+                    #     LWC0e = sum(self.LWC)
+                    #     self.Tz, self.T10m, self.rho, self.mass, self.LWC = enthalpyDiff(self,iii)
+                    #     self.refreeze += LWC0e-sum(self.LWC)
                 ### end darcy ##################               
 
                 elif self.c['liquid'] == 'prefsnowpack':
