@@ -41,7 +41,7 @@ DIP: the depth-integrated porosity and change in surface elevation. The columns 
 
 The 'corrected' fields (5 and 6) tries to account for any compaction that occurs between the bottom of the model domain and the depth where the column reaches ice density (917), in the case that you are not modeling to the ice density.
 
-(7) is there because due to the model's lagrangian format, the bottom of the domain varies in time, and if the bottom is at a density less than ice density it can be useful to consider the FAC to a specified depth,.
+Firn air to a horizon (7) is there because due to the model's lagrangian format, the bottom of the domain varies in time, and if the bottom is at a density less than ice density it can be useful to consider the FAC to a specified depth,.
 
 (I'd advise using caution if you use the modeled elevation change fields - we have made changes to the code to merge deeper nodes together to save computing time, but in doing so that can make the model-outputed dH have blips in it. If you want to work with this field let me know and I can do a bit of testing. I'd recommend structuring your analyses around the FAC variable.)
 
