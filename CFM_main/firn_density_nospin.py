@@ -473,10 +473,8 @@ class FirnDensityNoSpin:
             self.c['residual_strain'] = 2e-4
         if 'tuning_bias_correction' not in self.c:
             self.c['tuning_bias_correction'] = False
-        if 'strain_heating' not in self.c:
-            self.c['strain_heating'] = False
 
-        if self.c['horizontal_divergence'] or self.c['strain_softening'] or self.c['strain_heating']:
+        if self.c['horizontal_divergence'] or self.c['strain_softening']:
             input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
             if np.ndim(input_eps) == 1:
                 print('Single valued strain rate input is taken as horizontal divergence rates. Strain softening is deactivated.')
@@ -899,15 +897,6 @@ class FirnDensityNoSpin:
                 z2mask = (self.rho >= RHO_1)  # Only apply strain softening in second firn stage, where power-law creep is dominant.
                 drho_dt[z2mask]        = drho_dt[z2mask] * scale_factor_softening[z2mask]
                 self.viscosity[z2mask] = self.viscosity[z2mask] / scale_factor_softening[z2mask]
-
-            if self.c['strain_heating']:
-                if self.c['strain_softening']:
-                    eps_zz_classic[z2mask] = eps_zz_classic[z2mask] * scale_factor_softening[z2mask]
-                else:
-                    eps_zz_classic = - drho_dt / self.rho * S_PER_YEAR  # Vertical strain rate from original densification rate.
-                    eps_zz_classic = eps_zz_classic - np.abs(self.c['residual_strain'])  # Regularisation, eq. 21 in (Oraschewski & Grinsted, 2022)
-                self.eps_sum = eps_zz_classic
-                self.eps_eff2 = 0.5 * (self.eps_1[iii]**2 + self.eps_2[iii]**2 + (eps_zz_classic + self.eps_divergence[iii])**2)
 
             if self.c['horizontal_divergence']:
                 # Rescale mass per layer according to the horizontal divergence (Horlings et al., 2020)

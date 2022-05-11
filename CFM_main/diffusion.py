@@ -108,11 +108,7 @@ def heatDiff(self,iii):
     tot_rho         = self.rho
     c_vol           = self.rho * c_firn
 
-    S_heat = 0
-    if 'strain_heating' in self.c:
-        if self.c['strain_heating']:
-            S_heat = 4 * self.viscosity * self.eps_eff2 / S_PER_YEAR**2 - self.eps_sum * self.sigma / S_PER_YEAR
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, S_C=S_heat)
+    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
