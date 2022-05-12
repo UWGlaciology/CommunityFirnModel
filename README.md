@@ -2,6 +2,8 @@
 
 # The Community Firn Model
 
+**Version 1.1.0 + Strain softening module as used in the publication (Oraschewski & Grinsted, 2022).**
+
 Welcome to the repository for the **Community Firn Model (CFM)**. 
 
 The CFM is a comprehensive firn-model framework. It is designed to be modular, which allows the user to choose which physical processes in firn she or he would like to model. Its base function is to model firn densification and heat transfer in firn.
