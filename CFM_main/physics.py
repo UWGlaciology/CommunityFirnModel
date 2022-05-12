@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-The Community Firn Model physics module.
-========================================
+physics.py
+==========
 
-Something here.
+The Community Firn Model physics module.
+
+equations for each of the densification models.
 '''
 
 
@@ -13,9 +15,6 @@ from constants import *
 from scipy import interpolate
 import sys
 import numpy.polynomial.polynomial as poly
-
-
-
 
 
 
@@ -803,6 +802,146 @@ class FirnPhysics:
     ### end Goujon_2003 ###
     #######################
 
+    def Breant2017(self):
+        '''
+        Bréant, C., Martinerie, P., Orsi, A., Arnaud, L., and Landais, A.: Modelling firn thickness evolution during the last deglaciation: constraints on sensitivity to temperature and impurities, Clim. Past, 13, 833–853, https://doi.org/10.5194/cp-13-833-2017, 2017.
+
+        '''
+
+        atmosP      = 101325.0 # Atmospheric Pressure
+        dDdt        = np.zeros(self.gridLen) # Capital D is change in relative density
+        # top2m       = np.nonzero(self.z <= 2.)       
+        # self.rho[top2m] = self.rhos0 # top 2 meters of Goujon model are always set to surface density
+        
+        sigma_MPa   = self.sigma / (1.0e6)
+        sigma_bar   = self.sigma / (1.0e5)
+        Qgj         = 60.0e3
+        n           = 3.0 
+
+        rhoi2cgs    = .9165 * (1.-1.53e-4 * (self.T_mean[self.iii] - 273.15)) # Density of ice, temperature dependent, g/cm^3
+        rhoi2       = rhoi2cgs * 1000.0 # density of ice, kg/m^3
+        
+        D           = self.rho / rhoi2 # Relative density
+        Dm23        = 0.9 #transition from zone 2 to 3
+        rho23       = Dm23 * rhoi2 #density of 2/3 transition
+        
+        D0          = 0.56        
+
+        Dmsrho      = D0 * rhoi2 # density of zone 1/2 transition
+        
+        ind1        = np.argmax(D >= D0) #first index where the density is greater than or equal to the transition
+        Dm          = D[ind1] #actual transition relative density. Use this so that the transition falls at a node
+        Dmrho       = Dm * rhoi2 #density of first node, zone 2
+
+        # A           = 7.89e3 * np.exp(-Qgj/(R * self.Tz)) * 1.0e-3 # A given in MPa^-3 s^-1, Goujon uses bar as pressure unit. Eq. A5 in Goujon
+        A0 = 7.89e3 * 1.0e-3 #[bar^-3 s^-1]
+        a1 = 1.05912848e-02
+        a2 = 1400
+        a3 = 6.0e-15
+        Q1 = 110000
+        Q2 = 75000
+        Q3 = 1500
+        A = A0 * (a1*np.exp(-Q1/(R*self.Tz)) + a2*np.exp(-Q2/(R*self.Tz)) + a1*np.exp(-Q3/(R*self.Tz)))
+
+        ccc         = 15.5 # no units given, equation A7, given as c
+        Z0g         = 110.2 * D0 ** 3.-148.594 * D0 ** 2.+87.6166 * D0-17. # from Anais' code           
+        lp          = (D/D0) ** (1.0/3.0) # A6
+        Zg          = Z0g + ccc * (lp-1.0) # A7
+        lpp_n       = (4.0 * Z0g * (lp-1.0) ** 2.0 * (2.0 * lp+1.0) + ccc * (lp-1.0) ** 3.0 * (3.0 * lp + 1.0)) # A8, numerator
+        lpp_d       = (12.0 * lp * (4.0 * lp - 2.0 * Z0g * (lp-1.0) - ccc * (lp-1.0) ** 2.0)) # A8, denominator
+        lpp         = lp + (lpp_n/lpp_d) # A8 (l double prime)
+        a           = (np.pi/(3.0 * Zg * lp ** 2.0)) * (3.0 * (lpp ** 2.0 - 1.0) * Z0g + lpp ** 2.0 * ccc * (2.0 * lpp-3.0)+ccc) # A9
+        sigmastar   = (4.0 * np.pi * sigma_bar)/(a * Zg * D) # A4
+
+        # gamma_An    = (5.3*A[ind1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1]/np.pi)**(1.0/2.0) * (sigmastar[ind1]/3.0)**n) / ((sigma_bar[ind1]/(Dms**2))*(1-(5.0/3.0*Dms))) #this is the analytic solution of what gamma should be by combining equations A1 and A3 and solving for gamma (densification rate should be smooth at the zone 1/2 transition). Does not get used.
+        # gamma_An    = (5.3*A[ind1+1] * (Dms**2*D0)**(1.0/3.0) * (a[ind1+1]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1]/3.0)**n) / ((sigma_bar[ind1+1]/(Dms**2))*(1-(5.0/3.0*Dms))) #this is the analytic solution of what gamma should be by combining equations A1 and A3 and solving for gamma (densification rate should be smooth at the zone 1/2 transition). Does not get used.
+
+        if self.iii == 0 or ind1 != self.ind1_old:
+            self.Gamma_Gou       = 0.5 / S_PER_YEAR
+            self.Gamma_old_Gou   = self.Gamma_Gou
+        else:
+            self.Gamma_Gou       = self.Gamma_old_Gou
+
+        dDdt[0:ind1+1]  = self.Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        dDdt[ind1+1:]   = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n         
+        gfrac           = 0.03
+        gam_div         = 1 + gfrac #change this if want: making it larger will make the code run faster. Must be >=1.
+        
+        ########## iterate to increase gamma first if not in steady state    
+        if self.iii != 0 and dDdt[ind1] <= dDdt[ind1+1] and self.Gamma_Gou!=self.Gamma_old2_Gou:
+            cc = 1
+            while dDdt[ind1] < dDdt[ind1 + 1]:
+                self.Gamma_Gou       = self.Gamma_Gou * (gam_div)
+                dDdt[0:ind1+1]  = self.Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+                dDdt[ind1+1:]   = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+
+                cc += 1
+                if cc>10000:
+                    print('Goujon is not converging. exiting')
+                    sys.exit()
+
+        ### then iterate to find the maximum value of gamma that will make a continuous drho/dt
+
+        counter = 1
+        while dDdt[ind1] >= dDdt[ind1 + 1]:
+            
+            self.Gamma_Gou      = self.Gamma_Gou / (1 + gfrac/2.0)
+            dDdt[0:ind1+1] = self.Gamma_Gou*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+            dDdt[ind1+1:]  = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+            counter += 1
+
+            if counter>10000:
+                print('Goujon is not converging. exiting')
+                sys.exit()
+
+        #####
+        # dDdt[0:ind1+1] = gamma_An*(sigma_bar[0:ind1+1])*(1.0-(5.0/3.0)*D[0:ind1+1])/((D[0:ind1+1])**2.0)
+        # dDdt[ind1+1:]  = 5.3*A[ind1+1:]* (((D[ind1+1:]**2.0)*D0)**(1/3.)) * (a[ind1+1:]/np.pi)**(1.0/2.0) * (sigmastar[ind1+1:]/3.0)**n
+        #####
+
+        # if self.iii<10:
+            # print('dDdt',dDdt[ind1:ind1+2])
+        self.Gamma_old2_Gou  = self.Gamma_old_Gou
+        self.Gamma_old_Gou   = self.Gamma_Gou
+        self.ind1_old        = ind1
+        #####################
+        
+        rhoC        = RHO_2 #should be Martinerie density
+        frho2       = interpolate.interp1d(self.rho,sigma_bar,bounds_error=False,fill_value='extrapolate')
+        sigmarho2   = frho2(rhoC) #pressure at close off
+
+        ind2 = np.argmax(D >= Dm23)
+        
+        # sigma_b = sigmarho2 * (D*(1-rhoC/rhoi)) / (rhoC/rhoi*(1-D))
+        # sigma_b = (sigma_MPa[ind2] * (D*(1-Dm23)) / (Dm23*(1-D)))/10. #works for Ex2
+        # sigma_b = ((sigma_bar + atmosP/1.0e5) * (D*(1-Dm23)) / (Dm23*(1-D)))
+        sigma_b                 = ((atmosP / 1.0e5) * (D * (1 - Dm23)) / (Dm23 * (1 - D)))
+        sigmaEff                = (sigma_bar + atmosP / 1.0e5 - sigma_b)
+        sigmaEff[sigmaEff <= 0] = 1.0e-9
+        
+        ind2 = np.argmax(D >= Dm23)
+        ind3 = ind2 + 10
+
+        dDdt[D>Dm23]    = 2. * A[D>Dm23] * ( (D[D>Dm23] * (1 - D[D>Dm23])) / (1 - (1 - D[D>Dm23])**(1/n))**n ) * (2 * sigmaEff[D>Dm23]/n)**3.0
+        Ad              = 1.2e3 * np.exp(-Qgj / (R * self.Tz)) * 1.0e-1
+        T34             = 0.98
+        dDdt[D>T34]     = 9/4 * Ad[D>T34] * (1-D[D>T34]) * sigmaEff[D>T34]
+
+        dDdt_old        = dDdt
+        drho_dt         = dDdt*rhoi2
+        # drho_dt[top2m]  = 0.0
+        
+        viscosity = np.zeros(self.gridLen)
+        
+        self.RD['drho_dt'] = drho_dt
+        # global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
+        self.RD['Gamma_Gou'] = self.Gamma_Gou
+        self.RD['Gamma_old_Gou'] = self.Gamma_old_Gou
+        self.RD['Gamma_old2_Gou'] = self.Gamma_old2_Gou
+        self.RD['ind1_old'] = self.ind1_old
+        return self.RD
+
+
     def Crocus(self):
         '''
         Uses stress
@@ -871,11 +1010,20 @@ class FirnPhysics:
 
         ar1 = 0.07
         ar2 = 0.03
-        Ec1  = 60.0e3
-        Ec2 = 56973.0
         Eg  = 42.4e3
-        alpha1 = 0.9250
-        alpha2 = 0.6354
+
+        # old ones
+        # Ec1  = 60.0e3
+        # Ec2 = 56973.0
+        # alpha1 = 0.9250
+        # alpha2 = 0.6354
+
+        # New:
+        Ec1  = 59442.0
+        Ec2 = 56827.0
+        alpha1 = 0.9021
+        alpha2 = 0.6372
+
         # beta1 = -0.1483 # Changed from Smith 2020, which used subcripts 0 and 1
         # beta2 = -0.3510 # we want subscripts to reflect zone so we use 1 and 2
         # E1 = -731

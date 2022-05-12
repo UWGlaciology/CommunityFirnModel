@@ -17,6 +17,8 @@ def percolation_bucket(self, iii):
     not percolate through.
 
     LWC is in volume (m^3), and since we are working in one dimension we assume that it is m^3/m^2.
+    
+    @author: maxstev
     '''
 
     # maxpore_f                 = 2.0   # factor by which the maximum filled porespace can exceed the irreducible saturation.
@@ -29,8 +31,6 @@ def percolation_bucket(self, iii):
     if np.any(self.LWC<0):
         print('ERROR: negative LWC')
         print('(model will continue to run)')
-
-
 
     melt_volume_IE          = self.snowmeltSec[iii] * S_PER_YEAR    # meters
     melt_volume_WE          = melt_volume_IE * RHO_I_MGM            # meters
@@ -87,40 +87,44 @@ def percolation_bucket(self, iii):
 
     cold_content            = CP_I * self.mass * (T_MELT - self.Tz) # cold content of each box, i.e. how much heat to bring it to 273K (J)
     cold_content_sum        = cold_content.cumsum(axis=0)
-    refreeze_mass_pot       = cold_content / LF_I   # how much mass of the meltwater could be refrozen due to cold content (kg)
-    refreeze_mass_pot_sum   = refreeze_mass_pot.cumsum(axis=0) 
+    refreeze_mass_pot       = cold_content / LF_I   # how much meltwater mass could be refrozen in each node due to cold content (kg)
+    refreeze_mass_pot_sum   = refreeze_mass_pot.cumsum(axis=0) # total meltwater mass could be refrozen due to cold content (kg)
 
     ### calculate what the values will be after refreeze happens (pot stands for potential)
-    rho_pot                 = (self.mass + refreeze_mass_pot) / self.dz # what the mass of the boxes would be if the refreezemass refroze
-    porosity_pot            = 1 - rho_pot / RHO_I
-    porespace_vol_pot       = porosity_pot * self.dz
-    porespace_air_pot       = porespace_vol_pot - self.LWC
+    rho_pot                 = (self.mass + refreeze_mass_pot) / self.dz # what the density of each node would be if it refroze the maximum possible
+    porosity_pot            = 1 - rho_pot / RHO_I # potential porosity of each node if it refroze the maximum possible
+    porespace_vol_pot       = porosity_pot * self.dz # volume of potential porespace
+    # porespace_air_pot       = porespace_vol_pot - self.LWC # I don't think this gets used.
 
+    ### Irreducible calculations
     Wmi                     = 0.057 * (RHO_I - rho_pot) / rho_pot + 0.017 # water per snow-plus-water mass irreducible liquid water content, Langen eqn 3 unitless)
     Swi                     = Wmi / (1 - Wmi) * (rho_pot * RHO_I) / (1000 * (RHO_I - rho_pot))  #irreducible water saturation, volume of water per porespace volume (unitless), Colbeck 1972
-    
-    Swi  = 0.02 * np.ones_like(self.dz)
-    if iii<12:
-        print('swi',Swi[0:10])
+    # Swi  = 0.02 * np.ones_like(self.dz)
+    irreducible_mass_pot    = Swi * porespace_vol_pot * RHO_W_KGM # [kg] mass of irreducible water for each node (potential - does not consider how much is already present in each node)
+    irreducible_vol_pot     = irreducible_mass_pot / RHO_W_KGM # [m] volume of irreducible water for each node
 
-    maxpore                 = 0.9 # upper limit on what percentage of the porosity can be filled with water.
+    overIRRinds = np.where(self.LWC>irreducible_vol_pot)[0] # Indicies of nodes where the current LWC volume is more than irreducible
+    # if overIRRinds.size > 0: # there are nodes where there is extra water
 
-    maxLWC1                 = porespace_vol * maxpore   # maximum volume of water that can be stored in each node (meters)
+    # maxpore                 = 0.1 # upper limit on what percentage of the porosity can be filled with water.
+    maxpore = 0.3
+
+    # maxLWC1                 = porespace_vol * maxpore   # maximum volume of water that can be stored in each node (meters)
+    maxLWC1                 = porespace_air * maxpore # [m]
     maxLWC2                 = ((917.0 * self.dz) - self.mass) / RHO_W_KGM # double check that the LWC does not get too large. 
-    maxLWC                  = np.minimum(maxLWC1 , maxLWC2)
+    maxLWC                  = np.minimum(maxLWC1 , maxLWC2) # [m] maximum volume of water that can exist in each node
 
     maxLWC[self.rho>impermeable_rho] = 0
-    maxLWC_mass             = maxLWC * RHO_W_KGM        # mass of the maximum volume of water
-    maxLWC1_pot             = porespace_vol_pot * maxpore   # maximum volume of water that can be stored in each node (meters)
-    maxLWC2_pot             = ((917.0 * self.dz) - (self.mass + refreeze_mass_pot)) / RHO_W_KGM # double check that the LWC does not get too large. 
-    maxLWC_pot              = np.minimum(maxLWC1_pot , maxLWC2_pot)
+    maxLWC_mass             = maxLWC * RHO_W_KGM        # [kg] mass of the maximum volume of water
+    maxLWC1_pot             = porespace_vol_pot * maxpore   # [m] maximum volume of water that can be stored in each node (meters)
+    maxLWC2_pot             = ((917.0 * self.dz) - (self.mass + refreeze_mass_pot)) / RHO_W_KGM # [m], volume; double check that the LWC does not get too large (i.e. that it could not push the density beyond ice density). 
+    maxLWC_pot              = np.minimum(maxLWC1_pot , maxLWC2_pot) # [m], volume
     # maxLWC_pot[rho_pot>impermeable_rho] = 0
-    maxLWC_mass_pot         = maxLWC_pot * RHO_W_KGM        # mass of the maximum volume of water
+    maxLWC_mass_pot         = maxLWC_pot * RHO_W_KGM        # [kg] mass of the maximum volume of water allowed in each node
 
-    irreducible_mass_pot    = Swi * porespace_vol_pot * RHO_W_KGM # mass of irreducible water for each volume (potential - does not separate how much is already there)
-    irreducible_vol_pot     = irreducible_mass_pot / RHO_W_KGM
-    liquid_storage_vol_pot  = irreducible_vol_pot - self.LWC
-    liquid_storage_mass_pot = liquid_storage_vol_pot * RHO_W_KGM
+
+    liquid_storage_vol_pot  = irreducible_vol_pot - self.LWC # [m] how much additional water can be stored in each node
+    liquid_storage_mass_pot = liquid_storage_vol_pot * RHO_W_KGM # [kg] how much additional water can be stored in each node
 
     extra_liquid_mass       = np.sum(self.LWC[self.LWC > irreducible_vol_pot] * RHO_W_KGM - irreducible_mass_pot[self.LWC > irreducible_vol_pot])
     storage_mass_pot        = liquid_storage_mass_pot + refreeze_mass_pot #how much can be refrozen plus how much will stick around due to capillary
@@ -143,7 +147,7 @@ def percolation_bucket(self, iii):
         extra_liquid_mass       = np.sum(self.LWC[id2] * RHO_W_KGM) - np.sum(irreducible_mass_pot[id2])
         storage_mass_pot        = liquid_storage_mass_pot[0:ind_p] + refreeze_mass_pot[0:ind_p] #how much can be refrozen plus how much will stick around due to capillary
         storage_mass_pot_sum    = storage_mass_pot.cumsum(axis=0)
-        total_liquid_mass       = (melt_mass_a + extra_liquid_mass)*0.5
+        total_liquid_mass       = (melt_mass_a + extra_liquid_mass) #*0.5
 
         ### first, refreeze where possible
         self.mass[0:ind_p]      = self.mass[0:ind_p] + refreeze_mass_pot[0:ind_p]
@@ -177,8 +181,7 @@ def percolation_bucket(self, iii):
             lv_mass                 = total_liquid_mass - np.sum(maxLWC_mass_pot[ind_g + 1:ind_p])  # leftover volume
             self.LWC[ind_g]         = lv_mass / RHO_W_KGM                       # put that into the ind_g node
     ###################################
-
-    
+   
     ### there is not an impermeable layer, water goes to layer ind_p
     elif ind_p>0: 
 
@@ -218,24 +221,26 @@ def percolation_bucket(self, iii):
 ### End percolation_bucket ########################
 ###################################################
 
-def bucketVV(self, iii):
 
+def bucketVV(self, iii):
     '''
-    Bucket scheme coded by V. Verjans, used in Verjans et al. (2019)
+    Bucket scheme for meltwater percolation, retention, refreezing, and runoff
+
+    @author: verjans
+    Used in Verjans et al. (2019)
     '''
 
     rhoimp      = 830. #impermeable density, threshold to generate runoff, can be changed
     irr         = 0.02 * np.ones_like(self.dz) # Irreducible water content, this is a proportion of the available pore space
     #irr = 0.06 * np.ones_like(self.dz) # Crocus value (Reijmer 2012)
-    CLparam     = 1 # Set this to 1 to use Coleou and Lesaffre 1998 parameterisation
+    CLparam     = 0 # Set this to 1 to use Coleou and Lesaffre 1998 parameterisation
     if CLparam == 1:
         irr     = np.zeros_like(self.dz) #calculated below (twice: once before freezing and once after freezing)
-    
+    percbottom = 0 #if set to 1: allows percolation until the depth where all nodes have rho>=rhoimp (i.e. allows percolation through ice lenses)
     ##### First: melting of the surface layers, taken from melt.py #####
     melt_volume_IE      = self.snowmeltSec[iii] * S_PER_YEAR # This still has to be checked by Max (division by self.c['stpsPerYear']?) [m]
     melt_volume_WE      = melt_volume_IE * RHO_I_MGM # [m]
-    melt_mass           = melt_volume_WE * 1000. # [kg]
-    
+    melt_mass           = melt_volume_WE * 1000. # [kg]   
     initial_lwc         = 1 * self.LWC
     
 #    heat_to_freeze             = melt_mass * LF_I                         # amount of heat needed to refreeze the melt (J)
@@ -248,6 +253,7 @@ def bucketVV(self, iii):
 #    pm_porespace             = (1 - self.rho[ind1]/RHO_I) * pm_dz # porespace in the PM box
     pm_rho              = self.rho[ind1] # density of the PM box [kg/m3]
     pm_lwc              = self.LWC[ind1]/self.dz[ind1] * pm_dz # LWC of the PM box [m]
+    
     melt_boxes_LWC_vol  = np.sum(self.LWC[0:ind1+1]) - pm_lwc #include the LWC from the boxes that melt (currently does not include from the partial melt box) [m]
     melt_boxes_LWC_mass = melt_boxes_LWC_vol * RHO_W_KGM #include the mass of LWC from the boxes that melt (currently does not include from the partial melt box) [kg]
     melt_mass_a         = melt_mass + melt_boxes_LWC_mass #total liq water from melted boxes(due to melting + LWC at previous time step) [kg]
@@ -266,7 +272,11 @@ def bucketVV(self, iii):
     self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_melted)))
     # self.dz                  = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_melted))) # this splits the last box into many.
     self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_melted))) # this adds new boxes at the bottom.
-    self.dz[0]      = pm_dz #VV dz calculated for the partially melted layer
+    self.dz[0]      = pm_dz # VV dz calculated for the partially melted layer
+    
+    if np.any(self.dz<1e-6): # VV change 09/12/2020
+        self.dz = np.maximum(self.dz,1e-6) #avoids dz[0] to be extremely small if melt amount makes pm_dz very close to 0
+
     self.Dcon       = np.concatenate((self.Dcon[ind1:-1] , self.Dcon[-1]*np.ones(num_boxes_melted)))
     self.dzn        = np.concatenate((np.zeros(num_boxes_melted), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
     self.dzn        = self.dzn[0:self.compboxes]
@@ -397,11 +407,12 @@ def bucketVV(self, iii):
     if len(rofflayers)>0: # if there are layers where lwc exceeds irreducible water content
         lwc2 = self.LWC.copy()
         ## Vincent's old code, can be vectorized
-        # for ll in rofflayers:
-        #     runoff       += self.LWC[ll] - irr_limit[ll] # excess is added to runoff
-        #     self.LWC[ll] = 1*irr_limit[ll] # LWC is reduced
-        runoff = self.LWC[rofflayers] - irr_limit[rofflayers]        
-        self.LWC[rofflayers] = 1*irr_limit[rofflayers]
+        for ll in rofflayers:
+            runoff       += self.LWC[ll] - irr_limit[ll] # excess is added to runoff
+            self.LWC[ll] = 1*irr_limit[ll] # LWC is reduced 
+                  
+#         runoff = sum(self.LWC[rofflayers] - irr_limit[rofflayers]) # VV 09/12/2020 fix because runoff should be a scalar       
+#         self.LWC[rofflayers] = 1*irr_limit[rofflayers]
         #print('Water above irrlimit runs off, max(self.LWC/(porosity_refr*self.dz)):',max(self.LWC/(porosity_refr*self.dz)))
         
     ### Runoff water present in layers with density exceeding impermeability threshold ###
@@ -434,17 +445,22 @@ def bucketVV(self, iii):
                 ipl = np.where(self.rho>=rhoimp)[0][0] # first impermeable layer -> bottom limit for downward percolation
             elif np.all(self.rho<rhoimp): # if no impermeable layer in the domain
                 ipl = len(self.dz) # percolation will occur over the entire column potentially
-            
-            frcap[0:ipl]          = np.minimum(refreeze_vol_pot[0:ipl],porespace_refr_vol[0:ipl]) # max freezing possible [mWE]
-            rhopot                = (self.mass+frcap*1000)/self.dz # potential density if all the refreezing capacity was to be consumed
-            porositypot           = 1-rhopot/RHO_I # potential porosity
-            porosity_refrpot      = porositypot*RHO_I/RHO_W_KGM # potential space available for liq water volume once refrozen
+            if percbottom==1:
+                if np.any(self.rho<rhoimp): # check if there is an impermeable layer in the domain
+                    ipl = np.where(self.rho<rhoimp)[0][-1]+1 # first impermeable layer -> bottom limit for downward percolation
+                elif np.all(self.rho>=rhoimp): # if no impermeable layer in the domain
+                    ipl = 0 # percolation cannot happen
+            frcap[0:ipl] = np.minimum(refreeze_vol_pot[0:ipl],porespace_refr_vol[0:ipl]) # max freezing possible [mWE]
+            frcap[self.rho>=rhoimp]  = 0 #avoids refreezing in impermeable layers if we allow water to bypass ice lenses (if percbottom==1)
+            rhopot = (self.mass+frcap*1000)/self.dz # potential density if all the refreezing capacity was to be consumed
+            porositypot = 1-rhopot/RHO_I # potential porosity
+            porosity_refrpot = porositypot*RHO_I/RHO_W_KGM # potential space available for liq water volume once refrozen
             porespace_refr_volpot = porosity_refrpot*self.dz # potential available pore space of each layer [m]
             if CLparam == 1:
-                liqmassproppot    = 0.057*(porositypot/(1-porositypot)) + 0.017
-                irr               = liqmassproppot/(1-liqmassproppot) * (rhopot*RHO_I) / (RHO_W_KGM*(RHO_I-rhopot))
-            retcap[0:ipl]         = irr[0:ipl]*porespace_refr_volpot[0:ipl]-self.LWC[0:ipl] # retention capacity of every layer after refreezing [mWE]
-
+                liqmassproppot = 0.057*(porositypot/(1-porositypot)) + 0.017
+                irr = liqmassproppot/(1-liqmassproppot) * (rhopot*RHO_I) / (RHO_W_KGM*(RHO_I-rhopot))
+            retcap[0:ipl] = irr[0:ipl]*porespace_refr_volpot[0:ipl]-self.LWC[0:ipl] # retention capacity of every layer after refreezing [mWE]
+            retcap[self.rho>=rhoimp] = 0 #avoids retention in impermeable layers if we allow water to bypass ice lenses (if percbottom==1)
             if sum(frcap+retcap)>=tofreeze: # enough retention possible to accomodate all liquid water
                 ist = np.where(np.cumsum(frcap+retcap)>=tofreeze)[0][0] # layer where all water accomodated -> percolation stops there
                 frozen[0:ist]   = np.copy(frcap[0:ist]) # frozen water in layers above ist
@@ -457,24 +473,27 @@ def bucketVV(self, iii):
             elif sum(frcap+retcap)<tofreeze: # not possible to accomodate all liquid water -> runoff will occur
                 frozen[0:ipl]   = np.copy(frcap[0:ipl]) # frozen water in layers above ipl
                 retained[0:ipl] = np.copy(retcap[0:ipl]) # retained water in layers above ipl
-                tofreeze        -= sum(frozen+retained) # water left for runoff
-                runoff          += 1*tofreeze # runoff the rest of the water
-                tofreeze        = 0.
+                tofreeze -= sum(frozen+retained) # water left for runoff
+                runoff += 1*tofreeze # runoff the rest of the water
+                tofreeze = 0.
+        # print(f'Frozen:  {max(frozen[self.rho>=rhoimp])}')
+        # print(f'Retained:  {max(retained[self.rho>=rhoimp])}')
+        self.refrozen[0:ipl+1] += frozen[0:ipl+1] # add the freezing to self.refrozen
+        self.mass[0:ipl+1] += frozen[0:ipl+1]*1000 # adjust the mass of layers
+        self.rho[0:ipl+1] = self.mass[0:ipl+1]/self.dz[0:ipl+1] # adjust density of layers
+        latheat = frozen*1000*LF_I # latent heat released due to the refreezing [J]
+        cold_content[0:ipl+1] -= latheat[0:ipl+1] # remaining cold content
+        self.Tz[0:ipl+1] = T_MELT - cold_content[0:ipl+1]/(CP_I*self.mass[0:ipl+1]) # temperature is changed accordingly
+        self.LWC[0:ipl+1] += retained[0:ipl+1] # retained water added to LWC    
+        self.LWC[abs(self.LWC)<1e-12] = 0. # adjust for numerical errors
+    
+    self.runoff = runoff
+    self.lwcerror += sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd)
+    if np.any(self.LWC<0): #VV fixing negative LWC values of the order of 1e-22
+        print(self.modeltime[iii])
+        print('Inds and Vals LWC<0:',np.where(self.LWC<0)[0],self.LWC[np.where(self.LWC<0)[0]])
+        self.LWC = np.maximum(self.LWC,0)
         
-        self.refrozen[0:ipl+1]  += frozen[0:ipl+1] # add the freezing to self.refrozen
-        self.mass[0:ipl+1]      += frozen[0:ipl+1]*1000 # adjust the mass of layers
-        self.rho[0:ipl+1]       = self.mass[0:ipl+1]/self.dz[0:ipl+1] # adjust density of layers
-        latheat                 = frozen*1000*LF_I # latent heat released due to the refreezing [J]
-        cold_content[0:ipl+1]   -= latheat[0:ipl+1] # remaining cold content
-        self.Tz[0:ipl+1]        = T_MELT - cold_content[0:ipl+1]/(CP_I*self.mass[0:ipl+1]) # temperature is changed accordingly
-        self.LWC[0:ipl+1]       += retained[0:ipl+1] # retained water added to LWC 
-
-        if np.any(self.LWC<0):
-            self.LWC = np.maximum(self.LWC,0) # ensure no negative lwc values   
-    
-    self.runoff     = runoff
-    self.lwcerror   += sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd)
-    
     ## Sanity checks
     if abs(sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd)) > 1e-12: #check for water balance
         print('Liquid water loss/gain, amount:',sum(self.LWC)+sum(self.refrozen)+self.runoff - (melt_volume_WE+sum(initial_lwc)+raintoadd))
@@ -489,7 +508,7 @@ def bucketVV(self, iii):
         
     # return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refrozen, self.runoff, self.lwcerror 
 
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.refrozen, self.runoff, self.lwcerror
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refrozen, self.runoff, self.lwcerror 
 
 def LWC_correct(self):
     '''

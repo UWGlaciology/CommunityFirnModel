@@ -1,5 +1,3 @@
-.. _json-page:
-
 **************************************
 The .json-formatted configuration file
 **************************************
@@ -13,7 +11,7 @@ The specific names that are in the configuration .json file for the CFM are as f
 
 InputFileFolder
 ---------------
-Directory where the input csv files are located (usually a subdirectory of the directory that contains main.py, but user can specify an absolute paths as well.) Use '' if the input files are in the same directory as main.py.
+  Directory where the input csv files are located (usually a subdirectory of the directory that contains main.py, but user can specify an absolute paths as well.) Use '' if the input files are in the same directory as main.py.
       
   :type: ``string``
   :example: ``inputdata``
@@ -21,31 +19,56 @@ Directory where the input csv files are located (usually a subdirectory of the d
 
 InputFileNameXXXX
 -----------------
-The names of the input files for temperature, accumulation/smb, water isotopes, surface density, and melt. See 'Inputs for the CFM' section for more details.
+  The names of the input files for temperature, accumulation/smb, water isotopes, surface density, and melt. See 'Inputs for the CFM' section for more details.
 
   :type: ``string``
   :Example: ``example_XXXX.csv``
 
 resultsFolder
 -------------
-Folder in which results are stored.
+  Folder in which results are stored.
 
   :type: ``string``
   :Example: ``example_results``
 
 initfirnFile
 ------------
-File containing initial conditions if you are using firn measurements/data (e.g. temperature, density) to begin the model run. See 'Inputs for the CFM' section for more details.
+  File containing initial conditions if you are using firn measurements/data (e.g. temperature, density) to begin the model run. See 'Inputs for the CFM' section for more details.
 
   :type: ``string``
   :Example: ``example_firndata.csv``
 
 initprofile
 -----------
-Whether or not the CFM should use the initfirnFile to generate an initial condition.
+  Whether or not the CFM should use the initfirnFile to generate an initial condition.
 
   :type: ``boolean``
   :default: ``False``
+
+input_type
+----------
+  (New in version 1.1.0)
+  Specify what type of inputs you want to use - .csv (historic behavior) or pandas dataframe that is stored in a pickle.
+  
+  :type: ``string``
+  :default: ``csv``
+  :options: ``csv``,``dataframe``
+
+DFresample
+----------
+  (New in version 1.1.0)
+  Specify the resolution you want for your model run, which will be the resample interval for the dataframe (this only has functionality when input_type is ``dataframe``)
+  See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timedelta.html
+
+  :type: ``pandas Timedelta (string)``
+  :Example: ``1D``
+
+DFfile
+------
+  The filename of the pickle containing the climate dataframe.
+
+  :type: ``string``
+  :example: ``example.pkl``
 
 physRho
 -------
@@ -53,7 +76,6 @@ physRho
 
   :type: ``string``
   :Options: ``HLdynamic``, ``HLSigfus``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Goujon2003``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Crocus``, ``Ligtenberg2011``
-
 
 MELT
 ----
@@ -161,6 +183,13 @@ heatDiff
   :type: ``boolean``
   :default: ``True``
 
+conductivity
+------------
+  Which parameterization for heat conductivity to use.
+
+  :type: ``string``
+  :options: ``Schwander``,``Yen_fixed``,``Yen_var``,``Anderson``,``Yen_b``,``Sturm``,``VanDusen``,``Schwerdtfeger``,``Riche``,``Jiawen``,``mix``,``Calonne2011``,``Calonne2019``
+
 variable_srho
 -------------
   Whether to vary the surface density through time. False uses a constant density.
@@ -244,6 +273,20 @@ bdot_type
   :default: ``mean``
   :options: ``mean``,``instant``,``stress``
 
+grid_outputs
+------------
+  Whether or not to put the outputs on a regular grid (i.e. evenly spaced vs. the internal variable grid)
+
+  :type: ``boolean``
+  :default: ``True``
+
+grid_output_res
+---------------
+  If grid_output is ``True``, this is the spacing of the grid nodes in meters.
+
+  :type: ``float``
+  :default: ``0.1``
+
 isoDiff
 -------
   Whether or not to include water isotope diffusion in the model run.
@@ -297,7 +340,7 @@ resultsFileName
   :default: ``CFMresults.hdf5``
 
 spinFileName
----------------
+------------
   Name of the .hdf5 file that the spin up results are saved in.
 
   :type: ``string``
@@ -317,12 +360,26 @@ nodestocombine
   :type: ``int``
   :default: 50
 
+multnodestocombine
+------------------
+  If **doublegrid** is True, this is how many nodes are combined into a single node at the boundary between the low and very low resolution grid. For example, if nodestocombine is 50, multnodes will combine 'multnodestocombine' of those 50-node thick layers into a single node.
+
+  :type: ``int``
+  :default: 6
+
 grid1bottom
 -----------
-  If **doublegrid** is True, the depth at which the high-resolution grid nodes are combined.
+  If **doublegrid** is True, the depth (m) at which the high-resolution grid nodes are combined.
 
   :type: ``float``
   :default: 10
+
+grid2bottom
+-----------
+  If **doublegrid** is True, the depth (m) at which the low-resolution grid nodes are combined to make the very-low resolution grid.
+
+  :type: ``float``
+  :default: 20
 
 spinup_climate_type
 -------------------
@@ -403,6 +460,68 @@ merge_min
   :default: ``1e-4``
 
 
+manualT
+-------
+  Option to use manual temperature measurements, e.g. from a thermistor string.
+
+  :type: ``boolean``
+  :default: ``false``
+
+no_densification
+----------------
+  Option to set densification to false (perhaps you are simulating temperature diffusion in a core in a lab)
+
+  :type: ``boolean``
+  :default: ``false``
+
+rad_pen
+-------
+  Option to turn on radiation penetration module.
+
+  :type: ``boolean``
+  :default: ``false``
+
+site_pressure
+-------------
+  Set the pressure at the site, which can affect isotope diffusion.
+
+  :type: ``float``
+  :default: ``1013.25``
+
+output_bits
+-----------
+  Set the bits for the outputs.
+
+  :type: ``string``
+  :default:  ``float32``
+
+spinUpdate
+----------
+  Specify if you want to update the spin file at some date.
+
+  :type: ``boolean``
+  :default: ``false``
+
+spinUpdateDate
+--------------
+  Specify the date at which to update the spin file. should correspond to the start of your reference climate interval.
+
+  :type: ``float``
+  :default: ``1980.0``
+
+DIPhorizon
+----------
+  Depth horizon at which to calculate DIP/FAC (because the bottom of the domain varies a bit).
+
+  :type: ``float``
+  :default: ``100.0``
+
+NewSpin
+-------
+  Whether or not to perform a new spin up (if the spin file exists already.)
+
+  :type: ``boolean``
+  :default: ``false``
 
 
 
