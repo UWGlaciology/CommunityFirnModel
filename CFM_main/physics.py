@@ -134,17 +134,16 @@ class FirnPhysics:
         sigmaDiff   = (self.sigma[z2mask] - sigma550)
 
         if self.bdot_type == 'instant':
-            drho_dt[z1mask]  = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
+            drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * A_instant**aHL * 1000 / S_PER_YEAR
             drho_dt[z12mask] = k2 * np.exp(-Q2 / (R * self.Tz[z12mask])) * (RHO_I_MGM - self.rho[z12mask] / 1000) * A_instant**bHL * 1000 / S_PER_YEAR
         elif self.bdot_type == 'mean':
-            drho_dt[z1mask]  = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * (A_mean[z1mask])**aHL * 1000 / S_PER_YEAR
+            drho_dt[z1mask] = k1 * np.exp(-Q1 / (R * self.Tz[z1mask])) * (RHO_I_MGM - self.rho[z1mask] / 1000) * (A_mean[z1mask])**aHL * 1000 / S_PER_YEAR
             drho_dt[z12mask] = k2 * np.exp(-Q2 / (R * self.Tz[z12mask])) * (RHO_I_MGM - self.rho[z12mask] / 1000) * (A_mean[z12mask])**bHL * 1000 / S_PER_YEAR
 
         drho_dt[z2mask] = kSig * (sigmaDiff * rhoDiff[z2mask]) / (GRAVITY * np.log((RHO_I_MGM - RHO_1 / 1000) / (rhoDiff[z2mask])))
         drho_dt[zImask] = 0
 
-        viscosity[self.rho < RHO_I] = (self.rho[self.rho < RHO_I] / (2 * self.sigma[self.rho < RHO_I])) / drho_dt[
-            self.rho < RHO_I]
+        viscosity[self.rho < RHO_I] = (self.rho[self.rho < RHO_I] / (2 * self.sigma[self.rho < RHO_I])) / drho_dt[self.rho < RHO_I]
         # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
         # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]
 

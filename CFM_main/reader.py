@@ -32,7 +32,7 @@ def read_input(filename,StartDate=None):
         else:
             input_year = data[0, :]
             input_data = data[1, :]
-    else:
+    else:  # Load input with multiple data rows.
         if xx>yy:
             input_year = data[:, 0]
             input_data = np.transpose(data[:, 1:n_data])
