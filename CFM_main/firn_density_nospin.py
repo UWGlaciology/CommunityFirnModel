@@ -81,7 +81,7 @@ class FirnDensityNoSpin:
                 (unit: kg m^-3, type: array of floats)
     : bdot_mean: mean accumulation over the lifetime of each parcel
                 (units are m I.E. per year)
-
+                
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
 
@@ -131,8 +131,8 @@ class FirnDensityNoSpin:
         try: #VV for reading initial lwc from the spin up file
             initLWC = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'LWCSpin')
             print('Initial LWC provided by spin-up')
-        except:
-            pass
+        except: 
+            pass 
 
         try:
             self.doublegrid = self.c['doublegrid']
@@ -275,7 +275,7 @@ class FirnDensityNoSpin:
                 input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt']), updatedStartDate)
             self.forcing_dict['SMELT'] = input_snowmelt_full
             self.MELT           = True
-            try:
+            try: 
                 self.LWC        = initLWC[1:]
             except:
                 self.LWC        = np.zeros_like(self.z)
@@ -323,7 +323,7 @@ class FirnDensityNoSpin:
                 print('"Exact" time setup does not work with "SeasonalTcycle" Switching to "interp"')
             yr_start        = max(input_year_temp[0], input_year_bdot[0])   # start year
             yr_end          = min(input_year_temp[-1], input_year_bdot[-1]) # end year
-
+            
             # self.years      = np.ceil((yr_end - yr_start) * 1.0)
             self.years      = (yr_end - yr_start) * 1.0
             self.dt         = S_PER_YEAR / self.c['stpsPerYear'] # seconds per time step
@@ -381,14 +381,14 @@ class FirnDensityNoSpin:
             # self.modeltime  = np.linspace(yr_start, yr_end, self.stp)
             # self.t          = 1.0 / self.c['stpsPerYear']                   # years per time step
         #####################
-
+      
         ###############################
         ### surface boundary conditions
         ### temperature, accumulation, melt, isotopes, surface density
         ###############################
         int_type            = self.c['int_type']
 
-        ### Temperature #####
+        ### Temperature #####       
         Tsf                 = interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
         self.Ts             = Tsf(self.modeltime) # surface temperature interpolated to model time
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
@@ -439,7 +439,7 @@ class FirnDensityNoSpin:
             self.T_mean = self.c['deepT'] * np.ones(self.stp)
             self.bdot_av = self.c['bdot_long'] * np.ones(self.stp)
 
-        try:
+        try: 
             if self.c['manual_iceout']:
                 self.iceout = self.c['iceout']
                 print('Ensure that your iceout value has units m ice eq. per year!')
@@ -450,11 +450,11 @@ class FirnDensityNoSpin:
             print('add field "manual_iceout" to .json file to set iceout value manually')
             self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 
-        self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho
+        self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
 
         if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
             print('ERROR: bdot_type set to "instant" in .json and input')
-            print('accumulation has at least one negative value.')
+            print('accumulation has at least one negative value.') 
             print('QUITTING MODEL RUN.')
             sys.exit()
         #####################
@@ -510,10 +510,10 @@ class FirnDensityNoSpin:
             input_rad, input_year_rad, input_rad_full, input_year_rad_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameSWnetrad']), updatedStartDate)
             Radsf             = interpolate.interp1d(input_year_rad,input_rad,int_type,fill_value='extrapolate')
             self.E_sw = Radsf(self.modeltime)
-        #####################
+        #####################        
 
         ### Layer tracker ###
-        self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector).
+        self.D_surf     = self.c['D_surf'] * np.ones(self.stp)      # layer traking routine (time vector). 
         self.Dcon       = self.c['D_surf'] * np.zeros(self.gridLen)  # layer tracking routine (initial depth vector)
         self.Dcon = np.flipud(np.arange((-1*(len(self.Dcon))),0))
         #####################
@@ -645,7 +645,7 @@ class FirnDensityNoSpin:
 
         ### values for Goujon physics
         if self.c['physRho']=='Goujon2003':
-            self.Gamma_Gou      = 0
+            self.Gamma_Gou      = 0 
             self.Gamma_old_Gou  = 0
             self.Gamma_old2_Gou = 0
             self.ind1_old       = 0
@@ -705,14 +705,14 @@ class FirnDensityNoSpin:
 
                 self.FA[gas] = FirnAir(self.cg, Gs, self.z, self.modeltime, self.Tz, self.rho, self.dz, gas, self.bdot)
                 self.Gz[gas] = np.ones_like(self.rho)
-
+            
             if self.cg['runtype']=='steady':
                 print('Steady-state firn air works only with Herron and Langway physics, instant accumulation mode')
                 print('This is automatically changed for you')
                 self.bdot           = self.cg['steady_bdot']*np.ones_like(self.bdot)
                 self.bdotSec        = self.bdot / S_PER_YEAR / self.c['stpsPerYear'] # accumulation for each time step (meters i.e. per second)
                 self.iceout         = np.mean(self.bdot)  # units m I.E. per year.
-                self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho
+                self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
                 self.c['physRho']   = 'HLdynamic'
                 self.c['bdot_type'] = 'instant'
         else:
@@ -827,7 +827,7 @@ class FirnDensityNoSpin:
         ######################################
         ######################################
 
-    ####################
+    ####################    
     ##### END INIT #####
     ####################
 
@@ -907,7 +907,7 @@ class FirnDensityNoSpin:
                 'MELT':         self.MELT,
                 'FirnAir':      self.c['FirnAir']
             }
-
+            
             if self.c['physRho']=='Morris2014':
                 PhysParams['Hx'] = self.Hx
                 PhysParams['QMorris'] = self.c['QMorris']
@@ -1005,7 +1005,7 @@ class FirnDensityNoSpin:
                 self.mass   = (1 + self.eps_divergence[iii] / S_PER_YEAR * self.dt[iii]) * self.mass
 
             if self.c['physRho']=='Goujon2003':
-                self.Gamma_Gou      = RD['Gamma_Gou']
+                self.Gamma_Gou      = RD['Gamma_Gou'] 
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
                 self.Gamma_old2_Gou = RD['Gamma_old2_Gou']
                 self.ind1_old       = RD['ind1_old']
@@ -1017,7 +1017,7 @@ class FirnDensityNoSpin:
             self.sdz_old    = np.sum(self.dz) # old total column thickness (s for sum)
             self.z_old      = np.copy(self.z)
             self.dz         = self.mass / self.rho * self.dx # new dz after compaction
-
+            
             if self.THist:
                 self.Hx = RD['Hx']
 
@@ -1078,7 +1078,7 @@ class FirnDensityNoSpin:
                             self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
-                    ### Heat ###
+                    ### Heat ###        
                     self.Tz, self.T10m  = heatDiff(self,iii)
                 ### end prefsnowpack ##################
 
@@ -1113,7 +1113,7 @@ class FirnDensityNoSpin:
                 if self.PLWC_mem[-1] > 0.: #VV
                     self.PLWC_mem[-2] += self.PLWC_mem[-1] #VV
                 self.PLWC_mem    = np.concatenate(([0], self.PLWC_mem[:-1])) #VV
-
+            
             else: # no melt, dz after compaction
                 self.dzn    = self.dz[0:self.compboxes]
             ### end MELT #########
@@ -1124,13 +1124,13 @@ class FirnDensityNoSpin:
                 if iii==0:
                     E_rp0 = 0.0
                 elif (self.Ts[iii] - self.Ts[iii-1])<=0:
-                    E_rp0 = 0.0
-                else:
-                    i6cm = np.where(self.z>=0.06)[0][0]
+                    E_rp0 = 0.0                  
+                else:    
+                    i6cm = np.where(self.z>=0.06)[0][0]         
                     E_rp0 = self.E_sw[iii] #- (deltaT_s*self.mass[0]*CP_I) # estimate of the amount of energy that penetrates to lower layers, W/m^2
                     # k_ex =  -0.0338*self.rho+33.54
                     k_ex = -0.012 * self.rho+14.706 #extinction coefficient
-
+                    
                     deltaE_layers1 = 0.64 * (1 - 0.8) * E_rp0 * np.exp(-k_ex*self.z) #* self.dz * self.dt[iii]
                     # deltaE_layers1 = 0.64 * E_rp0 * np.exp(-k_ex*self.z) #* self.dz * self.dt[iii]
                     diffE = -1*np.diff(deltaE_layers1)
@@ -1203,21 +1203,21 @@ class FirnDensityNoSpin:
 
             self.sdz_new    = np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
-            ### Dcon: user-specific code goes here.
+            ### Dcon: user-specific code goes here. 
             # self.Dcon[self.LWC>0] = self.Dcon[self.LWC>0] + 1 # for example, keep track of how many times steps the layer has had water
 
             ### Update grain growth ###
             if self.c['physGrain']: # update grain radius
                 self.r2 = FirnPhysics(PhysParams).graincalc(iii) # calculate before accumulation b/c new surface layer should not be subject to grain growth yet
-
+            
             ### update model grid, mass, stress, and mean accumulation rate
             if self.bdotSec[iii]>0: # there is accumulation at this time step
-            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)
-                self.age        = np.concatenate(([0], self.age[:-1])) + self.dt[iii]
+            # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)               
+                self.age        = np.concatenate(([0], self.age[:-1])) + self.dt[iii]      
                 self.dzNew      = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
                 self.dz         = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z          = self.dz.cumsum(axis = 0)
-                znew = np.copy(self.z)
+                znew = np.copy(self.z) 
                 self.z          = np.concatenate(([0], self.z[:-1]))
                 self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
 
@@ -1226,7 +1226,7 @@ class FirnDensityNoSpin:
                     self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
                 if not self.c['manualT']:
                     self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
-
+                
                 self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
                 massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
                 self.mass       = np.concatenate(([massNew], self.mass[:-1]))
@@ -1241,7 +1241,7 @@ class FirnDensityNoSpin:
                 self.z          = self.dz.cumsum(axis=0)
                 self.z          = np.concatenate(([0],self.z[:-1]))
                 self.dzNew      = 0
-                znew = np.copy(self.z)
+                znew = np.copy(self.z)                             
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 if not self.c['manualT']:
                     self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
@@ -1410,7 +1410,7 @@ class FirnDensityNoSpin:
             LIZDepMart = min(self.z[self.rho >= (LIZMartRho)])  # lock in depth
 
         except:
-
+            
             bcoAgeMart  = -9999
             bcoDepMart  = -9999
             bcoAge830   = -9999
@@ -1437,7 +1437,7 @@ class FirnDensityNoSpin:
         phiC        = 1 - bcoMartRho / RHO_I;  # porosity at close off
         phiClosed   = 0.37 * phi * (phi / phiC) ** -7.6  # Closed porosity, from Goujon. See Buizert thesis (eq. 2.3) as well
         phiOpen     = phi - phiClosed  # open porosity
-
+        
         try:
             ind_co  = np.where(phiOpen<=1e-10)[0][0]
             z_co    = self.z[ind_co]
@@ -1471,7 +1471,7 @@ class FirnDensityNoSpin:
 
         iceout_corr = self.iceout*RHO_I/self.rho[-1]
         self.dHcorr = (self.sdz_new - self.sdz_old) + self.dzNew - (iceout_corr*self.t[iii]) # iceout has units m ice/year, t is years per time step. 
-
+        
         self.dHAllcorr.append(self.dHcorr)
         self.dHtotcorr = np.sum(self.dHAllcorr)
         self.comp_firn = self.sdz_new - self.sdz_old #total compaction of just the firn during the previous time step
@@ -1479,3 +1479,4 @@ class FirnDensityNoSpin:
         return self.dH, self.dHtot, self.comp_firn, self.dHcorr, self.dHtotcorr
 
     ###########################
+    
