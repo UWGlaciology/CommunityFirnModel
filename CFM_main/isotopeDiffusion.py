@@ -18,12 +18,19 @@ class isotopeDiffusion:
 
     '''
     Isotope diffusion class.
+
+    Note that presently isotope diffusion only works with .csv inputs.
     '''
 
-    def __init__(self,spin,config,isotope,stp,z,modeltime=None):
+    def __init__(self,spin,config,isotope,stp,z,updatedStartDate,modeltime=None):
 
         '''
         Initialize Isotope diffusion class.
+
+        Input files names should have names like 'example_isotope_dD.csv' and 'example_isotope_d18O.csv'
+        but the .json file should just have the key/value pair:
+        "InputFileNameIso": "example_isotope.csv",
+        i.e., the script below will take the 'example_isotope.csv' and automatically look for the filenames that include the isotope.
         '''
         self.c = config
         self.isotope = isotope
@@ -34,7 +41,7 @@ class isotopeDiffusion:
             print(isofile)
             if isotope=='NoDiffusion':
                 isofile = fn[0] + '_dD' + fn[1]
-            input_iso, input_year_iso = read_input(os.path.join(self.c['InputFileFolder'],isofile))
+            input_iso, input_year_iso, input_iso_full, input_year_iso_full = read_input(os.path.join(self.c['InputFileFolder'],isofile),updatedStartDate)
 
             if spin:
                 if self.c['spinup_climate_type']=='initial':

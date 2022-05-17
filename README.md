@@ -1,4 +1,4 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3585885.svg)](https://doi.org/10.5281/zenodo.3585885)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3585884.svg)](https://doi.org/10.5281/zenodo.3585884)
 
 # The Community Firn Model
 
@@ -29,11 +29,25 @@ The CFM is coded in python. To use the software, you need to clone the repositor
 
 ## Running the CFM
 
-The CFM is meant to be run from the command line or through an ipython session. All of the details for a model run are specifed in a .json file; the repository includes example.json. The values for each key in the .json file can be altered for a particular model run. The model is run from the command line using:
+The CFM can be run from the command line using the main.py script. It is also relatively easy to create a separate script or jupyter notebook to configure and run the CFM; this can make it easier to do a large number of runs with similar parameters. 
+
+All of the details for a model run are specifed in a .json file; the repository includes example.json. The values for each key in the .json file can be altered for a particular model run. The model is run from the command line using:
 
 >>> python main.py example.json
 
-More details can be found in the full documentation. 
+More details can be found in the full documentation.
+
+## Example Runs
+
+The CFMinput_example directory contains example forcing files to run the CFM. It includes .csv files and a .pkl file, which contains a pandas dataframe with climate data. The source for these forcings is MERRA2 data for Summit, Greenland. (72.5 N, -38.75 W). I used a simple degree day model to calculate the melt since MERRA2 does not explicitly calculate melt.
+
+The .csv files were created using the data in the .pkl file; effectively I am running RCMpkl_to_spin.py, which returns a dictionary full of arrays of climate variables and saving those arrays as csv files. I do this in a jupyter notebook called CFM_create_examples.ipynb. I am not including that on the repository but would be happy to share.
+
+I also create an artificial surface isotope record using the skin temperature. I use equations from Jouzel and Merlivat, 1984 to do so. These forcings only go into the .csv files.
+
+The CFMoutput_example directory contains results generated when running the CFM using these forcings with the settings prescribed in example.json. The only thing I change in example.json between the two example runs is "input_type": "csv" or "dataframe"; and "resultsFolder": "CFMoutput_example/csv" or "CFMoutput_example/df". 
+
+The CFM automatically moves the .json file for a particular run to the directory containing the results, so the exact .json files for the example runs are included in the CFMoutput_example/csv and CFMoutput_example/df subdirectories. You could move those .json files to CFM_main and then e.g. run CFM using >>>python main.py example_df.json. (Note that this will overwrite the results in those example results directories.)
 
 ## Dependencies
 

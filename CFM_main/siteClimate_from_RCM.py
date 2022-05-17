@@ -67,11 +67,11 @@ def read_netcdfs_merra(files, dim, ii, jj, vv, transform_func=None):
         with xr.open_dataset(path) as ds:
             # transform_func should do some sort of selection or
             # aggregation
-            if transform_func is not None:
-                ds = transform_func(ds)
+            # if transform_func is not None:
+            #     ds = transform_func(ds)
             # load all data from the transformed dataset, to ensure we can
             # use it after closing each original file
-            ds = ds[vv][:,ii,jj]
+            ds = ds[vv].isel(lat=ii,lon=jj)
             ds.load()
             return ds
     datasets = [process_one_path(p) for p in files]
@@ -186,7 +186,8 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         ### Set directory to find climate files.
         if lat_int < 0: # Antarctica
             if runtype=='local':
-                ddir = 'PATH/TO/LOCAL/DATA/MERRA/Antarctica/Hourly'
+                # ddir = 'PATH/TO/LOCAL/DATA/MERRA/Antarctica/Hourly'
+                ddir = '/Volumes/Samsung_T1/MERRA/Antarctica/daily_melt'
             elif runtype=='remote':
                 ddir = 'PATH/TO/REMOTE/DATA/MERRA/Antarctica/Hourly'
             elif runtype=='differentremote':
@@ -199,11 +200,13 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         else: # Greenland
             if runtype=='local':
                 # ddir = 'PATH/TO/LOCAL/DATA/MERRA/Greenland/Hourly'
-                ddir = '/Volumes/Samsung_T1/MERRA/Greenland/Hourly'
+                # ddir = '/Volumes/Samsung_T1/MERRA/Greenland/daily_melt'
+                ddir = '/Users/cdsteve2/RCMdata/MERRA2/Greenland/daily_melt'
             elif runtype=='remote':
                 ddir = 'PATH/TO/REMOTE/DATA/MERRA/Greenland/Hourly'
-            elif runtype == 'differentremote':
-                ddir = 'PATH/TO/OTHER/REMOTE/DATA/MERRA/Greenland/Hourly'
+            elif runtype == 'loki':
+                ddir = '/home/maxstev/CFM_main/MERRA/Greenland/daily_melt'
+
             
             # Adjust these as you see fit to set the Reference Climate Interval (RCI)
             spin_date_st = 1980
@@ -213,8 +216,8 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         # yy = np.array([float((re.search(r'\d{8}',xx)).group()[0:4]) for xx in glob.glob(ddir+'/TS/*.nc*')])
         # yrs = np.arange(min(yy),max(yy)+1)
 
-        fn_ll = glob.glob(ddir + '/SMB/*.nc*')[0]
-        nc_ll = nc.Dataset(fn_ll,'r')
+        fn_ll = glob.glob(ddir + '/*.nc*')
+        nc_ll = nc.Dataset(fn_ll[0],'r')
         lat_ll = nc_ll.variables['lat'][:]
         lon_ll = nc_ll.variables['lon'][:]
         ii, lat_val = min(enumerate(lat_ll), key=lambda x: abs(x[1]-lat_int))
@@ -227,8 +230,8 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             # pickle_folder = '/PUT/PICKLES/HERE/MERRA/IDSpickle/pickle/'
             pickle_folder = 'example_pickle/'
         else:
-            pickle_folder = 'pickle/'
-        pickle_name = pickle_folder + 'MERRA2_TS_PREC_df_{}_{}.pkl'.format(lat_val,lon_val)
+            pickle_folder = 'IDS/pickle/'
+        pickle_name = pickle_folder + 'MERRA2_CLIM_df_{}_{}.pkl'.format(lat_val,lon_val)
         if not os.path.exists(pickle_folder):
             os.makedirs(pickle_folder)
 
@@ -237,27 +240,31 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             writer = False
             loadnetcdf = False
             df_CLIM = pd.read_pickle(pickle_name)
-            try:
-                df_BDOT = pd.DataFrame(df_CLIM['PRECTOT'])
-                df_TS = pd.DataFrame(df_CLIM['TS'])
-                df_CLIM.rename(columns={'PRECTOT':'BDOT','TS':'TSKIN'},inplace=True)
-            except Exception:
-                df_BDOT = pd.DataFrame(xx['BDOT'])
-                df_TS = pd.DataFrame(xx['TSKIN'])
+            # try:
+            #     df_BDOT = pd.DataFrame(df_CLIM['PRECTOT'])
+            #     df_TS = pd.DataFrame(df_CLIM['TS'])
+            #     df_CLIM.rename(columns={'PRECTOT':'BDOT','TS':'TSKIN'},inplace=True)
+            # except Exception:
+            #     df_BDOT = pd.DataFrame(xx['BDOT'])
+            #     df_TS = pd.DataFrame(xx['TSKIN'])
 
-            if df_CLIM.BDOT.resample('1A').sum().mean()<1:
-                df_CLIM.BDOT = df_CLIM.BDOT *3600 #get rid of seconds dimension - MERRA is hourly, so this gives precip per hour.
+            # if df_CLIM.BDOT.resample('1A').sum().mean()<1:
+            #     df_CLIM.BDOT = df_CLIM.BDOT *3600 #get rid of seconds dimension - MERRA is hourly, so this gives precip per hour.
 
         else:
-            flist_TS = glob.glob(ddir+'/TS/*.nc*')
-            df_TS = read_netcdfs_merra(flist_TS, dim='time',ii=ii,jj=jj,vv='TS')
-            df_TS.rename(columns={'TS':'TSKIN'},inplace=True)
+            vv=['TS','EVAP','SMELT','PRECTOT','PRECSNO']
+            # flist_TS = glob.glob(ddir+'/TS/*.nc*')
 
-            flist_SMB = glob.glob(ddir+'/SMB/*.nc*')
-            df_BDOT = read_netcdfs_merra(flist_SMB, dim='time',ii=ii,jj=jj,vv='PRECTOT') # [kg m^-2 s^-1]
-            df_BDOT = (df_BDOT.rename(columns={'PRECTOT':'BDOT'}))*3600 # [kg m^-2 hour^-1] (this is amount of precip per MERRA time interval)
+            # df_TS = read_netcdfs_merra(flist_TS, dim='time',ii=ii,jj=jj,vv='TS')
+            # df_TS.rename(columns={'TS':'TSKIN'},inplace=True)
 
-            df_CLIM = df_TS.join(df_BDOT)
+            # flist_SMB = glob.glob(ddir+'/SMB/*.nc*')
+            # df_BDOT = read_netcdfs_merra(flist_SMB, dim='time',ii=ii,jj=jj,vv='PRECTOT') # [kg m^-2 s^-1]
+            # df_BDOT = (df_BDOT.rename(columns={'PRECTOT':'BDOT'}))*3600 # [kg m^-2 hour^-1] (this is amount of precip per MERRA time interval)
+
+            df_merra = read_netcdfs_merra(fn_ll, dim='time',ii=ii,jj=jj,vv=vv)
+
+            df_CLIM = df_merra
         # ACCVAR = 'PRECTOT'
         # TVAR = 'TS'
              
@@ -267,29 +274,36 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         #### end MERRA #####
 
     elif datatype == 'MAR':
-        spin_date_st = 1980
-        spin_date_end = 1995
+        spin_date_st = 1950
+        spin_date_end = 1979
         print('Using MAR')
         if lat_int < 0:
             print('no Antarctic MAR data')
             sys.exit()            
         else:
             if runtype=='local':
-                ddir = '/Volumes/Samsung_T1/MAR311/Greenland/Daily'
+                ddir = '/Volumes/Samsung_T1/MAR312/Greenland/daily'
 
+        
         if not dsource:
             dsource = 'ERA10k'
             print('using MAR ', dsource)
 
         if dsource == 'ERA10k':
             d2 = '/ERA_1958-2019-10km/'
-            vv = ['ME','SF','ST2','RF','SU']
+            vv = ['ME','SF','ST2','RF','SU','TT']
         elif dsource == 'ERA6k':
             d2 = '/ERA_1979-2020-6km/'
-            vv = ['ME','SF','ST2','RF']
+            vv = ['ME','SF','ST2','RF','TT']
         elif dsource == 'NCEP20k':
             d2 = '/NCEP1_1948-2020_20km/'
-            vv = ['ME','SF','ST2','RF','SU']
+            vv = ['ME','SF','ST2','RF','SU','TT']
+        
+        elif dsource == 'ERA5_20km': # MAR3.12
+            d2 = '/ERA5_20km/'
+            vv = ['ME','SF','ST2','RF','SU','TT']
+
+        
 
         pickle_folder = ddir + '/pickles' + d2
         print(pickle_folder)
@@ -335,14 +349,55 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
                 df_CLIM['RF'] = df_CLIM['RF']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
                 # df_MELT = pd.DataFrame(df_CLIM['ME']/1000*917/3600).rename(columns={'ME':'MELT'}) #put into equivalent units to the merra data (kg/m^2/s)
                 # df_RAIN = pd.DataFrame(df_CLIM['RF']/1000*917/3600).rename(columns={'RF':'RAIN'}) #put into equivalent units to the merra data (kg/m^2/s)
-            df_TS = pd.DataFrame(df_CLIM['ST2']).rename(columns = {'ST2':'TSKIN'}) + 273.15
+            df_TS = pd.DataFrame(df_CLIM[['ST2','TT']]).rename(columns = {'ST2':'TSKIN','TT':'T2M'}) + 273.15
 
-            drn = {'ME':'SMELT','SU':'SUBLIMATION','SF':'BDOT','RF':'RAIN','ST2':'TSKIN','SMB':'BDOT'}
+            drn = {'ME':'SMELT','SU':'SUBLIMATION','SF':'BDOT','RF':'RAIN','ST2':'TSKIN','SMB':'BDOT','TT':'T2M'}
             df_CLIM.rename(mapper=drn,axis=1,inplace=True)
             df_CLIM.TSKIN = df_CLIM.TSKIN + 273.15
-    ###############
-    ### end MAR ###
-    ###############
+            df_CLIM.T2M = df_CLIM.T2M + 273.15
+        ###############
+        ### end MAR ###
+        ###############
+
+    elif datatype == 'RACMO':
+
+        ### Set directory to find climate files.
+        if lat_int < 0: # Antarctica
+            if runtype=='local':
+                ddir = '/Volumes/Samsung_T1/RACMO/Antarctica'
+            elif runtype=='remote':
+                ddir = 'PATH/TO/REMOTE/DATA/RACMO/Antarctica/Hourly'
+            elif runtype=='differentremote':
+                ddir = 'PATH/TO/OTHER/REMOTE/DATA/RACMO/Antarctica/Hourly'
+            
+            # Adjust these as you see fit to set the Reference Climate Interval (RCI)
+            spin_date_st = 1980 
+            spin_date_end = 2019
+
+        else: # Greenland
+            if runtype=='local':
+                # ddir = 'PATH/TO/LOCAL/DATA/MERRA/Greenland/Hourly'
+                ddir = '/Volumes/Samsung_T1/RACMO/Greenland'
+            elif runtype=='remote':
+                ddir = 'PATH/TO/REMOTE/DATA/RACMO/Greenland/Hourly'
+            elif runtype == 'differentremote':
+                ddir = 'PATH/TO/OTHER/REMOTE/DATA/RACMO/Greenland/Hourly'
+
+        spin_date_st = 1980
+        spin_date_end = 1995
+
+        flist = glob.glob(ddir + '/*1958-2016*.nc*')[0]
+        rgr = nc.Dataset(flist[0],'r')
+        lat = rgr['LAT'][:,:]
+        lon = rgr['LON'][:,:]
+        ii,jj = find_indices((lon_int,lat_int),lon,lat)
+        lat_val = lat[ii,jj]
+        lon_val = lon[ii,jj]
+        print('lat_val: ', lat_val)
+        print('lon_val: ', lon_val)
+        rgr.close()
+
+
 
 
     if writer:
@@ -356,6 +411,7 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
 
 
 if __name__ == '__main__':
+    tic = time.time()
 
     LLpair = sys.argv[1]
     nn = np.fromstring(LLpair,dtype =float, sep=' ')
@@ -366,6 +422,7 @@ if __name__ == '__main__':
     runtype = 'local'
 
     df_CLIM = getClimate(lat_int,lon_int,writer = True, runtype = runtype)
+    print(time.time()-tic)
 
 
 

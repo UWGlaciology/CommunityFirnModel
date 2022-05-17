@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.0
+1.1.8
 
 ## Full Documentation
 
@@ -23,7 +23,104 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 
-## [1.1.0] 2020-03-10
+## [1.1.8]
+### Notes
+- This is a minor update. The main point is to add example .csv files and update the input climate .pkl file. The example .csv files were made using the .pkl files, so the outputs should match.
+- There is a readme.txt file in the CFMinput_example directory with some details about those forcing files.
+
+### Fixed
+- *isotopeDiffusion.py* This file had not been updated to deal with the 'updatedStartDate' feature, which it now does. Current fuctionality limits its use to using .csv files as inputs.
+
+### Updated
+- Documentation: I updated the model output documentation.
+
+## [1.1.7] 2022-04-19
+### Notes
+- This update fixes an issue where sublimation was automatically turned off.
+- Hopefully this is a short-lived release; the next release should include an improved enthaply solver to avoid the ICT threshold error and still run quickly. A surface energy balance module is also in development.
+
+### Fixed
+- *firn_density_nospin.py, sublim.py* firn_density_nospin had a line that set any accumulation below a threshold to 0. This prevented sublimation from occuring because sublimation flux was inferred from the assumption that any negative values in the accumulation input was sublimation. The code now explicitly takes sublimation inputs, either through a field in the input dictionary (climateTS in firn_density_nospin.py) or a .csv file ('InputFileNameSublim' in .json). The .json should now include a boolean key/value 'SUBLIM' (default True). If that key is not in .json the code will automatically set to be true. (The design is that sublimation can be turned off, but only deliberately.) The code retains the ability to infer sublimation from negative values of accumulation (it does this if (1) inputs come from climateTS but SUBLIM is not a field in climateTS; or (2) if 'InputFileNameSublim' is NOT in the .json.)
+- Note that sublim.py still does not alter the temperature. The reason for this presently is that we assume that the surface (skin) temperature calcuated by the forcing RCM (e.g. TS in MERRA-2) already accounts for that energy balance, so we just set the surface temperature to equal the input skin temperature at that time step.
+- *physics.py* The viscosity calculations would throw a divide by zero error for layers that are at the ice density. This is now fixed so that those layers will have viscosity equal to zero (which is of course not true, but can be dealt with in post processing.)
+
+
+## [1.1.6] 2021-11-22
+### Notes
+- The enthalpy solver scheme's routine to correct the amount of LWC after each iteration was wrong, which caused the firn to densify too quickly when there was melt present.
+
+### Fixed
+- *solver.py* See above note. The g_liq correction at the end of the iteration loop is reverted to what was used in v1.1.2.  
+
+## [1.1.5] 2021-11-17
+### Notes 
+- There was an issue with the previous release in the order of operations within the model when melt was enabled. Prior to CFMv1.1.3, within a time step the firn first densified, then the melt routine occured, then heat diffusion, and then addition of a new snow layer with some density and temperature. Within the melt scheme, layers would melt, and the uppermost layer after melt (ie. the new surface) would take on the temperature of the old surface (which would often be colder than the melting temperature), which was not realistic. I switched the code so that that layer (called the 'partial melt' layer in the CFM) would have temperature of 273.15. However, this caused the surface temperature to always become the melting temperature, and the cold from a new snow layer would not ever diffuse into the firn if the next time step included melt. The solution was to move the diffusion to the end of the time step, so now the process goes: densification, meltwater percolation and refreezing (due to cold content), addition of new layer, heat diffusion. (Also: admitedly in reality the skin temperature should be zero during a time step when there is melt, but in model world with larger time steps, e.g. daily, there can be melt but the mean temperature for the day is still below freezing.)
+
+### Fixed
+- *ModelOutputs.py* There was an issue with the gridding feature for liquid water content, which is fixed. (The interpolation was just a linear interpolation of LWC, but it needs to be calculated by linearly interpolating the cumulative sum and then differencing to get the mass correct.)
+
+### Changed
+- *firn_density_nospin.py* See above under notes. Heat diffusion now comes at the end of the time step loop.
+- *melt.py* When ponding is turned on, layers that reached impermeable density during the refreeze process are now set to have zero available pore space for accomodating excess water. These layers could form above a volume of excess liquid. This change caused some nodes to have very small negative LWC, which was a rounding issue; now the code sets negative LWC to be zero.
+
+## [1.1.4] 2021-11-12
+### Notes 
+- Addition of melt scheme parameters to .json and several small bug fixes.
+
+### New
+- *melt.py, example.json* I added the 'user choices' from melt.py to the .json config file. They are: 
+	- `ColeouLesaffre` (True/False; whether or not to use the ColeouLesaffre parameterization for irreducible water content); 
+	- `IrrVal` (float [%], default 0.02; Irreducible water content if ColeouLesaffre is false); 
+	- `RhoImp` (float, [kg m^-3], default 830; impermeable density threshold); 
+	- `DownToIce` (True/False; if True all water will permeate through any ice lenses above the firn/ice transition); 
+	- `Ponding` (True/False; True allows water to saturate (pond) atop impermeable layers, e.g. to form an aquifer. Otherwise water above irreducible content becomes runoff); 
+	- `DirectRunoff` (float; applicable if Ponding==True; fraction of excess LWC not considered for ponding but running off directly [between 0 and 1]); 
+	- `RunoffZuoOerlemans` (True/False; applicable if Ponding==True; computes lateral runoff following Zuo and Oerlemans (1996) Eqs.(21,22)); 
+	- `Slope` (float, used only if RunoffZuoOerlemans==True: slope value used in Zuo and Oerlemans (1996) Eq.(22)).
+
+### Fixed
+- *melt.py* Fixed issue in the ColeouLesaffre parameterization for the case when rho = rho_ice, which put a zero in a denominator
+- *firn_density_nospin.py, firn_density_spin.py* Fixed issue with reader.py, which now returns 4 values (associated with new feature that saves model forcing to the output file)
+
+## [1.1.3] 2021-11-10
+### Notes
+- There are a fair number of changes and fixes in this release, and admittedly I did a poor job of documenting them over the last few months as I worked on things. Most of the work deals with the meltwater bucket scheme and the associated enthalpy scheme.
+
+### In Progress
+- I have moved away from using main.py to run the CFM. Instead, I am using either (1) a script similar to main.py but that includes forcing file generation and model configuration right in that script (i.e. you edit json parameters in that script rather than in a .json file directly); or (2) a jupyter notebook to configure the run and then start the run. Please let me (Max) know if you want those scripts or notebooks prior to them making it to Github.
+
+### Fixed
+- *diffusion.py, solver.py* The enthalpy scheme was continuing to give me issues. The solver needs to iterate to converge on a solution. In order to save computing time, the iteration loop would terminate once one iteration was within some percentage threshold of the previous iteration - but that is not full convergence. It turns out that that method could lead to a mass conservation issue. There is a new variable called ICT (itercheck threshold) that determines how close one iteration needs to be to the previous one in order to terminate the loop. By default I set this to zero (full convergence), but you can change it to something like 1e-8 if you want to speed things up a little bit. (The metric I am using for convergence is the total LWC in the firn). If there are more than 100 iterations, ICT is set to 1e-8 (if initially zero), or multiplied by 10 (if ICT was initially >0). After 200 iterations, ICT is again multiplied by 10. My testing has indicated that this works, but please let me know if you are having issues with this. 
+- *melt.py* There were a few issues with the bucket scheme. In particular, there is a loop to deal with distributing water based on available pore space and cold content, which would throw an error when there was available pore space at a shallower depth then where the water existed. Also, the code that allows ponding atop impermeable layers did not remove 'excess' water (more than could be accomodated with full saturation), which led to mass conservation issues. Finally, the temperature of the uppermost node where melt occurs (the PM, or partial melt, layer) did not previously have its temperature set to the melting temperature; it now does. 
+
+### New
+- *ModelOutputs.py, writer.py* the output file now by default includes the original forcing data (including spin up period) that was fed to the CFM. This facilitates reproducibility. The columns in the 'forcing' output variable are: [decimal time, skin temperature, smb, melt, rain].
+
+## [1.1.2] 2021-06-16
+### Notes
+- The main work in this release is improving the enthalpy scheme for resolving heat diffusion when there is liquid water present. I cannot say for certain how 'wrong' the previous scheme was (I don't think it was too wrong!), but Vincent Verjans identified that with the new meltwater schemes water would refreeze more quickly than expected. The newest code is actually slower because the solver needs to iterate to find a solution; previously I used a set value of iterations, but now a while loop ensures that the iterations continue until convergence.
+
+### Fixed
+- *diffusion.py, solver.py* See note above regarding the enthalpy routine.
+
+### Changed
+- *ModelOutputs.py* GridOutputs is now compatible with melt functions.
+- The outputs from running the melt module have been reduced to three: **LWC** (liquid water content, in each model node, at each timestep [m w.e.]); **refreeze** (total refreezing within the firn at each time step [m w.e.]); and **runoff** (total runoff from the firn at each timestep [m w.e.]). Note that this assumes a 1m x 1m firn column, so if you want total runoff for e.g. a MERRA-2 grid cell, you will need to multiply by the area of the grid cell. 
+
+## [1.1.1] 2021-05-19
+### Notes
+- This release could be buggy; it is the first release of two new liquid water schemes developed by Vincent Verjans. My limited testing indicates that they are working, but I am still working on testing. Please let me know if you encounter errors.
+- I am still working on making the pre-CFM workflow smooth; i.e. taking data directly from an RCM, creating a timeseries of the climate varibles, and passing those to the CFM (scripts: siteClimate_from_RCM.py, RCMpkl_to_spin.py). If you are using these (or interested), please let me know if you have suggestions on how to make this workflow easier.
+
+### New
+- *melt.py* Previously there were two bucket schemes (one written by Vincent Verjans, and one written by Max Stevens). Vincent wrote a new bucket scheme that took the best of each of those, so now there is one bucket scheme that we think works as accurately as a bucket scheme could. It has more options than the previous schemes, e.g. set the density and/or thickness of impermeable layers; set the irreducible saturation. At present, you need to dig into the code to change them, but these will be integrated into a .json in a future release.
+- *melt.py* Vincent also wrote a meltwater scheme that uses Darcy flow. The details are on the CFM's readthedocs page. FYI: It is slow compared to the bucket scheme because it uses a sub-time step. 
+- *darcy_funcs.py* This is a new file that contains functions needed to make the darcy scheme work.
+
+### Fixed
+- *firn_density_nospin.py* There are more changes than this (I have been very lazy with documentation recently! Sorry!), but the main fix is adding a bit of code to deal with the instance when the forcing data are passed in a dictionary (i.e. climateTS) but spinUpdate is false. This is implemented around line 185.
+
+## [1.1.0] 2021-03-10
 ### Notes
 - This is the first major change to the code structure that warrants going from 1.0 to 1.1. Previously, the spin up was done by calling firn_density_spin, getting the output, and then calling firn_density_nospin. This was a bit clunky, because (1) if you were writing your own API (i.e. not using main.py), you would have to call both of those; and (2) if you were using a variable climate spinup, firn_density_spin was just a formality to create an initial condition. 
 - I have now wrapped firn_density_spin into firn_density_nospin. If the model needs to spin up or needs an initial condition, it is called; otherwise it is bypassed. THE UPSHOT IS THAT YOU ONLY NEED TO CREATE AN INSTANCE OF firn_density_nospin IN YOUR API. The behavior of the CFM should be the same as before.

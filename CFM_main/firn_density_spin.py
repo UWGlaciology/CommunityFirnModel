@@ -124,6 +124,7 @@ class FirnDensitySpin:
                     os.remove(path_to_file)
 
         else:
+            print('making dir')
             os.makedirs(self.c['resultsFolder'])
 
         ############################
@@ -136,8 +137,8 @@ class FirnDensitySpin:
             input_year_temp = input_year_bdot = climateTS['time']
        
         else:
-            input_temp, input_year_temp = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
-            input_bdot, input_year_bdot = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
+            input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
+            input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
  
         if input_temp[0] < 0.0:
             input_temp              = input_temp + K_TO_C
@@ -211,7 +212,7 @@ class FirnDensitySpin:
 
         try: #VV use Reeh corrected T
             if self.c['ReehCorrectedT'] and self.c['MELT']:
-                input_snowmelt, input_year_snowmelt = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
+                input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
                 meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
                 meanacc  = self.bdot0 # mean annual accumulation [mIE/yr]
                 self.SIR = min(meanmelt,0.6*meanacc) # Reeh 1991 and Reeh 2008 PMAX value is set at 0.6 melt becomes superimposed ice until it reaches 0.6 of annual acc, then runoff
@@ -246,7 +247,6 @@ class FirnDensitySpin:
             # Recompute HL analytic on the regridded profile #
             self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
             print('After doublegrid, grid length is ', self.gridLen)
-            # print('z ', self.z[-5:])
         
         # except:
         #     self.doublegrid = False
@@ -328,7 +328,7 @@ class FirnDensitySpin:
             self.iso_sig2_out = {}
 
             for isotope in self.c['iso']:
-                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z)
+                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,None)
 
         ### Surface Density
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp) # could configure this so that user specifies vector of some noise
@@ -430,7 +430,6 @@ class FirnDensitySpin:
             else:
                 pass
         except:
-            # print('no_densification not in .json; setting to false')
             self.c['no_densification']=False
         #######################
 

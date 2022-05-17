@@ -22,7 +22,7 @@ import RCMpkl_to_spin as RCM
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annika Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "1.1.0"
+__version__ = "1.1.8"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@umd.edu"
 __status__ = "Production"
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     elif 'NewSpin' in c:
         NewSpin = c['NewSpin']
     else:
-        NewSpin = False
+        NewSpin = False  
 
     if 'input_type' not in c:
         c['input_type'] = "csv"
@@ -71,7 +71,8 @@ if __name__ == '__main__':
     if c['input_type'] == 'dataframe':
         pkl_name = os.path.join(c['InputFileFolder'],c['DFfile'])
         timeres = c['DFresample']
-        climateTS, stepsperyear, depth_S1, depth_S2, desired_depth = RCM.makeSpinFiles(pkl_name,timeres = timeres, melt = c['MELT'])
+        desired_depth = c['H'] - c['HbaseSpin']
+        climateTS, stepsperyear, depth_S1, depth_S2, desired_depth = RCM.makeSpinFiles(pkl_name,timeres = timeres, melt = c['MELT'], desired_depth = desired_depth)
     else:
         climateTS = None
 
