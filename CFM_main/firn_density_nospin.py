@@ -18,6 +18,7 @@ from writer import SpinUpdate
 from physics import *
 from constants import *
 from melt import *
+from strain import *
 from isotopeDiffusion import isotopeDiffusion
 from firn_density_spin import FirnDensitySpin
 import numpy as np
@@ -550,49 +551,7 @@ class FirnDensityNoSpin:
         ### transform mass in meters ice equiv -> divide by age(in sec) [m/s] -> multiply by years per step and by steps per year (cancels) -> multiply by secperyear -> [mIE/yr]
         ### for surf layer -> mass in mIE is only multiplied by steps per year: if 1 stp/yr,mean acc is the mass of surf layer; if 2 stps/yr,mean acc is 2* what has been accumulated over the last step, etc.
         #######################
-
-        ### Strain modules
-        if 'strain' in self.c:  # Included for backward compatibility
-            self.c['horizontal_divergence'] = self.c['strain']
-            self.c['InputFileNameStrain'] = self.c['InputFileNamedudx']
-
-        # Check if strain options are set in the config. Otherwise deactivate.
-        if 'horizontal_divergence' not in self.c:
-            self.c['horizontal_divergence'] = False
-        if 'strain_softening' not in self.c:
-            self.c['strain_softening'] = False
-        if 'residual_strain' not in self.c:
-            self.c['residual_strain'] = 2e-4
-        if 'tuning_bias_correction' not in self.c:
-            self.c['tuning_bias_correction'] = False
-
-        if self.c['horizontal_divergence'] or self.c['strain_softening']:
-            input_eps, input_year_eps, input_eps_full, input_year_eps_full = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
-            if np.ndim(input_eps) == 1:
-                print('Single valued strain rate input is taken as horizontal divergence rates. Strain softening is deactivated.')
-                self.c['strain_softening'] = False
-                dusf = interpolate.interp1d(input_year_eps, input_eps, int_type, fill_value='extrapolate')
-                self.eps_divergence = dusf(self.modeltime)
-            elif np.min(np.shape(input_eps)) == 2:
-                print('2-valued strain rate input is taken as principal horizontal strain rates.')
-                input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
-                d1sf               = interpolate.interp1d(input_year_eps, input_eps_1, int_type, fill_value='extrapolate')
-                d2sf               = interpolate.interp1d(input_year_eps, input_eps_2, int_type, fill_value='extrapolate')
-                self.eps_1         = d1sf(self.modeltime)
-                self.eps_2         = d2sf(self.modeltime)
-                self.eps_eff_hor_2 = (self.eps_1 ** 2 + self.eps_2 ** 2) / 2
-                self.eps_divergence= - (self.eps_1 + self.eps_2)
-            elif np.min(np.shape(input_eps)) == 3:
-                print('3-valued strain rate input is taken as the horizontal components eps_xx, eps_yy and eps_xy.')
-                input_eps_xx, input_eps_yy, input_eps_xy = input_eps[0, :], input_eps[1, :], input_eps[2, :]
-                dxxsf = interpolate.interp1d(input_year_eps, input_eps_xx, int_type, fill_value='extrapolate')
-                dyysf = interpolate.interp1d(input_year_eps, input_eps_yy, int_type, fill_value='extrapolate')
-                dxysf = interpolate.interp1d(input_year_eps, input_eps_xy, int_type, fill_value='extrapolate')
-                self.eps_xx = dxxsf(self.modeltime)
-                self.eps_yy = dyysf(self.modeltime)
-                self.eps_xy = dxysf(self.modeltime)
-                self.eps_eff_hor_2 = (self.eps_xx ** 2 + self.eps_yy ** 2 + 2 * self.eps_xy ** 2) / 2
-                self.eps_divergence = - (self.eps_xx + self.eps_yy)
+            
         #######################
         if self.c['manualT']:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
@@ -619,7 +578,13 @@ class FirnDensityNoSpin:
             self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
             self.meltvol    = np.array([0.]) #total melt volume
- 
+
+        ### Strain modules
+        self.c = check_strain_settings(self)
+        # Load strain rate input
+        if self.c['horizontal_divergence'] or self.c['strain_softening']:
+            self.eps_eff_hor_2, self.eps_divergence, self.c = load_strain(self, spin=False)
+            
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
@@ -949,60 +914,11 @@ class FirnDensityNoSpin:
                 drho_dt = np.zeros_like(drho_dt)
             self.viscosity = RD['viscosity']
 
+            # Strain modules
             if self.c['strain_softening']:
-                eps_zz_classic = - drho_dt / self.rho * S_PER_YEAR  # Vertical strain rate from original densification rate.
-                eps_zz_classic = eps_zz_classic - np.abs(self.c['residual_strain'])  # Regularisation, eq. 21 in (Oraschewski & Grinsted, 2022)
-                eps_eff_classic_2 = 0.5 * (eps_zz_classic ** 2)  # Effective strain rate of original model
-                rH2 = self.eps_eff_hor_2[iii] / eps_eff_classic_2  # Square of eq. 19 in (Oraschewski & Grinsted, 2022)
-
-                # Solution for n=3
-                # K = (13.5 * rH2 + 1.5 * np.sqrt(81 * rH2 ** 2 + 12 * rH2) + 1) ** (1 / 3)
-                # scale_factor_softening = (K + 1 / K + 1) / 3
-
-                # Solution for n=4
-                scale_factor_softening = np.ones_like(rH2)
-                rH2_nz = rH2[np.nonzero(rH2)]  # Avoid division by 0.
-
-                # Equation 20 in (Oraschewski & Grinsted, 2022):
-                a1 = np.cbrt(9 * rH2_nz ** 4 + np.sqrt(81 * rH2_nz ** 8 + 768 * rH2_nz ** 9))
-                a2 = np.sqrt(1 + 8 * rH2_nz + np.cbrt(32/9) * a1 - np.cbrt(8192/3) * rH2_nz ** 3 / a1)
-                a3 = np.sqrt(1/2 + 4 * rH2_nz - a1 / np.cbrt(18) + np.cbrt(128/3) * rH2_nz ** 3 / a1
-                             + (1 + 12 * rH2_nz + 24 * rH2_nz ** 2) / (2 * a2))
-                scale_factor_softening[np.nonzero(rH2)] = np.sqrt(1/4 + 1/4 * a2 + 1/2 * a3)
-
-                if self.c['tuning_bias_correction']:
-                # Repeat computation with the strain rate that corresponds to the tuning bias of the HL model.
-                    eps_eff_cor = 4.5e-4  # Tuning bias for the HL model. Values for other models need to be determined.
-                    eps_eff_cor_2 = eps_eff_cor ** 2
-
-                    rH2 = eps_eff_cor_2 / eps_eff_classic_2
-
-                    # Solution for n=4
-                    scale_factor_softening_cor = np.ones_like(rH2)
-                    rH2_nz = rH2[np.nonzero(rH2)]
-
-                    a1 = np.cbrt(9 * rH2_nz ** 4 + np.sqrt(81 * rH2_nz ** 8 + 768 * rH2_nz ** 9))
-                    a2 = np.sqrt(
-                        1 + 8 * rH2_nz + np.cbrt(32 / 9) * a1 - np.cbrt(8192 / 3) * rH2_nz ** 3 / a1)
-                    a3 = np.sqrt(1 / 2 + 4 * rH2_nz - a1 / np.cbrt(18) + np.cbrt(128 / 3) * rH2_nz ** 3 / a1
-                                 + (1 + 12 * rH2_nz + 24 * rH2_nz ** 2) / (2 * a2))
-                    scale_factor_softening_cor[np.nonzero(rH2)] = np.sqrt(1 / 4 + 1 / 4 * a2 + 1 / 2 * a3)
-
-                    # Corrected scale factor as in Eq. 23 in (Oraschewski & Grinsted, 2022)
-                    scale_factor_softening = scale_factor_softening / scale_factor_softening_cor
-
-                # Testing effect on a assumed linearly increasing contribution of power-law creep in stage 1:
-                # z1mask = (self.rho < RHO_1)
-                # stage1_scale = np.linspace(0, 1, sum(z1mask))
-                # drho_dt[z1mask] = drho_dt[z1mask] * (1 + (viscosity_scale[z1mask]-1) * stage1_scale)
-
-                z2mask = (self.rho >= RHO_1)  # Only apply strain softening in second firn stage, where power-law creep is dominant.
-                drho_dt[z2mask]        = drho_dt[z2mask] * scale_factor_softening[z2mask]
-                self.viscosity[z2mask] = self.viscosity[z2mask] / scale_factor_softening[z2mask]
-
+                drho_dt, self.viscosity = strain_softening(self, drho_dt, iii)
             if self.c['horizontal_divergence']:
-                # Rescale mass per layer according to the horizontal divergence (Horlings et al., 2020)
-                self.mass   = (1 + self.eps_divergence[iii] / S_PER_YEAR * self.dt[iii]) * self.mass
+                self.mass = horizontal_divergence(self,iii)
 
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 

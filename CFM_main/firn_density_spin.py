@@ -20,6 +20,7 @@ from reader import read_input
 from writer import write_spin_hdf5
 from physics import *
 from constants import *
+from strain import *
 from isotopeDiffusion import isotopeDiffusion
 import numpy as np
 import scipy.interpolate as interpolate
@@ -338,57 +339,11 @@ class FirnDensitySpin:
         self.mass_sum   = self.mass.cumsum(axis = 0)
 
         ### Strain modules
-        if 'strain' in self.c:  # Included for backward compatibility
-            self.c['horizontal_divergence'] = self.c['strain']
-            self.c['InputFileNameStrain'] = self.c['InputFileNamedudx']
-
-        # Check if strain options are set in the config. Otherwise deactivate.
-        if 'horizontal_divergence' not in self.c:
-            self.c['horizontal_divergence'] = False
-        if 'strain_softening' not in self.c:
-            self.c['strain_softening'] = False
-        if 'residual_strain' not in self.c:
-            self.c['residual_strain'] = 2e-4
-        if 'tuning_bias_correction' not in self.c:
-            self.c['tuning_bias_correction'] = False
-
+        self.c = check_strain_settings(self)
+        # Load strain rate input
         if self.c['horizontal_divergence'] or self.c['strain_softening']:
-            input_eps, input_year_eps = read_input(os.path.join(self.c['InputFileFolder'], self.c['InputFileNameStrain']))
-            if np.ndim(input_eps) == 1:
-                print('Single valued strain rate input is taken as horizontal divergence rates. Strain softening is deactivated.')
-                self.c['strain_softening'] = False
-                if self.c['spinup_climate_type'] == 'initial':
-                    self.eps_divergence = input_eps[0]
-                else:
-                    self.eps_divergence = np.mean(input_eps)
-                print('Spin-up horizontal divergence rate is', self.eps_divergence)
-            elif np.min(np.shape(input_eps)) == 2:
-                print('2-valued strain rate input is taken as principal horizontal strain rates.')
-                input_eps_1, input_eps_2 = input_eps[0, :], input_eps[1, :]
-                if self.c['spinup_climate_type'] == 'initial':
-                    self.eps_1 = input_eps_1[0]
-                    self.eps_2 = input_eps_2[0]
-                else:
-                    self.eps_1 = np.mean(input_eps_1)
-                    self.eps_2 = np.mean(input_eps_2)
-                print('Spin-up strain rates are', self.eps_1, 'and', self.eps_2)
-                self.eps_eff_hor_2 = (self.eps_1 ** 2 + self.eps_2 ** 2) / 2
-                self.eps_divergence = - (self.eps_1 + self.eps_2)
-            elif np.min(np.shape(input_eps)) == 3:
-                print('3-valued strain rate input is taken as the horizontal components eps_xx, eps_yy and eps_xy.')
-                input_eps_xx, input_eps_yy, input_eps_xy  = input_eps[0, :], input_eps[1, :], input_eps[2, :]
-                if self.c['spinup_climate_type'] == 'initial':
-                    self.eps_xx = input_eps_xx[0]
-                    self.eps_yy = input_eps_yy[0]
-                    self.eps_xy = input_eps_xy[0]
-                else:
-                    self.eps_xx = np.mean(input_eps_xx)
-                    self.eps_yy = np.mean(input_eps_yy)
-                    self.eps_xy = np.mean(input_eps_xy)
-                print('Spin-up strain rates are',self.eps_xx,',',self.eps_yy,'and',self.eps_xy)
-                self.eps_eff_hor_2 = (self.eps_xx ** 2 + self.eps_yy ** 2 + 2 * self.eps_xy ** 2) / 2
-                self.eps_divergence = - (self.eps_xx + self.eps_yy)
-
+            self.eps_eff_hor_2, self.eps_divergence, self.c = load_strain(self, spin=True)
+            
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             # if self.c['calcGrainSize']:
@@ -516,54 +471,11 @@ class FirnDensitySpin:
                 drho_dt = np.zeros_like(drho_dt)
             self.viscosity = RD['viscosity']
 
+            # Strain modules
             if self.c['strain_softening']:
-                eps_zz_classic = - drho_dt / self.rho * S_PER_YEAR  # Vertical strain rate from original densification rate.
-                eps_zz_classic = eps_zz_classic - np.abs(self.c['residual_strain'])  # Regularisation, eq. 21 in (Oraschewski & Grinsted, 2022)
-                eps_eff_classic_2 = 0.5 * (eps_zz_classic ** 2)  # Effective strain rate of original model
-                rH2 = self.eps_eff_hor_2 / eps_eff_classic_2  # Square of eq. 19 in (Oraschewski & Grinsted, 2022)
-
-                ## Solution for n=3
-                # K = (13.5 * rH2 + 1.5 * np.sqrt(81 * rH2 ** 2 + 12 * rH2) + 1) ** (1 / 3)
-                # scale_factor_softening = (K + 1 / K + 1) / 3
-
-                ## Solution for n=4
-                scale_factor_softening = np.ones_like(rH2)
-                rH2_nz = rH2[np.nonzero(rH2)]  # Avoid division by 0.
-
-                # Equation 20 in (Oraschewski & Grinsted, 2022):
-                a1 = np.cbrt(9 * rH2_nz ** 4 + np.sqrt(81 * rH2_nz ** 8 + 768 * rH2_nz ** 9))
-                a2 = np.sqrt(1 + 8 * rH2_nz + np.cbrt(32/9) * a1 - np.cbrt(8192/3) * rH2_nz ** 3 / a1)
-                a3 = np.sqrt(1/2 + 4 * rH2_nz - a1 / np.cbrt(18) + np.cbrt(128/3) * rH2_nz ** 3 / a1
-                             + (1 + 12 * rH2_nz + 24 * rH2_nz ** 2) / (2 * a2))
-                scale_factor_softening[np.nonzero(rH2)] = np.sqrt(1/4 + 1/4 * a2 + 1/2 * a3)
-
-                if self.c['tuning_bias_correction']:
-                    # Repeat computation with the strain rate that corresponds to the tuning bias of the HL model.
-                    eps_eff_cor = 4.5e-4  # Tuning bias for the HL model. Values for other models need to be determined.
-                    eps_eff_cor_2 = eps_eff_cor ** 2
-
-                    rH2 = eps_eff_cor_2 / eps_eff_classic_2
-
-                    scale_factor_softening_cor = np.ones_like(rH2)
-                    rH2_nz = rH2[np.nonzero(rH2)]
-
-                    a1 = np.cbrt(9 * rH2_nz ** 4 + np.sqrt(81 * rH2_nz ** 8 + 768 * rH2_nz ** 9))
-                    a2 = np.sqrt(
-                        1 + 8 * rH2_nz + np.cbrt(32 / 9) * a1 - np.cbrt(8192 / 3) * rH2_nz ** 3 / a1)
-                    a3 = np.sqrt(1 / 2 + 4 * rH2_nz - a1 / np.cbrt(18) + np.cbrt(128 / 3) * rH2_nz ** 3 / a1
-                                 + (1 + 12 * rH2_nz + 24 * rH2_nz ** 2) / (2 * a2))
-                    scale_factor_softening_cor[np.nonzero(rH2)] = np.sqrt(1 / 4 + 1 / 4 * a2 + 1 / 2 * a3)
-
-                    # Corrected scale factor as in Eq. 23 in (Oraschewski & Grinsted, 2022)
-                    scale_factor_softening = scale_factor_softening/scale_factor_softening_cor
-
-                z2mask = (self.rho >= RHO_1)  # Only apply strain softening in second firn stage, where power-law creep is dominant.
-                drho_dt[z2mask]        = drho_dt[z2mask] * scale_factor_softening[z2mask]
-                self.viscosity[z2mask] = self.viscosity[z2mask] / scale_factor_softening[z2mask]
-
+                drho_dt, self.viscosity = strain_softening(self, drho_dt, iii)
             if self.c['horizontal_divergence']:
-                # Rescale mass per layer according to the horizontal divergence (Horlings et al., 2020)
-                self.mass   = (1 + self.eps_divergence / S_PER_YEAR * self.dt[iii]) * self.mass
+                self.mass = horizontal_divergence(self,iii)
 
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
