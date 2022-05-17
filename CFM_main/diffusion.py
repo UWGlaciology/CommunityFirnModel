@@ -19,7 +19,7 @@ def firnConductivity(self,iii,K_ice):
     '''
     Function to set the firn's thermal conductivity
     based on one of a number of parameterizations.
-    
+
     Choose your favorite!
     Default is Calonne et al. 2019.
     References are provided at the end of this script.
@@ -87,12 +87,12 @@ def firnConductivity(self,iii,K_ice):
 def heatDiff(self,iii):
     '''
     Heat diffusion function
-    
+
     :param z:
     :param dz:
     :param Ts:
     :param rho:
-    
+
     :returns self.Tz:
     :returns self.T10m:
     
@@ -154,7 +154,6 @@ def enthalpyDiff(self,iii):
     LWC is in volume (m^3)
     thermal diffusivity: alpha = K_firn / (rho*c_firn)
     '''
-    
     Tstart          = self.Tz.copy()
     nz_P            = len(self.z)
     nz_fv           = nz_P - 2
