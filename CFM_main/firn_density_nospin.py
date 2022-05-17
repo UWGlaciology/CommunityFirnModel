@@ -1395,4 +1395,3 @@ class FirnDensityNoSpin:
         return self.dH, self.dHtot, self.comp_firn, self.dHcorr, self.dHtotcorr
 
     ###########################
-    
