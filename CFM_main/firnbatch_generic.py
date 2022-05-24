@@ -163,7 +163,7 @@ def run_CFM(LLpair, json_base, timeres = '1D', Tinterp = 'mean', MELT= True, run
 
     if 'SMELT' in Cd.keys(): #snowmelt; use SMELT rather than MELT b/c pandas has a function called melt
         data['MELT'] = True
-        data['liquid'] = 'bucketVV'
+        data['liquid'] = 'bucket'
     if 'RAIN' in Cd.keys():
         data['RAIN'] = True
     # if 'subl' in Cd.keys():
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     timeres = '5D' 
     Tinterp = 'mean' # [mean, effective, weighted]
     runtype = 'local' 
-    datatype = 'MAR' 
+    datatype = 'MERRA' 
     movefiles = False 
     RCdrive = 'drive_name:' 
     json_base = 'example.json' 

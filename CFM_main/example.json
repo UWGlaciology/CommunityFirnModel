@@ -75,7 +75,7 @@
 "timesetup_options": ["exact","interp","retmip"],
 "liquid": "percolation_bucket",
 "liquid_options": ["percolation_bucket","bucketVV","resingledomain","prefsnowpack"],
-"merging": false,
+"merging": true,
 "merge_min": 1e-4,
 "LWCcorrect": false,
 "manualT": false,
