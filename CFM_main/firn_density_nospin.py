@@ -411,6 +411,8 @@ class FirnDensityNoSpin:
         # If SEB=True, this is T2m, and will be the temperature of new snow      
         Tsf                 = interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
         self.Ts             = Tsf(self.modeltime) # surface temperature interpolated to model time
+        if self.c['SEB']:
+            self.T2m = self.Ts.copy()
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
             if self.c['SeasonalThemi'] == 'north':
                 self.Ts         = self.Ts - self.c['TAmp'] * (np.cos(2 * np.pi * np.linspace(0, self.years, self.stp))) # This is for Greenland
@@ -969,7 +971,8 @@ class FirnDensityNoSpin:
 
                 PhysParams.update(dz=self.dz,rho=self.rho) # update dict, will be used for SEB
 
-                self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii)
+                self.Ts[iii], melt_mass = self.SEB.SEB(PhysParams,iii)
+                # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
                 self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)

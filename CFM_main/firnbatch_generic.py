@@ -99,7 +99,9 @@ def run_CFM(LLpair, json_base, timeres = '1D', Tinterp = 'mean', MELT= True, run
         dsource = None
         dwriter = datatype
 
-    df_CLIM = getClimate(lat_int,lon_int, writer = True, runtype = runtype, datatype=datatype, melt=MELT, dsource = dsource)
+    GCdict = getClimate(lat_int,lon_int, writer = True, runtype = runtype, datatype=datatype, melt=MELT, dsource = dsource)
+
+    df_CLIM = GCdict['df_CLIM']
 
     Cd, StpsPerYr, depth_S1, depth_S2, grid_bottom = makeSpinFiles(df_CLIM,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0)
 

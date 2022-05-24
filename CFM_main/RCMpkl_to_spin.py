@@ -181,7 +181,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #     desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
         #     depth_S1 = hh[np.where(rho>=550)[0][0]]
         #     depth_S2 = hh[np.where(rho>=750)[0][0]]
-# =======
+        # =======
         drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
         try:
             df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
@@ -226,6 +226,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         # df_TS_re = df_TS_re.fillna(method='pad')
 
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
+
+        if 'SUBLIM' not in df_CLIM_re:
+            df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
+            print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
 
         BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
@@ -282,7 +286,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         # for ID in df_CLIM_ids:
         #     if ID == 'TSKIN':
         #         CD[ID] = df_FULL[ID].values
-# >>>>>>> master
+        # >>>>>>> master
         # else:
         #     desired_depth = desired_depth
         #     depth_S1 = desired_depth * 0.5
@@ -340,9 +344,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         # df_TS = pd.DataFrame(df_CLIM.TSKIN)
 
-        res_dict_all = ({'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',
-                       'ALBEDO':'mean','QL':'mean','QH':'mean','SUBL':'sum','SW_d':'mean'}) # resample type for all possible variables
+        # res_dict_all = ({'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',
+        #                'ALBEDO':'mean','QL':'mean','QH':'mean','SUBLIM':'sum','SW_d':'mean'}) # resample type for all possible variables
         
+        res_dict_all = ({'BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',
+                       'ALBEDO':'mean','QL':'sum','QH':'sum','SUBLIM':'sum','SW_d':'sum','LW_d':'sum'}) # resample type for all possible variables
+
         res_dict = {key:res_dict_all[key] for key in df_CLIM.columns} # resample type for just the data types in df_CLIM
 
         df_CLIM_re = df_CLIM.resample(timeres).agg(res_dict)
@@ -354,7 +361,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
         BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
-        T_mean = (df_CLIM_re['TSKIN']).mean()
+        
+        try:
+            T_mean = (df_CLIM_re['TSKIN']).mean()
+        except:
+            T_mean = (df_CLIM_re['T2m']).mean()
         print(BDOT_mean_IE)
         print(T_mean)
 
@@ -368,6 +379,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             desired_depth = desired_depth
             depth_S1 = desired_depth * 0.5
             depth_S2 = desired_depth * 0.75
+
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
         num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
@@ -402,7 +414,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         CD = {}
         CD['time'] = df_FULL.index
-        massIDs = ['SMELT','BDOT','RAIN','SUBL','EVAP']
+        massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             if ID not in massIDs:
                 CD[ID] = df_FULL[ID].values            

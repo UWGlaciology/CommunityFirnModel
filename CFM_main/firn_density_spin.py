@@ -153,7 +153,7 @@ class FirnDensitySpin:
             print("You should add key 'spinup_climate_type' to the config .json file")
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
-        
+    
         ### accumulation rate ###              
         try:
             if self.c['spinup_climate_type']=='initial':

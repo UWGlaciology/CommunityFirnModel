@@ -286,10 +286,11 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             print('using MAR ', dsource)
 
         if dsource == 'ERA10km':
-            MARver='312'
-            d2 = '/ERA_10km/'
+            MARver='311'
+            # d2 = '/ERA_10km/'
+            d2='/ERA_1958-2019-10km/'
             if SEB:
-                vv = ['AL2','LHF','ME','RF','SF','SHF','ST2','SU','SWD','TT']
+                vv = ['AL2','LHF','ME','RF','RU','SF','SHF','ST2','SU','SWD','LWD','TT']
             else:
                 vv = ['ME','SF','ST2','RF','SU','TT']
             spin_date_st = 1950
@@ -438,6 +439,7 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         if datatype =='MERRA':
             df_CLIM.to_pickle(pickle_folder + 'MERRA2_CLIM_df_{}_{}.pkl'.format(lat_val,lon_val))
         elif datatype == 'MAR':
+            print('PN', PN)
             df_CLIM.to_pickle(PN)
             # df_CLIM.to_pickle(pickle_folder + 'MAR_{}_CLIM_df_{}_{}.pkl'.format(dsource,lat_val,lon_val))
 
