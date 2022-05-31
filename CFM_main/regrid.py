@@ -171,6 +171,14 @@ def regrid22(self):
             g23r2    = self.r2[ind22c]*np.ones(n2)
         
         ## Third: split the last layer of the new grid23 in n1 layers for grid3
+        # g3dz0 = g23dz[-1]/n1
+        # if g3dz0<self.c['merge_min']:
+        #     g3dz0 = self.c['merge_min']
+        #     print('doing thing')
+        #     input()
+        # g3dz = g3dz0 * np.ones(n1)
+        g3dz    = g23dz[-1]/n1 * np.ones(n1)
+
         g3dz    = g23dz[-1]/n1 * np.ones(n1)
         g3rho   = g23rho[-1] * np.ones(n1)
         g3mass  = g3rho * g3dz

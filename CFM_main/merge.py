@@ -120,6 +120,8 @@ def mergenotsurf(self,thickmin,iii):
     self.Tz = np.concatenate((self.Tz, self.Tz[-1]*np.ones(len(rmind))))
     self.r2 = np.concatenate((self.r2, self.r2[-1]*np.ones(len(rmind))))
     self.age = np.concatenate((self.age, self.age[-1]*np.ones(len(rmind))))
+    if self.dz[-1]<thickmin:
+        self.dz[-1] = thickmin
     self.dz = np.concatenate((self.dz, self.dz[-1]*np.ones(len(rmind))))
     self.LWC = np.concatenate((self.LWC, np.zeros(len(rmind))))
     self.PLWC_mem = np.concatenate((self.PLWC_mem, np.zeros(len(rmind))))

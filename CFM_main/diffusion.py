@@ -124,6 +124,8 @@ def heatDiff(self,iii):
             pass
 
     Gamma_P         = K_firn
+    # if iii>2400:
+        # print('Gamma_P',np.min(Gamma_P))
     tot_rho         = self.rho
     c_vol           = self.rho * c_firn
 
@@ -139,6 +141,8 @@ def heatDiff(self,iii):
             print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
             wls = np.where(self.Tz == np.max(self.Tz))[0]
             print('Maximum temperature was:',np.max(self.Tz),' at layers:', wls)
+            print('Gamma_P', Gamma_P[wls])
+            print('K_ice', K_ice[wls])
             print(f'LWC: {np.max(self.LWC)}')
             print(f'Ts: {self.Ts[iii]}')
             ist = wls[0]-1

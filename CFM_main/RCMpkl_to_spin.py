@@ -347,8 +347,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         # res_dict_all = ({'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',
         #                'ALBEDO':'mean','QL':'mean','QH':'mean','SUBLIM':'sum','SW_d':'mean'}) # resample type for all possible variables
         
+        # res_dict_all = ({'BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',
+        #                'ALBEDO':'mean','QL':'sum','QH':'sum','SUBLIM':'sum','SW_d':'sum','LW_d':'sum'}) # resample type for all possible variables
+
         res_dict_all = ({'BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',
-                       'ALBEDO':'mean','QL':'sum','QH':'sum','SUBLIM':'sum','SW_d':'sum','LW_d':'sum'}) # resample type for all possible variables
+                       'ALBEDO':'mean','QL':'mean','QH':'mean','SUBLIM':'sum','SW_d':'mean','LW_d':'mean','LW_u':'mean'}) # resample type for all possible variables
 
         res_dict = {key:res_dict_all[key] for key in df_CLIM.columns} # resample type for just the data types in df_CLIM
 

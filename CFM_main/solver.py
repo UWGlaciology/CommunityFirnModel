@@ -383,6 +383,12 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             #     pass
             # else:
             ICT = ICT * 10
+        if count>1000:
+            print('breaking loop')
+            print(iii)
+            print('itercheck',itercheck)
+            break
+
     # print(count)
     # print('###############')
     # input('waiting')

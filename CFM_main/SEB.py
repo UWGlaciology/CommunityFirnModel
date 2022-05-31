@@ -57,8 +57,10 @@ class SurfaceEnergyBudget:
         
         self.time_in = climateTS['time'][start_ind:]
         self.SW_d    = climateTS['SW_d'][start_ind:]
+        self.LW_d    = climateTS['LW_d'][start_ind:]
         self.ALBEDO  = climateTS['ALBEDO'][start_ind:]
         self.T2m     = climateTS['T2m'][start_ind:]
+        self.TSKIN   = climateTS['TSKIN'][start_ind:]
         if (('EVAP' in climateTS.keys()) and ('SUBLIM' in climateTS.keys())):
             self.EVAP    = climateTS['EVAP'][start_ind:]
             self.SUBLIM    = climateTS['SUBLIM'][start_ind:]
@@ -71,6 +73,9 @@ class SurfaceEnergyBudget:
         self.QH      = climateTS['QH'][start_ind:]
         self.QL      = climateTS['QL'][start_ind:]
         self.RAIN    = climateTS['RAIN'][start_ind:]
+        if 'LW_u' in climateTS:
+            self.LW_u_input = True
+            self.LW_u = climateTS['LW_u'][start_ind:]
         # need to account for cold snow falling on warmer surface
 
         # self.EP      = np.zeros_like(self.SW_d)
@@ -79,7 +84,7 @@ class SurfaceEnergyBudget:
         
         self.SBC = 5.67e-8 # Stefan-Boltzmann constant [W K^-4 m^-2
         self.emissivity_air = 1
-        self.emissivity_snow = 1
+        self.emissivity_snow = 1 #0.98
         
         # self.D_sh = 15 # Sensible heat flux coefficient, Born et al. 2019 [W m^-2 K^-1] 
 
@@ -94,16 +99,20 @@ class SurfaceEnergyBudget:
         # def enet(Tsurf,Qn):
         #     return np.abs(Qn - 5.67e-8 * Tsurf**4)
 
-        def enet(Tsurf,Qn,Tz,dz):
+        def enet(Tsurf,Qn):
             # e1 = np.abs(Qn - 5.670374419e-8 * Tsurf**4)
-            gflux = np.abs(0.3*(Tz - Tsurf)/dz)
-            # gflux = 0
-            e1 = np.abs(Qn - 5.670374419e-8 * Tsurf**4) + gflux 
+            # gflux = np.abs(0.3*(Tz - Tsurf)/dz)
+            # gflux = (0.3*(Tz - Tsurf)/dz)
+            gflux = 0
+            e1 = np.abs(Qn - 5.670374419e-8 * self.emissivity_snow * Tsurf**4 + gflux)
             return e1
 
         Tz   = PhysParams['Tz']
         mass = PhysParams['mass']
         dt   = PhysParams['dt']
+        Tguess = self.T2m[iii]
+        dz  = PhysParams['dz']
+        z = PhysParams['z']
 
         T_rain = np.max((self.T2m[iii],T_MELT))
         Qrain_i = 0
@@ -114,60 +123,112 @@ class SurfaceEnergyBudget:
         ### CHECK THAT THE RAIN UNITS ARE CORRECT!
 
         Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
-        Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
-        Qnet = Q_SW_net + Q_LW_d - self.QH[iii] - self.QL[iii] + Qrain_i
+        # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
+        Q_LW_d = self.LW_d[iii]
 
-        Tlast=Tz[1]
-        dz=PhysParams['dz'][1]
+        i10cm = np.where(z>=0.1)[0][0]
+        d10cm = z[i10cm]
+        G = (0.3*(Tz[i10cm] - Tz[0])/d10cm)
+        # G=0
+
+        # if self.LW_u_input:
+        #     # if iii==0:
+        #     #     print('Tsurface from LW_u')
+        #     #     print('self.LW_u[iii]',self.LW_u[iii])
+        #     Qnet = Q_SW_net + Q_LW_d - self.QH[iii] - self.QL[iii] + Qrain_i + G - self.LW_u[iii]
+        #     Tsurface = (self.LW_u[iii]/(self.emissivity_snow*self.SBC))**(1/4)
+            
+
+        #     Qnet1 = Q_SW_net + Q_LW_d - self.QH[iii] - self.QL[iii] + Qrain_i + G
+        #     mresults1 = optimize.minimize(enet,method = 'Nelder-Mead',x0=Tguess,args=(Qnet1),tol=1e-6)
+        #     Tsurface1 = mresults1.x[0]
+        #     LWU1 = (self.SBC*self.emissivity_snow*Tsurface1**4)
+        #     QN2 = Q_SW_net + Q_LW_d - self.QH[iii] - self.QL[iii] + Qrain_i + G - LWU1
+
+
+        #     # print(iii)
+        #     # print('CFM: ',Tsurface)
+        #     # print('M2: ',self.TSKIN[iii])
+        #     # print('self.LW_u[iii]',self.LW_u[iii])
+        #     # print('Qnet',Qnet)
+        #     # print('melt_mass', Qnet/LF_I * dt)
+        #     # print('Tsurface1',Tsurface1)
+        #     # print('LWU1',LWU1)
+        #     # print('QN2',QN2)
+        #     # input('############')
+
+        #     if Tsurface>T_MELT:
+        #         Tsurface = T_MELT
+        #         melt_mass = Qnet/LF_I * dt
+        #     else:
+        #         melt_mass = 0
+
+        # else:   
+        Qnet = Q_SW_net + Q_LW_d - self.QH[iii] - self.QL[iii] + Qrain_i + G
+        # Tlast=Tz[1] 
         cold_content = CP_I * mass * (T_MELT - Tz) # cold content [J]
-        # LH_melt = LF_I * mass
-        # esum = cold_content + LH_melt
-        # ccs = np.cumsum(esum)
 
-        mresults = optimize.minimize(enet,method = 'Nelder-Mead',x0=self.T2m[iii],args=(Qnet,Tlast,dz),tol=1e-6)
+        mresults = optimize.minimize(enet,method = 'Nelder-Mead',x0=Tguess,args=(Qnet),tol=1e-6)
         Tsurface = mresults.x[0]
 
-        if Tsurface>T_MELT:
-            print('One')
-            input('waiting')
-            Q_LW_me = (self.SBC * (self.emissivity_air * self.T2m[iii]**4 - self.emissivity_snow * (T_MELT)**4))
-            G = 0.3*(Tlast - T_MELT)/dz
-            E_melt = (Q_SW_net + Q_LW_me - QH - QL + Qrain_i + G)
+        if Tsurface>=T_MELT:
+            Q_LW_me_old = (self.SBC * (self.emissivity_air * self.T2m[iii]**4 - self.emissivity_snow * (T_MELT)**4))
+            Q_LW_up = (self.SBC * self.emissivity_snow * (T_MELT)**4)
+            Q_LW_me = Q_LW_d - Q_LW_up
 
-            E_iter = E_melt.copy()
-            kk = 0
-            melt_mass = 0
-            
-            while E_iter > 0:
-                if E_iter <= cold_content[kk]: # all energy warms/cools this firn; no melt in it
-                    Tz[kk] = Tz[kk] + E_net / (CP_I * mass[kk]) * dt
-                    E_iter = 0
+            E_melt = (Q_SW_net + Q_LW_me - self.QH[iii] - self.QL[iii] + Qrain_i + G) #[W/m2]
 
-                elif E_net > cold_content[kk]:
-                    Tz[kk] = T_MELT
-                    E_melt = E_net - cold_content[kk] #energy available for melting
-                    melt_mass_pot = E_melt/LF_I # mass that can be melted with the energy available              
-
-                    if melt_mass_pot <= mass[kk]: #less than the entire node melts
-                        melt_mass += melt_mass_pot
-                        E_iter = 0
-
-                    else: #entire node melts
-                        melt_mass += mass[kk]
-                        E_iter -= mass[kk]*LF_I
-
-                kk+=1
             Tsurface = T_MELT
-        else:
-            # print('Two')
-            melt_mass = 0
-            # Tz[0] = Tsurface
+            melt_mass = E_melt/LF_I * dt
 
-        # print(iii)
-        # print('Tz', Tz[0])
-        # print('Melt mass:',melt_mass)
-        # input('waiting')
-        return Tsurface, melt_mass
+                ###################
+                # if (E_melt*dt) < cold_content[0]:
+                #     Tsurface = Tz[0] + E_melt/(CP_I * mass[0]) * dt
+                #     melt_mass = 0
+                # else:
+                #     Tsurface=T_MELT
+                #     energy_excess = E_melt*dt - (CP_I * mass[0] * (T_MELT - Tz[0])) # [J]
+                #     melt_mass = energy_excess/LF_I
+                ###################
+
+                ###################
+                # E_iter = E_melt.copy()
+                # E_iter = E_melt*dt
+                # kk = 0
+                # melt_mass = 0
+              
+                # while E_iter > 0:
+                #     if E_iter <= cold_content[kk]: # all energy warms/cools this firn; no melt in it
+                #         Tz[kk] = Tz[kk] + E_iter / (CP_I * mass[kk]) #* dt
+                #         E_iter = 0
+
+                #     elif E_iter > cold_content[kk]:
+                #         Tz[kk] = T_MELT
+                #         E_melt1 = E_iter - cold_content[kk] #energy available for melting
+                #         melt_mass_pot = E_melt1/LF_I#*dt # mass that can be melted with the energy available              
+
+                #         if melt_mass_pot <= mass[kk]: #less than the entire node melts
+                #             melt_mass += melt_mass_pot
+                #             E_iter = 0
+
+                #         else: #entire node melts
+                #             melt_mass += mass[kk]
+                #             E_iter -= mass[kk]*LF_I#*dt
+
+                #     kk+=1
+
+                # Tsurface = T_MELT
+                ######################
+
+
+        else:
+            melt_mass = 0
+
+        Tz[0] = Tsurface
+        if melt_mass<0:
+            melt_mass = 0
+
+        return Tsurface, Tz, melt_mass
 
 
     def SEB_direct(self, PhysParams,iii):

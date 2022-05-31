@@ -880,6 +880,10 @@ class FirnDensityNoSpin:
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
                         self.Dcon,self.T_mean,self.T10m,self.r2 = mergenotsurf(self,self.c['merge_min'],iii)
                     # print('merging2 at ', iii)
+            # if iii>1380:
+            #     print(iii)
+            #     print(self.z[-5:])
+            #     print(self.dz[-5:])
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -970,13 +974,22 @@ class FirnDensityNoSpin:
             if self.c['SEB']:
 
                 PhysParams.update(dz=self.dz,rho=self.rho) # update dict, will be used for SEB
-
-                self.Ts[iii], melt_mass = self.SEB.SEB(PhysParams,iii)
+                # if np.any(self.Tz>T_MELT):
+                #     print('Tz, seb1', self.Tz[0:3])
+                self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii)
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
                 self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
                 self.forcing_dict['SMELT'][self.start_ind+iii:] = self.snowmelt[iii]
+                # if np.any(self.Tz>T_MELT):
+                #     print('Tz, seb2', self.Tz[0:3])
+                #     input('waiting, 987')
+                # if iii>2410:
+                #     print(self.Ts[iii])
+                #     print(self.snowmelt[iii])
+                #     print(self.snowmeltSec[iii])
+                #     input('waiting')
 
                 if self.c['rad_pen']:
                     pass
@@ -1172,7 +1185,9 @@ class FirnDensityNoSpin:
                     r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
                     self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
                 if not self.c['manualT']: # If SEB, the new snow layer will be T2m
-                    self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+                    newSnowT = np.max((self.T2m[iii],T_MELT))
+                    # print(newSnowT)
+                    self.Tz         = np.concatenate((np.array([newSnowT],float), self.Tz[:-1]))
                 
                 self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
                 massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
