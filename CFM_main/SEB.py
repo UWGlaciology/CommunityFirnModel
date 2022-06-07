@@ -51,6 +51,7 @@ class SurfaceEnergyBudget:
     def __init__(self,config,climateTS,start_ind):
         '''
         intialalize seb
+        testing
         '''
 
         self.c = config
