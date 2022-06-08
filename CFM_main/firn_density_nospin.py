@@ -18,6 +18,7 @@ from writer import SpinUpdate
 from physics import *
 from constants import *
 from melt import *
+from strain import *
 from isotopeDiffusion import isotopeDiffusion
 from firn_density_spin import FirnDensitySpin
 import numpy as np
@@ -550,13 +551,7 @@ class FirnDensityNoSpin:
         ### transform mass in meters ice equiv -> divide by age(in sec) [m/s] -> multiply by years per step and by steps per year (cancels) -> multiply by secperyear -> [mIE/yr]
         ### for surf layer -> mass in mIE is only multiplied by steps per year: if 1 stp/yr,mean acc is the mass of surf layer; if 2 stps/yr,mean acc is 2* what has been accumulated over the last step, etc.
         #######################
-
-        ### set up longitudinal strain rate
-        if self.c['strain']: # input units are yr^-1
-            input_dudx, input_year_dudx, input_dudx_full, input_year_dudx_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamedudx']), updatedStartDate)
-            dusf                        = interpolate.interp1d(input_year_dudx,input_dudx,int_type,fill_value='extrapolate')           
-            self.du_dx      = dusf(self.modeltime)
-            self.du_dxSec   = self.du_dx / S_PER_YEAR #/ self.c['stpsPerYear'] # strain rate (s^-1) at each time step
+            
         #######################
         if self.c['manualT']:
             self.Tz = np.interp(self.z, self.manualT_dep, init_Tz)
@@ -583,7 +578,13 @@ class FirnDensityNoSpin:
             self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
             self.meltvol    = np.array([0.]) #total melt volume
- 
+
+        ### Strain modules
+        self.c = check_strain_settings(self)
+        # Load strain rate input
+        if self.c['horizontal_divergence'] or self.c['strain_softening']:
+            self.eps_eff_hor_2, self.eps_divergence, self.c = load_strain(self, spin=False)
+            
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
@@ -911,6 +912,14 @@ class FirnDensityNoSpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+            self.viscosity = RD['viscosity']
+
+            # Strain modules
+            if self.c['strain_softening']:
+                drho_dt, self.viscosity = strain_softening(self, drho_dt, iii)
+            if self.c['horizontal_divergence']:
+                self.mass = horizontal_divergence(self,iii)
+
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
@@ -1107,11 +1116,6 @@ class FirnDensityNoSpin:
                     self.Isoz[isotope], self.Iso_sig2_z[isotope] = self.Isotopes[isotope].isoDiff(IsoParams,iii)
                 ### new box gets added on within isoDiff function
                 ####################
-
-            if self.c['strain']: #update horizontal strain
-                strain      = (-1 * self.du_dxSec[iii] * self.dt[iii] + 1) * np.ones_like(self.z)
-                self.dz     = strain * self.dz
-                self.mass   = strain * self.mass
 
             self.sdz_new    = np.sum(self.dz) #total column thickness after densification, melt, horizontal strain,  before new snow added
 
@@ -1391,4 +1395,3 @@ class FirnDensityNoSpin:
         return self.dH, self.dHtot, self.comp_firn, self.dHcorr, self.dHtotcorr
 
     ###########################
-

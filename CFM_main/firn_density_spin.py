@@ -20,6 +20,7 @@ from reader import read_input
 from writer import write_spin_hdf5
 from physics import *
 from constants import *
+from strain import *
 from isotopeDiffusion import isotopeDiffusion
 import numpy as np
 import scipy.interpolate as interpolate
@@ -337,11 +338,12 @@ class FirnDensitySpin:
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.mass_sum   = self.mass.cumsum(axis = 0)
 
-        ### longitudinal strain rate
-        if self.c['strain']:
-            self.du_dx      = np.zeros(self.gridLen)
-            self.du_dx[1:]  = self.c['du_dx']/(S_PER_YEAR)
-                
+        ### Strain modules
+        self.c = check_strain_settings(self)
+        # Load strain rate input
+        if self.c['horizontal_divergence'] or self.c['strain_softening']:
+            self.eps_eff_hor_2, self.eps_divergence, self.c = load_strain(self, spin=True)
+            
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
             # if self.c['calcGrainSize']:
@@ -467,6 +469,13 @@ class FirnDensitySpin:
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
+            self.viscosity = RD['viscosity']
+
+            # Strain modules
+            if self.c['strain_softening']:
+                drho_dt, self.viscosity = strain_softening(self, drho_dt, iii)
+            if self.c['horizontal_divergence']:
+                self.mass = horizontal_divergence(self,iii)
 
             if self.c['physRho']=='Goujon2003':
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
@@ -502,15 +511,11 @@ class FirnDensitySpin:
 
             self.T50     = np.mean(self.Tz[self.z<50])
 
-            if self.c['strain']: # consider additional change in box height due to longitudinal strain rate
-                self.dz     = ((-self.du_dx)*self.dt[iii] + 1)*self.dz 
-                self.mass   = self.mass*((-self.du_dx)*self.dt[iii] + 1)
-
             ### update model grid mass, stress, and mean accumulation rate
             dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+            self.dz_old     = np.copy(self.dz)
             self.dz         = self.mass / self.rho * self.dx
-            self.dz_old     = self.dz    
-            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))     
+            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))
             self.z          = self.dz.cumsum(axis = 0)
             self.z          = np.concatenate(([0], self.z[:-1]))
             self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
