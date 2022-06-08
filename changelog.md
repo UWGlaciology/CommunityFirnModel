@@ -4,7 +4,7 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
 ## Current Version
-1.1.8
+1.1.9
 
 ## Full Documentation
 
@@ -22,6 +22,10 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.9]
+### Notes
+- Version 1.1.9 is an update to add strain softening as described by Oraschewski and Grinsted (2021; https://doi.org/10.5194/tc-2021-240) 
 
 ## [1.1.8]
 ### Notes
