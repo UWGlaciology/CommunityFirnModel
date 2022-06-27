@@ -28,6 +28,7 @@ def check_strain_settings(self):
     # Check for deprecated config keys.
     if 'strain' in self.c:
         self.c['horizontal_divergence'] = self.c['strain']
+    if 'InputFileNamedudx' in self.c:
         self.c['InputFileNameStrain'] = self.c['InputFileNamedudx']
 
     # Check if strain settings are set in the config. Otherwise deactivate.

@@ -169,7 +169,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
     stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
-    BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+    if 'SUBLIM' in df_CLIM_re:
+        BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+    else:
+        BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
     T_mean = (df_TS_re['TSKIN']).mean()
     print(BDOT_mean_IE)
     print(T_mean)
@@ -186,7 +189,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         depth_S2 = desired_depth * 0.75
     #### Make spin up series ###
     RCI_length = spin_date_end-spin_date_st+1
-    num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+    num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length)) 
     years = num_reps*RCI_length
     sub = np.arange(-1*years,0,RCI_length)
     startyear = int(df_CLIM_re.index[0].year + sub[0])

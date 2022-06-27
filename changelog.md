@@ -3,8 +3,16 @@ All notable changes to the Community Firn Model should be documented in this fil
 
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
+To run the update:
+git commit -a -m "updating to vX.Y.Z. Details in changelog."
+git push
+git tag -a vX.Y.Z -m "CFM version vX.Y.Z"
+git push origin vX.Y.Z
+
+Then, on github do a release, which will trigger an updated DOI. 
+
 ## Current Version
-1.1.9
+1.1.10
 
 ## Full Documentation
 
@@ -22,6 +30,11 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.10]
+### Notes
+- Version 1.1.10 is a minor update to fix an issue with the strain softening routine introduced in v1.1.9. (The code would throw an error if InputFileNamedudx was not in the .json).
+- There is a small update to the documentation regarding BCO outputs.
 
 ## [1.1.9]
 ### Notes

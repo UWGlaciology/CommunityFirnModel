@@ -45,11 +45,18 @@ Firn air to a horizon (7) is there because due to the model's lagrangian format,
 
 (I'd advise using caution if you use the modeled elevation change fields - we have made changes to the code to merge deeper nodes together to save computing time, but in doing so that can make the model-outputed dH have blips in it. If you want to work with this field let me know and I can do a bit of testing. I'd recommend structuring your analyses around the FAC variable.)
 
-BCO: bubble close-off properties. 10 columns: time, Martinerie close-off age, Marinerie close-off depth, age of 830 kg m-3 density horizon, depth of 830 kg m-3 density horizon, Martinerie lock-in age, Marinerie lock-in depth, age of 815 kg m-3 density horizon, depth of 815 kg m-3 density horizon, depth of zero porosity.
+BCO: bubble close-off properties. 10 columns: time, Martinerie close-off age, Martinerie close-off depth, age of 830 kg m-3 density horizon, depth of 830 kg m-3 density horizon, Martinerie lock-in age, Martinerie lock-in depth, age of 815 kg m-3 density horizon, depth of 815 kg m-3 density horizon, depth of zero closed porosity. The Martinerie fields refer to paramaterizations for close-off properties published by Patricia Martinerie in the early 1990s. See references below. 
 
 meltvol: two columnes: decimal time, total melt volume at that time step [m w.e.]
 
 refreeze: two columns: decimal time, total liquid water refreezing at that time step [m w.e.]
 
 runoff: two columns: decimal time, total liquid water runoff at that time step [m w.e.]
+
+**References**
+*Goujon, C., Barnola, J.-M., and Ritz, C. (2003), Modeling the densification of polar firn including heat diffusion: Application to close-off characteristics and gas isotopic fractionation for Antarctica and Greenland sites, J. Geophys. Res., 108, 4792, doi:10.1029/2002JD003319, D24.*
+
+*Martinerie, P., Lipenkov, V. Y., Raynaud, D., Chappellaz, J., Barkov, N. I., and Lorius, C. (1994), Air content paleo record in the Vostok ice core (Antarctica): A mixed record of climatic and glaciological parameters, J. Geophys. Res., 99( D5), 10565– 10576, doi:10.1029/93JD03223.*
+
+*Martinerie, P., Raynaud, D., Etheridge, D. M., Barnola, J.-M., & Mazaudier, D. (1992, August). Physical and climatic parameters which influence the air content in polar ice. Earth and Planetary Science Letters. Elsevier BV. https://doi.org/10.1016/0012-821x(92)90002-d*
 

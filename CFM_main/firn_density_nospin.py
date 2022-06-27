@@ -445,13 +445,13 @@ class FirnDensityNoSpin:
                 self.iceout = self.c['iceout']
                 print('Ensure that your iceout value has units m ice eq. per year!')
             else:
-                self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+                self.iceout = np.mean(self.bdot+self.sublim) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 
         except Exception:
             print('add field "manual_iceout" to .json file to set iceout value manually')
             self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 
-        self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
+        self.w_firn         = np.mean(self.bdot+self.sublim) * RHO_I / self.rho 
 
         if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
             print('ERROR: bdot_type set to "instant" in .json and input')
@@ -570,14 +570,14 @@ class FirnDensityNoSpin:
             self.Trunoff         = np.array([0.]) #total runoff, single value for the whole firn column
             self.refrozen       = np.zeros_like(self.dz) #vrefreezing in every layer, array of size of our grid
             self.totalrunoff    = np.array([0.]) # Might be useful to have a total final value without having to write every time step
-            self.totalrefrozen  = np.zeros_like(self.dz) # Might be useful to have a total final value without having to write every time step
-            self.totwatersublim = 0. #VV Total amount of liquid water that get sublimated
+            self.totalrefrozen  = np.zeros_like(self.dz) # Might be useful to have a total final value without having to write every time step         
             self.lwcerror       = 0. #VV
             self.totallwcerror  = 0. #
             #VV update (23/03/2021)
             self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
             self.meltvol    = np.array([0.]) #total melt volume
+        self.totwatersublim = 0. #VV Total amount of liquid water that get sublimated
 
         ### Strain modules
         self.c = check_strain_settings(self)
@@ -822,7 +822,7 @@ class FirnDensityNoSpin:
         print('modeltime',self.modeltime[0],self.modeltime[-1])
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
-            self.D_surf[iii] = iii
+            self.D_surf[iii] = iii # This gives each layer a tracking number that is just iteration number.
             if iii==1000:
                 if ((self.MELT) and (self.c['liquid']=='darcy')):
                     pass
