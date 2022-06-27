@@ -445,8 +445,6 @@ class FirnDensityNoSpin:
                 self.iceout = self.c['iceout']
                 print('Ensure that your iceout value has units m ice eq. per year!')
             else:
-                print('bdot',np.mean(self.bdot))
-                print('sublim',np.mean(self.sublim))
                 self.iceout = np.mean(self.bdot+self.sublim) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 
         except Exception:
@@ -736,7 +734,6 @@ class FirnDensityNoSpin:
         #     self.c['grid_outputs'] = False
         rep_dict = {'density':'rho', 'temperature':'Tz', 'depth':'z', 'dcon':'Dcon', 'temp_Hx':'Hx'} #mapping names from output list to variables in CFM
         self.output_list = [rep_dict.get(n, n) for n in self.c['outputs']]
-        print('outputs:', self.output_list)
         if 'grainsize' in self.c['outputs']:
             self.output_list.remove('grainsize')
             self.output_list.append('r2')
@@ -825,7 +822,7 @@ class FirnDensityNoSpin:
         print('modeltime',self.modeltime[0],self.modeltime[-1])
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
-            self.D_surf[iii] = iii #This gives 
+            self.D_surf[iii] = iii # This gives each layer a tracking number that is just iteration number.
             if iii==1000:
                 if ((self.MELT) and (self.c['liquid']=='darcy')):
                     pass

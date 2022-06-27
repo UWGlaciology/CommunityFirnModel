@@ -35,7 +35,6 @@ class ModelOutputs:
         self.output_list = list(MOd.keys())
 
         for varname in self.output_list:
-            print(varname)
             if varname == 'Dcon':
                 intkind = 'nearest'
             else:

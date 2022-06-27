@@ -169,7 +169,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
     stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
-    BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+    if 'SUBLIM' in df_CLIM_re:
+        BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+    else:
+        BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
     T_mean = (df_TS_re['TSKIN']).mean()
     print(BDOT_mean_IE)
     print(T_mean)
