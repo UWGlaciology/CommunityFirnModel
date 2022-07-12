@@ -278,7 +278,7 @@ class FirnDensityNoSpin:
             self.raininput      = False #VV no rain input
 
         if self.c['MELT']:
-            if self.c['SEB']:
+            if self.c['SEB']: #melt will be calculated within the time-stepping loop
                 input_year_snowmelt = climateTS['time'][self.start_ind:]
                 input_snowmelt = np.zeros_like(input_year_snowmelt)
                 input_snowmelt_full = np.zeros_like(climateTS['time'])
@@ -974,22 +974,12 @@ class FirnDensityNoSpin:
             if self.c['SEB']:
 
                 PhysParams.update(dz=self.dz,rho=self.rho) # update dict, will be used for SEB
-                # if np.any(self.Tz>T_MELT):
-                #     print('Tz, seb1', self.Tz[0:3])
                 self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii)
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
                 self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
                 self.forcing_dict['SMELT'][self.start_ind+iii:] = self.snowmelt[iii]
-                # if np.any(self.Tz>T_MELT):
-                #     print('Tz, seb2', self.Tz[0:3])
-                #     input('waiting, 987')
-                # if iii>2410:
-                #     print(self.Ts[iii])
-                #     print(self.snowmelt[iii])
-                #     print(self.snowmeltSec[iii])
-                #     input('waiting')
 
                 if self.c['rad_pen']:
                     pass
@@ -1022,13 +1012,6 @@ class FirnDensityNoSpin:
                 
                 if self.c['liquid'] == 'bucket':
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
-                        # print(iii)
-                        # print('self.snowmeltSec[iii]',self.snowmeltSec[iii])
-                        # print('self.rainSec[iii]',self.rainSec[iii])
-                        # iLWC = np.where(self.LWC>0)[0]
-                        # print('iLWC',iLWC)
-                        # print('LWC',self.LWC[iLWC])
-                        # print('zLWC',self.z[iLWC])
                         self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
