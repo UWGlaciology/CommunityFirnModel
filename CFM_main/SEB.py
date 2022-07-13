@@ -100,12 +100,21 @@ class SurfaceEnergyBudget:
         # def enet(Tsurf,Qn):
         #     return np.abs(Qn - 5.67e-8 * Tsurf**4)
 
-        def enet(Tsurf,Qn):
+        def enet(Tsurf,Qn,Tz,z):
             # e1 = np.abs(Qn - 5.670374419e-8 * Tsurf**4)
             # gflux = np.abs(0.3*(Tz - Tsurf)/dz)
             # gflux = (0.3*(Tz - Tsurf)/dz)
             # gflux = 0
-            e1 = np.abs(Qn - self.SBC * self.emissivity_snow * Tsurf**4)
+
+            i10cm = np.where(z>=0.1)[0][0]
+            d10cm = z[i10cm]
+            Gflux = (0.3*(Tz[i10cm] - Tsurf)/d10cm)
+            # Gflux = 0
+
+            LWout = self.SBC * self.emissivity_snow * Tsurf**4
+
+            e1 = np.abs(Qn + Gflux - LWout)
+
             return e1
 
         Tz   = PhysParams['Tz']
@@ -126,17 +135,17 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        i10cm = np.where(z>=0.1)[0][0]
-        d10cm = z[i10cm]
-        G = (0.3*(Tz[i10cm] - Tz[0])/d10cm)
-        # G=0
+        # i10cm = np.where(z>=0.1)[0][0]
+        # d10cm = z[i10cm]
+        # G = (0.3*(Tz[i10cm] - Tz[0])/d10cm)
+        G=0
  
         Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
 
         # Tlast=Tz[1] 
         cold_content = CP_I * mass * (T_MELT - Tz) # cold content [J]
 
-        mresults = optimize.minimize(enet,method = 'Nelder-Mead',x0=Tguess,args=(Qnet),tol=1e-6)
+        mresults = optimize.minimize(enet,method = 'Nelder-Mead',x0=Tguess,args=(Qnet,Tz,z),tol=1e-6)
         Tsurface = mresults.x[0]
         # if ((iii>90) and (iii<100)):
         #     print('iii',iii)

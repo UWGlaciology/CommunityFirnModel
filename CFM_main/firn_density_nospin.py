@@ -1168,7 +1168,10 @@ class FirnDensityNoSpin:
                     r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
                     self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
                 if not self.c['manualT']: # If SEB, the new snow layer will be T2m
-                    newSnowT = np.max((self.T2m[iii],T_MELT))
+                    if self.c['SEB']:
+                        newSnowT = np.max((self.T2m[iii],T_MELT))
+                    else:
+                        newSnowT = self.Ts[iii]
                     # print(newSnowT)
                     self.Tz         = np.concatenate((np.array([newSnowT],float), self.Tz[:-1]))
                 
