@@ -485,7 +485,7 @@ class FirnDensityNoSpin:
         if self.MELT:
             if not self.c['SEB']:
                 ssf                 = interpolate.interp1d(input_year_snowmelt,input_snowmelt,int_type,fill_value='extrapolate')
-                self.snowmelt       = ssf(self.modeltime)
+                self.snowmelt       = ssf(self.modeltime) #[m i.e./year]
                 self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
             else:
                 self.snowmelt       = np.zeros_like(self.bdot)
@@ -623,7 +623,7 @@ class FirnDensityNoSpin:
             #VV update (23/03/2021)
             self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
-            self.meltvol    = np.array([0.]) #total melt volume
+            self.meltvol    = np.array([0.]) #total melt volume at each time step
  
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -853,6 +853,7 @@ class FirnDensityNoSpin:
         if self.MELT:
             refreezing2check = np.zeros(self.stp)
             runoff2check     = np.zeros(self.stp)
+            meltvol2check    = np.zeros(self.stp)
             dml2check        = np.zeros(self.stp)
         
         ####################################
@@ -974,12 +975,16 @@ class FirnDensityNoSpin:
             if self.c['SEB']:
 
                 PhysParams.update(dz=self.dz,rho=self.rho) # update dict, will be used for SEB
-                self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii)
+                if iii == 0:
+                    T_old = self.Tz[0]
+                else:
+                    T_old = self.Ts[iii-1]
+                self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii,T_old)
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
                 self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
-                self.forcing_dict['SMELT'][self.start_ind+iii:] = self.snowmelt[iii]
+                self.forcing_dict['SMELT'][self.start_ind+iii] = self.snowmelt[iii]
 
                 if self.c['rad_pen']:
                     pass
@@ -1316,6 +1321,7 @@ class FirnDensityNoSpin:
             if self.MELT:
                 refreezing2check[iii] = self.refreeze
                 runoff2check[iii]     = self.runoff
+                meltvol2check[iii]    = self.meltvol
                 dml2check[iii]        = dml_sum
 
         ##################################
@@ -1323,7 +1329,13 @@ class FirnDensityNoSpin:
         ##################################
 
         if self.MELT:
-            print(f'Totals\nMelt+Rain: {sum(self.snowmeltSec+self.rainSec)*S_PER_YEAR*RHO_I_MGM}\nRefreezing: {sum(refreezing2check)}\nRunoff: {sum(runoff2check)}\nLWC (current): {sum(self.LWC)}\nDML: {sum(dml2check)}')
+            print(f'Totals (m w.e.)\n'
+                  f'Melt+Rain:      {sum(self.snowmeltSec+self.rainSec)*S_PER_YEAR*RHO_I_MGM}\n'
+                  f'meltvol:        {sum(meltvol2check)}\n'
+                  f'Refreezing:     {sum(refreezing2check)}\n'
+                  f'Runoff:         {sum(runoff2check)}\n'
+                  f'LWC (current):  {sum(self.LWC)}\n'
+                  f'DML:            {sum(dml2check)}')
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
     ###########################

@@ -342,6 +342,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     else: #SEB True
         l1 = df_CLIM.columns.values.tolist()
 
+        if 'SMELT' in l1:
+            df_CLIM.drop(['SMELT'],axis=1,inplace=True)
+
         # df_TS = pd.DataFrame(df_CLIM.TSKIN)
 
         # res_dict_all = ({'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','T2m':'mean',

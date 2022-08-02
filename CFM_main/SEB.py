@@ -90,7 +90,7 @@ class SurfaceEnergyBudget:
         # self.D_sh = 15 # Sensible heat flux coefficient, Born et al. 2019 [W m^-2 K^-1] 
 
 
-    def SEB(self, PhysParams,iii):
+    def SEB(self, PhysParams,iii,T_old):
         '''
         Calculate the surface energy budget
         Positive fluxes are into the surface, negative are out
@@ -100,22 +100,19 @@ class SurfaceEnergyBudget:
         # def enet(Tsurf,Qn):
         #     return np.abs(Qn - 5.67e-8 * Tsurf**4)
 
-        def enet(Tsurf,Qn,Tz,z):
-            # e1 = np.abs(Qn - 5.670374419e-8 * Tsurf**4)
-            # gflux = np.abs(0.3*(Tz - Tsurf)/dz)
-            # gflux = (0.3*(Tz - Tsurf)/dz)
-            # gflux = 0
-
-            i10cm = np.where(z>=0.1)[0][0]
-            d10cm = z[i10cm]
-            Gflux = (0.3*(Tz[i10cm] - Tsurf)/d10cm)
-            # Gflux = 0
-
-            LWout = self.SBC * self.emissivity_snow * Tsurf**4
-
-            e1 = np.abs(Qn + Gflux - LWout)
-
-            return e1
+        ###################
+        # def enet(Tsurf,Qn,Tz,z):
+        #     # e1 = np.abs(Qn - 5.670374419e-8 * Tsurf**4)
+        #     # gflux = np.abs(0.3*(Tz - Tsurf)/dz)
+        #     # gflux = (0.3*(Tz - Tsurf)/dz)
+        #     # gflux = 0
+        #     i10cm = np.where(z>=0.1)[0][0]
+        #     d10cm = z[i10cm]
+        #     Gflux = (0.3*(Tz[i10cm] - Tsurf)/d10cm)
+        #     # Gflux = 0
+        #     LWout = self.SBC * self.emissivity_snow * Tsurf**4
+        #     e1 = np.abs(Qn + Gflux - LWout)
+        #     return e1
 
         Tz   = PhysParams['Tz']
         mass = PhysParams['mass']
@@ -135,40 +132,62 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        # i10cm = np.where(z>=0.1)[0][0]
-        # d10cm = z[i10cm]
-        # G = (0.3*(Tz[i10cm] - Tz[0])/d10cm)
-        G=0
+        i10cm = np.where(z>=0.1)[0][0]
+        d10cm = z[i10cm]
+        G = (0.3*(Tz[i10cm] - Tz[0])/d10cm)
+        m = mass[i10cm]
+        # G=0
  
         Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
+        # flux_dfd = (df12_daily['SWGNT'] + df12_daily['LWGAB'] - df12_daily['HFLUX'] - df12_daily['EFLUX'] + df12_daily['GHTSKIN'])
 
-        # Tlast=Tz[1] 
-        cold_content = CP_I * mass * (T_MELT - Tz) # cold content [J]
+        # # Tlast=Tz[1] 
+        # cold_content = CP_I * mass * (T_MELT - Tz) # cold content [J]
 
-        mresults = optimize.minimize(enet,method = 'Nelder-Mead',x0=Tguess,args=(Qnet,Tz,z),tol=1e-6)
-        Tsurface = mresults.x[0]
-        # if ((iii>90) and (iii<100)):
-        #     print('iii',iii)
-        #     print('Q_SW_net',Q_SW_net)
-        #     print('Q_LW_d',Q_LW_d)
-        #     print('self.QH[iii]', self.QH[iii])
-        #     print('self.QL[iii]', self.QL[iii])
-        #     print('Qnet',Qnet)
-        #     print('self.T2m[iii]',self.T2m[iii])
-        #     print('self.TSKIN[iii',self.TSKIN[iii])
-        #     print('Tsurface',Tsurface)
-        #     input()
+        # mresults = optimize.minimize(enet,method = 'Nelder-Mead',x0=Tguess,args=(Qnet,Tz,z),tol=1e-6)
+        # Tsurface = mresults.x[0]
+        ##################
 
+        # Qflux = (dff12['SWGNT'] + dff12['LWGAB'] - dff12['HFLUX'] - dff12['EFLUX'] + dff12['GHTSKIN'])
+        
+        
+        # Tcalc = np.zeros_like(df12_daily.SWGNT.values)
+        # meltvold = np.zeros_like(df12_daily.SWGNT.values)
+        # for kk,mdate in enumerate(df12_daily.index):
+        # if iii==0:
+        #     T_ = Tz[0]
+        # else:
+        #     T_0 = df12_daily.iloc[kk-1].TS
+        #     # T_0 = Tcalc[kk-1]
+         
 
-        if Tsurface>=T_MELT:
-            Q_LW_me_old = (self.SBC * (self.emissivity_air * self.T2m[iii]**4 - self.emissivity_snow * (T_MELT)**4))
-            Q_LW_up = (self.SBC * self.emissivity_snow * (T_MELT)**4)
-            Q_LW_me = Q_LW_d - Q_LW_up
+        a = self.SBC*dt/(CP_I*m)
+        b = 0
+        c = 0
+        d = 1
+        e = -1 * (Qnet*dt/(CP_I*m)+T_old)
+        p = np.poly1d([a,b,c,d,e])
+        r = np.roots(p)
+        Tnew = (r[((np.isreal(r)) & (r>0))].real)[0]
+        if Tnew<273.15:
+            Tsurface = Tnew
+            melt_mass = 0
+        else:
+            Tsurface = 273.15
+            melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I 
+        
+        # df12_daily['meltvol'] = meltvold
+        # df12_daily['Tcalc'] = Tcalcd
+   
+        # if Tsurface>=T_MELT:
+        #     Q_LW_me_old = (self.SBC * (self.emissivity_air * self.T2m[iii]**4 - self.emissivity_snow * (T_MELT)**4))
+        #     Q_LW_up = (self.SBC * self.emissivity_snow * (T_MELT)**4)
+        #     Q_LW_me = Q_LW_d - Q_LW_up
 
-            E_melt = (Q_SW_net + Q_LW_me + self.QH[iii] + self.QL[iii] + Qrain_i + G) #[W/m2]
+        #     E_melt = (Q_SW_net + Q_LW_me + self.QH[iii] + self.QL[iii] + Qrain_i + G) #[W/m2]
 
-            Tsurface = T_MELT
-            melt_mass = E_melt/LF_I * dt
+        #     Tsurface = T_MELT
+        #     melt_mass = E_melt/LF_I * dt
 
                 ###################
                 # if (E_melt*dt) < cold_content[0]:
@@ -210,8 +229,8 @@ class SurfaceEnergyBudget:
                 ######################
 
 
-        else:
-            melt_mass = 0
+        # else:
+        #     melt_mass = 0
 
         Tz[0] = Tsurface
         if melt_mass<0:
