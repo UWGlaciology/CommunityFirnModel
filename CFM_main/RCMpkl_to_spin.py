@@ -196,13 +196,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         except:
             pass
         l1 = df_CLIM.columns.values.tolist()
-        l2 = ['SMELT','BDOT','RAIN','TSKIN','SUBLIM']
+        l2 = ['SMELT','BDOT','RAIN','TSKIN','SUBLIM','SRHO']
         notin = list(np.setdiff1d(l1,l2))
         df_CLIM.drop(notin,axis=1,inplace=True)
         # df_BDOT = pd.DataFrame(df_CLIM.BDOT)
         df_TS = pd.DataFrame(df_CLIM.TSKIN)
 
-        res_dict_all = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','SUBLIM':'sum'} # resample type for all possible variables
+        res_dict_all = {'SMELT':'sum','BDOT':'sum','RAIN':'sum','TSKIN':'mean','SUBLIM':'sum','SRHO':'mean'} # resample type for all possible variables
         res_dict = {key:res_dict_all[key] for key in df_CLIM.columns} # resample type for just the data types in df_CLIM
 
         # df_BDOT_re = df_BDOT.resample(timeres).sum()

@@ -233,6 +233,7 @@ class FirnDensityNoSpin:
         #####################
 
         ### sublimation ####
+        ### sublmation inputs need to be negative!
         ### new feature, April 2022.
         if 'SUBLIM' not in self.c:
             self.c['SUBLIM'] = True #Default is true
@@ -432,16 +433,21 @@ class FirnDensityNoSpin:
             print('conductivity was not set in .json; Defaulting to Calonne2019')
         #####################
 
-        ### Accumulation ####
+        ### Accumulation and sublimation ####
+        ### sublimation/evaporation is negative. Any postive values in the SUBLIM
+        ### input are considered deposition, and are added to the bdot (accumulation)
+        ### field. This works because we are only dealing with mass flux here (no energy)
         bsf             = interpolate.interp1d(input_year_bdot,input_bdot,int_type,fill_value='extrapolate') # interpolation function
         self.bdot       = bsf(self.modeltime) # m ice equivalent per year
-        # self.bdot[self.bdot<1e-6] = 0.0 #this may be needed for numerical stability     
-        self.bdotSec    = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
-
         if self.c['SUBLIM']:
             susf            = interpolate.interp1d(input_year_sublim,input_sublim,int_type,fill_value='extrapolate') # interpolation function
-            self.sublim     = susf(self.modeltime) # [m ice eq per year]
+            self.sublim     = susf(self.modeltime) # [m ice eq per year]            
+            if np.any(self.sublim>0):
+                ipSUB = np.where(self.sublim>0)
+                self.bdot[ipSUB] = self.bdot[ipSUB] + self.sublim[ipSUB]
+                self.sublim[ipSUB] = 0
             self.sublimSec  = self.sublim / S_PER_YEAR / (S_PER_YEAR/self.dt) # sublimation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
+        self.bdotSec    = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
 
         try: # Rolling mean average surface temperature and accumulation rate (vector)
             # (i.e. the long-term average climate)

@@ -35,7 +35,9 @@ def firnConductivity(self,iii,K_ice):
         K_air       = kref_a # use this for now; at some point find equation for T-dependence of air
         K_firn      = (1-theta) * K_ice*K_air/(kref_i*kref_a) * kref_snow + theta * K_ice/kref_i * kref_firn # equation 5
     elif self.c['conductivity']=='Schwander':
-        K_firn  = K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
+        K_firn  = 100*K_ice * (self.rho/RHO_I) ** (2 - 0.5 * (self.rho/RHO_I))    # Schwander 1997, eq. A11
+        if iii<100:
+            print('big condo!')
     elif self.c['conductivity']=='Yen_fixed':
         K_firn  = 2.22362 * (self.rho / 1000)**1.885                          # Yen 1981, eq 34 w/ fixed K_ice (original)
     elif self.c['conductivity']=='Yen_var':
