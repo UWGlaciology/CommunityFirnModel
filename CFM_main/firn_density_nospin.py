@@ -238,6 +238,10 @@ class FirnDensityNoSpin:
         if 'SUBLIM' not in self.c:
             self.c['SUBLIM'] = True #Default is true
             print('Please add "SUBLIM" to your .json')
+        
+        if not self.c['MELT']:
+            self.c['SUBLIM'] = False
+        
         if self.c['SUBLIM']:
             ## option 1: sublim comes explicitly from climateTS
             if ((climateTS != None) and ('SUBLIM' in climateTS)): #sublim should be negative values, ie. a flux out of the snowpack
@@ -1249,7 +1253,29 @@ class FirnDensityNoSpin:
 
             elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
                 LWC0e = sum(self.LWC)
-                self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
+                tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
+                if "LWC_heat" not in self.c:
+                    self.c["LWC_heat"] = 'enthalpy'
+
+                if self.c["LWC_heat"]=='enthalpy':
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
+                elif self.c["LWC_heat"]=='highC':
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_highC(self, iii)
+                elif self.c["LWC_heat"]=='Teff':
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_Teff(self, iii)
+                elif self.c["LWC_heat"]=='LWCcorr':
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_LWCcorr(self, iii, self.c["LWCcorr_subdt"],self.c['correct_therm_prop'])
+
+                tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
+
+                if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-3:
+                    print(f'change in enthalpy at iteration {iii}!')
+                    print('pre:', tot_heat_pre)
+                    print('post:', tot_heat_post)
+                    ediff = (tot_heat_post-tot_heat_pre)                
+                    print('difference (kJ):', (tot_heat_post-tot_heat_pre))
+                    print('difference %:', ediff/tot_heat_pre)
+
                 self.refreeze += LWC0e-sum(self.LWC) 
 
             self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 
