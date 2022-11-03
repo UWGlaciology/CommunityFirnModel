@@ -206,439 +206,6 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ### end transient_solve_TR ########
 ###################################
 
-def transient_solve_EN_h(z_edges, Z_P, nt, dt, Gamma_P, Tc, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT,iii=0):
-    '''
-    transient 1-d diffusion finite volume method for enthalpy
-
-    :param z_edges:
-    :param Z_P:
-    :param nt: number of iterations; depricated (now uses while loop)
-    :param dt: time step size
-    :param Gamma_P:
-    :param phi_0:
-    :param nz_P:
-    :param nz_fv:
-    :param phi_s:
-    :param g_liq
-    :param c_vol: [J/m3/K] 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
-
-    :return phi_t:
-
-    The source terms S_P and S_C come from the linearization described
-    in Voller and Swaminathan, 1991, equations 31 and 32.
-    and Voller, Swaminathan, and Thomas, 1990, equation 61
-    '''
-
-
-    # h = 
-    # phi_t = Tc.copy()
-    # phi_t_old = phi_t.copy()
-    LWC_in = LWC.copy()
-
-    vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
-    vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
-    mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
-    mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
-    rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
-    mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
-    g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
-    # g_liq       = LWC / vol_SL  # alternatively, liquid volume fraction (of the material portion, porosity ignored), (I don't think this one is correct. See code at end of while loop to swap if you want to use this)
-   
-    rho_firn = mass_sol/dz
-
-    h = ((rho_firn * Tc * CP_I) + LF_I * rho_liq_eff) * dz #[J]
-
-    phi_t = h.copy()
-    phi_t_old = phi_t.copy()
-
-    g_liq_old = g_liq.copy()
-
-    itercheck = 0.9
-    count = 0
-
-    # while itercheck>ICT:
-    phi_iter = phi_t.copy()
-    g_liq_iter = g_liq.copy() #unitless
-    # deltaH_l = rho_liq_eff * LF_I # [kg/m3 * J/kg = J/m3]
-    # deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
-    # phi_t = phi_0.copy() # T is in C
-    dZ = np.diff(z_edges) #width of nodes
-
-    deltaZ_u = np.diff(Z_P) # [m]
-    deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
-    
-    deltaZ_d = np.diff(Z_P)
-    deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
-
-    f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
-    f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
-
-    ### Gamma has units J/s/m/K (W/m/K)
-    Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
-    Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
-
-    Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
-    Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
-
-    # #### eqs. 31, 32 from Voller 1991
-    # dFdT = np.zeros_like(Gamma_P) # [1/K] dFdT is slope of the liquid fraction/temperature curve. Large at T=0C, i.e. fraction increases rapidly at T=0
-    # dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e10
-    # # ### Finv has units of temperature: T=F^-1(g_liq). When g_liq>0, T=0C, and Finv=0. For g_liq<=0, T<=0 - but
-    # # ### the equation for S_C contains deltaH multiplying Finv. deltaH is zero for nodes with T<0, so we can 
-    # # ### just set Finv=0 at those nodes.
-    # Finv = np.zeros_like(dFdT)
-
-
-    S_P = np.zeros_like(Gamma_P)
-    S_C = np.zeros_like(Gamma_P)
-    # S_C = LF_I * (rho_liq_eff) 
-
-    D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
-    D_d = (Gamma_d / deltaZ_d)
-    
-    a_U   = D_u        #* dt # [W/m2/K]
-    a_D   = D_d        #* dt # [W/m2/K]
-    a_P_0 = c_vol * dZ / dt # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
-    a_P   = a_U + a_D + a_P_0 - S_P * dZ #* dt # check the multiply on the S_P
-    
-    b_0   = S_C  * dZ #* dt # [W/m2]
-    b     = b_0 + a_P_0 * phi_t_old # is this one right? change 22/10/27
-
-    ### Boundary conditions:
-    ### type 1 is a specified value, type 2 is a specified gradient
-    ### (units for gradient are degrees/meter)
-    # bc_u_0  = phi_s 
-    bc_u_0  = h[0] 
-    bc_type_u = 1
-    bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
-
-    bc_d_0  = 0
-    bc_type_d = 1
-    # bc_d_0  = 0
-    # bc_type_d = 2
-    bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
-
-    #Upper boundary
-    a_P[0]  = 1
-    a_U[0]  = 0
-    a_D[0]  = 0
-    b[0]    = bc_u[0]
-
-    #Down boundary
-    a_P[-1] = 1
-    a_D[-1] = 0
-    a_U[-1] = 1
-    b[-1]   = deltaZ_u[-1] * bc_d[0]
-
-    #####
-    phi_t = solver(a_U, a_D, a_P, b)
-    #####
-
-    # h = (rho_firn * Tc * CP_I)
-
-    # Delta_gl = a_P * (phi_t - )
-
-    # deltaH_new = deltaH + 0.95 * a_P/a_P_0*c_vol*phi_iter
-    # deltaH_new[deltaH_new<0] = 0
-    # deltaH_new[deltaH_new>1] = 1
-    # rho_liq_eff = deltaH_new / LF_I
-    # mass_liq = rho_liq_eff*dz
-    # LWC = mass_liq/RHO_W_KGM
-    # g_liq = LWC/dz
-
-    # LWC = g_liq*dz
-    # mass_liq = LWC * RHO_W_KGM
-    # rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
-
-
-    T_new = np.zeros_like(LWC)
-    T_new[LWC==0] = phi_t[LWC==0] / (rho_firn[LWC==0] * CP_I *dz[LWC==0])
-
-
-    delH = np.zeros_like(LWC)
-    g_liq_out = np.zeros_like(LWC)
-    delH[LWC>0] = phi_t_old[LWC>0] - phi_t_old[LWC>0]
-    E_to_freeze = LF_I * LWC * RHO_W_KGM #energy to freeze all water
-    iLWC = np.where(LWC>0)[0]
-    for jj in iLWC:
-        # print('jj',jj)
-        if delH[jj]>E_to_freeze[jj]: #all refrozen
-            # g_liq_out[jj] = 0
-            T_new[jj] = -1*(delH[jj]-E_to_freeze[jj])/(mass_tot[jj]*CP_I)
-            # print('option1: ',T_new[jj])
-            mass_liq[jj] = 0
-        else:
-            T_new[jj] = 0.0
-            refrozen = delH[jj]/LF_I
-            mass_liq[jj] = mass_liq[jj]-refrozen
-            # LWC[]
-    
-    LWC = mass_liq/RHO_W_KGM
-    g_liq_out = LWC/dz
-
-    iterdiff=0
-    print('iii',iii)
-    print(T_new[0:10])
-    print(LWC[0:10])
-    print(g_liq_out[0:10])
-    print(g_liq_old[0:10])
-    input('paused.')
-    return T_new, g_liq_out, count, iterdiff
-
-###################################
-### end transient_solve_EN ########
-###################################
-
-
-def transient_solve_EN_save(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT,iii=0):
-    '''
-    transient 1-d diffusion finite volume method for enthalpy
-
-    :param z_edges:
-    :param Z_P:
-    :param nt: number of iterations; depricated (now uses while loop)
-    :param dt: time step size
-    :param Gamma_P:
-    :param phi_0:
-    :param nz_P:
-    :param nz_fv:
-    :param phi_s:
-    :param g_liq
-    :param c_vol: [J/m3/K] 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
-
-    :return phi_t:
-
-    The source terms S_P and S_C come from the linearization described
-    in Voller and Swaminathan, 1991, equations 31 and 32.
-    and Voller, Swaminathan, and Thomas, 1990, equation 61
-    '''
-
-    # phi_t = phi_0.copy()
-    LWC_old = LWC.copy()
-
-    vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
-    vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
-    mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
-    mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
-    # rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
-    rho_liq_eff = RHO_W_KGM*dz #new 10/31
-    mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
-    g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
-    g_sol       = vol_S / dz
-    # g_liq       = LWC / vol_SL  # alternatively, liquid volume fraction (of the material portion, porosity ignored), (I don't think this one is correct. See code at end of while loop to swap if you want to use this)
- 
-    
-    H_L_liq = RHO_W_KGM*LF_I #volumetric latent enthalpy
-    phi_t = phi_0*CP_I*RHO_I*g_sol #sensible enthalpy
-    bigH = phi_t + H_L_liq*g_liq #total enthalpy, voller 1990b eq 4a
-
-    phi_t_old = phi_t.copy()
-    g_liq_old = g_liq.copy()
-
-    itercheck = 0.9
-    count = 0
-
-    # deltaH = deltaH_l = RHO_W_KGM*LF_I # [J/m3]
-
-    # deltaH = -g_sol*RHO_I*CP_I*phi_t + LF_I*RHO_W_KGM*g_liq
-    
-    # g_liq_iter = g_liq
-
-    # print('iii:',iii)
-    # print('max T in:', np.max(phi_t))
-
-    H_tot = phi_t + H_L_liq*g_liq
-
-    while itercheck>ICT:
-        H_tot_iter = H_tot.copy()
-        phi_iter = phi_t.copy()
-        g_liq_iter = g_liq.copy() #unitless
-        # deltaH_l = rho_liq_eff * LF_I # [kg/m3 * J/kg = J/m3]
-        # deltaH_l = rho_liq_eff * LF_I # [kg/m2 * J/kg = J/m2]
-        # deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
-        # phi_t = phi_0.copy() # T is in C
-
-
-        dZ = np.diff(z_edges) #width of nodes
-
-        deltaZ_u = np.diff(Z_P) # [m]
-        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
-        
-        deltaZ_d = np.diff(Z_P)
-        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
-
-        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
-        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
-
-        ### Gamma has units J/s/m/K (W/m/K)
-        Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
-        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
-
-        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
-        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
-
-        # #### eqs. 31, 32 from Voller 1991
-        dFdT = np.zeros_like(Gamma_P) # [1/K] dFdT is slope of the liquid fraction/temperature curve. Large at T=0C, i.e. fraction increases rapidly at T=0
-        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e10
-        # ### Finv has units of temperature: T=F^-1(g_liq). When g_liq>0, T=0C, and Finv=0. For g_liq<=0, T<=0 - but
-        # ### the equation for S_C contains deltaH multiplying Finv. deltaH is zero for nodes with T<0, so we can 
-        # ### just set Finv=0 at those nodes.
-        Finv = np.zeros_like(dFdT)
-
-        # method='Voller'
-        # if method=='Voller':
-        #     # deltaH is [J/m3]
-        # S_P = (-1 * deltaH * dFdT) / dt #[J/m3/K/s = W/m3/K]
-        # S_P = (deltaH * dFdT) / dt #[J/m3/K/s = W/m3/K]
-        # S_C = -1*(deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt # [J/m3/s = W/m3]
-        # ### end 1991
-
-        ### S_C is independent
-        S_P = np.zeros_like(Gamma_P)
-        S_C = H_L_liq  * (g_liq_old - g_liq_iter) / dt # J/m3/s = W/m3 
-
-        D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
-        D_d = (Gamma_d / deltaZ_d)
-        
-        a_U   = D_u        #* dt # [W/m2/K]
-        a_D   = D_d        #* dt # [W/m2/K]
-        a_P_0 = c_vol * dZ / dt # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
-        a_P   = a_U + a_D + a_P_0 - S_P * dZ #* dt # check the multiply on the S_P
-
-        # a_P[g_liq_old>0] = 1e15
-        
-        b_0   = S_C  * dZ #* dt # [W/m2]
-        b     = b_0 + a_P_0 * phi_t_old # is this one right? change 22/10/27
-        # b       = b_0 + a_P_0 * phi_t
-
-        # print(iii,count)
-        # print('S_C:',np.max(b_0))
-        # print('a_P_0 * phi_t_old:',np.max(a_P_0 * phi_t_old))
-        # print('a_U', a_U)
-        # input('paused.')
-
-        ### Boundary conditions:
-        ### type 1 is a specified value, type 2 is a specified gradient
-        ### (units for gradient are degrees/meter)
-        bc_u_0  = phi_s
-        bc_type_u = 1
-        bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
-
-        bc_d_0  = 0
-        bc_type_d = 1
-        # bc_d_0  = 0
-        # bc_type_d = 2
-        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
-
-        #Upper boundary
-        a_P[0]  = 1
-        a_U[0]  = 0
-        a_D[0]  = 0
-        b[0]    = bc_u[0]
-
-        #Down boundary
-        a_P[-1] = 1
-        a_D[-1] = 0
-        a_U[-1] = 1
-        b[-1]   = deltaZ_u[-1] * bc_d[0]
-
-        #####
-        phi_t = solver(a_U, a_D, a_P, b)
-        # print(count)
-        # print(np.max(phi_t))
-        # input('waiting.')
-        #####
-
-        # deltaH_new = -g_sol*RHO_I*CP_I*phi_t + LF_I*RHO_W_KGM*g_liq
-
-        phi_iter = phi_t
-
-        UCF = 1
-        # dh_sens = CP_I * RHO_I * phi_t
-
-        # Delta_g_liq=a_P*phi_t/(dz*deltaH)*dt
-        # Delta_g_liq = np.zeros_like(LWC)
-        # Delta_g_liq[g_liq_old>0] = (a_P_0 * phi_t[g_liq_old>0]) / (dz[g_liq_old>0] * deltaH)
-
-        Delta_g_liq = a_P_0 * phi_t / (H_L_liq) 
-     
-        g_liq = g_liq + UCF * Delta_g_liq
-        # g_liq = g_liq_iter + (a_P * (phi_t) / (RHO_W_KGM*LF_I*dz)) 
-        g_liq[g_liq<0] = 0
-        g_liq[g_liq>1] = 1
-
-        # Delta
-
-        H_tot = phi_t + H_L_liq*g_liq
-
-        # deltaLWC = (g_liq - g_liq_iter)/dz
-        # delta_vol_S = -1*deltaLWC/0.917
-        # g_sol = (vol_S + delta_vol_S) / dz
-
-        # deltaH = deltaH_new
-        # deltaH = -g_sol*RHO_I*CP_I*phi_t + LF_I*RHO_W_KGM*g_liq
-
-        # deltaH_new = deltaH + 0.95 * a_P/a_P_0*c_vol*phi_iter
-        # deltaH_new[deltaH_new<0] = 0
-        # deltaH_new[deltaH_new>1] = 1
-        # rho_liq_eff = deltaH_new / LF_I
-        # mass_liq = rho_liq_eff*dz
-        # LWC = mass_liq/RHO_W_KGM
-        # g_liq = LWC/dz
-
-        # LWC = g_liq*dz
-        # mass_liq = LWC * RHO_W_KGM
-        # rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
-
-        # iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
-        iterdiff = np.abs(np.sum(H_tot_iter/(CP_I*RHO_I*g_sol)) - np.sum(H_tot/(CP_I*RHO_I*g_sol)))
-        if iterdiff<1e-4:
-            itercheck = 0
-        else:
-            itercheck = iterdiff
-
-        # if iterdiff==0:
-        #     itercheck = 0
-        #     # print(f'g_liq_iter: {np.sum(g_liq_iter)}')
-        #     # print(f'g_liq: {np.sum(g_liq)}')
-        #     # print('break!')
-        #     break
-        # else:
-        #     itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
-        count += 1
-        if count==100:
-            if ICT == 0:
-                ICT = 1e-12
-            else:
-                pass
-        if ((count==200) and (ICT==1e-12)):
-            # if ICT > 1e-12:
-            #     pass
-            # else:
-            ICT = ICT * 10
-        if count>1000:
-            print('breaking loop')
-            print('iii', iii)
-            print('itercheck',itercheck)
-            print('iterdiff', iterdiff)
-            print('np.sum(g_liq_iter)', np.sum(g_liq_iter))
-            break
-    ### END ITERATION
-
-    # print(count)
-    # print('###############')
-    # input('waiting')
-    # print('count',count)
-
-    phi_t_out = H_tot/(CP_I*RHO_I*g_sol)
-    phi_t_out[g_liq>0] = 0
-    # print('max out:', np.max(phi_t_out))
-    return phi_t_out, g_liq, count, iterdiff
-
-###################################
-### end transient_solve_EN ########
-###################################
-
 def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT,iii=0):
     '''
     transient 1-d diffusion finite volume method for enthalpy
@@ -671,9 +238,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
     mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
     mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
-    # rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
     rho_liq_eff = RHO_W_KGM*dz #new 10/31
-    # mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
     g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
     g_sol       = vol_S / dz
 
@@ -719,8 +284,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         ### S_C is independent
         S_P = np.zeros_like(Gamma_P)
-        S_C = H_L_liq  * (g_liq_old - g_liq_iter) / dt # J/m3/s = W/m3 
-        # S_C = H_L_liq  * g_liq_old / dt # J/m3/s = W/m3 
+        S_C = H_L_liq  * (g_liq_old - g_liq_iter) / dt # J/m3/s = W/m3 Latent heat as source term.
 
         D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
         D_d = (Gamma_d / deltaZ_d)
@@ -790,7 +354,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         else:
             itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
 
-
         count += 1
         if count==100:
             if ICT == 0:
@@ -803,7 +366,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             # else:
             ICT = ICT * 10
         if count>1000:
-            print('breaking loop')
+            print('breaking loop (the solver iterated 1000 times!')
             print('iii', iii)
             print('itercheck',itercheck)
             print('iterdiff', iterdiff)
@@ -816,21 +379,22 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     phi_t_out[g_liq>0] = 0
     phi_t_out[(phi_t_out>0)] = 0 
 
-    bcw = ((phi_t_out<0)&(g_liq>0))
-    # bcw = ((g_liq - g_liq_in)>0)
-    if np.any(bcw):
-        icw = np.where(bcw)[0]
-        print('##########')
-        print('solver returning cold and wet firn.')
-        print('count', count)
-        print('itercheck',itercheck)
-        print('phi_in',phi_in[icw])
-        print('g_liq_in',g_liq_in[icw])
-        print('phi_t_out',phi_t_out[icw])
-        print('g_liq',g_liq[icw])
-        print('g_liq diff: ',(g_liq - g_liq_in)[icw])
-        print('depths', Z_P[icw])
-        input("waiting. (solver.py)")
+    ### Below can be used for testing if outputs are messed up.
+    # bcw = ((phi_t_out<0)&(g_liq>0))
+    # # bcw = ((g_liq - g_liq_in)>0)
+    # if np.any(bcw):
+    #     icw = np.where(bcw)[0]
+    #     print('##########')
+    #     print('solver returning cold and wet firn.')
+    #     print('count', count)
+    #     print('itercheck',itercheck)
+    #     print('phi_in',phi_in[icw])
+    #     print('g_liq_in',g_liq_in[icw])
+    #     print('phi_t_out',phi_t_out[icw])
+    #     print('g_liq',g_liq[icw])
+    #     print('g_liq diff: ',(g_liq - g_liq_in)[icw])
+    #     print('depths', Z_P[icw])
+    #     input("waiting. (solver.py)")
 
     return phi_t_out, g_liq, count, iterdiff
 
@@ -841,8 +405,10 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
 def transient_solve_EN_noloop(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT,iii=0):
     '''
+    DO NOT USE THIS VERSION OF THE SOLVER!
     transient 1-d diffusion finite volume method for enthalpy
     Diffuse sensible enthalpy version.
+    This one does not use the loop; it is here for testing purposes.
 
     :param z_edges:
     :param Z_P:
@@ -864,6 +430,7 @@ def transient_solve_EN_noloop(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv,
     '''
 
     # phi_t = phi_0.copy()
+
     LWC_old = LWC.copy()
 
     vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
@@ -888,8 +455,6 @@ def transient_solve_EN_noloop(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv,
     H_latent = H_L_liq*g_liq
     H_latent_old = H_latent.copy()
     H_tot = phi_t + H_latent  #total enthalpy, voller 1990b eq 4a
-
-    # while itercheck>ICT:
 
     H_tot_iter = H_tot.copy()
     phi_iter = phi_t.copy()
@@ -978,280 +543,17 @@ def transient_solve_EN_noloop(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv,
 
     g_sol = g_sol + -1*delta_g_liq/0.917
 
-    # g_liq = g_liq_iter + delta_h/(RHO_W_KGM*LF_I)
-    # g_liq[g_liq<0] = 0
-    # g_liq[g_liq>1] = 1
-    # delta_gl = g_liq - g_liq_iter
-    
-    # H_excess = H_latent_old + delta_h
-    # phi_t[H_excess<0] = phi_t[H_excess<0] + H_excess[H_excess<0]
-
-    # UCF = 0.9
-    # Delta_g_liq = a_P/a_P_0 * phi_t / (H_L_liq) 
- 
-    # g_liq = g_liq + UCF * Delta_g_liq
-    # g_liq[g_liq<0] = 0
-    # g_liq[g_liq>1] = 1
-
     H_tot = phi_t + H_L_liq*g_liq
     
-    # iterdiff = np.abs(np.sum(H_tot_iter/(CP_I*RHO_I*g_sol)) - np.sum(H_tot/(CP_I*RHO_I*g_sol)))
-    # if iterdiff<1e-4:
-    #     itercheck = 0
-    # else:
-    #     itercheck = iterdiff
-
-    # iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
-    # if iterdiff==0:
-    #     itercheck = 0
-    #     # print(f'g_liq_iter: {np.sum(g_liq_iter)}')
-    #     # print(f'g_liq: {np.sum(g_liq)}')
-    #     # print('break!')
-    #     break
-    # else:
-    #     itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
-    # count += 1
-    # if count==100:
-    #     if ICT == 0:
-    #         ICT = 1e-12
-    #     else:
-    #         pass
-    # if ((count==200) and (ICT==1e-12)):
-    #     # if ICT > 1e-12:
-    #     #     pass
-    #     # else:
-    #     ICT = ICT * 10
-    # if count>1000:
-    #     print('breaking loop')
-    #     print('iii', iii)
-    #     print('itercheck',itercheck)
-    #     print('iterdiff', iterdiff)
-    #     print('np.sum(g_liq_iter)', np.sum(g_liq_iter))
-    #     break
-    ### END ITERATION
-
     iterdiff=0
     phi_t_out = H_tot/(CP_I*RHO_I*g_sol)
     phi_t_out[g_liq>0] = 0
     phi_t_out[(phi_t_out>0)] = 0 
-    # print('max out:', np.max(phi_t_out))
-    # print('iii',iii)
-    # print('count',count)
+
     return phi_t_out, g_liq, count, iterdiff
 
 ###################################
-### end transient_solve_EN ########
-###################################
-
-
-def transient_solve_EN_VOL(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT,iii=0):
-    '''
-    transient 1-d diffusion finite volume method for enthalpy
-
-    :param z_edges:
-    :param Z_P:
-    :param nt: number of iterations; depricated (now uses while loop)
-    :param dt: time step size
-    :param Gamma_P:
-    :param phi_0:
-    :param nz_P:
-    :param nz_fv:
-    :param phi_s:
-    :param g_liq
-    :param c_vol: [J/m3/K] 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
-
-    :return phi_t:
-
-    The source terms S_P and S_C come from the linearization described
-    in Voller and Swaminathan, 1991, equations 31 and 32.
-    and Voller, Swaminathan, and Thomas, 1990, equation 61
-    '''
-
-    phi_t = phi_0.copy()
-    phi_t_old = phi_t.copy()
-
-    vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
-    vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
-    mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
-    mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
-    rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
-    mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
-    g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
-    # g_liq_alt   = LWC / vol_SL  # alternatively, liquid volume fraction (of the material portion, porosity ignored), (I don't think this one is correct. See code at end of while loop to swap if you want to use this)
-   
-    g_liq_old = g_liq.copy()
-
-    itercheck = 0.9
-    count = 0
-
-    # ICT = ICT # itercheck threshold 
-    # print('###############')
-    # print(f'iii = {iii}')
-    # print(f'g_liq_old: {np.sum(g_liq_old)}')
-
-    while itercheck>ICT:
-        g_liq_iter = g_liq.copy() #unitless
-        deltaH_l = rho_liq_eff * LF_I # [kg/m3 * J/kg = J/m3]
-        deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
-        phi_t = phi_0.copy() # T in C
-        dZ = np.diff(z_edges) #width of nodes
-
-        deltaZ_u = np.diff(Z_P) # [m]
-        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
-        
-        deltaZ_d = np.diff(Z_P)
-        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
-
-        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
-        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
-
-        ### Gamma has units J/s/m/K (W/m/K)
-        Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
-        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
-
-        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
-        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
-
-        ### Voller 1990 # Should be same result as 31, 32 from Voller 1991.
-        # beta_P = np.zeros_like(Gamma_P)
-        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e16
-        # S_P = beta_P * deltaH * g_liq_old #* dZ * dt
-        # S_C = -S_P*phi_t + deltaH*g_liq_old - deltaH*g_liq #+ deltaH*beta_P*
-        ### end 1990 
-
-        #### eqs. 31, 32 from Voller 1991
-        dFdT = np.zeros_like(Gamma_P) # [1/K] dFdT is slope of the liquid fraction/temperature curve. Large at T=0C, i.e. fraction increases rapidly at T=0
-        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e10
-        ### Finv has units of temperature: T=F^-1(g_liq). When g_liq>0, T=0C, and Finv=0. For g_liq<=0, T<=0 - but
-        ### the equation for S_C contains deltaH multiplying Finv. deltaH is zero for nodes with T<0, so we can 
-        ### just set Finv=0 at those nodes.
-        Finv = np.zeros_like(dFdT)
-
-        method='Voller'
-        if method=='Voller':
-            # deltaH is [J/m3]
-            S_P = (-1 * deltaH * dFdT) / dt #[J/m3/K/s = W/m3/K]
-            S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv) / dt # [J/m3/s = W/m3]
-        ### end 1991
-
-        ### Brent method
-        if method=='Brent':
-            S_P = np.zeros_like(Gamma_P)
-            S_C = deltaH * (g_liq_old - g_liq_iter) / dt
-
-
-        D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
-        D_d = (Gamma_d / deltaZ_d)
-
-        b_0   = S_C   * dZ #* dt # [W/m2]
-
-        a_U   = D_u        #* dt # [W/m2/K]
-        a_D   = D_d        #* dt # [W/m2/K]
-        a_P_0 = c_vol * dZ / dt # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
-        
-        a_P   = a_U + a_D + a_P_0 - S_P * dZ #* dt # check the multiply on the S_P
-
-        # b       = b_0 + a_P_0 * phi_t
-        b       = b_0 + a_P_0 * phi_t_old # is this one right? change 22/10/27
-
-        ### Boundary conditions:
-        ### type 1 is a specified value, type 2 is a specified gradient
-        ### (units for gradient are degrees/meter)
-        bc_u_0  = phi_s
-        bc_type_u = 1
-        bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
-
-        bc_d_0  = 0
-        bc_type_d = 1
-        # bc_d_0  = 0
-        # bc_type_d = 2
-        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
-
-        #Upper boundary
-        a_P[0]  = 1
-        a_U[0]  = 0
-        a_D[0]  = 0
-        b[0]    = bc_u[0]
-
-        #Down boundary
-        a_P[-1] = 1
-        a_D[-1] = 0
-        a_U[-1] = 1
-        b[-1]   = deltaZ_u[-1] * bc_d[0]
-
-        #####
-        phi_t = solver(a_U, a_D, a_P, b)
-        #####
-
-        ### Use underrelaxation
-        ### Brent
-        if method=='Brent':
-            g_delta = np.zeros_like(g_liq_old)
-            g_delta[g_liq>0] = (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
-            # print('g_delta',max(g_delta),min(g_delta))
-            UF = 0.9 # underrelaxation parameter
-            g_liq[g_liq>0] = g_liq[g_liq>0] + UF * g_delta[g_liq>0]
-
-            ### Do not use underrelaxation (Voller says should not need to)
-            # g_liq[g_liq>0] = g_liq[g_liq>0] + (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
-        
-
-        ### taken from v1.1.2; bit in v1.1.5 does not work!
-        ### Voller 91
-        elif method=='Voller':
-            g_liq[g_liq>0] = (g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
-            g_liq[g_liq<=0] = 0
-            g_liq[g_liq>1] = 1
-       
-        LWC = g_liq*dz
-        mass_liq = LWC * RHO_W_KGM
-        rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
-
-        ### Use the following if you use g_liq_alt above
-        # new_vol = mass_tot/(g_liq*RHO_W_KGM + RHO_I - g_liq*RHO_I)
-        # LWC = g_liq * new_vol
-        # mass_liq = LWC * RHO_W_KGM
-        # rho_liq_eff = mass_liq / dZ #dz or dZ?
-
-        iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
-        if iterdiff==0:
-            itercheck = 0
-            # print(f'g_liq_iter: {np.sum(g_liq_iter)}')
-            # print(f'g_liq: {np.sum(g_liq)}')
-            # print('break!')
-            break
-        else:
-            itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
-        # print(f'count: {count}')
-        # print(f'itercheck: {itercheck}')
-        # print(f'g_liq_old: {np.sum(g_liq_old)}')
-        # print(f'g_liq_iter: {np.sum(g_liq_iter)}')
-        # print(f'g_liq: {np.sum(g_liq)}')
-        # print(f'ICT: {ICT}')
-        count += 1
-        if count==100:
-            if ICT == 0:
-                ICT = 1e-12
-            else:
-                pass
-        if ((count==200) and (ICT==1e-12)):
-            # if ICT > 1e-12:
-            #     pass
-            # else:
-            ICT = ICT * 10
-        if count>1000:
-            print('breaking loop')
-            print(iii)
-            print('itercheck',itercheck)
-            break
-
-    # print(count)
-    # print('###############')
-    # input('waiting')
-    return phi_t, g_liq, count, iterdiff
-
-###################################
-### end transient_solve_EN ########
+### end transient_solve_EN_noloop #
 ###################################
 
 
