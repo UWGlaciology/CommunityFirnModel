@@ -68,6 +68,8 @@ def bucket(self,iii):
     melt_volume_IE      = self.snowmeltSec[iii]*S_PER_YEAR # [m ie]
     melt_volume_WE      = melt_volume_IE*RHO_I_MGM         # [m] 
     melt_mass           = melt_volume_WE*RHO_W_KGM         # [kg]
+
+    total_liquid_mass_start = np.sum(melt_mass) + np.sum(self.LWC*RHO_W_KGM)
     
     ### Define last variables needed for the routine ###
     nnd        = len(self.z)   # number of nodes
@@ -486,6 +488,21 @@ def bucket(self,iii):
         print(f'Layer rho: {self.rho[xx]}')
 
     self.rho[self.rho>RHO_I] = RHO_I
+
+    total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
+    mass_runoff = runofftot*RHO_W_KGM
+    mass_refreeze = refrozentot*RHO_W_KGM
+
+    tot_mass_end = total_liquid_mass_end+mass_refreeze+mass_runoff
+    mass_diff = tot_mass_end-total_liquid_mass_start
+
+    if np.abs(mass_diff)>1e-6:
+        print('found a difference between recorded in/out liquid in melt.py')
+        print('difference:',mass_diff)
+        print('tot_mass_end',tot_mass_end)
+        print('total_liquid_mass_start',total_liquid_mass_start)
+        # input('waiting, melt.py 501')
+
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot
 

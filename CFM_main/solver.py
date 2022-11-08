@@ -301,7 +301,9 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         ### type 1 is a specified value, type 2 is a specified gradient
         ### (units for gradient are degrees/meter)
         # bc_u_0  = phi_s
-        bc_u_0 = phi_t_old[0]
+        # bc_u_0 = phi_t_old[0]
+        bc_u_0 = phi_iter[0]
+
         bc_type_u = 1
         bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
 

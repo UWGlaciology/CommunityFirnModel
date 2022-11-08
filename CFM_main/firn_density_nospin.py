@@ -1367,6 +1367,7 @@ class FirnDensityNoSpin:
                   f'Refreezing:     {sum(refreezing2check)}\n'
                   f'Runoff:         {sum(runoff2check)}\n'
                   f'LWC (current):  {sum(self.LWC)}\n'
+                  f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)}\n'
                   f'DML:            {sum(dml2check)}')
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
