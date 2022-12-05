@@ -257,6 +257,8 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     H_latent_old = H_latent.copy()
     H_tot = phi_t + H_latent  #total enthalpy, voller 1990b eq 4a
 
+    printcountout = False
+
     while itercheck>ICT:
 
         H_tot_iter = H_tot.copy()
@@ -282,27 +284,45 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
         Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
-        ### S_C is independent
+        #### version with working dt ####
+        # ### S_C is independent
+        # S_P = np.zeros_like(Gamma_P)
+        # S_C = H_L_liq  * (g_liq_old - g_liq_iter) / dt # J/m3/s = W/m3 Latent heat as source term.
+
+        # D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
+        # D_d = (Gamma_d / deltaZ_d)
+        
+        # a_U   = D_u        #* dt # [W/m2/K]
+        # a_D   = D_d        #* dt # [W/m2/K]
+        # a_P_0 = c_vol * dZ / dt # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
+        # a_P   = a_U + a_D + a_P_0 - S_P * dZ #* dt # check the multiply on the S_P
+
+        # b_0   = S_C  * dZ #* dt # [W/m2]
+        # b     = b_0 + a_P_0 * phi_t_old # is this one right? change 22/10/27
+        ###############
+
+        ### try alternate dt for numerical stability
         S_P = np.zeros_like(Gamma_P)
-        S_C = H_L_liq  * (g_liq_old - g_liq_iter) / dt # J/m3/s = W/m3 Latent heat as source term.
+        S_C = H_L_liq  * (g_liq_old - g_liq_iter) # J/m3/s = W/m3 Latent heat as source term.
 
         D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
         D_d = (Gamma_d / deltaZ_d)
         
-        a_U   = D_u        #* dt # [W/m2/K]
-        a_D   = D_d        #* dt # [W/m2/K]
-        a_P_0 = c_vol * dZ / dt # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
-        a_P   = a_U + a_D + a_P_0 - S_P * dZ #* dt # check the multiply on the S_P
+        a_U   = D_u        * dt # [W/m2/K]
+        a_D   = D_d        * dt # [W/m2/K]
+        a_P_0 = c_vol * dZ # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
+        a_P   = a_U + a_D + a_P_0 - S_P * dZ * dt # check the multiply on the S_P
 
         b_0   = S_C  * dZ #* dt # [W/m2]
         b     = b_0 + a_P_0 * phi_t_old # is this one right? change 22/10/27
+        ###############
 
         ### Boundary conditions:
         ### type 1 is a specified value, type 2 is a specified gradient
         ### (units for gradient are degrees/meter)
         # bc_u_0  = phi_s
-        # bc_u_0 = phi_t_old[0]
-        bc_u_0 = phi_iter[0]
+        bc_u_0 = phi_t_old[0]
+        # bc_u_0 = phi_iter[0]
 
         bc_type_u = 1
         bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
@@ -331,6 +351,13 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         delta_h = phi_t - phi_iter #this will always be negative for layers with LWC
 
+        if np.any(delta_h[LWC_old>0]>0):
+            print('iii',iii)
+            print('positive delta_h')
+            print('count', count)
+            printcountout = True
+
+
         ndh = -1*delta_h 
 
         ### everything refreezes
@@ -343,7 +370,21 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         phi_t[cond2] = 0
         g_liq[cond2] = (H_latent[cond2] + delta_h[cond2])/H_L_liq
 
+        g_liq[g_liq<0]=0
+        g_liq[g_liq>1]=1
+
         delta_g_liq = g_liq - g_liq_old # change in liquid fraction. Should always be negative.
+
+        if np.any(delta_g_liq>0):
+            print('POSITIVE delta_g_liq!!!!')
+            print('iii:',iii)
+            print('count',count)
+            printcountout = True
+            print(f'pos values: {delta_g_liq[delta_g_liq>0]}')
+            # printT = True
+            print('##########')
+
+        # if np.any(g_liq<0)
 
         g_sol = g_sol + -1*delta_g_liq/0.917
         H_tot = phi_t + H_L_liq*g_liq
@@ -398,7 +439,17 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     #     print('depths', Z_P[icw])
     #     input("waiting. (solver.py)")
 
-    return phi_t_out, g_liq, count, iterdiff
+    if printcountout:
+        print(f'count at end ({iii}): {count}')
+        print(f'surface temp: {phi_in[0]}')
+        i10m = np.where(Z_P>=10)[0][0]
+        print(f'10m temp in: {phi_in[i10m]}')
+        print(f'10m temp out: {phi_t_out[i10m]}')
+        print(f'min temp in: {np.min(phi_in)}')
+        print(f'min temp out: {np.min(phi_t_out)}')
+        print(f'bottom temp: {phi_t_out[-1]}')
+
+    return phi_t_out, g_liq, count, iterdiff,g_sol
 
 ###################################
 ### end transient_solve_EN ########

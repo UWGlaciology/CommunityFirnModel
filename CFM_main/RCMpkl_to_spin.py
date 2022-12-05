@@ -227,6 +227,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
+
         if 'SUBLIM' not in df_CLIM_re:
             df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
             print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
@@ -239,9 +240,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
         if not desired_depth:
-            desired_depth = hh[np.where(rho>=916)[0][0]]
-            depth_S1 = hh[np.where(rho>=550)[0][0]]
-            depth_S2 = hh[np.where(rho>=750)[0][0]]
+            # desired_depth = hh[np.where(rho>=916)[0][0]]
+            desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
+            depth_S1 = hh[np.where(rho>=450)[0][0]]
+            depth_S2 = hh[np.where(rho>=650)[0][0]]
         else:
             desired_depth = desired_depth
             depth_S1 = desired_depth * 0.5

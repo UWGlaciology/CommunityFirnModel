@@ -139,7 +139,8 @@ def bucket(self,iii):
     ilim        = np.where(self.rho + phivol_av * RHO_W_KGM / self.dz > RHO_I)[0] # nodes where saturation could lead to density>917
 
     if len(ilim) > 0:     # limit pore space availability for storage in ilim nodes
-        phivol_av[ilim] = np.maximum(self.dz[ilim]*(916.99-self.rho[ilim])/RHO_W_KGM,0.)
+        # phivol_av[ilim] = np.maximum(self.dz[ilim]*(916.99-self.rho[ilim])/RHO_W_KGM,0.)
+        phivol_av[ilim] = np.maximum(self.dz[ilim]*(917.0-self.rho[ilim])/RHO_W_KGM,0.)
     
     LWCirr   = IrrVal * phivol_av      # volume of LWC that can be held as irreducible water [m]
     LWCirr[self.rho>=RhoImp] = 0.      # set irreducible water to zero in nodes exceeding impermeability threshold
@@ -153,6 +154,9 @@ def bucket(self,iii):
         LWCirr                  = phivol_av * swi # maximum LWC that can be held as irreducible water [m]
    
     LWC_excess   = np.maximum(self.LWC-LWCirr,0) # LWC in excess of irreducible water content (vector)
+
+    LWC_excess_st = np.sum(LWC_excess)*RHO_W_KGM
+    LWC_irr_st = np.sum(LWCirr)*RHO_W_KGM
     
     ### Calculation of storage capacity in each node ###
     ### storage capacity defined as (refreezing  + irreducible water retention) capacities 
@@ -180,7 +184,8 @@ def bucket(self,iii):
     ilim            = np.where(rho_pot + phivol_av_pot * RHO_W_KGM / self.dz > RHO_I)[0] # nodes potentially exceeding 917 density
     
     if len(ilim)>0: # limit pore space availability for storage in ilim nodes
-        phivol_av_pot[ilim] = np.maximum(self.dz[ilim] * (916.99 - rho_pot[ilim]) / RHO_W_KGM,0.)
+        # phivol_av_pot[ilim] = np.maximum(self.dz[ilim] * (916.99 - rho_pot[ilim]) / RHO_W_KGM,0.)
+        phivol_av_pot[ilim] = np.maximum(self.dz[ilim] * (917 - rho_pot[ilim]) / RHO_W_KGM,0.)
     
     ######
     LWCirr_pot    = IrrVal * phivol_av_pot # LWC that can be held as irreducible water after refreezing occurs[m]
@@ -256,6 +261,8 @@ def bucket(self,iii):
     elif liq_in_vol == 0: #no liquid water input
         storageinp = np.zeros(nnd) #no input water storage
 
+    LWCblockedC1 = np.sum(LWCblocked)*RHO_W_KGM
+
     stcap1 = stcap - storageinp #update storage capcity
 
     ### Set LWC_excess in impermeable nodes as blocked LWC ###
@@ -264,6 +271,8 @@ def bucket(self,iii):
     self.LWC[indsblc]   = self.LWC[indsblc] - LWC_excess[indsblc]           # update LWC
     LWC_excess[indsblc] = 0.                                          # update LWC_excess
     
+    LWCblockedC2 = np.sum(LWCblocked)*RHO_W_KGM
+
     ### Distribute LWC_excess in the nodes supporting storage and/or in LWCblocked ###
     LWC1     = np.copy(self.LWC) # LWC will be modified by LWC_excess transfers
     storage1 = np.zeros(nnd)     # LWC stored in the different nodes
@@ -321,6 +330,9 @@ def bucket(self,iii):
                     else: # all nodes with LWC_excess have been treated
                         jj0 = ind_ex_bot+1                               # terminate the while loop
         
+            LWCblockedC3 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC4 = False
+
         else: # no storage capacity in the firn column
             for jj0 in inds_ex: # find underlying impermeable barrier for each node with some LWC_excess
                 try:
@@ -328,7 +340,12 @@ def bucket(self,iii):
                 except:
                     jj1=-1
                 LWCblocked[jj1] += LWC_excess[jj0]      # LWC_excess is blocked above the barrier
+                # print('jj0',jj0)
+                # print('LWCblocked[jj1]',LWCblocked[jj1]*RHO_W_KGM)
                 LWC1[jj0] = LWCirr[jj0]                 # LWC of jj0 is reduced to irreducible water content
+            
+            LWCblockedC4 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC3 = False
                 
     storagetot = storageinp+storage1    # total storage in each node
     LWC1       = LWC1+storagetot        # redistributed LWC
@@ -369,6 +386,8 @@ def bucket(self,iii):
     ### Store LWC blocked ###
     runofftot  = runofftot + DirectRunoff*np.sum(LWCblocked) #Direct runoff of part of the blocked LWC (user choice)
     LWCblocked = (1 - DirectRunoff)*LWCblocked #corresponding decrease of LWCblocked
+
+    runofftot1 = (runofftot*RHO_W_KGM).copy()
     
     if np.any(LWCblocked > 0):
         if Ponding == True: #ponding is allowed
@@ -410,10 +429,20 @@ def bucket(self,iii):
                         self.LWC[self.LWC<0] = 0.0
 
                 LWCblocked[kk]                  = 0. # LWCblocked[kk] has been accomodated
+            runofftot2a = (runofftot*RHO_W_KGM).copy()
+            runofftot2b = False
+            LWCblockedC5 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC6 = False
+                
         
         elif Ponding == False: #no ponding
             runofftot   = runofftot+np.sum(LWCblocked) #set all LWCblocked as runoff
             LWCblocked  = 0*LWCblocked #LWCblocked is empty
+            runofftot2b = (runofftot*RHO_W_KGM).copy()
+            runofftot2a = False
+            LWCblockedC6 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC5 = False
+            
    
     ### Zuo and Oerlemans (1996) runoff routine ###
     if RunoffZuoOerlemans == True: # Calculations with post-refreezing values       
@@ -443,6 +472,10 @@ def bucket(self,iii):
             rfZO[indsrfZO]  = self.dt[iii] * LWC_rfZO[indsrfZO] / tstar # from Eq.(21) Zuo and Oerlemans 1996 [m]
             self.LWC        = self.LWC - rfZO           # decrease LWC
             runofftot       = runofftot + np.sum(rfZO)  # add the calculated runoff to the total runoff
+            runofftot3 = (runofftot*RHO_W_KGM).copy()
+    
+    else:
+        runofftot3 = False       
             
     ### Mass conservation check ###
     liqmcfinal = sum(self.LWC) + refrozentot + runofftot
@@ -497,11 +530,28 @@ def bucket(self,iii):
     mass_diff = tot_mass_end-total_liquid_mass_start
 
     if np.abs(mass_diff)>1e-6:
+        print('#################')
         print('found a difference between recorded in/out liquid in melt.py')
-        print('difference:',mass_diff)
-        print('tot_mass_end',tot_mass_end)
         print('total_liquid_mass_start',total_liquid_mass_start)
-        # input('waiting, melt.py 501')
+        print('tot_mass_end',tot_mass_end)
+        print('difference:',mass_diff)
+        print('total_liquid_mass_end',total_liquid_mass_end)
+        print('R+R', total_liquid_mass_start - total_liquid_mass_end)
+        print('mass_refreeze',mass_refreeze)
+        print('mass_runoff',mass_runoff)
+        print('runofftot (1)',runofftot1)
+        print('runofftot (2a)',runofftot2a)
+        print('runofftot (2b)',runofftot2b)
+        print('runofftot (3)',runofftot3)
+        print('LWCblockedC1', LWCblockedC1)
+        print('LWCblockedC2', LWCblockedC2)
+        print('LWCblockedC3', LWCblockedC3)
+        print('LWCblockedC4', LWCblockedC4)
+        print('LWCblockedC5', LWCblockedC5)
+        print('LWCblockedC6', LWCblockedC6)
+        print('LWC_excess_st',LWC_excess_st)
+        print('LWC_irr_st',LWC_irr_st)
+        input('waiting, melt.py 512')
 
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot

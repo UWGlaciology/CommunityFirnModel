@@ -1268,13 +1268,13 @@ class FirnDensityNoSpin:
 
                 tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
 
-                if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-3:
-                    print(f'change in enthalpy at iteration {iii}!')
-                    print('pre:', tot_heat_pre)
-                    print('post:', tot_heat_post)
-                    ediff = (tot_heat_post-tot_heat_pre)                
-                    print('difference (kJ):', (tot_heat_post-tot_heat_pre))
-                    print('difference %:', ediff/tot_heat_pre)
+                # if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-3:
+                #     print(f'change in enthalpy at iteration {iii}!')
+                #     print('pre:', tot_heat_pre)
+                #     print('post:', tot_heat_post)
+                #     ediff = (tot_heat_post-tot_heat_pre)                
+                #     print('difference (kJ):', (tot_heat_post-tot_heat_pre))
+                #     print('difference %:', ediff/tot_heat_pre)
 
                 self.refreeze += LWC0e-sum(self.LWC) 
 

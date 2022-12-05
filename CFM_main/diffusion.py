@@ -211,7 +211,12 @@ def enthalpyDiff(self,iii):
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
     ICT = 0
-    phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,iii)
+
+    tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
+
+    lwc_old = self.LWC.copy()
+    
+    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,iii)
     
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
@@ -231,6 +236,47 @@ def enthalpyDiff(self,iii):
     self.LWC = LWC_ret.copy()
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+
+    if np.any(self.Tz<200):
+        print('#########')
+        print('COLD T! at iii=',iii)
+        print(f'model time: {self.modeltime[iii]}')
+        iicold = np.where(self.Tz<200)[0]
+        print('depth:', self.z[iicold])
+        print('Tz',self.Tz[iicold])
+        print('old T',Tstart[iicold])
+        print('Ts',self.Ts[iii])
+        print('Ts (old)',self.Ts[iii-1])
+        ioc = np.where(Tstart==np.min(Tstart))
+        print('coldest old:', Tstart[ioc])
+        print('thinnest:',np.min(self.dz))
+        print('ioc is', ioc)
+        input('waiting on cold T')
+
+    tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
+
+    if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-3:
+        print(f'change in enthalpy at iteration {iii}!')
+        print('pre:', tot_heat_pre)
+        print('post:', tot_heat_post)
+        ediff = (tot_heat_post-tot_heat_pre)                
+        print('difference (kJ):', (tot_heat_post-tot_heat_pre))
+        print('difference %:', ediff/tot_heat_pre)
+        print('count:', count)
+        print('iterdiff', iterdiff)
+        print('maxT', np.max(self.Tz))
+        print('minT', np.min(self.Tz))
+        print('minT_start', np.min(Tstart))
+        print('maxLWC',np.max(self.LWC))
+        print('minLWC',np.min(self.LWC))        
+        print('maxLWC (old)',np.max(lwc_old))
+        icold = np.where(self.Tz==np.min(self.Tz))[0][0]
+        print('icold',icold)
+        print('depth,',self.z[icold])
+        print('dz,',self.dz[icold-2:icold+3])
+        print('g_sol',g_sol[icold])
+        print('surface',self.Ts[iii])
+        input('waiting')
 
     if np.any(self.Tz>273.1500001):
         print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
