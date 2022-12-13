@@ -445,13 +445,18 @@ class FirnDensityNoSpin:
                 self.iceout = self.c['iceout']
                 print('Ensure that your iceout value has units m ice eq. per year!')
             else:
-                self.iceout = np.mean(self.bdot+self.sublim) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
-
+                if self.c['SUBLIM']:
+                    self.iceout = np.mean(self.bdot+self.sublim) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
+                else:
+                    self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
         except Exception:
             print('add field "manual_iceout" to .json file to set iceout value manually')
             self.iceout = np.mean(self.bdot) # this is the rate of ice flow advecting out of the column, units m I.E. per year.
 
-        self.w_firn         = np.mean(self.bdot+self.sublim) * RHO_I / self.rho 
+        if self.c['SUBLIM']:
+            self.w_firn         = np.mean(self.bdot+self.sublim) * RHO_I / self.rho 
+        else:
+            self.w_firn         = np.mean(self.bdot) * RHO_I / self.rho 
 
         if (np.any(self.bdotSec<0.0) and self.c['bdot_type']=='instant'):
             print('ERROR: bdot_type set to "instant" in .json and input')
@@ -946,13 +951,13 @@ class FirnDensityNoSpin:
                 if self.c['liquid'] == 'bucket':
 
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
-                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff = bucket(self,iii)
+                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff, self.dh_melt = bucket(self,iii)
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
                         self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
-                        self.refreeze, self.runoff, self.meltvol = 0.,0.,0.
+                        self.refreeze, self.runoff, self.meltvol, self.dh_melt = 0.,0.,0.,0.
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -1032,6 +1037,7 @@ class FirnDensityNoSpin:
             
             else: # no melt, dz after compaction
                 self.dzn    = self.dz[0:self.compboxes]
+                self.dh_melt = 0
             ### end MELT #########
             ######################
 
@@ -1131,6 +1137,7 @@ class FirnDensityNoSpin:
             # MS 2/10/17: should double check that everything occurs in correct order in time step (e.g. adding new box on, calculating dz, etc.)               
                 self.age        = np.concatenate(([0], self.age[:-1])) + self.dt[iii]      
                 self.dzNew      = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dh_acc = self.dzNew
                 self.dz         = np.concatenate(([self.dzNew], self.dz[:-1]))
                 self.z          = self.dz.cumsum(axis = 0)
                 znew = np.copy(self.z) 
@@ -1157,6 +1164,7 @@ class FirnDensityNoSpin:
                 self.z          = self.dz.cumsum(axis=0)
                 self.z          = np.concatenate(([0],self.z[:-1]))
                 self.dzNew      = 0
+                self.dh_acc = 0
                 znew = np.copy(self.z)                             
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 if not self.c['manualT']:
@@ -1167,9 +1175,10 @@ class FirnDensityNoSpin:
             if self.c['SUBLIM']:
                 if self.sublimSec[iii]<0:
                     self.mass_sum   = self.mass.cumsum(axis = 0)
-                    self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack     = sublim(self,iii) # keeps track of sublimated water for mass conservation                    
+                    self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack, dh_sub     = sublim(self,iii) # keeps track of sublimated water for mass conservation                    
                     self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
-                    self.dzNew      = 0
+                    # self.dzNew      = 0
+                    self.dh_acc = self.dh_acc + dh_sub #dh_sub is negative 
                     if self.doublegrid == True: # gridtrack corrected for sublimation
                         self.gridtrack = np.copy(sublgridtrack)
                     znew = np.copy(self.z)
@@ -1376,7 +1385,7 @@ class FirnDensityNoSpin:
         updates the surface elevation change
         '''
 
-        self.dH     = (self.sdz_new - self.sdz_old) + self.dzNew - (self.iceout*self.t[iii]) # iceout has units m ice/year, t is years per time step. 
+        self.dH     = (self.sdz_new - self.sdz_old) + self.dh_acc + self.dh_melt - (self.iceout*self.t[iii]) # iceout has units m ice/year, t is years per time step. 
         # self.dH2 = self.z[-1] - self.z_old[-1] #- (self.iceout*self.t) # alternative method. Should be the same?    
         self.dHAll.append(self.dH)
         self.dHtot  = np.sum(self.dHAll)
@@ -1386,7 +1395,7 @@ class FirnDensityNoSpin:
         ### domain and the 917 density horizon.
 
         iceout_corr = self.iceout*RHO_I/self.rho[-1]
-        self.dHcorr = (self.sdz_new - self.sdz_old) + self.dzNew - (iceout_corr*self.t[iii]) # iceout has units m ice/year, t is years per time step. 
+        self.dHcorr = (self.sdz_new - self.sdz_old) + self.dh_acc + self.dh_melt - (iceout_corr*self.t[iii]) # iceout has units m ice/year, t is years per time step. 
         
         self.dHAllcorr.append(self.dHcorr)
         self.dHtotcorr = np.sum(self.dHAllcorr)

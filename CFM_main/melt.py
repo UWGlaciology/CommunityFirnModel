@@ -92,6 +92,12 @@ def bucket(self,iii):
     pm_lwc  = self.LWC[ind1]/self.dz[ind1]*pm_dz #LWC of the pm node
     pm_Tz   = T_MELT
 
+    dzo = self.dz.copy()
+    if ind1>0:
+        dh_melt = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-pm_dz))
+    else:
+        dh_melt = -1 * (dzo[ind1]-pm_dz)
+
     ### Liquid water input at the surface ###
     liq_in_mass = max(melt_mass + (np.sum(self.LWC[0:ind1+1]) - pm_lwc) * RHO_W_KGM, 0) #avoid negative lwcinput due to numerical round-off errors
     liq_in_vol  = liq_in_mass/RHO_W_KGM
@@ -421,7 +427,7 @@ def bucket(self,iii):
 
     self.rho[self.rho>RHO_I] = RHO_I
 
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
 
 #############
 

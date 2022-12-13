@@ -12,7 +12,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-1.1.10
+1.1.11
 
 ## Full Documentation
 
@@ -30,6 +30,17 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [1.1.11] 2022-12-13
+### Notes
+- This release fixes an issue in the estimated surface elevation change *dh*, which was not accounting properly for elevation change due to sublimation and melt processes (it was just considerine dh due to firn compaction and new snow acccumulation). The new code explicitly includes *dh_melt* and *dh_acc*, which are the elevation change (for that time step) due to melt and accumulation + sublimation. **The elevation change calculation should be considered to be in beta.** 
+
+### Changed
+- *firn_density_nospin.py, melt.py, sublim.py* firn_density_nospin's *update_dh* function is now:
+*dH = (sdz_new - sdz_old) + dh_acc + dh_melt - (iceout \* t[iii])*
+The sdz terms are the sum of the layer thicknesses before and after compaction (different is thus dh from firn compaction); dh_acc is the elevation change due to new snow accumulation minus the sublimated volume; dh_melt is the elevation decrease due to surface melt; iceout (rate of m ice e.q./year) times the time step size is the elevation change due to ice flow. Note that this assumes steady state, and that the ice flow is calculated using the spin up climate (iceout is set to be the mean ice-equivalent accumulation rate during the spin up), unless set explicitly in the config file. 
+
+>> *dh_melt* is calculated in *melt.py*, and *dh_acc* is calculated using dh_sub, which is now returned by *sublim.py*.
 
 ## [1.1.10]
 ### Notes

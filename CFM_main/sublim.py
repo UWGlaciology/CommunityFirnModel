@@ -36,6 +36,7 @@ def sublim(self,iii):
         sys.exit()
  
     # ps is the partial sublimation (the model volume that has a portion sublimated away)   
+    dzo = self.dz.copy()
     if ind1 > 0: # if we sublimate the entire layers we retrieve the mass+lwc of these layers to the sublimated mass of the ps layer
         ps_sublim = sublim_mass - (np.cumsum(self.mass[ind1-1])+1000*np.cumsum(self.LWC[ind1-1])) 
     elif ind1 == 0: # if only the surface layer gets partially sublimated, all sublimation occurs in surface layer (logically)
@@ -46,6 +47,10 @@ def sublim(self,iii):
     ps_plwc = np.maximum(self.PLWC_mem[ind1] - ps_sublimlwc/1000, 0.) # assumes plwc is sublimated before mlwc
     ps_mass = np.maximum(1.0e-6,(self.mass[ind1] - ps_sublimmass)) # finally ice is sublimated if there is still mass to sublimate (<-> if ps_sublim<1000*self.LWC[ind1]), avoid rounding errors to cause negative mass
     ps_dz = ps_mass / self.rho[ind1] # remaining thickness [m]
+    if ind1>0:
+        dh_sub = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-ps_dz))
+    else:
+        dh_sub = -1 * (dzo[ind1]-ps_dz)
 
     ## Sublimated boxes are accomodated by just adding more (new) boxes at the bottom of the column
     ## Beware of this if you are not modeling to firn-ice transition depth.
@@ -89,6 +94,6 @@ def sublim(self,iii):
         print('setting to zero and continuing')
     self.LWC[self.LWC<0]=0.0
 
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim,sublgridtrack
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack, dh_sub
     
     
