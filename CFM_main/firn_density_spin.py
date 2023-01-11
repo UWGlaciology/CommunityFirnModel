@@ -476,6 +476,8 @@ class FirnDensitySpin:
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+                'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
+                'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
                 'MaxSP':                FirnPhysics(PhysParams).MaxSP

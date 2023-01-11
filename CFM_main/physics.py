@@ -705,6 +705,112 @@ class FirnPhysics:
     ### end KuipersMunneke_2015 ###
     ###############################
 
+    def Brils_2022(self):
+        '''
+
+        Units are mm W.E. per year
+        b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
+
+        '''
+        ar1 = 0.07
+        ar2 = 0.03
+        Ec  = 60.0e3
+        Eg  = 42.4e3
+        alpha_550 = 0.6688
+        beta_550 = -0.0048
+        alpha_830 = 1.7465
+        beta_830 = 0.2045
+
+        dr_dt     = np.zeros(self.gridLen)
+        viscosity = np.zeros(self.gridLen)
+
+        if self.bdot_type == 'instant':
+            A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+            if self.iii==0:
+                print("It is not recommended to use instant accumulation with Ligtenberg 2011 physics")
+            M_0 = alpha_550 - beta_550 * np.log(A_instant)
+            M_1 = alpha_830 - beta_830 * np.log(A_instant)
+            M_0 = np.max((0.25,M_0))
+            M_1 = np.max((0.25,M_1))
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T_mean[self.iii]))
+
+        elif self.bdot_type == 'mean':
+            A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+            A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+
+            M_0 = alpha_550 - beta_550 * np.log(A_mean_1)
+            M_1 = alpha_830 - beta_830 * np.log(A_mean_2)
+
+            M_0[M_0<0.25]=0.25
+            M_1[M_1<0.25]=0.25
+
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+
+        drho_dt = dr_dt / S_PER_YEAR
+        drho_dt[self.rho>=RHO_I] = 0
+        
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
+        return self.RD
+    ### end Brils_2022 ###
+    ###############################
+
+    def Veldhuijsen_2023(self):
+        '''
+
+        Units are mm W.E. per year
+        b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
+
+        '''
+        if self.iii==0:
+            print('Veldhuijsen_2023 physics still in development. Will be updated after peer review is complete.')
+        ar1 = 0.07
+        ar2 = 0.03
+        Ec  = 60.0e3
+        Eg  = 42.4e3
+
+        dr_dt     = np.zeros(self.gridLen)
+        viscosity = np.zeros(self.gridLen)
+
+        if self.bdot_type == 'instant':
+            A_instant = self.bdotSec[self.iii] * self.steps * S_PER_YEAR * RHO_I_MGM * 1000
+            if self.iii==0:
+                print("It is not recommended to use instant accumulation with Ligtenberg 2011 physics")
+            M_0 = 1.042 - 0.0916 * np.log(A_instant)
+            M_1 = 1.734 - 0.2039 * np.log(A_instant)
+            M_0 = np.max((0.25,M_0))
+            M_1 = np.max((0.25,M_1))
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_instant * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1])+ Eg / (R * self.T_mean[self.iii]))
+
+        elif self.bdot_type == 'mean':
+            A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
+            A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
+
+            M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
+            M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
+
+            M_0[M_0<0.25]=0.25
+            M_1[M_1<0.25]=0.25
+
+            dr_dt[self.rho < RHO_1]  = (RHO_I - self.rho[self.rho < RHO_1]) * M_0 * ar1 * A_mean_1 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho < RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+            dr_dt[self.rho >= RHO_1] = (RHO_I - self.rho[self.rho >= RHO_1]) * M_1 * ar2 * A_mean_2 * GRAVITY * np.exp(-Ec / (R * self.Tz[self.rho >= RHO_1]) + Eg / (R * self.T_mean[self.iii]))
+
+        drho_dt = dr_dt / S_PER_YEAR
+        drho_dt[self.rho>=RHO_I] = 0
+        
+        viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
+        
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
+        return self.RD
+    ### end Veldhuijsen_2023 ###
+    ###############################
+
     def Goujon_2003(self):
         '''
         Uses stress

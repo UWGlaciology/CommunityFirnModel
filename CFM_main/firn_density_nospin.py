@@ -528,9 +528,23 @@ class FirnDensityNoSpin:
                 Rsf             = interpolate.interp1d(input_year_srho,input_srho,int_type,fill_value='extrapolate') # interpolation function
                 self.rhos0      = Rsf(self.modeltime) # surface density interpolated to model time
             
-            elif self.c['srho_type']=='param':
+            elif ((self.c['srho_type']=='param') or ((self.c['srho_type']=='KM15'))):
                 self.rhos0      = 481.0 + 4.834 * (self.T_av - T_MELT) # Kuipers Munneke, 2015
-            
+
+            elif (self.c['srho_type']=='Brils22'):
+                mtdf = pd.DataFrame({'dectime':self.modeltime,'Ts':self.Ts})
+                mtdf['yri'] = np.modf(mtdf.dectime.values)[1]
+                df_Tmean = mtdf.groupby('yri')[['Ts']].mean()
+                df_Tmean = pd.DataFrame(df_Tmean.Ts.shift(1,fill_value=df_Tmean.Ts.iloc[0]))
+                mtdf['T_mean_prev'] = mtdf['yri'].map(df_Tmean['Ts']) #previous year's mean temperature
+                self.rhos0      = 362.1 + 2.78 * (mtdf['T_mean_prev'].values - T_MELT) # Brils, 2022
+
+            # elif (self.c['srho_type']=='Kaspers2004'):
+                # Kaspers, Lenaerts, and Veldhuisen need wind speed.
+                # self.rhos0 = A + B*Ts_mean + C*V10m + D*bdot # Kaspers; Ts is mean annual T in K; V10m is wind in m/s; bdot in mm w.e./year
+                # self.rhos0 = A + B*Ts_mean + C*V10m # Lanaerts, Veldhuijsen; Ts is instantaneous surface T (K)
+
+
             elif self.c['srho_type']=='noise':
                 rho_stdv        = 25 # the standard deviation of the surface density (I made up 25)
                 self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
@@ -958,6 +972,8 @@ class FirnDensityNoSpin:
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+                'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
+                'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
                 'MaxSP':                FirnPhysics(PhysParams).MaxSP
