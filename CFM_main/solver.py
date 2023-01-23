@@ -494,8 +494,20 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
 
+
+
         # if np.allclose(phi_t,phi_iter):
-        if ((np.allclose(phi_iter,phi_t,rtol=1e-3,atol=1e-3)) or (np.allclose(g_liq_iter,g_liq,rtol=1e-4,atol=1e-4))):
+        if ((np.allclose(phi_iter,phi_t,rtol=1e-4,atol=1e-3))):
+            if count>10:
+                print('phibreak')
+                print(count)
+            break
+
+
+        elif ((np.allclose(g_liq_iter,g_liq,rtol=1e-4,atol=1e-4))):
+            if count>10:
+                print('g break')
+                print(count)
             break
 
         count += 1
@@ -820,9 +832,16 @@ def transient_solve_EN_dev(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
         iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
         # print(f'iterdiff {iterdiff}')
         if i_time>0:
-            if ((np.allclose(phi_iter,phi_t,rtol=1e-4,atol=1e-4)) or (np.allclose(g_liq_iter,g_liq,rtol=1e-6,atol=1e-6))):
+            if ((np.allclose(phi_iter,phi_t,rtol=1e-4,atol=1e-4))):
+                print('phibreak')
+                print(count)
+                break
+
+            elif ((np.allclose(g_liq_iter,g_liq,rtol=1e-6,atol=1e-6))):
                 # print(f'iterdiff {iterdiff}')
                 # print(np.max(g_liq))
+                print('g break')
+                print(count)
                 break
 
         count += 1
@@ -912,15 +931,6 @@ def transient_solve_EN_backup(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv,
 
     printcountout = False
 
-    # print('c_vol', c_vol[0:5])
-    # print('H_latent',H_latent[0:5])
-    # print('phi_t',phi_t[0:5])
-    # print('mix_rho',mix_rho)
-    # print('g_sol*RHO_I',g_sol*RHO_I)
-    # print('g_liq',g_liq[0:5])
-    # input('waiting')
-
-    # while itercheck>ICT:
     for i_time in range(15):
 
         H_tot_iter = H_tot.copy()
