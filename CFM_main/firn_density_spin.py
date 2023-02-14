@@ -365,7 +365,10 @@ class FirnDensitySpin:
             self.r2 = None
 
         ### "temperature history" if using Morris physics
-        if self.c['physRho']=='Morris2014':
+        if 'THist' not in self.c:
+            self.c['THist'] = False
+
+        if ((self.c['physRho'] == 'Morris2014') or (self.c['THist']==True)):
             if 'QMorris' not in self.c:
                 print('Add "QMorris" to the .json. CFM is setting to 110e3')
                 self.c['QMorris'] = 110.0e3               
@@ -450,8 +453,10 @@ class FirnDensitySpin:
                 except:
                     PhysParams['MQ'] = 60
 
-            if self.c['physRho']=='Morris2014':
+            if self.c['THist']:
                 PhysParams['Hx'] = self.Hx
+
+            if self.c['physRho']=='Morris2014':               
                 PhysParams['QMorris'] = self.c['QMorris']
 
             if self.c['physRho']=='Goujon2003':

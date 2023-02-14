@@ -1209,8 +1209,17 @@ class FirnPhysics:
         # viscosity[self.rho < RHO_1]   = (self.rho[self.rho < RHO_1]/ (2 * self.sigma[self.rho < RHO_1]))/drho_dt[self.rho < RHO_1] 
         # viscosity[self.rho >= RHO_1]  = (self.rho[self.rho >= RHO_1] / (2 * self.sigma[self.rho >= RHO_1] ))/drho_dt[self.rho >= RHO_1]  
 
+
         self.RD['drho_dt']   = drho_dt
         self.RD['viscosity'] = viscosity
+
+        try:
+            self.Hx = self.Hx + np.exp(-1*Ec1 / (R * self.Tz)) * self.dt
+            Hx_new  = np.exp(-1 * Ec1 / (R * self.Tz[0])) * self.dt 
+            self.Hx = np.concatenate(([Hx_new],self.Hx[:-1]))
+            self.RD['Hx'] = self.Hx
+        except:
+            pass
 
         return self.RD
     ### end GSFC2020 ###
@@ -1456,9 +1465,11 @@ class FirnPhysics:
 
         This is the same as graingrowth except that we do not calculate for the surface grain, which is done by surfacegrain() function      
         '''
-
+        # if self.GrGrowPhysics == 'Arthern':
         kgr = 1.3e-7 # grain growth rate from Arthern (2010), m^2/s
         Eg  = 42.4e3 # kJ/mol
+        # elif self.GrGrowPhysics == 'Linow':
+        #     kgr = 
 
         if self.MELT:
             porosity = 1 - self.rho / RHO_I 

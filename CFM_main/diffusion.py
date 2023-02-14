@@ -10,7 +10,7 @@ Isotope diffusion now has its own class.
 from solver import transient_solve_TR
 # from solver import transient_solve_EN_old
 # from solver import transient_solve_EN_new
-from solver import transient_solve_EN, transient_solve_EN_noloop, transient_solve_EN_backup
+from solver import transient_solve_EN, Marshall, apparent_heat
 from constants import *
 import numpy as np
 from scipy import interpolate
@@ -210,6 +210,7 @@ def enthalpyDiff(self,iii):
     lwc_old = self.LWC.copy()
     
     phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
+    # phi_ret, g_liq, count, iterdiff,g_sol   = Marshall(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
     
     ### Below for testing code where firn layers are the finite volumes.
     # phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff[0:-1], phi_0[0:-1], nz_P, nz_fv, phi_s, tot_rho[0:-1], c_vol[0:-1], self.LWC[0:-1], self.mass[0:-1], self.dz[0:-1],ICT,self.rho[0:-1],iii)
@@ -220,38 +221,13 @@ def enthalpyDiff(self,iii):
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
     delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
-    dml_sum = 0.0
-
-    ### you can use the following if you set ICT>0 and you are getting mass conservation issues.
-    # if np.any(delta_mass_liq<-1e-6):
-    #     ICT = 0.0
-    #     phi_ret, g_liq, count, iterdiff   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,iii)
-    #     LWC_ret = g_liq * self.dz
-    #     # self.LWC        = g_liq * vol_tot
-    #     delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
-    #     dml_sum = 0.0
-
+    dml_sum = 0.0 
 
     self.LWC = LWC_ret.copy()
     self.Tz = phi_ret + 273.15
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
-    if np.any(self.Tz<200):
-        print('#########')
-        print('COLD T! at iii=',iii)
-        print(f'model time: {self.modeltime[iii]}')
-        iicold = np.where(self.Tz<200)[0]
-        print('depth:', self.z[iicold])
-        print('Tz',self.Tz[iicold])
-        print('old T',Tstart[iicold])
-        print('Ts',self.Ts[iii])
-        print('Ts (old)',self.Ts[iii-1])
-        ioc = np.where(Tstart==np.min(Tstart))
-        print('coldest old:', Tstart[ioc])
-        print('thinnest:',np.min(self.dz))
-        print('ioc is', ioc)
-        input('waiting on cold T')
-
+    ### Total enthalpy after solver (for testing conservation)
     tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
 
     if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-2:
@@ -261,21 +237,6 @@ def enthalpyDiff(self,iii):
         ediff = (tot_heat_post-tot_heat_pre)                
         print('difference (kJ):', (tot_heat_post-tot_heat_pre))
         print('difference %:', ediff/tot_heat_pre)
-        print('count:', count)
-        print('iterdiff', iterdiff)
-        print('maxT', np.max(self.Tz))
-        print('minT', np.min(self.Tz))
-        print('minT_start', np.min(Tstart))
-        print('maxLWC',np.max(self.LWC))
-        print('minLWC',np.min(self.LWC))        
-        print('maxLWC (old)',np.max(lwc_old))
-        icold = np.where(self.Tz==np.min(self.Tz))[0][0]
-        print('icold',icold)
-        print('depth,',self.z[icold])
-        print('dz,',self.dz[icold-2:icold+3])
-        print('g_sol',g_sol[icold])
-        print('surface',self.Ts[iii])
-        # input('waiting')
 
     if np.any(self.Tz>273.1500001):
         print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
@@ -297,6 +258,7 @@ def enthalpyDiff(self,iii):
             print('may need to reduce the ICT (itercheck threshold in solver.py')
             print('If you are seeing this message, please email maxstev@umd.edu so I can fix it.')
         dml_sum = np.sum(delta_mass_liq[delta_mass_liq<0])
+    
     delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
@@ -322,25 +284,36 @@ def heatDiff_highC(self,iii):
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
     z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
     z_P_vec     = self.z
-    
+
+    dt_sub = self.dt[iii]
+  
+
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
+
+    g_liq = self.LWC/self.dz
+    H_L_liq = RHO_W_KGM*LF_I #volumetric latent enthalpy [J/m3]
+    H_lat = g_liq*H_L_liq
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
     # c_firn        = CP_I # If you prefer a constant specific heat.
-    lwc_layers  = np.where(self.LWC>0)[0]
-    c_firn[lwc_layers] = c_firn[lwc_layers] * 160 #roughly 335/2.1, heat of fusion/heat capacity, even though units don't match. Just experimenting.
-
+    
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
 
     Gamma_P         = K_firn
     tot_rho         = self.rho
-    c_vol           = self.rho * c_firn
+    c_vol_0         = self.rho * c_firn 
+    
+    C_lat = H_lat/T_MELT
 
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    c_vol = c_vol_0 + C_lat
 
+
+    self.Tz        = transient_solve_TR(z_edges_vec, z_P_vec, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+
+    self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
 
     if np.any(self.Tz>273.15001):
         print('Tz higher than 273.15001')
@@ -349,9 +322,6 @@ def heatDiff_highC(self,iii):
         print(f'HT: {self.Tz[iHT]}')
 
     self.Tz[self.Tz>=273.15]=273.15
-    # print(f'iii: {iii}, max T: {np.max(self.Tz)}')
-
-    self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
 
     dml_sum = 0
 
@@ -377,6 +347,11 @@ def heatDiff_Teff(self,iii):
 
     Q = LF_I * self.LWC * RHO_W_KGM
     deltaT = Q / (self.mass*CP_I)
+
+    # Tc = self.Tz - 273.15
+    # c0 = deltaT>-Tc
+    # deltaT[c0] = -Tc[c0]
+
     Tz_eff = self.Tz + deltaT
     
     # phi_s           = self.Tz[0]
@@ -385,7 +360,7 @@ def heatDiff_Teff(self,iii):
     phi_s           = Tz_eff[0]
     phi_0           = Tz_eff
 
-    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
+    K_ice           = 9.828 * np.exp(-0.0057 * self.Tz) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
     # c_firn        = CP_I # If you prefer a constant specific heat.
     lwc_layers  = np.where(self.LWC>0)[0]
@@ -399,7 +374,7 @@ def heatDiff_Teff(self,iii):
     T_eff_new         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
     excessT = np.maximum(0.0,(T_eff_new - T_MELT))
-    LWC_new = (excessT * self.mass * CP_I)/ (LF_I * 1000)
+    LWC_new = (excessT * self.mass * CP_I)/ LF_I / 1000 # divide by 1000 to put in volume (m3)
     self.LWC = LWC_new
     T_eff_new[self.LWC>0] = T_MELT
     self.Tz = T_eff_new

@@ -28,6 +28,7 @@ import sys
 import math
 from shutil import rmtree
 import os
+import psutil
 import shutil
 import time
 import inspect
@@ -661,7 +662,10 @@ class FirnDensityNoSpin:
         #######################
 
         ### temperature history for Morris physics
-        if self.c['physRho'] == 'Morris2014':
+        if 'THist' not in self.c:
+            self.c['THist'] = False
+
+        if ((self.c['physRho'] == 'Morris2014') or (self.c['THist']==True)):
             if 'QMorris' not in self.c:
                 self.c['QMorris'] = 110.0e3
             
@@ -942,8 +946,10 @@ class FirnDensityNoSpin:
                 'FirnAir':      self.c['FirnAir']
             }
             
-            if self.c['physRho']=='Morris2014':
+            if self.c['THist']:
                 PhysParams['Hx'] = self.Hx
+
+            if self.c['physRho']=='Morris2014':
                 PhysParams['QMorris'] = self.c['QMorris']
 
             if self.c['FirnAir']:
