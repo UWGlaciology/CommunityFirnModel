@@ -551,7 +551,7 @@ def bucket(self,iii):
         print('LWCblockedC6', LWCblockedC6)
         print('LWC_excess_st',LWC_excess_st)
         print('LWC_irr_st',LWC_irr_st)
-        input('waiting, melt.py 512')
+        # input('waiting, melt.py 512')
 
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot
