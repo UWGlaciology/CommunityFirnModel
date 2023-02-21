@@ -311,8 +311,6 @@ class FirnDensityNoSpin:
                     input_rain = climateTS['RAIN'][self.start_ind:]
                     input_year_rain = climateTS['time'][self.start_ind:]
                     input_rain_full = climateTS['RAIN']
-                    # input_rain = 0*input_rain
-                    # input_rain_full = 0*input_rain_full
                 else:
                     input_rain, input_year_rain, input_rain_full, input_year_rain_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamerain']), updatedStartDate)
                 self.forcing_dict['RAIN'] = input_rain_full
@@ -338,8 +336,6 @@ class FirnDensityNoSpin:
         #####################
         ### time ############
         if 'timesetup' not in self.c:
-            # print('You should add "timesetup" to the .json')
-            ### could add details here
             self.c['timesetup']='interp'
 
         # year to start and end, from the input file. If inputs have different start/finish, take only the overlapping times
