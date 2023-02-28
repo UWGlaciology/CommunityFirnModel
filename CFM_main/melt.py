@@ -68,6 +68,8 @@ def bucket(self,iii):
     melt_volume_IE      = self.snowmeltSec[iii]*S_PER_YEAR # [m ie]
     melt_volume_WE      = melt_volume_IE*RHO_I_MGM         # [m] 
     melt_mass           = melt_volume_WE*RHO_W_KGM         # [kg]
+
+    total_liquid_mass_start = np.sum(melt_mass) + np.sum(self.LWC*RHO_W_KGM)
     
     ### Define last variables needed for the routine ###
     nnd        = len(self.z)   # number of nodes
@@ -135,13 +137,16 @@ def bucket(self,iii):
     ### end regridding ###
 
     ### Calculate excessive LWC (above irreducible holding capacity) ###
+    MAXREFREEZEDENSITY = RHO_I
     phi         = (rhoi - self.rho) / rhoi      # porosity [/]
     phivol      = phi * self.dz                 # pore space [m]
-    phivol_av   = phivol * (RHO_I / RHO_W_KGM)  # saturated water content [m], i.e. tot. pot pore space avlbl for any LWC (Eq.9, Wever(2014); Discussion in Yamaguchi(2010))
+    # phivol_av   = phivol * (RHO_I / RHO_W_KGM)  # saturated water content [m], i.e. tot. pot pore space avlbl for any LWC (Eq.9, Wever(2014); Discussion in Yamaguchi(2010))
+    phivol_av   = phivol * (MAXREFREEZEDENSITY / RHO_W_KGM)  # saturated water content [m], i.e. tot. pot pore space avlbl for any LWC (Eq.9, Wever(2014); Discussion in Yamaguchi(2010))
     ilim        = np.where(self.rho + phivol_av * RHO_W_KGM / self.dz > RHO_I)[0] # nodes where saturation could lead to density>917
 
     if len(ilim) > 0:     # limit pore space availability for storage in ilim nodes
-        phivol_av[ilim] = np.maximum(self.dz[ilim]*(916.99-self.rho[ilim])/RHO_W_KGM,0.)
+        # phivol_av[ilim] = np.maximum(self.dz[ilim]*(916.99-self.rho[ilim])/RHO_W_KGM,0.)
+        phivol_av[ilim] = np.maximum(self.dz[ilim]*(917.0-self.rho[ilim])/RHO_W_KGM,0.)
     
     LWCirr   = IrrVal * phivol_av      # volume of LWC that can be held as irreducible water [m]
     LWCirr[self.rho>=RhoImp] = 0.      # set irreducible water to zero in nodes exceeding impermeability threshold
@@ -155,6 +160,9 @@ def bucket(self,iii):
         LWCirr                  = phivol_av * swi # maximum LWC that can be held as irreducible water [m]
    
     LWC_excess   = np.maximum(self.LWC-LWCirr,0) # LWC in excess of irreducible water content (vector)
+
+    LWC_excess_st = np.sum(LWC_excess)*RHO_W_KGM
+    LWC_irr_st = np.sum(LWCirr)*RHO_W_KGM
     
     ### Calculation of storage capacity in each node ###
     ### storage capacity defined as (refreezing  + irreducible water retention) capacities 
@@ -164,6 +172,7 @@ def bucket(self,iii):
     
     refr_cap0       = (cold_content / LF_I) / RHO_W_KGM               # refreezing capacity due to cold content [m we]
     refr_cap0_supp  = np.maximum(0, refr_cap0 - self.LWC)             # refreezing capacity available for any liquid beyond what is currently present [m we]
+    # refr_cap        = np.minimum(refr_cap0_supp, phivol_av)                # total (existing LWC plus any more) refreezing capacity [m we]
     refr_cap        = np.minimum(refr_cap0, phivol_av)                # total (existing LWC plus any more) refreezing capacity [m we]
     # (In theory, refr_cap should always be 0 for layers that have any LWC, except the upper most layer.)
 
@@ -181,7 +190,8 @@ def bucket(self,iii):
     ilim            = np.where(rho_pot + phivol_av_pot * RHO_W_KGM / self.dz > RHO_I)[0] # nodes potentially exceeding 917 density
     
     if len(ilim)>0: # limit pore space availability for storage in ilim nodes
-        phivol_av_pot[ilim] = np.maximum(self.dz[ilim] * (916.99 - rho_pot[ilim]) / RHO_W_KGM,0.)
+        # phivol_av_pot[ilim] = np.maximum(self.dz[ilim] * (916.99 - rho_pot[ilim]) / RHO_W_KGM,0.)
+        phivol_av_pot[ilim] = np.maximum(self.dz[ilim] * (917 - rho_pot[ilim]) / RHO_W_KGM,0.)
     
     ######
     LWCirr_pot    = IrrVal * phivol_av_pot # LWC that can be held as irreducible water after refreezing occurs[m]
@@ -196,8 +206,8 @@ def bucket(self,iii):
         LWCirr_pot                   = phivol_av_pot * swi_pot # maximum LWC that can be held as irreducible water [m]
     
     LWCirr_pot[rho_pot >= RhoImp] = 0. # set 0 irreducible water in nodes exceeding impermeability threshold
-    LWCunf                        = np.maximum(0,self.LWC - refr_cap) # unfrozen LWC that will remain in each node after refreeze [m]
-    retcap_supp                   = np.maximum(0,LWCirr_pot-LWCunf) # retention capacity for additional LWC (assuming refreezing occurs first), potential minus how much is there already.
+    LWC_unf                        = np.maximum(0,self.LWC - refr_cap) # unfrozen LWC that will remain in each node after refreeze [m]
+    retcap_supp                   = np.maximum(0,LWCirr_pot-LWC_unf) # retention capacity for additional LWC (assuming refreezing occurs first), potential minus how much is there already.
     
     # Define storage capacity #
     stcap = refr_cap_supp + retcap_supp #total storage capacity of each node for additional LWC [m]
@@ -257,6 +267,8 @@ def bucket(self,iii):
     elif liq_in_vol == 0: #no liquid water input
         storageinp = np.zeros(nnd) #no input water storage
 
+    LWCblockedC1 = np.sum(LWCblocked)*RHO_W_KGM
+
     stcap1 = stcap - storageinp #update storage capcity
 
     ### Set LWC_excess in impermeable nodes as blocked LWC ###
@@ -265,31 +277,38 @@ def bucket(self,iii):
     self.LWC[indsblc]   = self.LWC[indsblc] - LWC_excess[indsblc]           # update LWC
     LWC_excess[indsblc] = 0.                                          # update LWC_excess
     
+    LWCblockedC2 = np.sum(LWCblocked)*RHO_W_KGM
+
     ### Distribute LWC_excess in the nodes supporting storage and/or in LWCblocked ###
     LWC1     = np.copy(self.LWC) # LWC will be modified by LWC_excess transfers
     storage1 = np.zeros(nnd)     # LWC stored in the different nodes
 
     if np.any(LWC_excess)>0: #if there is some excess LWC
         tostore = 0                     # LWC stock that must be stored
-        indsexc = np.where(LWC_excess>0)[0] # indices of nodes with excess LWC
-        indb1   = indsexc[-1]           # bottom most node where LWC_excess exists
-        jj0     = indsexc[0]            # start from most upper node with excess LWC
-        if np.any(stcap1 >0):           # Max moved indb2 definition to here, before start of if 
-            indb2 = np.where(stcap1 > 0)[0][-1] #bottom most node where LWC_excess can be stored
+        inds_ex = np.where(LWC_excess>0)[0] # indices of nodes with excess LWC
+        ind_ex_bot   = inds_ex[-1]           # bottom most node where LWC_excess exists
+        jj0     = inds_ex[0]            # start from most upper node with excess LWC
+        if np.any(stcap1 >0):           # Max moved ind_st_bot definition to here, before start of if 
+            ind_st_bot = np.where(stcap1 > 0)[0][-1] #bottom most node where LWC_excess can be stored
         else:
-            indb2 = 0
+            ind_st_bot = 0
 
         # if np.any(stcap1>0): # there is some storage capacity in the firn column (This is VV original)
-        if ((np.any(stcap1[1:]>0)) and (indb2>jj0)): #there is some storage capacity in the firn column, and it is deeper than jj0
+        if ((np.any(stcap1[1:]>0)) and (ind_st_bot>jj0)): #there is some storage capacity in the firn column, and it is deeper than jj0
 
-            while ((jj0 <= indb1) or (tostore > 0)):
+            while ((jj0 <= ind_ex_bot) or (tostore > 0)):
                 if (np.where(stcap1[jj0:]>0)[0]).size > 0:    
                     jj1 = jj0+np.where(stcap1[jj0:]>0)[0][0] # next node that can store some of the LWC_excess
                 else: # all nodes with positive stcap1 is shallower than jj0, emulate the no storage capacity routine below
                     # though there might be stcap1 in shallower - could route water that way?
-                    indsexc_deep = indsexc[indsexc>=jj0]
-                    for jj2 in indsexc_deep: # find underlying impermeable barrier for each node with some LWC_excess
-                        jj1             = imp[np.where(imp>=jj2)[0][0]]-1 # jj1 becomes index of node above the impermeable barrier
+                    inds_ex_deep = inds_ex[inds_ex>=jj0]
+                    for jj2 in inds_ex_deep: # find underlying impermeable barrier for each node with some LWC_excess
+                        try:
+                            jj1             = imp[np.where(imp>=jj2)[0][0]]-1 # jj1 becomes index of node above the impermeable barrier
+                        except:
+                            jj1 = -1
+                            print('failure to find jj1')
+                            print(f'bottom rho: {self.rho[-1]}')
                         LWCblocked[jj1] += LWC_excess[jj2]          # LWC_excess is blocked above the barrier
                         LWC1[jj2]       = LWCirr[jj2]               # LWC of jj0 is reduced to irreducible water content
                     break # Exit the while loop
@@ -300,7 +319,7 @@ def bucket(self,iii):
                     storage1[jj1]   = min(stcap1[jj1],tostore)  # jj1 node stores as much as possible
                     tostore         -= storage1[jj1]            # tostore is reduced, jj1 is filled
                     jj0             = jj1+1                     # go to next node with possible storage capacity
-                    if jj0 >= indb2:                            # no possible storage of LWC_excess 
+                    if jj0 >= ind_st_bot:                            # no possible storage of LWC_excess 
                         jj1 = imp[np.where(imp>=jj0)[0][0]] - 1 # find the next impermeable barrier
                         LWCblocked[jj1] += tostore              # all LWC to be stored is blocked above the barrier
                         tostore = 0.                            # tostore is set to 0
@@ -312,33 +331,70 @@ def bucket(self,iii):
                     LWCblocked[jj1] += tostore                        # all LWC to be stored is blocked above the barrier
                     tostore         = 0.                              # tostore is set to 0
                     
-                    if jj1 < indb1: # still nodes with LWC_excess to be treated
-                        jj0 = indsexc[np.where(indsexc>jj1)[0][0]]  # go to next node with LWC_excess>0
+                    if jj1 < ind_ex_bot: # still nodes with LWC_excess to be treated
+                        jj0 = inds_ex[np.where(inds_ex>jj1)[0][0]]  # go to next node with LWC_excess>0
                     else: # all nodes with LWC_excess have been treated
-                        jj0 = indb1+1                               # terminate the while loop
+                        jj0 = ind_ex_bot+1                               # terminate the while loop
         
+            LWCblockedC3 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC4 = False
+
         else: # no storage capacity in the firn column
-            for jj0 in indsexc: # find underlying impermeable barrier for each node with some LWC_excess
-                jj1 = imp[np.where(imp>=jj0)[0][0]]-1   # jj1 becomes index of node above the impermeable barrier
+            for jj0 in inds_ex: # find underlying impermeable barrier for each node with some LWC_excess
+                try:
+                    jj1 = imp[np.where(imp>=jj0)[0][0]]-1   # jj1 becomes index of node above the impermeable barrier
+                except:
+                    jj1=-1
                 LWCblocked[jj1] += LWC_excess[jj0]      # LWC_excess is blocked above the barrier
+                # print('jj0',jj0)
+                # print('LWCblocked[jj1]',LWCblocked[jj1]*RHO_W_KGM)
                 LWC1[jj0] = LWCirr[jj0]                 # LWC of jj0 is reduced to irreducible water content
+            
+            LWCblockedC4 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC3 = False
                 
     storagetot = storageinp+storage1    # total storage in each node
     LWC1       = LWC1+storagetot        # redistributed LWC
 
+    # refr_cap0       = (cold_content / LF_I) / RHO_W_KGM               # refreezing capacity due to cold content [m we]
+    # refr_cap0_supp  = np.maximum(0, refr_cap0 - LWC1)             # refreezing capacity available for any liquid beyond what is currently present [m we]
+    # refr_cap        = np.minimum(refr_cap0, phivol_av)            # total (existing LWC plus any more) refreezing capacity [m we]
+    
+    cc_old = cold_content.copy()
     ### Refreezing ###
-    freeze      = np.minimum(LWC1,refr_cap)     # refreezing in each individual node [m we]
+    ### refreeze can either refreeze all of the liquid if there is enough CC, or just some of it.
+    freeze      = np.minimum(LWC1,refr_cap)     # refreezing in each individual node [m we] is min of cc available and liquid available
     self.mass   = self.mass + RHO_W_KGM*freeze  # update mass [kg]
-    self.LWC    = LWC1 - freeze                 # update LWC
+    self.LWC    = LWC1 - freeze                 # update LWC [m3]
     self.rho    = self.mass/self.dz             # update density [kg m-3]
     latheat     = freeze*RHO_W_KGM*LF_I         # latent heat released due to the refreezing [J]
-    cold_content    -= latheat                  # remaining cold content [J]   
+    cold_content    -= latheat                  # remaining cold content [J]
+    cold_content[((cold_content<0) & (cold_content>-1e-9))] = 0
     refrozentot = sum(freeze)                   # total refrozen water [m we]
-    self.Tz[freeze>0] = T_MELT - cold_content[freeze>0]/(CP_I*self.mass[freeze>0]) # update Tz [K]
-    
+    deltaT = cold_content/(CP_I*self.mass)
+    self.Tz[freeze>0] = T_MELT - deltaT[freeze>0] # update Tz [K]
+    ##################
+
+    coldlayers = np.where(self.Tz < T_MELT)[0]
+    if np.all(self.LWC[coldlayers] < 1e-9):
+        self.LWC[coldlayers] = 0.
+    if np.any(self.LWC[coldlayers] > 0.):
+        print('#############')
+        print('Problem: water content in a cold layer (L358 melt.py)')
+        xx = np.where((self.LWC>0) & (self.Tz<T_MELT))[0]
+        print(f'Layer depths: {self.z[xx]}')
+        print(f'Layer LWC: {self.LWC[xx]}')
+        print(f'Layer T: {self.Tz[xx]}')
+        print(f'Layer rho: {self.rho[xx]}')
+        print('#############')
+
+
     ### Store LWC blocked ###
     runofftot  = runofftot + DirectRunoff*np.sum(LWCblocked) #Direct runoff of part of the blocked LWC (user choice)
     LWCblocked = (1 - DirectRunoff)*LWCblocked #corresponding decrease of LWCblocked
+
+    runofftot1 = (runofftot*RHO_W_KGM).copy()
+    
     if np.any(LWCblocked > 0):
         if Ponding == True: #ponding is allowed
             LWCold = self.LWC.copy()
@@ -379,10 +435,20 @@ def bucket(self,iii):
                         self.LWC[self.LWC<0] = 0.0
 
                 LWCblocked[kk]                  = 0. # LWCblocked[kk] has been accomodated
+            runofftot2a = (runofftot*RHO_W_KGM).copy()
+            runofftot2b = False
+            LWCblockedC5 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC6 = False
+                
         
         elif Ponding == False: #no ponding
             runofftot   = runofftot+np.sum(LWCblocked) #set all LWCblocked as runoff
             LWCblocked  = 0*LWCblocked #LWCblocked is empty
+            runofftot2b = (runofftot*RHO_W_KGM).copy()
+            runofftot2a = False
+            LWCblockedC6 = np.sum(LWCblocked)*RHO_W_KGM
+            LWCblockedC5 = False
+            
    
     ### Zuo and Oerlemans (1996) runoff routine ###
     if RunoffZuoOerlemans == True: # Calculations with post-refreezing values       
@@ -412,20 +478,62 @@ def bucket(self,iii):
             rfZO[indsrfZO]  = self.dt[iii] * LWC_rfZO[indsrfZO] / tstar # from Eq.(21) Zuo and Oerlemans 1996 [m]
             self.LWC        = self.LWC - rfZO           # decrease LWC
             runofftot       = runofftot + np.sum(rfZO)  # add the calculated runoff to the total runoff
+            runofftot3 = (runofftot*RHO_W_KGM).copy()
+    
+    else:
+        runofftot3 = False       
             
     ### Mass conservation check ###
     liqmcfinal = sum(self.LWC) + refrozentot + runofftot
     if abs(liqmcfinal - liqmcinit) > 1e-3:
         print(f'Mass conservation error (melt.py) at step {iii}\n    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
+
+    ### Temperature correct after redistribution
+    phi         = (rhoi - self.rho) / rhoi      # porosity [/]
+    phivol      = phi * self.dz                 # pore space [m]
+    phivol_av   = phivol * (MAXREFREEZEDENSITY / RHO_W_KGM)  # saturated water content [m], i.e. tot. pot pore space avlbl for any LWC (Eq.9, Wever(2014); Discussion in Yamaguchi(2010))
+    ilim        = np.where(self.rho + phivol_av * RHO_W_KGM / self.dz > RHO_I)[0] # nodes where saturation could lead to density>917
+    if len(ilim) > 0:     # limit pore space availability for storage in ilim nodes
+        phivol_av[ilim] = np.maximum(self.dz[ilim]*(916.99-self.rho[ilim])/RHO_W_KGM,0.)
+
+
+    cold_content_new    = CP_I * self.mass * (T_MELT - self.Tz)           # cold content [J] 
+    refr_cap0_new       = (cold_content / LF_I) / RHO_W_KGM               # refreezing capacity due to cold content [m we]
+    # refr_cap0_supp  = np.maximum(0, refr_cap0 - LWC1)             # refreezing capacity available for any liquid beyond what is currently present [m we] 
+    refr_cap_new        = np.minimum(refr_cap0_new, phivol_av)            # total (existing LWC plus any more) refreezing capacity [m we]
+    
+    ### Refreezing ###
+    freeze      = np.minimum(self.LWC,refr_cap_new)     # refreezing in each individual node [m we] is min of cc available and liquid available
+    self.mass   = self.mass + RHO_W_KGM*freeze  # update mass [kg]
+    self.LWC    = self.LWC - freeze                 # update LWC [m3]
+    self.rho    = self.mass/self.dz             # update density [kg m-3]
+    latheat     = freeze*RHO_W_KGM*LF_I         # latent heat released due to the refreezing [J]
+    cold_content    -= latheat                  # remaining cold content [J]
+    cold_content[((cold_content<0) & (cold_content>-1e-9))] = 0
+    refrozentot = refrozentot + sum(freeze)                   # total refrozen water [m we]
+    deltaT = cold_content/(CP_I*self.mass)
+    self.Tz[freeze>0] = T_MELT - deltaT[freeze>0] # update Tz [K]
     
     ### Dry cold firn check ###
     coldlayers = np.where(self.Tz < T_MELT)[0]
     if np.all(self.LWC[coldlayers] < 1e-9):
         self.LWC[coldlayers] = 0.
     if np.any(self.LWC[coldlayers] > 0.):
-        print('Problem: water content in a cold layer')
+        print('Problem: water content in a cold layer (Line 481 melt.py')
+        xx = np.where((self.LWC>0) & (self.Tz<T_MELT))[0]
+        print(f'Layer depths: {self.z[xx]}')
+        print(f'Layer LWC: {self.LWC[xx]}')
+        print(f'Layer T: {self.Tz[xx]}')
+        print(f'Layer rho: {self.rho[xx]}')
 
     self.rho[self.rho>RHO_I] = RHO_I
+
+    total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
+    mass_runoff = runofftot*RHO_W_KGM
+    mass_refreeze = refrozentot*RHO_W_KGM
+
+    tot_mass_end = total_liquid_mass_end+mass_refreeze+mass_runoff
+    mass_diff = tot_mass_end-total_liquid_mass_start
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
 
@@ -759,74 +867,77 @@ def darcyscheme(self,iii):
     return self.rho,self.age,self.dz,self.Tz,self.r2,self.z,self.mass,self.dzn,self.LWC,meltgridtrack,refr_tot,runofftot
 
 
-def LWC_correct(self):
-    '''
-    *** TEST FUNCTION ***
-    If there is LWC in a layer after temperature diffusion and the temperature
-    is less than zero, one option is to just balance the energy to increase the
-    temperature and lower the LWC. It isn't the best way to solve the problem 
-    but it is one way. 
+# def LWC_correct(self):
+#     '''
+#     *** TEST FUNCTION ***
+#     If there is LWC in a layer after temperature diffusion and the temperature
+#     is less than zero, one option is to just balance the energy to increase the
+#     temperature and lower the LWC. It isn't the best way to solve the problem 
+#     but it is one way. 
 
-    This should be vectorized but that is not a priority.
-    '''
+#     This should be vectorized but that is not a priority.
+#     '''
 
-    ind_wetcold = np.where((self.Tz<T_MELT) & (self.LWC>0))[0]
-    refrozen_mass = np.zeros_like(self.rho)
-    if ind_wetcold.size!=0:
-        cold_content = CP_I * self.mass * (T_MELT - self.Tz) # [J]
-        ### LWC is volume (m^3)
-        heattofreeze = self.LWC*1000*LF_I # [J]
+#     ind_wetcold = np.where((self.Tz<T_MELT) & (self.LWC>0))[0]
+#     refrozen_mass = np.zeros_like(self.rho)
+#     if ind_wetcold.size!=0:
+#         cold_content = CP_I * self.mass * (T_MELT - self.Tz) # [J]
+#         ### LWC is volume (m^3)
+#         heattofreeze = self.LWC*1000*LF_I # [J]
         
-        for kk in ind_wetcold:
-            if cold_content[kk] < heattofreeze[kk]:
-                # not enough cold content
-                # temperature raised to T_MELT
-                # some water refreeze to bring T to T_MELT
+#         for kk in ind_wetcold:
+#             if cold_content[kk] < heattofreeze[kk]:
+#                 # not enough cold content
+#                 # temperature raised to T_MELT
+#                 # some water refreeze to bring T to T_MELT
 
-                self.Tz[kk] = T_MELT
-                self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
-                refrozen_mass[kk] = cold_content[kk]/LF_I
-                self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
-                self.rho[kk] = self.mass[kk]/self.dz[kk]
-                # self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
-            else: #enough cold content, all LWC refreezes
-                # Temperature is raised from refreezing
-                refrozen_mass[kk] = self.LWC[kk] * 1000
-                self.LWC[kk] = 0
-                self.Tz[kk] = self.Tz[kk] + heattofreeze[kk]/CP_I/self.mass[kk]
-                self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
-                self.rho[kk] = self.mass[kk]/self.dz[kk]
+#                 self.Tz[kk] = T_MELT
+#                 self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
+#                 refrozen_mass[kk] = cold_content[kk]/LF_I
+#                 self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
+#                 self.rho[kk] = self.mass[kk]/self.dz[kk]
+#                 # self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
+#             else: #enough cold content, all LWC refreezes
+#                 # Temperature is raised from refreezing
+#                 refrozen_mass[kk] = self.LWC[kk] * 1000
+#                 self.LWC[kk] = 0
+#                 self.Tz[kk] = self.Tz[kk] + heattofreeze[kk]/CP_I/self.mass[kk]
+#                 self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
+#                 self.rho[kk] = self.mass[kk]/self.dz[kk]
 
-                # self.Tz[kk] = self.Tz[kk] + (heattofreeze[kk]/1000/LF_I)
-        if np.any(self.LWC<0):
-            print("negative LWC from correction")
-            self.LWC[self.LWC<0] = 0
-        if np.any(self.Tz > T_MELT):
-            print("temps above T_MELT from correction")
-            self.Tz[self.Tz>T_MELT] = T_MELT
-    return self.Tz, self.LWC, self.rho, self.mass, refrozen_mass
+#                 # self.Tz[kk] = self.Tz[kk] + (heattofreeze[kk]/1000/LF_I)
+#         if np.any(self.LWC<0):
+#             print("negative LWC from correction")
+#             self.LWC[self.LWC<0] = 0
+#         if np.any(self.Tz > T_MELT):
+#             print("temps above T_MELT from correction")
+#             self.Tz[self.Tz>T_MELT] = T_MELT
+#     return self.Tz, self.LWC, self.rho, self.mass, refrozen_mass
 
-def effectiveT(self,iii):
-    '''
-    *** TEST FUNCTION ***
-    trying to see what happens if we raise the temperature to an 'effective temperature' that is the temperature plus the latent heat from the liquid. Puts the firn above T_melt.
-    Potential issue with this method: there might be effective diffusion of mass because we are now diffusing with volumes warmer than T_melt --> adjacent volumes that were dry might end up as having liquid.
-    '''
-    Q = LF_I * self.LWC * 1000
-    deltaT = Q / (self.mass*CP_I)
-    Tz_eff = self.Tz + deltaT
-    self.Tz = Tz_eff
-    T_eff_new, self.T10m = heatDiff(self,iii)
-    excessT = np.maximum(0.0,(T_eff_new - T_MELT))
-    LWC_new = (excessT * self.mass * CP_I)/ (LF_I * 1000)
-    self.LWC = LWC_new
-    T_eff_new[self.LWC>0] = T_MELT
-    self.Tz = T_eff_new
+# def effectiveT(self,iii):
+#     '''
+#     *** TEST FUNCTION ***
+#     trying to see what happens if we raise the temperature to an 'effective temperature' that is the temperature plus the latent heat from the liquid. Puts the firn above T_melt.
+#     Potential issue with this method: there might be effective diffusion of mass because we are now diffusing with volumes warmer than T_melt --> adjacent volumes that were dry might end up as having liquid.
+#     '''
+#     Q = LF_I * self.LWC * 1000
+#     deltaT = Q / (self.mass*CP_I)
+#     Tz_eff = self.Tz + deltaT
+#     self.Tz = Tz_eff
+#     T_eff_new, self.T10m = heatDiff(self,iii)
+#     excessT = np.maximum(0.0,(T_eff_new - T_MELT))
+#     LWC_new = (excessT * self.mass * CP_I)/ (LF_I * 1000)
+#     self.LWC = LWC_new
+#     T_eff_new[self.LWC>0] = T_MELT
+#     self.Tz = T_eff_new
 
-    return self.Tz, self.T10m
+#     return self.Tz, self.T10m
 
 
 
+###################################
+###################################
+###################################
 
 
 

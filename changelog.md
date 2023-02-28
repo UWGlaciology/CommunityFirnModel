@@ -12,7 +12,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-1.1.11
+2.0.0
 
 ## Full Documentation
 
@@ -22,6 +22,8 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 
 - *Issues* 
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
+	- The dH output does not sum to zero when the model reaches or approaches steady state.
+	- There is a small amount of meltwater mass that does not get summed into either the summed runoff or refreezing. This is a small volume so will not significantly affect results.
 
 - *Work in progress*
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
@@ -30,6 +32,24 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.0.0] 2023-02-28
+### Notes
+- This is the first major version release (i.e., to 2.x.x) due to several large changes. The first is the addition of a surface energy balance module, SEB.py. The second is a major overhaul in the enthalpy solver.
+
+- The master branch is being renamed to the main branch.
+
+### New
+- *SEB.py* The new surface energy balance module caculates surface temperature and melt volume based on albedo, shortwave and longwave fluxes, and turbulent fluxes (those fields come from an RCM or AWS.) Presently does not calculate the turbulent fluxes from humidity and wind but I will add that capability in the future. THIS MODULE SHOULD BE CONSIDERED TO BE IN BETA PRESENTLY. IF YOU ARE USING IT, I SUGGEST GETTING IN TOUCH WITH ME AND WE CAN DISCUSS DETAILS.
+
+- *firn_density_nospin.py, solver.py, diffusion.py* There is now an option to solve heat/refreezing in different ways. The enthalpy method is still present, but there are three other options now to compare soling methods. These features are in beta and will be better described in a planned paper. Feel free to email me to ask for details.
+
+### Changed
+- *firn_density_nospin.py, solver.py, diffusion.py* The enthalpy solver has been updated, again. The crux of this problem is that solver has to iterate to converge on a solution. At the end of the iteration, the liquid fraction must be updated, which is non trivial because a layer can have some mass refreeze but still be at the freezing temperature. The upshot is that in testin the new solver produces warmer firn than the older solver. I'd be happy to chat details about this if you have questions. 
+
+- *firn_density_nospin.py* Temperature history, THist, was previously only calculated when using Morris 2014 physics; now it can be calculated with any densification scheme. This is for e.g. allowing experiments looking at how the temperature history may have affected other properties like grain size.
+
+- *physics.py* The new densications from the Utrecht group (Brils et al., 2022, Veldhuijsen et al., 2023) have been added.
 
 ## [1.1.11] 2022-12-13
 ### Notes

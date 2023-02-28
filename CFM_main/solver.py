@@ -4,6 +4,7 @@ Functions to solve the diffusion equation
 '''
 
 import numpy as np
+np.set_printoptions(precision=4)
 from scipy import interpolate
 import scipy.integrate
 from scipy.sparse import spdiags
@@ -42,6 +43,10 @@ def solver(a_U, a_D, a_P, b):
 def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, airdict=None):
     '''
     transient 1-d diffusion finite volume method
+
+    This is for standard heat (no liquid water), isotope, and air diffusion.
+    If there is liquid water is should use the enthalpy solver.
+
     :param z_edges:
     :param Z_P:
     :param nt:
@@ -187,8 +192,12 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         #Down boundary
         a_P[-1] = 1
         a_D[-1] = 0
-        a_U[-1] = 1
-        b[-1]   = deltaZ_u[-1] * bc_d[0]
+        if bc_type_d==2:
+            a_U[-1] = 1
+            b[-1]   = deltaZ_u[-1] * bc_d[0]
+        elif bc_type_d==1:
+            a_U[-1] = 0
+            b[-1]   = bc_d[0]            
 
         phi_t = solver(a_U, a_D, a_P, b)
         a_P = a_U + a_D + a_P_0
@@ -202,21 +211,24 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 ### end transient_solve_TR ########
 ###################################
 
-
-def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz,iii=0):
+def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT, rho_firn, iii=0):
     '''
     transient 1-d diffusion finite volume method for enthalpy
+    
+    This is for heat diffusion when there is liquid water present.
+    It uses a source term for the latent heat associated with the liquid water.
 
     :param z_edges:
     :param Z_P:
     :param nt: number of iterations; depricated (now uses while loop)
     :param dt: time step size
     :param Gamma_P:
-    :param phi_0:
+    :param phi_0: temperature profile [C]
     :param nz_P:
     :param nz_fv:
-    :param phi_s:
+    :param phi_s: surface temperature [C]
     :param g_liq
+    :param c_vol: [J/m3/K] 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
 
     :return phi_t:
 
@@ -225,30 +237,309 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     and Voller, Swaminathan, and Thomas, 1990, equation 61
     '''
 
-    phi_t = phi_0.copy()
-    phi_t_old = phi_t.copy()
+    # phi_t = phi_0.copy()
+    LWC_old = LWC.copy()
+    phi_in = phi_0.copy()
 
     vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
     vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
     mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
     mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
-    rho_liq_eff = mass_liq / dz      # effective density of the liquid portion
-    mix_rho     = (mass_sol + mass_liq) / dz # mixture, or total density of volume (solid plus liquid), see Aschwanden (2012)
+    rho_liq_eff = RHO_W_KGM*dz #new 10/31
     g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
-    # g_liq_alt   = LWC / vol_SL  # alternatively, liquid volume fraction (of the material portion, porosity ignored), (I don't think this one is correct. See code at end of while loop to swap if you want to use this)
-   
-    g_liq_old = g_liq.copy()
+    g_sol       = vol_S / dz #unitless
+
+    dZ = np.diff(z_edges) #width of nodes
+      
+    H_L_liq = RHO_W_KGM*LF_I #volumetric latent enthalpy [J/m3]
+    
+    phi_t = phi_0 # phi_t is just the temperature
+    
+    phi_t_old = phi_t.copy() # initial temperature
+    g_liq_old = g_liq.copy() # initial liquid fraction
+    g_sol_old = g_sol.copy() # initial solid fraction
 
     itercheck = 0.9
     count = 0
 
-    ICT = 0.001 # itercheck threshold 
+    ### Big H stands for latent enthalpy, little h is sensible enthalpy
+    ### H_tot is the sum of latent and sensible enthalpy
+    H_lat      = H_L_liq*g_liq # Latent enthalpy for each layer
+    H_lat_old  = H_lat.copy()
+    H_tot         = phi_t * g_sol * RHO_I * CP_I + H_lat  #total enthalpy, voller 1990b eq 4a
+    H_tot_old     = H_tot.copy()
+    h_old         = phi_t * g_sol * RHO_I * CP_I
+    h_updated     = h_old.copy()
 
-    while itercheck>ICT:
+    update_gsol = True
+
+    for i_time in range(100): # Testing indicates that this should never need this many iterations
+
+        H_tot_iter  = H_tot.copy()
+        phi_iter    = phi_t.copy()
+        g_liq_iter  = g_liq.copy() #unitless
+        g_sol_iter  = g_sol.copy()
+        H_lat_iter  = H_lat.copy()
+        h_iter      = h_updated.copy()
+
+        deltaZ_u = np.diff(Z_P) # [m]
+        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
+        
+        deltaZ_d = np.diff(Z_P)
+        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
+
+        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
+        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+
+        ### Gamma has units J/s/m/K (W/m/K)
+        Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
+        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+
+        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
+        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
+
+        #### version with working dt ####
+        ### S_C is independent
+        S_P = np.zeros_like(Gamma_P)
+        S_C = H_L_liq  * (g_liq_old - g_liq_iter) # J/m3/s = W/m3 Latent heat as source term.
+        # S_C = RHO_I * CP_I * phi_iter * (g_sol_old - g_sol_iter) + (RHO_W_KGM * CP_W * phi_iter + H_L_liq)  * (g_liq_old - g_liq_iter)
+
+        D_u = (Gamma_u / deltaZ_u) # [W/m2/K]
+        D_d = (Gamma_d / deltaZ_d)
+        
+        a_U   = D_u        #* dt # [W/m2/K]
+        a_D   = D_d        #* dt # [W/m2/K]
+        
+        # c_vol1 = RHO_I*CP_I*g_sol_old 
+        c_vol1 = RHO_I * CP_I 
+        
+        a_P_0 = c_vol1 * dZ / dt # [W/m2/K] (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
+        
+        if update_gsol:
+            a_P   = a_U + a_D + a_P_0 * g_sol_iter - S_P * dZ #* dt # check the multiply on the S_P
+        else:
+            a_P   = a_U + a_D + a_P_0 * g_sol_old - S_P * dZ #* dt # check the multiply on the S_P
+            
+        b_0   = S_C * dZ/dt #* dt # [W/m2]
+        b     = b_0 + a_P_0 * g_sol_old * phi_t_old # By this phi_t_old has to be in K
+        ###############
+
+        ### Boundary conditions:
+        ### type 1 is a specified value, type 2 is a specified gradient
+        ### (units for gradient are degrees/meter)
+        # bc_u_0  = phi_s
+        bc_u_0 = phi_t_old[0]
+        # bc_u_0 = phi_iter[0]
+
+        bc_type_u = 1
+        bc_u      = np.concatenate(([ bc_u_0], [bc_type_u]))
+
+        bc_d_0    = 0 #Value
+        bc_type_d = 2 # Type, 1 for fixed temperature, 2 for gradient
+        bc_d      = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
+
+        #Upper boundary
+        a_P[0]  = 1
+        a_U[0]  = 0
+        a_D[0]  = 0
+        b[0]    = bc_u[0]
+
+        #Down boundary
+        a_P[-1] = 1
+        a_D[-1] = 0
+
+        if bc_type_d==2: # Gradient (flux)
+            a_U[-1] = 1
+            b[-1]   = deltaZ_u[-1] * bc_d[0]
+        elif bc_type_d==1: # Fixed value
+            a_U[-1] = 0
+            b[-1]   = bc_d[0]   
+
+        #####
+        phi_t = solver(a_U, a_D, a_P, b) #sensible enthalpy. 0 for layers at freezing (have LWC), negative for dry layers
+        #####
+
+        ### Adjust liquid fraction and temperture field based on solution
+        ### Calculations are (partially) based on the fact that the freezing temp is 0,
+        ### which means that if H_tot<0 there is no liquid and you can calculate temperature, and if H_tot>0 there is liquid and T is 0.
+        # if update_gsol:
+            # h_updated = phi_t * CP_I * RHO_I * g_sol_iter # updated sensible enthalpy after solver
+        # else:
+
+        ### from the Neumann notebook
+        # h_updated = phi_t * CP_I * RHO_I * g_sol_old # updated sensible enthalpy after solver
+
+        # delta_h = (h_updated - h_old) * 0.6 # overshoot correction. delta_h should always be negative for layers with LWC
+        # h_updated_trun = h_old + delta_h # sensible enthalpy after overshoot
+
+        # cond0 = ((delta_h>0) & (LWC_old>0)) # Layers where there was sensible enthalpy increased and there is liquid water
+        # delta_h[cond0] = 0 # sensible enthalpy should not increase if LWC present (should either stay at 0C or cool down)
+
+        # ndh = -1*delta_h #negative delta_h (which makes it positive), makes corrections below easy
+
+        # ### everything refreezes if the calculated change in enthalpy is greater than the latent enthalpy
+        # cond1 = ((ndh>=H_lat_old) & (g_liq_old>0)) #layers where energy change is larger than the needed to refreeze, and where there is water
+        # H_tot[cond1] = (delta_h[cond1] + H_tot_old[cond1]) # total enthalpy in those layers is change+total, should be net negative
+        # g_liq[cond1] = 0 #no liquid left
+        # g_sol[cond1] = (mass_tot[cond1]/RHO_I)/dz[cond1]
+        # phi_t[cond1] = H_tot[cond1]/(CP_I * RHO_I * g_sol[cond1])
+
+        # ### partial refreezing if the delta_h is less than the latent enthalpy
+        # cond2 = ((ndh<H_lat) & (g_liq_old>0))
+        # g_liq[cond2] = (H_lat_old[cond2] + delta_h[cond2])/H_L_liq #remaining liquid
+        # dgl = g_liq - g_liq_old
+        # H_tot[cond2] = H_L_liq * g_liq[cond2]
+        # phi_t[cond2] = 0
+        # g_sol[cond2] = g_sol[cond2] + -1 * dgl[cond2]/0.917 # Update solid fraction
+
+        # ### Make sure that there is no liquid in layers that did not have liquid at start
+        # cond3 = (g_liq_old<=0)
+        # g_liq[cond3] = 0
+        # H_tot[cond3] = h_updated[cond3]
+        # g_sol[cond3] = (mass_tot[cond3]/RHO_I)/dz[cond3]
+
+        # g_liq[g_liq<0]=0
+        # g_liq[g_liq>1]=1
+        ###############
+
+
+        ### Older way
+        h_updated = phi_t * CP_I * RHO_I * g_sol_old # updated sensible enthalpy after solver
+
+        delta_h = (h_updated - h_old) * 0.6 # overshoot correction. delta_h should always be negative for layers with LWC
+        h_updated_trun = h_old + delta_h # sensible enthalpy after overshoot
+
+        cond0 = ((delta_h>0) & (LWC_old>0)) # Layers where there was sensible enthalpy increased and there is liquid water
+        delta_h[cond0] = 0 # sensible enthalpy should not increase if LWC present (should either stay at 0C or cool down)
+
+        ndh = -1*delta_h #negative delta_h (which makes it positive), makes corrections below easy
+
+        ### everything refreezes if the calculated change in enthalpy is greater than the latent enthalpy
+        cond1 = ((ndh>=H_lat_old) & (g_liq_old>0)) #layers where energy change is larger than the needed to refreeze, and where there is water
+        H_tot[cond1] = (delta_h[cond1] + H_tot_old[cond1]) # total enthalpy in those layers is change+total, should be net negative
+        g_liq[cond1] = 0 #no liquid left
+
+        ### partial refreezing if the delta_h is less than the latent enthalpy
+        cond2 = ((ndh<H_lat) & (g_liq_old>0))
+        H_tot[cond2] = 0
+        g_liq[cond2] = (H_lat_old[cond2] + delta_h[cond2])/H_L_liq #remaining liquid
+
+        ### Make sure that there is no liquid in layers that did not have liquid at start
+        cond3 = (g_liq_old<=0)
+        g_liq[cond3] = 0
+        # H_tot[cond3] = h_updated_trun[cond3]
+        H_tot[cond3] = h_updated_trun[cond3]
+
+        g_liq[g_liq<0]=0
+        g_liq[g_liq>1]=1
+        ################
+
+        delta_g_liq = g_liq - g_liq_old # change in liquid fraction. Should always be negative.
+        ######
+
+        g_sol = g_sol + -1 * delta_g_liq/0.917 # Update solid fraction
+
+        ## Now update temperatures after liquid corrections
+        phi_t[H_tot>=0] = 0 # H_tot>0 means liquid present, T=0
+        phi_t[H_tot<0] = H_tot[H_tot<0] / (CP_I * RHO_I * g_sol_old[H_tot<0]) # H_tot<0 means no liquid; all enthalpy is sensible
+
+        iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq)) # Deprecated? Used to use to calulate time to break loop
+
+        if ((np.allclose(phi_iter,phi_t,rtol=1e-4,atol=1e-3))):
+            break
+
+        elif ((np.allclose(g_liq_iter,g_liq,rtol=1e-4,atol=1e-4))):
+            break
+
+        count += 1
+
+        ### END ITERATION LOOP
+        ######################
+    
+    phi_t_out = phi_t
+    phi_t_out[g_liq>0] = 0
+    phi_t_out[(phi_t_out>0)] = 0 
+
+    return phi_t_out, g_liq, count, iterdiff,g_sol
+
+###################################
+### end transient_solve_EN ########
+###################################
+
+def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT, rho_firn, iii=0):
+    '''
+    transient 1-d diffusion finite volume method
+
+    This is for standard heat (no liquid water), isotope, and air diffusion.
+    If there is liquid water is should use the enthalpy solver.
+
+    :param z_edges:
+    :param Z_P:
+    :param nt:
+    :param dt:
+    :param Gamma_P:
+    :param phi_0:
+    :param nz_P:
+    :param nz_fv:
+    :param phi_s:
+    :return phi_t:
+    '''
+
+    LWC_old = LWC.copy()
+    phi_in = phi_0.copy()
+
+    vol_S       = mass_sol / RHO_I     # volume_Solid, i.e. volume of the ice (solid) portion of each control volume
+    vol_SL      = vol_S + LWC    # volume of solid and liquid in each control volume
+    mass_liq    = LWC * RHO_W_KGM  # mass of liquid water in each control
+    mass_tot    = mass_liq + mass_sol # total mass (solid +liquid) of each control
+    rho_tot = mass_tot/dz
+    rho_liq_eff = RHO_W_KGM*dz #new 10/31
+    g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
+    g_sol       = vol_S / dz #unitless
+
+    dZ = np.diff(z_edges) #width of nodes
+      
+    H_L_liq = RHO_W_KGM*LF_I #volumetric latent enthalpy [J/m3]
+    
+    phi_t = phi_0 # phi_t is just the temperature, C
+    phi_t_old = phi_t.copy()
+    
+    phi_t_old = phi_t.copy() # initial temperature
+    g_liq_old = g_liq.copy() # initial liquid fraction
+    g_sol_old = g_sol.copy() # initial solid fraction
+
+    H_lat = g_liq * H_L_liq
+    h_sens = phi_t * CP_I * mass_sol
+    H_tot = H_lat + h_sens
+
+    H_tot_old = H_tot.copy()
+    h_old = h_sens.copy()
+    H_lat_old = H_lat.copy()
+
+    count = 0
+
+    for i_time in range(20):
+        phi_t_iter = phi_t.copy()
+        H_tot_iter = H_tot.copy()
         g_liq_iter = g_liq.copy()
-        deltaH_l = rho_liq_eff * LF_I
-        deltaH = deltaH_l # deltaH is zero anywhere that has LWC = 0
-        phi_t = phi_0.copy()
+
+        delH = np.gradient(H_tot,Z_P)
+        delT = np.gradient(phi_t,Z_P)
+
+        # C_app = (delH**2/delT**2)**0.5
+        # if i_time == 0:
+        
+        # C_app = np.zeros_like(phi_t)
+        C_app_0 = g_liq_iter * H_L_liq * 50
+
+        c_vol = c_vol + C_app_0
+        
+        # else:
+        #     C_app = (H_tot - H_tot_old)/(phi_t_iter - phi_t_old)
+
+        # lwc_layers  = np.where(g_liq>0)[0]
+        # c_vol[lwc_layers] = C_app[lwc_layers]
+
         dZ = np.diff(z_edges) #width of nodes
 
         deltaZ_u = np.diff(Z_P)
@@ -260,47 +551,49 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
         f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
+        #######################################        
         Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
         Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
 
         Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
         Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
-        ### Voller 1990 # Should be same result as 31, 32 from Voller 1991.
-        # beta_P = np.zeros_like(Gamma_P)
-        # beta_P[(g_liq>=0) & (g_liq<=1)]= -1.0e16
-        # S_P = beta_P * deltaH * g_liq_old #* dZ * dt
-        # S_C = -S_P*phi_t + deltaH*g_liq_old - deltaH*g_liq #+ deltaH*beta_P*
-        ### end 1990 
-
-        #### eqs. 31, 32 from Voller 1991
-        dFdT = np.zeros_like(Gamma_P)
-        dFdT[(g_liq>=0) & (g_liq<=1)]= 1.0e15
-        Finv = np.zeros_like(dFdT)
-        S_P = (-1 * deltaH * dFdT)
-        S_C = (deltaH * (g_liq_old - g_liq_iter) + deltaH*dFdT*Finv)
-        ### end 1991
+        S_C = 0
+        S_C = S_C * np.ones(nz_P)
 
         D_u = (Gamma_u / deltaZ_u)
         D_d = (Gamma_d / deltaZ_d)
 
-        b_0 = S_C * dZ * dt
-        a_U = D_u * dt
-        a_D = D_d * dt
-        a_P_0 = c_vol * dZ #/ dt # (new) Patankar eq. 4.41c, this is b_p in Voller (1990; Eq. 30)           
-        a_P     = a_U + a_D + a_P_0 - S_P*dZ*dt # check the multiply on the S_P
+        b_0 = S_C * dZ # first term of Patankar eq. 4.41d
 
+        a_U = D_u # Patankar eq. 4.41a,b
+        a_D = D_d # Patankar eq. 4.41a,b
+
+        # a_P_0 = dZ / dt
+        # a_P_0 = tot_rho * dZ / dt #  (old)
+        a_P_0 = c_vol * dZ / dt # (new) Patankar eq. 4.41c
+        # a_P_0 = RHO_I * c_firn * dZ / dt
+        #######################################
+
+        S_P     = 0.0
+        a_P     = a_U + a_D + a_P_0 - S_P*dZ
+
+        #######################################
         ### Boundary conditions:
         ### type 1 is a specified value, type 2 is a specified gradient
         ### (units for gradient are degrees/meter)
-        bc_u_0  = phi_s # need to pay attention for gas
+        bc_u_0  = phi_s # need to pay attention to surface boundary for gas
         bc_type_u = 1
         bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
+
         bc_d_0  = 0
         bc_type_d = 2
+        # bc_d_0  = 273.149
+        # bc_type_d = 1
         bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
+        #########################################
 
-        b       = b_0 + a_P_0 * phi_t
+        b       = b_0 + a_P_0 * phi_t #Patankar 4.41d
 
         #Upper boundary
         a_P[0]  = 1
@@ -311,60 +604,67 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         #Down boundary
         a_P[-1] = 1
         a_D[-1] = 0
-        a_U[-1] = 1
-        b[-1]   = deltaZ_u[-1] * bc_d[0]
+        if bc_type_d==2:
+            a_U[-1] = 1
+            b[-1]   = deltaZ_u[-1] * bc_d[0]
+        elif bc_type_d==1:
+            a_U[-1] = 0
+            b[-1]   = bc_d[0]            
 
-        #####
         phi_t = solver(a_U, a_D, a_P, b)
-        #####
 
-        ### Use underrelaxation
-        # g_delta = np.zeros_like(g_liq_old)
-        # g_delta[g_liq>0] = (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
-        # print('g_delta',max(g_delta),min(g_delta))
-        # UF = 0.9 # underrelaxation parameter
-        # g_liq[g_liq>0] = g_liq[g_liq>0] + UF * g_delta[g_liq>0]
+        h_updated = phi_t * CP_I * RHO_I * g_sol_old # updated sensible enthalpy after solver
 
-        ### Do not use underrelaxation (Voller says should not need to)
-        # g_liq[g_liq>0] = g_liq[g_liq>0] + (a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0]))) # dz or dZ?
-        
+        delta_h = (h_updated - h_old) #* 0.6 # overshoot correction. delta_h should always be negative for layers with LWC
+        h_updated_trun = h_old + delta_h # sensible enthalpy after overshoot
 
-        ### taken from v1.1.2; bit in v1.1.5 does not work!
-        g_liq[g_liq>0] = g_liq[g_liq>0] + a_P[g_liq>0] * ((phi_t[g_liq>0]) / (dZ[g_liq>0] * deltaH[g_liq>0])) # dz or dZ?
-        g_liq[g_liq<=0] = 0
-        g_liq[g_liq>1] = 1
-       
-        LWC = g_liq*dz
-        mass_liq = LWC * RHO_W_KGM
-        rho_liq_eff = mass_liq / dz #dz or dZ? Only a very small difference.
+        cond0 = ((delta_h>0) & (LWC_old>0)) # Layers where there was sensible enthalpy increased and there is liquid water
+        delta_h[cond0] = 0 # sensible enthalpy should not increase if LWC present (should either stay at 0C or cool down)
 
-        ### Use the following if you use g_liq_alt above
-        # new_vol = mass_tot/(g_liq*RHO_W_KGM + RHO_I - g_liq*RHO_I)
-        # LWC = g_liq * new_vol
-        # mass_liq = LWC * RHO_W_KGM
-        # rho_liq_eff = mass_liq / dZ #dz or dZ?
+        ndh = -1*delta_h #negative delta_h (which makes it positive), makes corrections below easy
 
-        iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq))
-        if iterdiff==0:
-            itercheck = 0
+        ### everything refreezes if the calculated change in enthalpy is greater than the latent enthalpy
+        cond1 = ((ndh>=H_lat_old) & (g_liq_old>0)) #layers where energy change is larger than the needed to refreeze, and where there is water
+        H_tot[cond1] = (delta_h[cond1] + H_tot_old[cond1]) # total enthalpy in those layers is change+total, should be net negative
+        g_liq[cond1] = 0 #no liquid left
+
+        ### partial refreezing if the delta_h is less than the latent enthalpy
+        cond2 = ((ndh<H_lat) & (g_liq_old>0))
+        H_tot[cond2] = 0
+        g_liq[cond2] = (H_lat_old[cond2] + delta_h[cond2])/H_L_liq #remaining liquid
+
+        ### Make sure that there is no liquid in layers that did not have liquid at start
+        cond3 = (g_liq_old<=0)
+        g_liq[cond3] = 0
+        H_tot[cond3] = h_updated_trun[cond3]
+
+        g_liq[g_liq<0]=0
+        g_liq[g_liq>1]=1
+
+        delta_g_liq = g_liq - g_liq_old # change in liquid fraction. Should always be negative.
+        #######
+
+        g_sol = g_sol + -1 * delta_g_liq/0.917 # Update solid fraction
+
+        ### Now update temperatures after liquid corrections
+        phi_t[H_tot>=0] = 0 # H_tot>0 means liquid present, T=0
+        phi_t[H_tot<0] = H_tot[H_tot<0] / (CP_I * RHO_I * g_sol_old[H_tot<0]) # H_tot<0 means no liquid; all enthalpy is sensible
+
+        iterdiff = (np.sum(g_liq_iter) - np.sum(g_liq)) # Deprecated? Used to use to calulate time to break loop
+
+        if ((np.allclose(phi_t_iter,phi_t,rtol=1e-4,atol=1e-3))):
             break
-        else:
-            itercheck = np.abs( iterdiff/np.sum(g_liq_iter))
-        count += 1
-        # if count==100:
-        #     if ICT == 0:
-        #         ICT = 1e-8
-        #     else:
-        #         ICT = ICT * 10
-        # if count==200:
-        #     ICT = ICT * 10
 
-    return phi_t, g_liq, count, iterdiff
+        elif ((np.allclose(g_liq_iter,g_liq,rtol=1e-4,atol=1e-4))):
+            break
+
+        count+=1
+
+    return phi_t, g_liq, count, iterdiff,g_sol
 
 ###################################
-### end transient_solve_EN ########
+### end apparent_heat ########
 ###################################
-
 
 '''
 Functions below are for firn air

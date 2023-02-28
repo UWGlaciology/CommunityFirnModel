@@ -65,3 +65,4 @@ def read_init(folder, resultsFileName, varname):
     f5.close()
 
     return init_value
+

@@ -89,7 +89,7 @@
 "rad_pen": false,
 "site_pressure": 1013.25,
 "output_bits": "float32",
-"spinUpdate": true,
+"spinUpdate": false,
 "spinUpdateDate": 1980.0,
 "DIPhorizon": 100.0,
 "NewSpin": false,

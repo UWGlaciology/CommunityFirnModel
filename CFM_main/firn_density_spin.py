@@ -22,6 +22,7 @@ from physics import *
 from constants import *
 from strain import *
 from isotopeDiffusion import isotopeDiffusion
+from SEB import SurfaceEnergyBudget
 import numpy as np
 import scipy.interpolate as interpolate
 import csv
@@ -140,7 +141,7 @@ class FirnDensitySpin:
         else:
             input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
             input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
- 
+
         if input_temp[0] < 0.0:
             input_temp              = input_temp + K_TO_C
         try:
@@ -153,7 +154,7 @@ class FirnDensitySpin:
             print("You should add key 'spinup_climate_type' to the config .json file")
             print("spinup is based on mean climate of input")
             self.temp0                  = np.mean(input_temp)
-        
+    
         ### accumulation rate ###              
         try:
             if self.c['spinup_climate_type']=='initial':
@@ -211,7 +212,10 @@ class FirnDensitySpin:
 
         try: #VV use Reeh corrected T
             if self.c['ReehCorrectedT'] and self.c['MELT']:
-                input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
+                if climateTS != None:
+                    input_snowmelt = climateTS['SMELT']
+                else:
+                    input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
                 meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
                 meanacc  = self.bdot0 # mean annual accumulation [mIE/yr]
                 self.SIR = min(meanmelt,0.6*meanacc) # Reeh 1991 and Reeh 2008 PMAX value is set at 0.6 melt becomes superimposed ice until it reaches 0.6 of annual acc, then runoff
@@ -226,6 +230,8 @@ class FirnDensitySpin:
             self.c['ReehCorrectedT'] = False
             pass
 
+        print(f'AHL: {AHL}')
+        print(f'THL: {THL}')
         self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
 
         # try:
@@ -303,9 +309,8 @@ class FirnDensitySpin:
         if self.c['ReehCorrectedT']:
             self.Tz         = self.Tz + 26.6*self.SIR # temperature correction accounting for latent heat, Reeh 1991 (5) Reeh 2008 (16)
             self.Tz         = np.minimum(self.Tz,273.15)
-            self.T_mean     = np.mean(self.Tz[self.z<50])
+            self.T_mean     = np.mean(self.Tz[self.z<50]) * np.ones(self.stp)
             self.T10m       = self.T_mean
-
         try:
             ctest = self.c['conductivity']
         except:
@@ -327,7 +332,7 @@ class FirnDensitySpin:
             self.iso_sig2_out = {}
 
             for isotope in self.c['iso']:
-                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,None)
+                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z)
 
         ### Surface Density
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp) # could configure this so that user specifies vector of some noise
@@ -355,7 +360,10 @@ class FirnDensitySpin:
             self.r2 = None
 
         ### "temperature history" if using Morris physics
-        if self.c['physRho']=='Morris2014':
+        if 'THist' not in self.c:
+            self.c['THist'] = False
+
+        if ((self.c['physRho'] == 'Morris2014') or (self.c['THist']==True)):
             if 'QMorris' not in self.c:
                 print('Add "QMorris" to the .json. CFM is setting to 110e3')
                 self.c['QMorris'] = 110.0e3               
@@ -434,8 +442,16 @@ class FirnDensitySpin:
                 'bdot_av':      self.bdot_av
             }
 
-            if self.c['physRho']=='Morris2014':
+            if self.c['physRho']=='MaxSP':
+                try:
+                    PhysParams['MQ'] = self.c['MQ']
+                except:
+                    PhysParams['MQ'] = 60
+
+            if self.c['THist']:
                 PhysParams['Hx'] = self.Hx
+
+            if self.c['physRho']=='Morris2014':               
                 PhysParams['QMorris'] = self.c['QMorris']
 
             if self.c['physRho']=='Goujon2003':
@@ -460,6 +476,8 @@ class FirnDensitySpin:
                 'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
                 'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
                 'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+                'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
+                'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
                 'MaxSP':                FirnPhysics(PhysParams).MaxSP
@@ -513,9 +531,9 @@ class FirnDensitySpin:
 
             ### update model grid mass, stress, and mean accumulation rate
             dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-            self.dz_old     = np.copy(self.dz)
             self.dz         = self.mass / self.rho * self.dx
-            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))
+            self.dz_old     = self.dz    
+            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))     
             self.z          = self.dz.cumsum(axis = 0)
             self.z          = np.concatenate(([0], self.z[:-1]))
             self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
@@ -523,7 +541,8 @@ class FirnDensitySpin:
             ### VV corrected temperature profile with latent heat release from meltwater, 
             ### following Reeh 1991 parameterisation ##
             if self.c['ReehCorrectedT']:
-                self.Tz         = np.concatenate(([self.Ts[iii]]+26.6*self.SIR, self.Tz[:-1]))
+                upperT = np.min((self.Ts[iii]+26.6*self.SIR,T_MELT))
+                self.Tz         = np.concatenate(([upperT], self.Tz[:-1]))
             else:
                 self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
             ##

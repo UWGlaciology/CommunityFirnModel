@@ -56,4 +56,7 @@ LF_I        = 333500.0
 M_AIR       = 28.97e-3                      
 
 # Standard Amtmospheric Pressure, Pa
-P_0         = 1.01325e5                     
+P_0         = 1.01325e5
+
+# specific heat of water, J kg^-1 K^-1
+CP_W		= 4180.0                
