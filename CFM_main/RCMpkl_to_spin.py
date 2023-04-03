@@ -238,8 +238,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         print(T_mean)
 
         hh  = np.arange(0,501)
-        age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
+        # age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
         if not desired_depth:
+            age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)  
             # desired_depth = hh[np.where(rho>=916)[0][0]]
             desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
             depth_S1 = hh[np.where(rho>=450)[0][0]]
@@ -296,7 +297,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
-        num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+        try:
+            num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+        except: # Added this 3/31/23 as a fix to allow testing in zero accumulation (spefically simple tests of thermodynamics)
+            num_reps = 1
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])

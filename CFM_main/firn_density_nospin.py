@@ -874,6 +874,7 @@ class FirnDensityNoSpin:
 
         ### Keep track of total refreeze and runoff for mass conservation
         if self.MELT:
+            self.init_LWC_sum = np.sum(self.LWC)
             refreezing2check = np.zeros(self.stp)
             runoff2check     = np.zeros(self.stp)
             meltvol2check    = np.zeros(self.stp)
@@ -976,11 +977,11 @@ class FirnDensityNoSpin:
                 'MaxSP':                FirnPhysics(PhysParams).MaxSP
             }
 
-            RD      = physicsd[self.c['physRho']]()
-            drho_dt = RD['drho_dt']
+            # RD      = physicsd[self.c['physRho']]()
+            # drho_dt = RD['drho_dt']
             if self.c['no_densification']:
-                drho_dt = np.zeros_like(drho_dt)
-            self.viscosity = RD['viscosity']
+                drho_dt = np.zeros_like(self.rho)
+            self.viscosity = np.zeros_like(drho_dt)
 
             ### Strain modules
             if self.c['strain_softening']:
@@ -1196,6 +1197,8 @@ class FirnDensityNoSpin:
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 if ((not self.c['SEB']) or (not self.c['manualT'])):
                     self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+                if ((self.Ts[iii]<T_MELT) and (self.LWC[0]>0)):
+                    self.LWC[0] = 0
 
             if self.c['SUBLIM']:
                 if self.sublimSec[iii]<0:
@@ -1356,7 +1359,9 @@ class FirnDensityNoSpin:
                   f'Refreezing:     {sum(refreezing2check)}\n'
                   f'Runoff:         {sum(runoff2check)}\n'
                   f'LWC (current):  {sum(self.LWC)}\n'
+                  f'LWC (initial):  {self.init_LWC_sum}\n'
                   f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)}\n'
+                  f'Refrz + Rnff +LWC (with init):   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)+self.init_LWC_sum}\n'
                   f'DML:            {sum(dml2check)}')
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 

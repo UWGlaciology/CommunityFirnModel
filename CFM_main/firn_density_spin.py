@@ -164,6 +164,9 @@ class FirnDensitySpin:
         except:
             self.bdot0      = np.mean(input_bdot)
 
+        # if self.bdot0 == 0:
+        #     self.bdot0 = 0.2
+
         if 'manual_climate' in self.c:
             pass
         else:
@@ -181,13 +184,28 @@ class FirnDensitySpin:
         ############################
         ### set up model grid ######
         ############################
-        self.gridLen    = int((self.c['H'] - self.c['HbaseSpin']) / (self.bdot0 / self.c['stpsPerYear'])) # number of grid points
 
+        self.gridLen    = 1001
         gridHeight      = np.linspace(self.c['H'], self.c['HbaseSpin'], self.gridLen)
         self.z          = self.c['H'] - gridHeight
         self.dz         = np.diff(self.z) 
         self.dz         = np.append(self.dz, self.dz[-1])
         self.dx         = np.ones(self.gridLen)
+
+        print(self.z)
+
+        ### CODE ADDED TO TO THERMO TESTING ###
+        # if self.c['initprofile']:
+        #     print('CAUTION: CODE ALTERED IN SPIN TO MANIPULATE self.z')
+        #     initfirn = pd.read_csv(self.c['initfirnFile'],delimiter=',') 
+        #     init_depth      = initfirn['depth'].values
+        #     self.dz0 = np.mean(np.diff(init_depth))
+        #     self.z  = np.arange(self.z[0],self.z[-1],self.dz0)
+        #     self.dz = np.diff(self.z)
+        #     self.gridLen = len(self.z)
+        #     self.dx         = np.ones(self.gridLen)
+        ### end code
+
         print('Grid length is', self.gridLen)
         ############################
 
@@ -230,9 +248,13 @@ class FirnDensitySpin:
             self.c['ReehCorrectedT'] = False
             pass
 
-        print(f'AHL: {AHL}')
-        print(f'THL: {THL}')
-        self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
+        # print(f'AHL: {AHL}')
+        # print(f'THL: {THL}')
+        # try:
+        #     self.age, self.rho     = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
+        # except:
+        self.age = np.arange(0,self.gridLen)
+        self.rho = 400*np.ones_like(self.age)
 
         # try:
         self.doublegrid = self.c['doublegrid']
@@ -509,8 +531,8 @@ class FirnDensitySpin:
                 self.Hx = RD['Hx']
 
             ### update temperature grid and isotope grid if user specifies
-            if self.c['heatDiff']:
-                self.Tz, self.T10m = heatDiff(self,iii)
+            # if self.c['heatDiff']:
+                # self.Tz, self.T10m = heatDiff(self,iii)
 
             if self.c['isoDiff']:
                 IsoParams = {
@@ -530,30 +552,41 @@ class FirnDensitySpin:
             self.T50     = np.mean(self.Tz[self.z<50])
 
             ### update model grid mass, stress, and mean accumulation rate
-            dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
-            self.dz         = self.mass / self.rho * self.dx
-            self.dz_old     = self.dz    
-            self.dz         = np.concatenate(([dzNew], self.dz[:-1]))     
-            self.z          = self.dz.cumsum(axis = 0)
-            self.z          = np.concatenate(([0], self.z[:-1]))
-            self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
-            
-            ### VV corrected temperature profile with latent heat release from meltwater, 
-            ### following Reeh 1991 parameterisation ##
-            if self.c['ReehCorrectedT']:
-                upperT = np.min((self.Ts[iii]+26.6*self.SIR,T_MELT))
-                self.Tz         = np.concatenate(([upperT], self.Tz[:-1]))
-            else:
-                self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
-            ##
-            
-            massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
-            self.mass       = np.concatenate(([massNew], self.mass[:-1]))
-            self.sigma      = self.mass * self.dx * GRAVITY
-            self.sigma      = self.sigma.cumsum(axis = 0)
-            self.mass_sum   = self.mass.cumsum(axis = 0)
-            self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
-                          
+            if self.bdotSec[iii]>0:
+                dzNew           = self.bdotSec[iii] * RHO_I / self.rhos0[iii] * S_PER_YEAR
+                self.dz         = self.mass / self.rho * self.dx   
+                self.dz         = np.concatenate(([dzNew], self.dz[:-1]))     
+                self.z          = self.dz.cumsum(axis = 0)
+                self.z          = np.concatenate(([0], self.z[:-1]))
+                self.rho        = np.concatenate(([self.rhos0[iii]], self.rho[:-1]))
+
+
+                ### VV corrected temperature profile with latent heat release from meltwater, 
+                ### following Reeh 1991 parameterisation ##
+                if self.c['ReehCorrectedT']:
+                    upperT = np.min((self.Ts[iii]+26.6*self.SIR,T_MELT))
+                    self.Tz         = np.concatenate(([upperT], self.Tz[:-1]))
+                else:
+                    self.Tz         = np.concatenate(([self.Ts[iii]], self.Tz[:-1]))
+                ##
+                
+                massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                self.mass       = np.concatenate(([massNew], self.mass[:-1]))
+                self.sigma      = self.mass * self.dx * GRAVITY
+                self.sigma      = self.sigma.cumsum(axis = 0)
+                self.mass_sum   = self.mass.cumsum(axis = 0)
+                self.bdot_mean  = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t / (self.age[1:] * RHO_I))))*self.c['stpsPerYear']*S_PER_YEAR
+              
+            else: # no accumulation during this time step
+                self.age        = self.age + self.dt[iii]
+                self.z          = self.dz.cumsum(axis=0)
+                self.z          = np.concatenate(([0],self.z[:-1]))
+                self.dzNew      = 0
+                self.dh_acc = 0
+                znew = np.copy(self.z)                             
+                if ((not self.c['SEB']) or (not self.c['manualT'])):
+                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:])) 
+
             ### Update grain growth #VV ###
             #VV calculate this before accumulation (because the new surface layer should not be subject to grain growth yet
             if self.c['physGrain']:
@@ -585,7 +618,7 @@ class FirnDensitySpin:
                     if 'age' in list(initfirn):
                         print('and age')
                         self.age = np.interp(self.z,init_depth,initfirn['age'].values*S_PER_YEAR)
-                    if 'lwc' in list(initfirn):
+                    if (('lwc' in list(initfirn)) or ('LWC' in list(initfirn))):
                         self.LWC = np.interp(self.z,init_depth,initfirn['lwc'].values)
                     # if 'bdot_mean' in list(initfirn):
                     #     self.write_bdot = True
