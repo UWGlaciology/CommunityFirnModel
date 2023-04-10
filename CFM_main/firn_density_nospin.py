@@ -164,6 +164,7 @@ class FirnDensityNoSpin:
             self.c['spinUpdate'] = False
         if self.c['spinUpdate']:
             updatedStartDate = initDepth[0] # if the spin file has been updated, this is the date to start the run (find this time in the forcing data)
+            print('updatedStartDate', updatedStartDate)
         else:
             updatedStartDate = None
 
@@ -1203,7 +1204,7 @@ class FirnDensityNoSpin:
                     self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack, dh_sub     = sublim(self,iii) # keeps track of sublimated water for mass conservation                    
                     self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                     # self.dzNew      = 0
-                    self.dh_acc = self.dh_acc + dh_sub #dh_sub is negative 
+                    self.dh_acc = float(self.dh_acc + dh_sub) #dh_sub is negative 
                     if self.doublegrid == True: # gridtrack corrected for sublimation
                         self.gridtrack = np.copy(sublgridtrack)
                     znew = np.copy(self.z)
@@ -1440,6 +1441,7 @@ class FirnDensityNoSpin:
         '''
 
         self.dH     = (self.sdz_new - self.sdz_old) + self.dh_acc + self.dh_melt - (self.iceout*self.t[iii]) # iceout has units m ice/year, t is years per time step. 
+
         # self.dH2 = self.z[-1] - self.z_old[-1] #- (self.iceout*self.t) # alternative method. Should be the same?    
         self.dHAll.append(self.dH)
         self.dHtot  = np.sum(self.dHAll)
