@@ -96,9 +96,19 @@ def bucket(self,iii):
 
     dzo = self.dz.copy()
     if ind1>0:
-        dh_melt = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-pm_dz))
+        dh_melt = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-pm_dz)) #thickness of melted nodes
     else:
         dh_melt = -1 * (dzo[ind1]-pm_dz)
+
+    avg_dh_melted = dh_melt/n_melted # average thickness of melted nodes
+    # print('avg_dh_melted', avg_dh_melted)
+    # print('dh_melt',dh_melt)
+    # print('n_melted',n_melted)
+    # print('ind1',ind1)
+    # print('pm_dz',pm_dz)
+    # print('dzo',dzo[0])
+    # print('melt_mass',melt_mass)
+    # input()
 
     ### Liquid water input at the surface ###
     liq_in_mass = max(melt_mass + (np.sum(self.LWC[0:ind1+1]) - pm_lwc) * RHO_W_KGM, 0) #avoid negative lwcinput due to numerical round-off errors
@@ -125,7 +135,14 @@ def bucket(self,iii):
         self.dzn       = self.dz[0:self.compboxes] #VV avoids bug due to undefined self.dzn
 
     self.LWC       = np.concatenate(([pm_lwc],self.LWC[ind1+1:-1],self.LWC[-1]*np.ones(n_melted)))
-    self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(n_melted)))
+    
+    keep_firnthickness = True
+    if keep_firnthickness:
+        nb_th = np.maximum(avg_dh_melted,self.dz[-1])
+        self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],nb_th*np.ones(n_melted)))
+    else:
+        self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(n_melted)))
+    
     self.Tz        = np.concatenate(([pm_Tz],self.Tz[ind1+1:-1],self.Tz[-1]*np.ones(n_melted))) # PM layer should have temp=T_MELT
     self.z         = self.dz.cumsum(axis=0)
     self.z         = np.concatenate(([0],self.z[:-1]))

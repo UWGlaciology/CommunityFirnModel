@@ -84,6 +84,7 @@ class FirnDensityNoSpin:
                 (unit: kg m^-3, type: array of floats)
     : bdot_mean: mean accumulation over the lifetime of each parcel
                 (units are m I.E. per year)
+    : sublim: sublimation/deposition. Negative means sublimation, positive means depostion
                 
     :returns D_surf: diffusivity tracker
                 (unit: ???, type: array of floats)
@@ -306,8 +307,10 @@ class FirnDensityNoSpin:
             self.MELT           = True
             try: 
                 self.LWC        = initLWC[1:]
+                self.LWC_init   = np.sum(self.LWC)
             except:
                 self.LWC        = np.zeros_like(self.z)
+                self.LWC_init   = 0
             self.PLWC_mem   = np.zeros_like(self.z) #VV keep track of water content that was in PFdom
 
             if 'RAIN' not in self.c:
@@ -1013,7 +1016,17 @@ class FirnDensityNoSpin:
                     T_old = self.Tz[0]
                 else:
                     T_old = self.Ts[iii-1]
-                self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii,T_old)
+                self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB_fqs(PhysParams,iii,T_old)
+                # self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii,T_old)
+                # Ts_test, Tz_test, melt_mass_test = self.SEB.SEB(PhysParams,iii,T_old)
+                # if melt_mass>0:
+                    # print('Ts_test', Ts_test)
+                    # print('Ts_fqs', self.Ts[iii])
+                    # print('Tz_test', Tz_test[0:6])
+                    # print('Tz_fqs', self.Tz[0:6])
+                    # print('melt_mass_test', melt_mass_test)
+                    # print('melt_mass_fqs', melt_mass)
+                    # input()
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
                 self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
@@ -1283,7 +1296,11 @@ class FirnDensityNoSpin:
                 if 'viscosity' in self.output_list:
                     self.viscosity = RD['viscosity']
 
-                self.climate = np.array([self.bdot[iii],self.Ts[iii]])
+                if not self.c['SEB']:
+                    self.climate = np.array([self.bdot[iii],self.Ts[iii]])
+                else: #if SEB true
+                    SMBiii = self.bdot[iii] + self.sublim[iii] - self.snowmelt[iii] #sublim negative means mass loss, snowmelt positive is amount lost
+                    self.climate = np.array([SMBiii,self.Ts[iii]])
    
                 bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(iii)
 
@@ -1357,6 +1374,7 @@ class FirnDensityNoSpin:
                   f'Refreezing:     {sum(refreezing2check)}\n'
                   f'Runoff:         {sum(runoff2check)}\n'
                   f'LWC (current):  {sum(self.LWC)}\n'
+                  f'LWC (init):  {self.LWC_init}\n'
                   f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)}\n'
                   f'DML:            {sum(dml2check)}')
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
