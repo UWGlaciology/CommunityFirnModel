@@ -1016,17 +1016,26 @@ class FirnDensityNoSpin:
                     T_old = self.Tz[0]
                 else:
                     T_old = self.Ts[iii-1]
-                self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB_fqs(PhysParams,iii,T_old)
+                self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
+
+
+                # if iii<10:
+                #     print('modeltime', self.modeltime[iii])
+                #     print('Ts_fqs', self.Ts[iii])
+                #     print('Ts_M2', M2TS)
+                # if iii==10:
+                #     sys.exit()   
+
+
                 # self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii,T_old)
                 # Ts_test, Tz_test, melt_mass_test = self.SEB.SEB(PhysParams,iii,T_old)
                 # if melt_mass>0:
-                    # print('Ts_test', Ts_test)
-                    # print('Ts_fqs', self.Ts[iii])
-                    # print('Tz_test', Tz_test[0:6])
-                    # print('Tz_fqs', self.Tz[0:6])
-                    # print('melt_mass_test', melt_mass_test)
-                    # print('melt_mass_fqs', melt_mass)
-                    # input()
+                #     print('modeltime', self.modeltime[iii])
+                #     print('Ts_fqs', self.Ts[iii])
+                #     print('Ts_M2', M2TS)
+                #     input(f'melt_mass_fqs {melt_mass}')
+                
+
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
                 self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])

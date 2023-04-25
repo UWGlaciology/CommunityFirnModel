@@ -62,6 +62,7 @@ class SurfaceEnergyBudget:
         self.SW_d    = climateTS['SW_d'][start_ind:]
         self.LW_d    = climateTS['LW_d'][start_ind:]
         self.ALBEDO  = climateTS['ALBEDO'][start_ind:]
+        self.ALBEDO[np.isnan(self.ALBEDO)] = np.nanmean(self.ALBEDO)
         self.T2m     = climateTS['T2m'][start_ind:]
         self.TSKIN   = climateTS['TSKIN'][start_ind:]
         if (('EVAP' in climateTS.keys()) and ('SUBLIM' in climateTS.keys())):
@@ -116,10 +117,10 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        iXcm = np.where(z>=0.01)[0][0]
+        iXcm = np.where(z>=0.01)[0][0] # reducing this will result in higher melt.
         dXcm = z[iXcm]
 
-        i10cm = np.where(z>=1)[0][0]
+        i10cm = np.where(z>=0.2)[0][0]
         z10cm = z[i10cm]
         m10cm = np.cumsum(mass)[i10cm]
         T10cm = np.cumsum(mass*Tz)[i10cm]/m10cm
@@ -129,7 +130,8 @@ class SurfaceEnergyBudget:
         K10cm  = K_ice * (rho10cm/RHO_I) ** (2 - 0.5 * (rho10cm/RHO_I))
         
         G = (K10cm * (Tz[i10cm] - Tz[0])/z10cm) # estimated temperature flux in firn due to temperature gradient
-        
+        # G = 0
+
         m = np.cumsum(mass)[iXcm] #mass of the top Xcm
         TXcm = np.cumsum(mass*Tz)[iXcm]/m # mean temperature of top X cm (weighted mean)
         cold_content_Xcm = CP_I * m * (T_MELT - TXcm) # cold content [J], positive quantity if T<T_melt
@@ -163,9 +165,9 @@ class SurfaceEnergyBudget:
         else:
             meltmass = 0
 
-        Tz[0:iXcm+1] = Tsurface            
+        Tz[0:iXcm+1] = Tsurface  
 
-        return Tsurface, Tz, meltmass
+        return Tsurface, Tz, meltmass, self.TSKIN[iii]
     ############################
     ### end SEB_fqs
     ############################
