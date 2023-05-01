@@ -129,8 +129,8 @@ class SurfaceEnergyBudget:
 
         K10cm  = K_ice * (rho10cm/RHO_I) ** (2 - 0.5 * (rho10cm/RHO_I))
         
-        G = (K10cm * (Tz[i10cm] - Tz[0])/z10cm) # estimated temperature flux in firn due to temperature gradient
-        # G = 0
+        # G = (K10cm * (Tz[i10cm] - Tz[0])/z10cm) # estimated temperature flux in firn due to temperature gradient
+        G = 0
 
         m = np.cumsum(mass)[iXcm] #mass of the top Xcm
         TXcm = np.cumsum(mass*Tz)[iXcm]/m # mean temperature of top X cm (weighted mean)
@@ -165,7 +165,24 @@ class SurfaceEnergyBudget:
         else:
             meltmass = 0
 
+        # try:
+        
         Tz[0:iXcm+1] = Tsurface  
+        # except:
+        #     print('Tsurface',Tsurface)
+        #     print('iXcm',iXcm)
+        #     print('Tz',Tz[0:iXcm+5])
+        #     print('z_top',z[0:5])
+        #     print('z_bottom', z[-1])
+        #     print('r',r)
+        #     print('Qnet',Qnet)
+        #     print('Q_SW_net',Q_SW_net)
+        #     print('Q_LW_d',Q_LW_d)
+        #     print('self.QH[iii]',self.QH[iii])
+        #     print('self.QL[iii]',self.QL[iii])
+        #     print('Qrain_i',Qrain_i)
+        #     print('G',G)
+        #     sys.exit()
 
         return Tsurface, Tz, meltmass, self.TSKIN[iii]
     ############################
