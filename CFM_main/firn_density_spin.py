@@ -332,7 +332,12 @@ class FirnDensitySpin:
             self.iso_sig2_out = {}
 
             for isotope in self.c['iso']:
-                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z)
+                if ((isotope=='d18') or (isotope=='18')):
+                    isotope='d18O'
+                    print('rename isotope in .json and forcing file to be d180')
+                if isotope=='D':
+                    isotope='dD'
+                self.Isotopes[isotope] = isotopeDiffusion(self.spin,self.c,isotope,climateTS,self.stp,self.z)
 
         ### Surface Density
         self.rhos0      = self.c['rhos0'] * np.ones(self.stp) # could configure this so that user specifies vector of some noise
