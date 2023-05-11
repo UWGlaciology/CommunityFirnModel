@@ -135,7 +135,10 @@ class FirnDensitySpin:
         ### temperature ###
         if climateTS != None:
             input_temp = climateTS['TSKIN']
-            input_bdot = climateTS['BDOT']
+            try:
+                input_bdot = climateTS['BDOT'] + climateTS['SUBLIM']
+            except:
+                input_bdot = climateTS['BDOT']
             input_year_temp = input_year_bdot = climateTS['time']
        
         else:
@@ -393,6 +396,8 @@ class FirnDensitySpin:
         except:
             self.c['no_densification']=False
         #######################
+
+        self.rho = 900*np.ones_like(self.rho)
 
     ############################
     ##### END INIT #############
