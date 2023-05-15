@@ -171,6 +171,7 @@ def bucket(self,iii):
             meltgridtrack = np.zeros(nnd) #just return a zero array
     else:
         meltgridtrack = self.gridtrack
+        self.dzn       = self.dz[0:self.compboxes]
     ### end regridding ###
 
     ### Calculate excessive LWC (above irreducible holding capacity) ###
