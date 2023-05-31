@@ -89,6 +89,7 @@ class SurfaceEnergyBudget:
         self.SBC = 5.67e-8 # Stefan-Boltzmann constant [W K^-4 m^-2
         self.emissivity_air = 1
         self.emissivity_snow = 0.98
+
         
         # self.D_sh = 15 # Sensible heat flux coefficient, Born et al. 2019 [W m^-2 K^-1]
 
@@ -105,6 +106,7 @@ class SurfaceEnergyBudget:
         Tguess = self.T2m[iii]
         dz  = PhysParams['dz']
         z = PhysParams['z']
+        mtime = PhysParams['mtime']
 
         T_rain = np.max((self.T2m[iii],T_MELT))
         # Qrain_i = 0
@@ -117,10 +119,10 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        iXcm = np.where(z>=0.01)[0][0] # reducing this will result in higher melt.
+        iXcm = np.where(z>=0.10)[0][0] # reducing this will result in higher melt.
         dXcm = z[iXcm]
 
-        i10cm = np.where(z>=0.2)[0][0]
+        i10cm = np.where(z>=1)[0][0]
         z10cm = z[i10cm]
         m10cm = np.cumsum(mass)[i10cm]
         T10cm = np.cumsum(mass*Tz)[i10cm]/m10cm
@@ -129,8 +131,8 @@ class SurfaceEnergyBudget:
 
         K10cm  = K_ice * (rho10cm/RHO_I) ** (2 - 0.5 * (rho10cm/RHO_I))
         
-        # G = (K10cm * (Tz[i10cm] - Tz[0])/z10cm) # estimated temperature flux in firn due to temperature gradient
-        G = 0
+        G = (K10cm * (Tz[i10cm] - Tz[0])/z10cm) # estimated temperature flux in firn due to temperature gradient
+        # G = 0
 
         m = np.cumsum(mass)[iXcm] #mass of the top Xcm
         TXcm = np.cumsum(mass*Tz)[iXcm]/m # mean temperature of top X cm (weighted mean)
@@ -141,11 +143,17 @@ class SurfaceEnergyBudget:
 
         pmat = np.zeros(5)
 
-        a = self.SBC*dt/(CP_I*m)
+        a = self.emissivity_snow * self.SBC*dt/(CP_I*m)
         b = 0
         c = 0
         d = 1
         e = -1 * (Qnet*dt/(CP_I*m)+TXcm)
+
+        # a = self.emissivity_snow * self.SBC*3600/(CP_I*m)
+        # b = 0
+        # c = 0
+        # d = 1
+        # e = -1 * (Qnet*3600/(CP_I*m)+TXcm)
 
         pmat[0] = a
         pmat[3] = d
@@ -165,24 +173,44 @@ class SurfaceEnergyBudget:
         else:
             meltmass = 0
 
-        # try:
+        if ((Tsurface<200) & (mtime>2022)):
+            print(iii)
+            print(mtime)
+            print('Tsurface',Tsurface)
+            print('a',a)
+            print('d',d)
+            print('e',e)
+            print('m',m)
+            print('Qnet',Qnet)
+            print('Q_SW_net',Q_SW_net)
+            print('Q_LW_d',Q_LW_d)
+            print('Qrain_i',Qrain_i)
+            print('self.QH[iii]',self.QH[iii])
+            print('self.QL[iii]',self.QL[iii])
+            print('TXcm',TXcm)
+            print('dt',dt)
+            print(self.ALBEDO[iii])
+
+        try:
         
-        Tz[0:iXcm+1] = Tsurface  
-        # except:
-        #     print('Tsurface',Tsurface)
-        #     print('iXcm',iXcm)
-        #     print('Tz',Tz[0:iXcm+5])
-        #     print('z_top',z[0:5])
-        #     print('z_bottom', z[-1])
-        #     print('r',r)
-        #     print('Qnet',Qnet)
-        #     print('Q_SW_net',Q_SW_net)
-        #     print('Q_LW_d',Q_LW_d)
-        #     print('self.QH[iii]',self.QH[iii])
-        #     print('self.QL[iii]',self.QL[iii])
-        #     print('Qrain_i',Qrain_i)
-        #     print('G',G)
-        #     sys.exit()
+            Tz[0:iXcm+1] = Tsurface  
+        except:
+            print('Tsurface',Tsurface)
+            print('iii',iii)
+            print('T2m',self.T2m[iii-5:iii+1])
+            print('iXcm',iXcm)
+            print('Tz',Tz[0:iXcm+5])
+            print('z_top',z[0:5])
+            print('z_bottom', z[-1])
+            print('r',r)
+            print('Qnet',Qnet)
+            print('Q_SW_net',Q_SW_net)
+            print('Q_LW_d',Q_LW_d)
+            print('self.QH[iii]',self.QH[iii])
+            print('self.QL[iii]',self.QL[iii])
+            print('Qrain_i',Qrain_i)
+            print('G',G)
+            sys.exit()
 
         return Tsurface, Tz, meltmass, self.TSKIN[iii]
     ############################

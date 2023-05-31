@@ -1026,7 +1026,7 @@ class FirnDensityNoSpin:
                 if iii==0:
                     print('CAUTION: SEB still in beta')
 
-                PhysParams.update(dz=self.dz,rho=self.rho) # update dict, will be used for SEB
+                PhysParams.update(dz=self.dz,rho=self.rho,mtime=mtime) # update dict, will be used for SEB
                 if iii == 0:
                     T_old = self.Tz[0]
                 else:
