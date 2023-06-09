@@ -36,6 +36,7 @@ def sublim(self,iii):
         sys.exit()
  
     # ps is the partial sublimation (the model volume that has a portion sublimated away)   
+    dzo = self.dz.copy()
     if ind1 > 0: # if we sublimate the entire layers we retrieve the mass+lwc of these layers to the sublimated mass of the ps layer
         ps_sublim = sublim_mass - (np.cumsum(self.mass[ind1-1])+1000*np.cumsum(self.LWC[ind1-1])) 
     elif ind1 == 0: # if only the surface layer gets partially sublimated, all sublimation occurs in surface layer (logically)
@@ -44,8 +45,12 @@ def sublim(self,iii):
     ps_sublimmass = ps_sublim - ps_sublimlwc # rest of sublimated mass will be ice mass
     ps_lwc = np.maximum(0,(self.LWC[ind1] - ps_sublimlwc/1000)) # new surface layer gets its lwc reduced but not below 0
     ps_plwc = np.maximum(self.PLWC_mem[ind1] - ps_sublimlwc/1000, 0.) # assumes plwc is sublimated before mlwc
-    ps_mass = np.maximum(1.0e-6,(self.mass[ind1] - ps_sublimmass)) # finally ice is sublimated if there is still mass to sublimate (<-> if ps_sublim<1000*self.LWC[ind1]), avoid rounding errors to cause negative mass
+    ps_mass = float(np.maximum(1.0e-6,(self.mass[ind1] - ps_sublimmass))) # finally ice is sublimated if there is still mass to sublimate (<-> if ps_sublim<1000*self.LWC[ind1]), avoid rounding errors to cause negative mass
     ps_dz = ps_mass / self.rho[ind1] # remaining thickness [m]
+    if ind1>0:
+        dh_sub = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-ps_dz))
+    else:
+        dh_sub = -1 * (dzo[ind1]-ps_dz)
 
     ## Sublimated boxes are accomodated by just adding more (new) boxes at the bottom of the column
     ## Beware of this if you are not modeling to firn-ice transition depth.
@@ -60,8 +65,27 @@ def sublim(self,iii):
     
     self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_sublim))) #+ self.dt[iii] # age of each layer increases of dt
     # self.dz                  = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_sublim))) # this splits the last box into many.
-    self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_sublim))) # this adds new boxes at the bottom.
-    self.dz[0]      = ps_dz #VV dz calculated for the partially sublimated layer
+    
+    keep_firnthickness = True
+    if keep_firnthickness:
+        avg_dh_sub = -1 * dh_sub/num_boxes_sublim # average thickness of melted nodes
+
+        nb_th = np.maximum(avg_dh_sub,self.dz[-1])
+        # print(ps_dz)
+        # print(nb_th)
+        # print(num_boxes_sublim.shape)
+        # print(avg_dh_sub)
+        self.dz        = np.concatenate(([ps_dz],self.dz[ind1+1:-1],nb_th*np.ones(num_boxes_sublim)))
+        zbot_old = self.z[-1]
+    else:
+        # pass
+        self.dz        = np.concatenate(([ps_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(num_boxes_sublim)))
+
+
+
+    # self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_sublim))) # this adds new boxes at the bottom.
+    # self.dz[0]      = ps_dz #VV dz calculated for the partially sublimated layer
+    
     self.Dcon       = np.concatenate((self.Dcon[ind1:-1] , self.Dcon[-1]*np.ones(num_boxes_sublim)))
     self.dzn        = np.concatenate((np.zeros(num_boxes_sublim), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
     self.dzn        = self.dzn[0:self.compboxes]
@@ -89,6 +113,6 @@ def sublim(self,iii):
         print('setting to zero and continuing')
     self.LWC[self.LWC<0]=0.0
 
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim,sublgridtrack
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack, dh_sub
     
     

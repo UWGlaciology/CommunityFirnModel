@@ -125,7 +125,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     else: #CLIM_name is not a pickle, it is the dataframe being passed
     	df_CLIM = CLIM_name
 
-# <<<<<<< HEAD
+# <<<<<<< HEAD #This is from an old merge conflict. 
     if not SEB:
         # drn = {'TS':'TSKIN'} #customize this to change your dataframe column names to match the required inputs
         # try:
@@ -380,7 +380,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
         if not desired_depth:
-            desired_depth = hh[np.where(rho>=916)[0][0]]
+            desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
             depth_S1 = hh[np.where(rho>=550)[0][0]]
             depth_S2 = hh[np.where(rho>=750)[0][0]]
         else:

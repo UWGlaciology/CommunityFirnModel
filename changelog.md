@@ -3,8 +3,16 @@ All notable changes to the Community Firn Model should be documented in this fil
 
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
 
+To run the update:
+git commit -a -m "updating to vX.Y.Z. Details in changelog."
+git push
+git tag -a vX.Y.Z -m "CFM version vX.Y.Z"
+git push origin vX.Y.Z
+
+Then, on github do a release, which will trigger an updated DOI. 
+
 ## Current Version
-1.1.7
+2.0.0
 
 ## Full Documentation
 
@@ -14,6 +22,8 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 
 - *Issues* 
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
+	- The dH output does not sum to zero when the model reaches or approaches steady state.
+	- There is a small amount of meltwater mass that does not get summed into either the summed runoff or refreezing. This is a small volume so will not significantly affect results.
 
 - *Work in progress*
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
@@ -22,6 +32,55 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.0.0] 2023-02-28
+### Notes
+- This is the first major version release (i.e., to 2.x.x) due to several large changes. The first is the addition of a surface energy balance module, SEB.py. The second is a major overhaul in the enthalpy solver.
+
+- The master branch is being renamed to the main branch.
+
+### New
+- *SEB.py* The new surface energy balance module caculates surface temperature and melt volume based on albedo, shortwave and longwave fluxes, and turbulent fluxes (those fields come from an RCM or AWS.) Presently does not calculate the turbulent fluxes from humidity and wind but I will add that capability in the future. THIS MODULE SHOULD BE CONSIDERED TO BE IN BETA PRESENTLY. IF YOU ARE USING IT, I SUGGEST GETTING IN TOUCH WITH ME AND WE CAN DISCUSS DETAILS.
+
+- *firn_density_nospin.py, solver.py, diffusion.py* There is now an option to solve heat/refreezing in different ways. The enthalpy method is still present, but there are three other options now to compare soling methods. These features are in beta and will be better described in a planned paper. Feel free to email me to ask for details.
+
+### Changed
+- *firn_density_nospin.py, solver.py, diffusion.py* The enthalpy solver has been updated, again. The crux of this problem is that solver has to iterate to converge on a solution. At the end of the iteration, the liquid fraction must be updated, which is non trivial because a layer can have some mass refreeze but still be at the freezing temperature. The upshot is that in testin the new solver produces warmer firn than the older solver. I'd be happy to chat details about this if you have questions. 
+
+- *firn_density_nospin.py* Temperature history, THist, was previously only calculated when using Morris 2014 physics; now it can be calculated with any densification scheme. This is for e.g. allowing experiments looking at how the temperature history may have affected other properties like grain size.
+
+- *physics.py* The new densications from the Utrecht group (Brils et al., 2022, Veldhuijsen et al., 2023) have been added.
+
+## [1.1.11] 2022-12-13
+### Notes
+- This release fixes an issue in the estimated surface elevation change *dh*, which was not accounting properly for elevation change due to sublimation and melt processes (it was just considerine dh due to firn compaction and new snow acccumulation). The new code explicitly includes *dh_melt* and *dh_acc*, which are the elevation change (for that time step) due to melt and accumulation + sublimation. **The elevation change calculation should be considered to be in beta.** 
+
+### Changed
+- *firn_density_nospin.py, melt.py, sublim.py* firn_density_nospin's *update_dh* function is now:
+*dH = (sdz_new - sdz_old) + dh_acc + dh_melt - (iceout \* t[iii])*
+The sdz terms are the sum of the layer thicknesses before and after compaction (different is thus dh from firn compaction); dh_acc is the elevation change due to new snow accumulation minus the sublimated volume; dh_melt is the elevation decrease due to surface melt; iceout (rate of m ice e.q./year) times the time step size is the elevation change due to ice flow. Note that this assumes steady state, and that the ice flow is calculated using the spin up climate (iceout is set to be the mean ice-equivalent accumulation rate during the spin up), unless set explicitly in the config file. 
+
+>> *dh_melt* is calculated in *melt.py*, and *dh_acc* is calculated using dh_sub, which is now returned by *sublim.py*.
+
+## [1.1.10]
+### Notes
+- Version 1.1.10 is a minor update to fix an issue with the strain softening routine introduced in v1.1.9. (The code would throw an error if InputFileNamedudx was not in the .json).
+- There is a small update to the documentation regarding BCO outputs.
+
+## [1.1.9]
+### Notes
+- Version 1.1.9 is an update to add strain softening as described by Oraschewski and Grinsted (2021; https://doi.org/10.5194/tc-2021-240) 
+
+## [1.1.8]
+### Notes
+- This is a minor update. The main point is to add example .csv files and update the input climate .pkl file. The example .csv files were made using the .pkl files, so the outputs should match.
+- There is a readme.txt file in the CFMinput_example directory with some details about those forcing files.
+
+### Fixed
+- *isotopeDiffusion.py* This file had not been updated to deal with the 'updatedStartDate' feature, which it now does. Current fuctionality limits its use to using .csv files as inputs.
+
+### Updated
+- Documentation: I updated the model output documentation.
 
 ## [1.1.7] 2022-04-19
 ### Notes

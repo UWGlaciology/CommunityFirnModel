@@ -218,6 +218,8 @@ def enthalpyDiff(self,iii):
 
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
+
+
     delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
     dml_sum = 0.0 
 
@@ -246,15 +248,10 @@ def enthalpyDiff(self,iii):
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
             print('------')
-            print(f'{self.modeltime[iii]},{iii}, Fixing negative values of delta_mass_liq')
-            idml = np.where(delta_mass_liq<-1e-7)[0]
-            print('Negative values:', delta_mass_liq[idml])
-            print('Count',count)
-            print('iterdiff:', iterdiff)
-            print('g_liq diff: ',(g_liq - g_liq_in)[idml])
-            print('If you are getting this message, (diffusion.py, L214), you ')
-            print('may need to reduce the ICT (itercheck threshold in solver.py')
-            print('If you are seeing this message, please email maxstev@umd.edu so I can fix it.')
+
+            print('If you are seeing this message there was a liquid mass gain in diffusion.') 
+            print('Please email maxstev@umd.edu so I can fix it.')
+
         dml_sum = np.sum(delta_mass_liq[delta_mass_liq<0])
     
     delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
@@ -270,10 +267,15 @@ def enthalpyDiff(self,iii):
 ##############################
 
 def heatDiff_highC(self,iii):
+
     '''
-    One (probably not good) way of dealing with liquid water in the firn
+    IN DEVELOPMENT
+
+    One way of dealing with liquid water in the firn
     is to just set the heat capacity to be very high. 
     '''
+    if iii==0:
+        print('WARNING: heatDiff_highC IS IN DEVELOPMENT')
 
     nz_P            = len(self.z)
     nz_fv           = nz_P - 2
@@ -284,7 +286,6 @@ def heatDiff_highC(self,iii):
     z_P_vec     = self.z
 
     dt_sub = self.dt[iii]
-  
 
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
@@ -330,10 +331,14 @@ def heatDiff_highC(self,iii):
 ##############################
 
 def heatDiff_Teff(self,iii):
-    '''
+    '''    
+    IN DEVELOPMENT
     artificially set the temperature of volumes with liquid water 
     to be higher than T_melt 
     '''
+
+    if iii==0:
+        print('WARNING: heatDiff_Teff IS IN DEVELOPMENT')
 
     nz_P            = len(self.z)
     nz_fv           = nz_P - 2
@@ -399,8 +404,14 @@ def heatDiff_Teff(self,iii):
 
 def heatDiff_LWCcorr(self,iii, iters,correct_therm_prop):
     '''
+
+    IN DEVELOPMENT  
+
     just run the heat diffusion as normal and then balance energy.  
     '''
+
+    if iii==0:
+        print('WARNING: heatDiff_LWCcorr IS IN DEVELOPMENT')
 
     nz_P            = len(self.z)
     nz_fv           = nz_P - 2
@@ -480,7 +491,6 @@ def heatDiff_LWCcorr(self,iii, iters,correct_therm_prop):
 ### end T-eff diffusion ###
 ##############################
 
-
 def LWC_correct(self):
     '''
     *** TEST FUNCTION ***
@@ -535,7 +545,7 @@ def LWC_correct(self):
     return self.Tz, self.LWC, self.rho, self.mass, refrozen_mass
 
 
-#### Radiation penetration (work in progress)
+#### Radiation penetration (in development)
 # def rad_pen(self,E_rp):
 
 #     def exco(rho):

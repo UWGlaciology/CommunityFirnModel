@@ -266,7 +266,9 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     itercheck = 0.9
     count = 0
 
-    ### Big H stans for latent enthalpy, little h is sensible enthalpy
+
+    ### Big H stands for latent enthalpy, little h is sensible enthalpy
+
     ### H_tot is the sum of latent and sensible enthalpy
     H_lat      = H_L_liq*g_liq # Latent enthalpy for each layer
     H_lat_old  = H_lat.copy()
@@ -405,7 +407,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         # g_liq[g_liq<0]=0
         # g_liq[g_liq>1]=1
         ###############
-
 
         ### Older way
         h_updated = phi_t * CP_I * RHO_I * g_sol_old # updated sensible enthalpy after solver
@@ -572,6 +573,7 @@ def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_
 
         a_U = D_u # Patankar eq. 4.41a,b
         a_D = D_d # Patankar eq. 4.41a,b
+<<<<<<< HEAD
 
         # a_P_0 = dZ / dt
         # a_P_0 = tot_rho * dZ / dt #  (old)
@@ -582,6 +584,18 @@ def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_
         S_P     = 0.0
         a_P     = a_U + a_D + a_P_0 - S_P*dZ
 
+=======
+
+        # a_P_0 = dZ / dt
+        # a_P_0 = tot_rho * dZ / dt #  (old)
+        a_P_0 = c_vol * dZ / dt # (new) Patankar eq. 4.41c
+        # a_P_0 = RHO_I * c_firn * dZ / dt
+        #######################################
+
+        S_P     = 0.0
+        a_P     = a_U + a_D + a_P_0 - S_P*dZ
+
+>>>>>>> staging
         #######################################
         ### Boundary conditions:
         ### type 1 is a specified value, type 2 is a specified gradient
@@ -621,6 +635,7 @@ def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_
 
         delta_h = (h_updated - h_old) #* 0.6 # overshoot correction. delta_h should always be negative for layers with LWC
         h_updated_trun = h_old + delta_h # sensible enthalpy after overshoot
+<<<<<<< HEAD
 
         cond0 = ((delta_h>0) & (LWC_old>0)) # Layers where there was sensible enthalpy increased and there is liquid water
         delta_h[cond0] = 0 # sensible enthalpy should not increase if LWC present (should either stay at 0C or cool down)
@@ -648,6 +663,35 @@ def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_
         delta_g_liq = g_liq - g_liq_old # change in liquid fraction. Should always be negative.
         #######
 
+=======
+
+        cond0 = ((delta_h>0) & (LWC_old>0)) # Layers where there was sensible enthalpy increased and there is liquid water
+        delta_h[cond0] = 0 # sensible enthalpy should not increase if LWC present (should either stay at 0C or cool down)
+
+        ndh = -1*delta_h #negative delta_h (which makes it positive), makes corrections below easy
+
+        ### everything refreezes if the calculated change in enthalpy is greater than the latent enthalpy
+        cond1 = ((ndh>=H_lat_old) & (g_liq_old>0)) #layers where energy change is larger than the needed to refreeze, and where there is water
+        H_tot[cond1] = (delta_h[cond1] + H_tot_old[cond1]) # total enthalpy in those layers is change+total, should be net negative
+        g_liq[cond1] = 0 #no liquid left
+
+        ### partial refreezing if the delta_h is less than the latent enthalpy
+        cond2 = ((ndh<H_lat) & (g_liq_old>0))
+        H_tot[cond2] = 0
+        g_liq[cond2] = (H_lat_old[cond2] + delta_h[cond2])/H_L_liq #remaining liquid
+
+        ### Make sure that there is no liquid in layers that did not have liquid at start
+        cond3 = (g_liq_old<=0)
+        g_liq[cond3] = 0
+        H_tot[cond3] = h_updated_trun[cond3]
+
+        g_liq[g_liq<0]=0
+        g_liq[g_liq>1]=1
+
+        delta_g_liq = g_liq - g_liq_old # change in liquid fraction. Should always be negative.
+        #######
+
+>>>>>>> staging
         g_sol = g_sol + -1 * delta_g_liq/0.917 # Update solid fraction
 
         ### Now update temperatures after liquid corrections
@@ -668,6 +712,7 @@ def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_
 
 ###################################
 ### end apparent_heat ########
+<<<<<<< HEAD
 ###################################
 
 def Marshall(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_rho, c_vol, LWC, mass_sol, dz, ICT, rho_firn, iii=0):
@@ -1552,8 +1597,9 @@ def transient_solve_EN_noloop(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv,
 
 ###################################
 ### end transient_solve_EN_noloop #
+=======
+>>>>>>> staging
 ###################################
-
 
 '''
 Functions below are for firn air
