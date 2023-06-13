@@ -22,7 +22,7 @@ class isotopeDiffusion:
     Note that presently isotope diffusion only works with .csv inputs.
     '''
 
-    def __init__(self,spin,config,isotope,stp,z,updatedStartDate,modeltime=None):
+    def __init__(self,spin,config,isotope,climateTS,stp,z,updatedStartDate=None,modeltime=None):
 
         '''
         Initialize Isotope diffusion class.
@@ -35,13 +35,29 @@ class isotopeDiffusion:
         self.c = config
         self.isotope = isotope
 
+
         try:
-            fn = os.path.splitext(self.c['InputFileNameIso'])
-            isofile = fn[0] + '_{}'.format(self.isotope) + fn[1]
-            print(isofile)
-            if isotope=='NoDiffusion':
-                isofile = fn[0] + '_dD' + fn[1]
-            input_iso, input_year_iso, input_iso_full, input_year_iso_full = read_input(os.path.join(self.c['InputFileFolder'],isofile),updatedStartDate)
+            if climateTS != None:
+                if updatedStartDate is not None:
+                    self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
+                else:
+                    self.start_ind = 0
+                if isotope=='NoDiffusion':
+                    isokey = 'dD'
+                else:
+                    isokey = isotope
+                input_iso = climateTS[isokey][self.start_ind:]            
+                input_year_iso = climateTS['time'][self.start_ind:]
+                input_iso_full = climateTS[isokey]
+                input_year_iso_full = climateTS['time']
+
+            else:
+                fn = os.path.splitext(self.c['InputFileNameIso'])
+                isofile = fn[0] + '_{}'.format(self.isotope) + fn[1]
+                print(isofile)
+                if isotope=='NoDiffusion':
+                    isofile = fn[0] + '_dD' + fn[1]
+                input_iso, input_year_iso, input_iso_full, input_year_iso_full = read_input(os.path.join(self.c['InputFileFolder'],isofile),updatedStartDate)
 
             if spin:
                 if self.c['spinup_climate_type']=='initial':

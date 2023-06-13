@@ -105,9 +105,9 @@ class FirnDensityNoSpin:
 
         spinner = os.path.exists(os.path.join(self.c['resultsFolder'], self.c['spinFileName']))
         
-        if ((self.c['isoDiff']) and (climateTS != None)):
-            print('currently isotope diffusion only available using csv inputs')
-            self.c['isoDiff']=False
+        # if ((self.c['isoDiff']) and (climateTS != None)):
+        #     print('currently isotope diffusion only available using csv inputs')
+        #     self.c['isoDiff']=False
 
         if ((not spinner) or NewSpin):
             if self.c['timesetup']=='exact':
@@ -184,7 +184,7 @@ class FirnDensityNoSpin:
         except:
             self.c['manualT'] = False 
 
-        if self.c['manualT']:
+        if self.c['manualT']: # Use temperature measurements from a thermistor string
             bigTmat = np.loadtxt(os.path.join(self.c['InputFileFolder'],self.c['ManualTFilename']),delimiter = ',')
             self.manualT_time = bigTmat[0,1:]
             self.manualT_dep = bigTmat[1:,0]
@@ -709,8 +709,11 @@ class FirnDensityNoSpin:
 
             for isotope in self.c['iso']:
                 if ((isotope=='d18') or (isotope=='18')):
+                    isotope='d18O'
                     print('rename isotope in .json and forcing file to be d180')
-                self.Isotopes[isotope]  = isotopeDiffusion(self.spin,self.c,isotope,self.stp,self.z,updatedStartDate,self.modeltime)
+                if isotope=='D':
+                    isotope='dD'
+                self.Isotopes[isotope]  = isotopeDiffusion(self.spin,self.c,isotope,climateTS,self.stp,self.z,updatedStartDate,self.modeltime)
         #######################
 
         #####################

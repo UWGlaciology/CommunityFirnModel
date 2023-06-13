@@ -1,7 +1,7 @@
 # CFM Change Log
 All notable changes to the Community Firn Model should be documented in this file. Contributors to the CFM who are unfamiliar with changelogs should review the notes at the end of this document.
 
-TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update master on github.
+TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update main branch on github.
 
 To run the update:
 git commit -a -m "updating to vX.Y.Z. Details in changelog."
@@ -12,7 +12,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-2.0.0
+2.1.0
 
 ## Full Documentation
 
@@ -32,6 +32,13 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.1.0] 2023-05-31
+### Notes
+- This version fixes an issue with how DIP was saved and updates the isotope diffusion module to allow inputs from a dictionary (parallel structure to loading temperature, accumulation rate, etc.)
+
+### Changed
+- *firn_density_nospin.py, isotopeDiffusion.py, firn_density_spin.py* These files have been updated to import the isotope forcing data in the climate import dictionary (climateTS).
 
 ## [2.0.0] 2023-02-28
 ### Notes
