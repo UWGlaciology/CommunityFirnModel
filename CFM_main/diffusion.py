@@ -111,8 +111,8 @@ def heatDiff(self,iii):
     phi_0           = self.Tz
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
+    # c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    c_firn        = CP_I # If you prefer a constant specific heat.
 
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
 
@@ -124,6 +124,7 @@ def heatDiff(self,iii):
             pass
 
     Gamma_P         = K_firn
+
 
     tot_rho         = self.rho
     c_vol           = self.rho * c_firn
@@ -187,8 +188,8 @@ def enthalpyDiff(self,iii):
     # K_mix = g_liq_1*K_liq + g_ice_1*K_ice
 
     ### Specific Heats
-    c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn  = CP_I # If you prefer a constant specific heat
+    # c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    c_firn  = CP_I # If you prefer a constant specific heat
     c_ice = c_firn
     c_liq = 4219.9 # J/kg/K, taken from engineeringtoolbox.com. Ha!
     # c_vol = g_ice_1 * RHO_I * c_ice + g_liq_1 * RHO_W_KGM * c_liq #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
