@@ -10,7 +10,7 @@ Isotope diffusion now has its own class.
 from solver import transient_solve_TR
 # from solver import transient_solve_EN_old
 # from solver import transient_solve_EN_new
-from solver import transient_solve_EN, Marshall, apparent_heat
+from solver import transient_solve_EN, apparent_heat
 from constants import *
 import numpy as np
 from scipy import interpolate
@@ -111,8 +111,8 @@ def heatDiff(self,iii):
     phi_0           = self.Tz
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    # c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    c_firn        = CP_I # If you prefer a constant specific heat.
+    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn        = CP_I # If you prefer a constant specific heat.
 
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
 
@@ -157,7 +157,7 @@ def enthalpyDiff(self,iii):
     thermal diffusivity: alpha = K_firn / (rho*c_firn)
     '''
     Tstart          = self.Tz.copy()
-    nz_P            = len(self.z) - 1
+    nz_P            = len(self.z)
     nz_fv           = nz_P - 2
 
     if np.any(self.LWC>0): # this behavior is depricated; keeping code for now. (6/16/21)
@@ -188,8 +188,8 @@ def enthalpyDiff(self,iii):
     # K_mix = g_liq_1*K_liq + g_ice_1*K_ice
 
     ### Specific Heats
-    # c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    c_firn  = CP_I # If you prefer a constant specific heat
+    c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn  = CP_I # If you prefer a constant specific heat
     c_ice = c_firn
     c_liq = 4219.9 # J/kg/K, taken from engineeringtoolbox.com. Ha!
     # c_vol = g_ice_1 * RHO_I * c_ice + g_liq_1 * RHO_W_KGM * c_liq #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
@@ -209,17 +209,9 @@ def enthalpyDiff(self,iii):
     lwc_old = self.LWC.copy()
     
     phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
-    # phi_ret, g_liq, count, iterdiff,g_sol   = Marshall(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
-    
-    ### Below for testing code where firn layers are the finite volumes.
-    # phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff[0:-1], phi_0[0:-1], nz_P, nz_fv, phi_s, tot_rho[0:-1], c_vol[0:-1], self.LWC[0:-1], self.mass[0:-1], self.dz[0:-1],ICT,self.rho[0:-1],iii)
-    # phi_ret = np.append(phi_ret,phi_ret[-1])
-    # g_liq = np.append(g_liq,g_liq[-1])
-    # g_sol= np.append(g_sol,g_sol[-1])
 
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
-
 
     delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
     dml_sum = 0.0 
@@ -231,13 +223,13 @@ def enthalpyDiff(self,iii):
     ### Total enthalpy after solver (for testing conservation)
     tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
 
-    if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-2:
-        print(f'change in enthalpy at iteration {iii}!')
-        print('pre:', tot_heat_pre)
-        print('post:', tot_heat_post)
-        ediff = (tot_heat_post-tot_heat_pre)                
-        print('difference (kJ):', (tot_heat_post-tot_heat_pre))
-        print('difference %:', ediff/tot_heat_pre)
+    # if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-2:
+    #     print(f'change in enthalpy at iteration {iii}!')
+    #     print('pre:', tot_heat_pre)
+    #     print('post:', tot_heat_post)
+    #     ediff = (tot_heat_post-tot_heat_pre)                
+    #     print('difference (kJ):', (tot_heat_post-tot_heat_pre))
+    #     print('difference %:', ediff/tot_heat_pre)
 
     if np.any(self.Tz>273.1500001):
         print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')

@@ -12,8 +12,6 @@ from scipy import optimize
 from constants import *
 import os
 import sys
-from numba import jit
-import math, cmath
 
 class SurfaceEnergyBudget:
     '''
@@ -118,98 +116,65 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        iXcm = np.where(z>=0.10)[0][0] # reducing this will result in higher melt.
-        dXcm = z[iXcm]
+        i_GL = np.where(z>=1)[0][0]
+        z_GL = z[i_GL]
+        m_GL = np.cumsum(mass)[i_GL]
+        T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
+        rho_GL = m_GL/z_GL
+        K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
 
-        i10cm = np.where(z>=1)[0][0]
-        z10cm = z[i10cm]
-        m10cm = np.cumsum(mass)[i10cm]
-        T10cm = np.cumsum(mass*Tz)[i10cm]/m10cm
-        rho10cm = m10cm/z10cm
-        K_ice   = 9.828 * np.exp(-0.0057 * T10cm) #[W/m/K]
-
-        K10cm  = K_ice * (rho10cm/RHO_I) ** (2 - 0.5 * (rho10cm/RHO_I))
+        K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
         
-        G = (K10cm * (Tz[i10cm] - Tz[0])/z10cm) # estimated temperature flux in firn due to temperature gradient
+        G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
         # G = 0
 
-        m = np.cumsum(mass)[iXcm] #mass of the top Xcm
-        TXcm = np.cumsum(mass*Tz)[iXcm]/m # mean temperature of top X cm (weighted mean)
-        cold_content_Xcm = CP_I * m * (T_MELT - TXcm) # cold content [J], positive quantity if T<T_melt
 
-        Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
-        # fqs = FQS()
 
-        pmat = np.zeros(5)
+        TL_thick = 0.01 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+        iTL = np.where(z>=TL_thick)[0][0]
 
-        a = self.emissivity_snow * self.SBC*dt/(CP_I*m)
-        b = 0
-        c = 0
-        d = 1
-        e = -1 * (Qnet*dt/(CP_I*m)+TXcm)
+        for kk in range(10):         
+            dTL = np.cumsum(dz)[iTL]
 
-        # a = self.emissivity_snow * self.SBC*3600/(CP_I*m)
-        # b = 0
-        # c = 0
-        # d = 1
-        # e = -1 * (Qnet*3600/(CP_I*m)+TXcm)
+            m = np.cumsum(mass)[iTL] #mass of the TL
+            
+            TTL = np.cumsum(mass*Tz)[iTL]/m # mean temperature of top X cm (weighted mean)
+            cold_content_TL = CP_I * m * (T_MELT - TTL) # cold content [J], positive quantity if T<T_melt
 
-        pmat[0] = a
-        pmat[3] = d
-        pmat[4] = e
-        pmat[np.isnan(pmat)] = 0
+            Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
+            # fqs = FQS()
 
-        r = quartic_roots(pmat)
-        Tsurface = (r[((np.isreal(r)) & (r>0))].real)
-        # Tnew[np.isnan(e)] = np.nan
-        
-        if Tsurface>=273.15:
-            Tsurface = 273.15
-            meltmass = (Qnet - self.SBC*273.15**4) * dt / LF_I #*dt #multiply by dt to put in units per day
-            # do not need to subtract cold content to calculate cold content b/c Q_melt = sum(energies), Q_melt=0 if energy can be balanced, i.e. sum(energies)=0
-            # melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I
-        ### meltmass has units [kg/m2/s]
-        else:
-            meltmass = 0
+            pmat = np.zeros(5)
 
-        if ((Tsurface<200) & (mtime>2022)):
-            print(iii)
-            print(mtime)
-            print('Tsurface',Tsurface)
-            print('a',a)
-            print('d',d)
-            print('e',e)
-            print('m',m)
-            print('Qnet',Qnet)
-            print('Q_SW_net',Q_SW_net)
-            print('Q_LW_d',Q_LW_d)
-            print('Qrain_i',Qrain_i)
-            print('self.QH[iii]',self.QH[iii])
-            print('self.QL[iii]',self.QL[iii])
-            print('TXcm',TXcm)
-            print('dt',dt)
-            print(self.ALBEDO[iii])
+            a = self.emissivity_snow * self.SBC * dt/(CP_I*m)
+            b = 0
+            c = 0
+            d = 1
+            e = -1 * (Qnet*dt/(CP_I*m)+TTL)
 
-        try:
-        
-            Tz[0:iXcm+1] = Tsurface  
-        except:
-            print('Tsurface',Tsurface)
-            print('iii',iii)
-            print('T2m',self.T2m[iii-5:iii+1])
-            print('iXcm',iXcm)
-            print('Tz',Tz[0:iXcm+5])
-            print('z_top',z[0:5])
-            print('z_bottom', z[-1])
-            print('r',r)
-            print('Qnet',Qnet)
-            print('Q_SW_net',Q_SW_net)
-            print('Q_LW_d',Q_LW_d)
-            print('self.QH[iii]',self.QH[iii])
-            print('self.QL[iii]',self.QL[iii])
-            print('Qrain_i',Qrain_i)
-            print('G',G)
-            sys.exit()
+            pmat[0] = a
+            pmat[3] = d
+            pmat[4] = e
+            pmat[np.isnan(pmat)] = 0
+
+            r = quartic_roots(pmat)
+            Tsurface = (r[((np.isreal(r)) & (r>0))].real)
+            
+            if Tsurface>=273.15:
+                Tsurface = 273.15
+                meltmass = (Qnet - self.SBC*273.15**4) * dt / LF_I #multiply by dt to put in units per time step
+                # do not need to subtract cold content to calculate cold content b/c Q_melt = sum(energies), Q_melt=0 if energy can be balanced, i.e. sum(energies)=0
+                # melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I
+            ### meltmass has units [kg/m2/s]
+            else:
+                meltmass = 0
+
+            if meltmass<=m: #if the melt mass is greater than the mass of the TL layer, we need a thicker TL because the next layer could be below freezing, and it needs to warm before melting
+                break
+            else:
+                iTL = np.where(np.cumsum(mass)>=meltmass)[0][0]
+
+        Tz[0:iTL+1] = Tsurface
 
         return Tsurface, Tz, meltmass, self.TSKIN[iii]
     ############################
@@ -241,15 +206,25 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        i10cm = np.where(z>=0.1)[0][0]
-        d10cm = z[i10cm]
-        G = (0.3*(Tz[i10cm] - Tz[0])/d10cm) # estimated temperature flux in firn due to temperature gradient
-        # G = 0
-        m = np.cumsum(mass)[i10cm] #mass of the top 10cm
-        T10cm = np.cumsum(mass*Tz)[i10cm]/m # mean temperature of top 10 cm (weighted mean)
-        cold_content_10cm = CP_I * m * (T_MELT - T10cm) # cold content [J], positive quantity if T<T_melt
+        TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+        iTL = np.where(z>=TL_thick)[0][0] 
+        dTL = z[iTL]
 
-        Tnew = T10cm.copy()
+        i_GL = np.where(z>=1)[0][0]
+        z_GL = z[i_GL]
+        m_GL = np.cumsum(mass)[i_GL]
+        T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
+        rho_GL = m_GL/z_GL
+        K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
+
+        K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
+        G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
+
+        m = np.cumsum(mass)[iTL] #mass of the top layer
+        TTL = np.cumsum(mass*Tz)[iTL]/m # mean temperature of top layer (weighted mean)
+        cold_content_TL = CP_I * m * (T_MELT - TTL) # cold content [J], positive quantity if T<T_melt
+
+        Tnew = TTL.copy()
 
         Q_sum = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G #sum of all flux terms that are not Temperature dependent
 
@@ -257,27 +232,9 @@ class SurfaceEnergyBudget:
             Qout = np.abs(-1*self.SBC*Ts**4 + Qsum)
             return Qout
 
-        sol = optimize.minimize(Qnet,T10cm,args=Q_sum,method='Nelder-Mead')
+        sol = optimize.minimize(Qnet,TTL,args=Q_sum,method='Nelder-Mead')
 
         Tsurface = sol.x[0]
-
-        # for kk in range(100):
-
-        #     Qnet =  Q_sum - self.SBC*Tnew**4
-
-        #     if ((Tnew >= T_MELT) and (Qnet>=0)):
-        #         Tsurface = 273.15
-        #         meltmass = (Q_sum - self.SBC*273.15**4) * dt / LF_I
-        #         break()
-
-        #     if (np.abs(Qnet)<0.01):
-        #         Tsurface = Tnew
-        #         meltmass = 0
-        #         break()
-
-
-
-
 
        
         if Tsurface>=273.15:
@@ -289,15 +246,12 @@ class SurfaceEnergyBudget:
         else:
             meltmass = 0
 
-        Tz[0:i10cm+1] = Tsurface            
+        Tz[0:iTL+1] = Tsurface            
 
         return Tsurface, Tz, meltmass
     ############################
     ### end SEB_loop
     ############################
-
->>>>>>> staging
-
 
     def SEB(self, PhysParams,iii,T_old):
         '''
@@ -341,11 +295,26 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        i10cm = np.where(z>=0.1)[0][0]
-        d10cm = z[i10cm]
-        G = (0.3*(Tz[i10cm] - Tz[0])/d10cm)
-        # m = mass[i10cm] #potential issue - this was on dev
-        m = np.cumsum(mass)[i10cm] # this was on staging
+
+        TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+        iTL = np.where(z>=TL_thick)[0][0] 
+        dTL = z[iTL]
+
+        i_GL = np.where(z>=1)[0][0]
+        z_GL = z[i_GL]
+        m_GL = np.cumsum(mass)[i_GL]
+        T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
+        rho_GL = m_GL/z_GL
+        K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
+
+        K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
+        
+        G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
+
+        iTL = np.where(z>=0.1)[0][0]
+        dTL = z[iTL]
+
+        m = np.cumsum(mass)[iTL] # this was on staging
 
         # G=0
  
@@ -386,144 +355,18 @@ class SurfaceEnergyBudget:
         else:
             Tsurface = 273.15
             melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I 
-        
-        # df12_daily['meltvol'] = meltvold
-        # df12_daily['Tcalc'] = Tcalcd
-   
-        # if Tsurface>=T_MELT:
-        #     Q_LW_me_old = (self.SBC * (self.emissivity_air * self.T2m[iii]**4 - self.emissivity_snow * (T_MELT)**4))
-        #     Q_LW_up = (self.SBC * self.emissivity_snow * (T_MELT)**4)
-        #     Q_LW_me = Q_LW_d - Q_LW_up
-
-        #     E_melt = (Q_SW_net + Q_LW_me + self.QH[iii] + self.QL[iii] + Qrain_i + G) #[W/m2]
-
-        #     Tsurface = T_MELT
-        #     melt_mass = E_melt/LF_I * dt
-
-                ###################
-                # if (E_melt*dt) < cold_content[0]:
-                #     Tsurface = Tz[0] + E_melt/(CP_I * mass[0]) * dt
-                #     melt_mass = 0
-                # else:
-                #     Tsurface=T_MELT
-                #     energy_excess = E_melt*dt - (CP_I * mass[0] * (T_MELT - Tz[0])) # [J]
-                #     melt_mass = energy_excess/LF_I
-                ###################
-
-                ###################
-                # E_iter = E_melt.copy()
-                # E_iter = E_melt*dt
-                # kk = 0
-                # melt_mass = 0
-              
-                # while E_iter > 0:
-                #     if E_iter <= cold_content[kk]: # all energy warms/cools this firn; no melt in it
-                #         Tz[kk] = Tz[kk] + E_iter / (CP_I * mass[kk]) #* dt
-                #         E_iter = 0
-
-                #     elif E_iter > cold_content[kk]:
-                #         Tz[kk] = T_MELT
-                #         E_melt1 = E_iter - cold_content[kk] #energy available for melting
-                #         melt_mass_pot = E_melt1/LF_I#*dt # mass that can be melted with the energy available              
-
-                #         if melt_mass_pot <= mass[kk]: #less than the entire node melts
-                #             melt_mass += melt_mass_pot
-                #             E_iter = 0
-
-                #         else: #entire node melts
-                #             melt_mass += mass[kk]
-                #             E_iter -= mass[kk]*LF_I#*dt
-
-                #     kk+=1
-
-                # Tsurface = T_MELT
-                ######################
-
-
-        # else:
-        #     melt_mass = 0
 
         Tz[0] = Tsurface
         if melt_mass<0:
             melt_mass = 0
 
-        # print(iii,Tsurface,melt_mass)
-
         return Tsurface, Tz, melt_mass
 
+    
+# Fast Quartic Solver: analytically solves quartic equations (needed to calculate melt)
+# Takes methods from fqs package (@author: NKrvavica)
+# full documentation: https://github.com/NKrvavica/fqs/blob/master/fqs.py
 
-    # def SEB_direct(self, PhysParams,iii):
-    #     '''
-    #     Calculate the surface energy budget
-    #     Positive fluxes are into the surface, negative are out
-    #     SEBparams: mass, Tz, dt
-    #     '''
-
-    #     # max_iter = 20
-    #     # ijk = 0
-    #     Tz   = PhysParams['Tz']
-    #     mass = PhysParams['mass']
-    #     dt   = PhysParams['dt']
-    #     print('dt',dt)
-        
-    #     T_rain = np.max((self.T2m[iii],T_MELT))
-    #     Qrain_i = RHO_W_KGM * CP_W * self.RAIN[iii] * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
-    #     # heat for rain falling on top of cold snow should be handled in melt.py
-
-    #     Q_SW_i = self.SW_d[iii] * (1-self.ALBEDO[iii])
-
-    #     emissivity_air = emissivity_snow = 1
-    #     Q_LW_i = self.SBC * (emissivity_air * self.T2m[iii]**4 - emissivity_snow * (Tz[0])**4)
-
-    #     E_net = Q_SW_i + Q_LW_i + self.QH[iii] + self.QL[iii] + Qrain_i + self.G[iii]
-    #     print('E_net',E_net)
-    #     # time dimension for conversion?
-    #     # dTz[0] = E_net * dt[iii] / CP_I / mass
-
-    #     cold_content    = CP_I * mass * (T_MELT - Tz)           # cold content [J]
-    #     print('cold_content',cold_content)
-    #     print('mass',mass[0:5])
-
-
-    #     E_iter = E_net.copy()
-    #     kk = 0
-    #     melt_mass = 0
-        
-    #     while E_iter > 0:
-    #         if E_iter <= cold_content[kk]: # all energy warms/cools the firn; no melt
-    #             Tz[kk] = Tz[kk] + E_net / (CP_I * mass[kk]) * dt
-    #             E_iter = 0
-
-    #         elif E_net > cold_content[kk]:
-    #             Tz[kk] = T_MELT
-    #             E_melt = E_net - cold_content[kk] #energy available for melting
-    #             melt_mass_pot = E_melt/LF_I # mass that can be melted                
-
-    #             if melt_mass_pot <= mass[kk]: #less than the entire node melts
-    #                 melt_mass += melt_mass_pot
-    #                 E_iter = 0
-
-    #             else: #entire node melts
-    #                 melt_mass += mass[kk]
-    #                 E_iter -= mass[kk]*LF_I
-
-    #         kk+=1
-
-    #     print(Tz[0:5])
-    #     input('SEB')
-    #     return Tz, melt_mass
-
-
-# class FQS:
-#     '''
-#     Fast Quartic Solver: analytically solves quartic equations (needed to calculate melt)
-#     Takes methods from fqs package (@author: NKrvavica)
-#     full documentation: https://github.com/NKrvavica/fqs/blob/master/fqs.py
-#     '''
-#     def __init__(self):
-#         pass
-
-@jit(nopython=True)
 def single_quadratic(a0, b0, c0):
     ''' 
     Analytical solver for a single quadratic equation
@@ -533,7 +376,7 @@ def single_quadratic(a0, b0, c0):
     # Some repating variables
     a0 = -0.5*a
     delta = a0*a0 - b
-    sqrt_delta = cmath.sqrt(delta)
+    sqrt_delta = np.sqrt(delta)
 
     # Roots
     r1 = a0 - sqrt_delta
@@ -542,7 +385,7 @@ def single_quadratic(a0, b0, c0):
     return r1, r2
 
 
-@jit(nopython=True)
+
 def single_cubic(a0, b0, c0, d0):
     ''' 
     Analytical closed-form solver for a single cubic equation
@@ -553,7 +396,7 @@ def single_cubic(a0, b0, c0, d0):
     third = 1./3.
     a13 = a*third
     a2 = a13*a13
-    sqr3 = math.sqrt(3)
+    sqr3 = np.sqrt(3)
 
     # Additional intermediate variables
     f = third*b - a2
@@ -572,17 +415,17 @@ def single_cubic(a0, b0, c0, d0):
         return r1, r1, r1
 
     elif h <= 0:
-        j = math.sqrt(-f)
-        k = math.acos(-0.5*g / (j*j*j))
-        m = math.cos(third*k)
-        n = sqr3 * math.sin(third*k)
+        j = np.sqrt(-f)
+        k = np.arccos(-0.5*g / (j*j*j))
+        m = np.cos(third*k)
+        n = sqr3 * np.sin(third*k)
         r1 = 2*j*m - a13
         r2 = -j * (m + n) - a13
         r3 = -j * (m - n) - a13
         return r1, r2, r3
 
     else:
-        sqrt_h = cmath.sqrt(h)
+        sqrt_h = np.sqrt(h)
         S = cubic_root(-0.5*g + sqrt_h)
         U = cubic_root(-0.5*g - sqrt_h)
         S_plus_U = S + U
@@ -593,7 +436,7 @@ def single_cubic(a0, b0, c0, d0):
         return r1, r2, r3
 
 
-@jit(nopython=True)
+
 def single_cubic_one(a0, b0, c0, d0):
     ''' 
     Analytical closed-form solver for a single cubic equation
@@ -622,20 +465,18 @@ def single_cubic_one(a0, b0, c0, d0):
         return -cubic_root(c)
 
     elif h <= 0:
-        j = math.sqrt(-f)
-        k = math.acos(-0.5*g / (j*j*j))
-        m = math.cos(third*k)
+        j = np.sqrt(-f)
+        k = np.arccos(-0.5*g / (j*j*j))
+        m = np.cos(third*k)
         return 2*j*m - a13
 
     else:
-        sqrt_h = cmath.sqrt(h)
+        sqrt_h = np.sqrt(h)
         S = cubic_root(-0.5*g + sqrt_h)
         U = cubic_root(-0.5*g - sqrt_h)
         S_plus_U = S + U
         return S_plus_U - a13
 
-
-@jit(nopython=True)
 def single_quartic(a0, b0, c0, d0, e0):
     '''
     Analytical closed-form solver for a single quartic equation
@@ -655,7 +496,7 @@ def single_quartic(a0, b0, c0, d0, e0):
     z0 = single_cubic_one(1, p, r, p*r - 0.5*q*q)
 
     # Additional variables
-    s = cmath.sqrt(2*p + 2*z0.real + 0j)
+    s = np.sqrt(2*p + 2*z0.real + 0j)
     if s == 0:
         t = z0*z0 + r
     else:
@@ -696,7 +537,7 @@ def multi_cubic(a0, b0, c0, d0, all_roots=True):
     third = 1./3.
     a13 = a*third
     a2 = a13*a13
-    sqr3 = math.sqrt(3)
+    sqr3 = np.sqrt(3)
 
     # Additional intermediate variables
     f = third*b - a2
