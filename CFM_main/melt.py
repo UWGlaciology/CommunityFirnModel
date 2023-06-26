@@ -88,17 +88,21 @@ def bucket(self,iii):
     n_melted = ind1+1 # number of nodes melted
 
     ### Partially melted node properties ###
-    pm_mass = self.mass_sum[ind1]-melt_mass #remaining mass
+    pm_mass = self.mass_sum[ind1] - melt_mass #remaining mass
     pm_dz   = pm_mass/self.rho[ind1] #remaining thickness
     pm_rho  = self.rho[ind1] #density of the pm node
     pm_lwc  = self.LWC[ind1]/self.dz[ind1]*pm_dz #LWC of the pm node
     pm_Tz   = T_MELT
 
     dzo = self.dz.copy()
+
     if ind1>0:
-        dh_melt = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-pm_dz))
+        dh_melt = -1 * (np.sum(dzo[0:ind1]) + (dzo[ind1]-pm_dz)) #thickness of melted nodes
     else:
         dh_melt = -1 * (dzo[ind1]-pm_dz)
+
+    avg_dh_melted = -1 * dh_melt/n_melted # average thickness of melted nodes
+
 
     ### Liquid water input at the surface ###
     liq_in_mass = max(melt_mass + (np.sum(self.LWC[0:ind1+1]) - pm_lwc) * RHO_W_KGM, 0) #avoid negative lwcinput due to numerical round-off errors
@@ -112,28 +116,43 @@ def bucket(self,iii):
     liqmcinit  = pm_lwc+sum(self.LWC[ind1+1:])+liq_in_vol #mass conservation checks
 
     ### Regridding ###
-    if ind1>0:
-        self.rho       = np.concatenate((self.rho[ind1:-1],self.rho[-1]*np.ones(n_melted)))
-        # self.Tz        = np.concatenate((self.Tz[ind1:-1],self.Tz[-1]*np.ones(n_melted)))
-        self.r2        = np.concatenate((self.r2[ind1:-1],self.r2[-1]*np.ones(n_melted)))
-        self.bdot_mean = np.concatenate((self.bdot_mean[ind1:-1],self.bdot_mean[-1]*np.ones(n_melted)))
-        self.age       = np.concatenate((self.age[ind1:-1],self.age[-1]*np.ones(n_melted))) 
-        self.Dcon      = np.concatenate((self.Dcon[ind1:-1],self.Dcon[-1]*np.ones(n_melted)))
-        self.dzn       = np.concatenate((np.zeros(n_melted),self.dz[1:]))
-        self.dzn       = self.dzn[0:self.compboxes]
-    else:
-        self.dzn       = self.dz[0:self.compboxes] #VV avoids bug due to undefined self.dzn
+    if melt_mass>0:
 
-    self.LWC       = np.concatenate(([pm_lwc],self.LWC[ind1+1:-1],self.LWC[-1]*np.ones(n_melted)))
-    self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(n_melted)))
-    self.Tz        = np.concatenate(([pm_Tz],self.Tz[ind1+1:-1],self.Tz[-1]*np.ones(n_melted))) # PM layer should have temp=T_MELT
-    self.z         = self.dz.cumsum(axis=0)
-    self.z         = np.concatenate(([0],self.z[:-1]))
-    self.mass      = self.rho*self.dz
-    if self.doublegrid: # if we have doublegrid: need to adjust gridtrack
-        meltgridtrack  = np.concatenate((self.gridtrack[ind1:-1],self.gridtrack[-1]*np.ones(n_melted)))
-    elif self.doublegrid==False:
-        meltgridtrack = np.zeros(nnd) #just return a zero array
+        if ind1>0:
+            self.rho       = np.concatenate((self.rho[ind1:-1],self.rho[-1]*np.ones(n_melted)))
+            # self.Tz        = np.concatenate((self.Tz[ind1:-1],self.Tz[-1]*np.ones(n_melted)))
+            self.r2        = np.concatenate((self.r2[ind1:-1],self.r2[-1]*np.ones(n_melted)))
+            self.bdot_mean = np.concatenate((self.bdot_mean[ind1:-1],self.bdot_mean[-1]*np.ones(n_melted)))
+            self.age       = np.concatenate((self.age[ind1:-1],self.age[-1]*np.ones(n_melted))) 
+            self.Dcon      = np.concatenate((self.Dcon[ind1:-1],self.Dcon[-1]*np.ones(n_melted)))
+            self.dzn       = np.concatenate((np.zeros(n_melted),self.dz[1:]))
+            self.dzn       = self.dzn[0:self.compboxes]
+        else:
+            self.dzn       = self.dz[0:self.compboxes] #VV avoids bug due to undefined self.dzn
+
+        self.LWC       = np.concatenate(([pm_lwc],self.LWC[ind1+1:-1],self.LWC[-1]*np.ones(n_melted)))
+        
+        keep_firnthickness = self.c['keep_firnthickness']
+        
+        if keep_firnthickness:
+            nb_th = np.maximum(avg_dh_melted,self.dz[-1])
+            self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],nb_th*np.ones(n_melted)))
+            zbot_old = self.z[-1]
+        else:
+            self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(n_melted)))
+        
+        self.Tz        = np.concatenate(([pm_Tz],self.Tz[ind1+1:-1],self.Tz[-1]*np.ones(n_melted))) # PM layer should have temp=T_MELT
+        self.z         = self.dz.cumsum(axis=0)
+        self.z         = np.concatenate(([0],self.z[:-1]))
+
+        self.mass      = self.rho*self.dz
+        if self.doublegrid: # if we have doublegrid: need to adjust gridtrack
+            meltgridtrack  = np.concatenate((self.gridtrack[ind1:-1],self.gridtrack[-1]*np.ones(n_melted)))
+        elif self.doublegrid==False:
+            meltgridtrack = np.zeros(nnd) #just return a zero array
+    else:
+        meltgridtrack = self.gridtrack
+        self.dzn       = self.dz[0:self.compboxes]
     ### end regridding ###
 
     ### Calculate excessive LWC (above irreducible holding capacity) ###
@@ -528,6 +547,11 @@ def bucket(self,iii):
 
     self.rho[self.rho>RHO_I] = RHO_I
 
+    ### Mass conservation check 2 ###
+    liqmcfinal = sum(self.LWC) + refrozentot + runofftot
+    if abs(liqmcfinal - liqmcinit) > 1e-3:
+        print(f'Mass conservation error (2) (melt.py) at step {iii}\n    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
+
     total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
     mass_runoff = runofftot*RHO_W_KGM
     mass_refreeze = refrozentot*RHO_W_KGM
@@ -535,7 +559,8 @@ def bucket(self,iii):
     tot_mass_end = total_liquid_mass_end+mass_refreeze+mass_runoff
     mass_diff = tot_mass_end-total_liquid_mass_start
 
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
+            self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
 
 #############
 
@@ -938,6 +963,8 @@ def darcyscheme(self,iii):
 ###################################
 ###################################
 ###################################
+
+
 
 
 

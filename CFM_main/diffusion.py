@@ -125,6 +125,7 @@ def heatDiff(self,iii):
 
     Gamma_P         = K_firn
 
+
     tot_rho         = self.rho
     c_vol           = self.rho * c_firn
 
@@ -207,9 +208,11 @@ def enthalpyDiff(self,iii):
 
     lwc_old = self.LWC.copy()
     
-    phi_ret, g_liq, count, iterdiff, g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
-    
+    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
+
     LWC_ret = g_liq * self.dz
+    # self.LWC        = g_liq * vol_tot
+
     delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
     dml_sum = 0.0 
 
@@ -238,8 +241,10 @@ def enthalpyDiff(self,iii):
     if np.any(delta_mass_liq<0):
         if np.any(np.abs(delta_mass_liq[delta_mass_liq<0])>1e-7):
             print('------')
+
             print('If you are seeing this message there was a liquid mass gain in diffusion.') 
             print('Please email maxstev@umd.edu so I can fix it.')
+
         dml_sum = np.sum(delta_mass_liq[delta_mass_liq<0])
     
     delta_mass_liq  = np.maximum(delta_mass_liq,0) # fix for numerical instabilities with small time steps.
@@ -255,8 +260,8 @@ def enthalpyDiff(self,iii):
 ##############################
 
 def heatDiff_highC(self,iii):
-    '''
 
+    '''
     IN DEVELOPMENT
 
     One way of dealing with liquid water in the firn
@@ -319,11 +324,8 @@ def heatDiff_highC(self,iii):
 ##############################
 
 def heatDiff_Teff(self,iii):
-    '''
-    
+    '''    
     IN DEVELOPMENT
-
-
     artificially set the temperature of volumes with liquid water 
     to be higher than T_melt 
     '''
@@ -395,6 +397,7 @@ def heatDiff_Teff(self,iii):
 
 def heatDiff_LWCcorr(self,iii, iters,correct_therm_prop):
     '''
+
     IN DEVELOPMENT  
 
     just run the heat diffusion as normal and then balance energy.  

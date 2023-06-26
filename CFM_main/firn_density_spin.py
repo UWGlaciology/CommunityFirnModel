@@ -135,7 +135,10 @@ class FirnDensitySpin:
         ### temperature ###
         if climateTS != None:
             input_temp = climateTS['TSKIN']
-            input_bdot = climateTS['BDOT']
+            try:
+                input_bdot = climateTS['BDOT'] + climateTS['SUBLIM']
+            except:
+                input_bdot = climateTS['BDOT']
             input_year_temp = input_year_bdot = climateTS['time']
        
         else:
@@ -163,6 +166,12 @@ class FirnDensitySpin:
                 self.bdot0      = np.mean(input_bdot)
         except:
             self.bdot0      = np.mean(input_bdot)
+
+        # try:
+        #     if self.c['MELT']:
+        #         self.bdot0 = self.bdot0 - np.mean(climateTS['SMELT'])
+        # except:
+        #     pass
 
         if 'manual_climate' in self.c:
             pass
@@ -210,10 +219,19 @@ class FirnDensitySpin:
         THL                 = self.temp0
         AHL                 = self.bdot0
 
+
         try: #VV use Reeh corrected T
             if self.c['ReehCorrectedT'] and self.c['MELT']:
                 if climateTS != None:
-                    input_snowmelt = climateTS['SMELT']
+                    if not self.c['SEB']:
+                        input_snowmelt = climateTS['SMELT']
+                    else: # estimate melt using simple PDD
+                        PDDs = climateTS['T2m'] - T_MELT
+                        PDDs[PDDs<0] = 0
+                        fPDD = 5 # positive degree day factor, mm/C/day
+                        days_per_timestep = 365.25/self.c['stpsPerYear']
+                        input_snowmelt_mm = PDDs * fPDD * days_per_timestep # mm w.e. per time step
+                        input_snowmelt = input_snowmelt_mm / 1000 / 0.917 * self.c['stpsPerYear'] # m i.e./year
                 else:
                     input_snowmelt, input_year_snowmelt, input_snowmelt_full, input_year_snowmelt_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamemelt'])) #VV
                 meanmelt = np.mean(input_snowmelt) # mean melt per year [mIE/yr] (units are specified in Reeh 2008)
@@ -399,6 +417,9 @@ class FirnDensitySpin:
             self.c['no_densification']=False
         #######################
 
+        if self.c['ReehCorrectedT']:
+            self.rho = 900 * np.ones_like(self.rho) # use to just set a solid ice column to initialize
+
     ############################
     ##### END INIT #############
     ############################
@@ -444,7 +465,7 @@ class FirnDensitySpin:
                 'LWC':          self.LWC,
                 'MELT':         self.MELT,
                 'FirnAir':      False,
-                'bdot_av':      self.bdot_av
+                'bdot_av':      self.bdot_av,
             }
 
             if self.c['physRho']=='MaxSP':
