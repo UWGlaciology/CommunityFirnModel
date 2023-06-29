@@ -23,17 +23,8 @@ def sublim(self,iii):
     sublim_mass           = sublim_volume_WE * 1000. # [kg]
     ind1a               = np.where((np.cumsum(self.mass)+np.cumsum(1000*self.LWC)) <= sublim_mass)[0] # indices of boxes that will be sublimated away
     num_boxes_sublim    = len(ind1a)+1 # number of boxes that sublimate away, include the box that is partially sublimated
-    try:
-        ind1                = np.where((np.cumsum(self.mass)+np.cumsum(1000*self.LWC)) > sublim_mass)[0][0] # index which will become the new surface
-    except:
-        print('error!')
-        print(iii)
-        print(self.modeltime[iii])
-        print('sublim_mass',sublim_mass)
-        print('rho',self.rho[0:20])
-        print('tz',self.Tz[0:20])
-        print('sublimsec',(self.sublimSec[iii] * S_PER_YEAR))
-        sys.exit()
+    ind1                = np.where((np.cumsum(self.mass)+np.cumsum(1000*self.LWC)) > sublim_mass)[0][0] # index which will become the new surface
+
  
     # ps is the partial sublimation (the model volume that has a portion sublimated away)   
     dzo = self.dz.copy()
@@ -66,15 +57,14 @@ def sublim(self,iii):
     self.age        = np.concatenate((self.age[ind1:-1] , self.age[-1]*np.ones(num_boxes_sublim))) #+ self.dt[iii] # age of each layer increases of dt
     # self.dz                  = np.concatenate((self.dz[ind1:-1] , self.dz[-1]/divider*np.ones(num_boxes_sublim))) # this splits the last box into many.
     
-    keep_firnthickness = True
+
+    keep_firnthickness = self.c['keep_firnthickness']
+    
     if keep_firnthickness:
         avg_dh_sub = -1 * dh_sub/num_boxes_sublim # average thickness of melted nodes
 
         nb_th = np.maximum(avg_dh_sub,self.dz[-1])
-        # print(ps_dz)
-        # print(nb_th)
-        # print(num_boxes_sublim.shape)
-        # print(avg_dh_sub)
+
         self.dz        = np.concatenate(([ps_dz],self.dz[ind1+1:-1],nb_th*np.ones(num_boxes_sublim)))
         zbot_old = self.z[-1]
     else:

@@ -8,7 +8,7 @@
 "InputFileNameStrain": "example_STRAIN.csv",
 "InputFileNameSublim": "example_SUBLIM.csv",
 "InputFileNameRain": "example_RAIN.csv",
-"resultsFolder": "CFMoutput_example/df",
+"resultsFolder": "CFMoutput_example/csv",
 "initfirnFile": "example_firndata.csv",
 "initprofile": false,
 "input_type": "csv",
@@ -102,7 +102,8 @@
 "DirectRunoff": 0.0,
 "RunoffZuoOerlemans": false,
 "Slope": 0.1,
-"SUBLIM": true
+"SUBLIM": true,
+"keep_firnthickness": false
 }
 
 

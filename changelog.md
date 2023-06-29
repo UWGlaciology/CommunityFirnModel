@@ -3,7 +3,12 @@ All notable changes to the Community Firn Model should be documented in this fil
 
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update main branch on github.
 
-To run the update:
+General update protocol:
+First, get the staging branch to match main branch.
+Then, while on staging branch checkout files from whatever branch you want (e.g., git checkout dev melt.py)
+While on staging, test functionality. At minimum, python main.py example.json should work.
+Then, switch to main branch and merge from staging. 
+Then:
 git commit -a -m "updating to vX.Y.Z. Details in changelog."
 git push
 git tag -a vX.Y.Z -m "CFM version vX.Y.Z"
@@ -12,7 +17,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-2.1.0
+2.2.0
 
 ## Full Documentation
 
@@ -32,6 +37,37 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.2.0] 2023-06-26
+### Notes
+- This version fixes an issue in the SEB module where new snow that was added was too warm. It also updates the enthalpy solving routine. There are numerous small changes and fixes, detailed below.
+
+### Fixed
+- *SEB.py, firn_density_nospin.py* There was an bug when running using the SEB module that new snowfall was always at the melting temperature (which led to very warm firn). It now correctly sets the new snow temperature to be the minium of the freezing temperature and the air temperature
+
+- *SEB.py* Fixed an issue to set the albedo to some value if it is NaN in the input (MERRA-2 albedo is assinged as NaN when there is no SW flux). Even with no SW flux the NaNs caused an issue in the SEB calculation.
+
+- *RCMpkl_to_spin.py* Fixed an issue that the domain depth was always being set to be the depth of the 916 density horizon, rather than being configurable.
+
+- *melt.py* Fixed an issue for timesteps where there was rain input but no melting, in which the grid was still being altered (removing top layers, adding new layers to the bottom to keep number of layers constant). Now rain-only timesteps do not alter the grid structure (just adds mass).
+
+- *sublim.py* Fixed an issue where the sublimated mass was an numpy array with a single value rather than a float, which caused issues elsewhere when using that value.
+
+- *firn_density_nospin.py* Fixed an issue where surface temperature was concatenated (effectively advecting the temperature profile) rather than reset during timesteps without accumulation. 
+
+### Changed
+- *SEB.py* There is a new solver built into the code (FQS, or fast quartic solver) to find the surface temperature based on the previous surface temperature. The code (presently just in SEB.py, not as an option in the config file) uses a defined thickness (presently 1 cm) as the top layer from an SEB perspective; i.e., the energy is assumed to warm/cool that layer, and that layer's temperature is set to the new temperature at the end of the SEB routine (regardless of the resolution of the CFM grid). (Note that there are several other SEB solving schemes, but FQS is the most tested code. In theory they should all give the same value.)
+
+- *firn_density_spin.py* The firn column is initialized as a solid-ice column is ReehCorrectedT is true in the .json. The effect of this should be removed during spin up, but in areas around the ELA the column was sometimes disappearing or becoming too thin.
+
+- *melt.py, sublim.py* Previously, the CFM kept the number of grid layers constant when there was melt or sublimation by dividing the bottom layer into thinner layers. In places with a lot of melt this led to the column becoming very thin. Now, the model instead adds layers to the bottom that have the same properties (temperature, density) as the current bottom layer and the same thickness as was melted/sublimated away. Note that if the bottom of the domain is not close to the ice density this will affect the DIP calculation. This is toggled in the .json as 'keep_firnthickness'. 'keep_firnthickness' = False is the old behavior. 
+
+- *example.json* Addition of 'keep_firnthickness' (see above).
+
+- *solver.py* Another update to the enthalpy solver. Previously, the overshoot factor applied to each iteration was applied to the new enthalpy solution, and now it just applied to the liquid portion. Additionally, the iteration's break statement is now prior to the overshoot, which (seems to) solves an issue where the solution was bouncing between values on each iteration instead of converging.
+
+### Removed
+- *plotter.py* Plotter.py was written long ago and not updated. There are better ways of plotting the model outputs so I removed this file from the repository. Please let me know if you need a script or jupyter notebook to help with output processing/plotting and I can send you something.
 
 ## [2.1.0] 2023-05-31
 ### Notes

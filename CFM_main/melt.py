@@ -132,7 +132,8 @@ def bucket(self,iii):
 
         self.LWC       = np.concatenate(([pm_lwc],self.LWC[ind1+1:-1],self.LWC[-1]*np.ones(n_melted)))
         
-        keep_firnthickness = True
+        keep_firnthickness = self.c['keep_firnthickness']
+        
         if keep_firnthickness:
             nb_th = np.maximum(avg_dh_melted,self.dz[-1])
             self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],nb_th*np.ones(n_melted)))
@@ -566,6 +567,11 @@ def bucket(self,iii):
 
     self.rho[self.rho>RHO_I] = RHO_I
 
+    ### Mass conservation check 2 ###
+    liqmcfinal = sum(self.LWC) + refrozentot + runofftot
+    if abs(liqmcfinal - liqmcinit) > 1e-3:
+        print(f'Mass conservation error (2) (melt.py) at step {iii}\n    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
+
     total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
     mass_runoff = runofftot*RHO_W_KGM
     mass_refreeze = refrozentot*RHO_W_KGM
@@ -597,8 +603,8 @@ def bucket(self,iii):
         print('LWC_irr_st',LWC_irr_st)
         # input('waiting, melt.py 512')
 
-
-    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot
+    return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
+            self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
 
 #############
 
@@ -1887,6 +1893,8 @@ def bucketLoop(self,iii):
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot
 
 #############
+
+
 
 
 

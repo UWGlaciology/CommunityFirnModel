@@ -209,6 +209,7 @@ def enthalpyDiff(self,iii):
     lwc_old = self.LWC.copy()
     
     phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
+
     # phi_ret, g_liq, count, iterdiff,g_sol   = Marshall(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
     
     ### Below for testing code where firn layers are the finite volumes.
@@ -217,9 +218,9 @@ def enthalpyDiff(self,iii):
     # g_liq = np.append(g_liq,g_liq[-1])
     # g_sol= np.append(g_sol,g_sol[-1])
 
+
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
-
 
     delta_mass_liq  = mass_liq - (LWC_ret * RHO_W_KGM)
     dml_sum = 0.0 

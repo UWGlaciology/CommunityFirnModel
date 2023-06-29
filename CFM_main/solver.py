@@ -209,8 +209,7 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         # print('a_D',a_D[0:5])
         # print('a_U',a_U[0:5])
         phi_t = solver(a_U, a_D, a_P, b)
-        # print(phi_t[-1])
-        # input('waiting')
+
         a_P = a_U + a_D + a_P_0
 
     # print('old', phi_t_old[0:8])
@@ -462,6 +461,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         ##### End 'older'
 
         #### Best option: overshoot only on g_liq
+
         h_updated = phi_t * CP_I * RHO_I * g_sol_old # updated sensible enthalpy after solver. g_sol is volume_solid/dz
         delta_h = h_updated - h_old # change in sensible enthalpy, relative to initial (not iteration)
         

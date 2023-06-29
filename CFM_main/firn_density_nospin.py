@@ -340,6 +340,11 @@ class FirnDensityNoSpin:
             self.LWC            = np.zeros_like(self.z)
             self.PLWC_mem       = np.zeros_like(self.z)
             self.c['RAIN'] = False
+
+        if 'keep_firnthickness' not in self.c:
+            self.c['keep_firnthickness'] = False
+            print('Note: keep_firnthickness is not in your .json (see changelog for v2.2.0)')
+            print('Defaulting to false (old CFM behavior)')
         #####################
 
         #####################
@@ -894,7 +899,7 @@ class FirnDensityNoSpin:
             runoff2check     = np.zeros(self.stp)
             meltvol2check    = np.zeros(self.stp)
             dml2check        = np.zeros(self.stp)
-        
+            self.mismatch = 0
         ####################################
         ##### START TIME-STEPPING LOOP #####
         ####################################
@@ -1040,7 +1045,6 @@ class FirnDensityNoSpin:
 
                 self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
 
-
                 # if iii<10:
                 #     print('modeltime', self.modeltime[iii])
                 #     print('Ts_fqs', self.Ts[iii])
@@ -1058,8 +1062,11 @@ class FirnDensityNoSpin:
                 #     input(f'melt_mass_fqs {melt_mass}')
 
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
-                self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
-                self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
+                self.snowmelt[iii] = melt_mass / RHO_I / self.dt[iii] * S_PER_YEAR # m i.e. per year ([kg/m2/timestep] / [kg/m3] / [s/timestep] * [s/year])
+                self.snowmeltSec[iii] = self.snowmelt[iii] / S_PER_YEAR / (S_PER_YEAR/self.dt[iii]) # melt at this time step (mIE/s)
+                
+                # self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
+                # self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
                 self.forcing_dict['SMELT'][self.start_ind+iii] = self.snowmelt[iii]
 
@@ -1076,9 +1083,21 @@ class FirnDensityNoSpin:
                 
                 if self.c['liquid'] == 'bucket':
                     if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
-                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff, self.dh_melt = bucket(self,iii)
+                        LWCpre = np.sum(self.LWC * RHO_W_KGM) #mass of liquid before bucket
+                        self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
+                        self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff, self.dh_melt = bucket(self,iii)
+                        
+                        # refreeze is [m we]
+                        m2X = self.refreeze + self.runoff + np.sum(self.LWC * RHO_W_KGM)
+                        if ((self.rainSec[iii] == 0) & (LWCpre!=m2X)):
+                            self.mismatch = self.mismatch + (m2X - LWCpre) / RHO_W_KGM
+                            # print('mismatch')
+                            # print(m2X)
+                            # print(LWCpre)
+
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
+
                         self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
 
                         # d_zbot = (self.z[-1]-zz1[-1])
@@ -1151,8 +1170,8 @@ class FirnDensityNoSpin:
                 ### end prefsnowpack ##################
 
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
-                    pass
-                    # print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
+                    # pass
+                    print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
                     # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
                     # This should never happen if bottom of modelled firn column is at rho >= 830
                 # self.LWC        = np.concatenate(([0], self.LWC[:-1]))
@@ -1236,6 +1255,7 @@ class FirnDensityNoSpin:
 
                 dzb_diff = dz_bot_new - dz_bot_old
                 # self.ddz_bdot = self.ddz_bdot + dzdiff
+
                 # if np.abs(dzb_diff>0.01):
                 #     print('------')
                 #     print(iii)
@@ -1247,12 +1267,13 @@ class FirnDensityNoSpin:
                 #     print('z_bot_new',z_bot_new)
                 #     input() 
 
+
                 if self.c['physGrain']: # update grain radius
                     r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
                     self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
                 if not self.c['manualT']: # If SEB, the new snow layer will be T2m
                     if self.c['SEB']:
-                        newSnowT = np.max((self.T2m[iii],T_MELT))
+                        newSnowT = np.min((self.T2m[iii],T_MELT))
                     else:
                         newSnowT = self.Ts[iii]
 
@@ -1277,8 +1298,12 @@ class FirnDensityNoSpin:
                 self.dh_acc = 0
                 znew = np.copy(self.z)                             
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
+                
                 if ((not self.c['SEB']) or (not self.c['manualT'])):
-                    self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+
+                    # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+                    self.Tz[0] = self.Ts[iii]
+                
                 self.na_count += 1
                 self.na_sum = self.na_sum + (self.z[-1]-zz1[-1])
 
@@ -1293,11 +1318,13 @@ class FirnDensityNoSpin:
                     if self.doublegrid == True: # gridtrack corrected for sublimation
                         self.gridtrack = np.copy(sublgridtrack)
                     znew = np.copy(self.z)
-                    if not self.c['manualT']:
-                        self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+                    # if ((not self.c['SEB']) or (not self.c['manualT'])):
+                        # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
+                        # self.Tz[0] = self.Ts[iii]
 
                     d_zbot = (self.z[-1]-zz1[-1])
                     self.melt_sum = self.melt_sum + d_zbot
+
                 # if np.mod(iii,2000)==0:
                 # if d_zbot!=0:
                     
@@ -1347,7 +1374,7 @@ class FirnDensityNoSpin:
                 self.Tz, self.T10m  = heatDiff(self,iii)
                 dml_sum = 0
 
-            elif np.any(self.LWC>0.): #VV enthalpy diffusion if water in column
+            elif np.any(self.LWC>0.): # enthalpy diffusion if water in column
                 LWC0e = sum(self.LWC)
                 tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
                 if "LWC_heat" not in self.c:
@@ -1476,10 +1503,11 @@ class FirnDensityNoSpin:
 
         if self.MELT:
             print(f'Totals (m w.e.)\n'
-                  f'Melt+Rain:      {sum(self.snowmeltSec+self.rainSec)*S_PER_YEAR*RHO_I_MGM}\n'
-                  f'meltvol:        {sum(meltvol2check)}\n'
+                  f'Melt+Rain:      {sum(self.snowmeltSec + self.rainSec)*S_PER_YEAR*RHO_I_MGM}\n'
+                  f'meltvol:        {sum(meltvol2check)}\n' #m w.e.
                   f'Refreezing:     {sum(refreezing2check)}\n'
                   f'Runoff:         {sum(runoff2check)}\n'
+                  f'mismatch:       {self.mismatch}\n'
                   f'LWC (current):  {sum(self.LWC)}\n'
                   f'LWC (init):  {self.LWC_init}\n'
                   f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)}\n'
