@@ -69,6 +69,10 @@ def bucket(self,iii):
     melt_volume_WE      = melt_volume_IE*RHO_I_MGM         # [m] 
     melt_mass           = melt_volume_WE*RHO_W_KGM         # [kg]
 
+    rain_volume_IE      = self.rainSec[iii] *S_PER_YEAR
+    rain_volume_WE      = rain_volume_IE * S_PER_YEAR
+    rain_mass           = rain_volume_WE * RHO_W_KGM
+
     total_liquid_mass_start = np.sum(melt_mass) + np.sum(self.LWC*RHO_W_KGM)
     
     ### Define last variables needed for the routine ###
@@ -109,7 +113,7 @@ def bucket(self,iii):
     liq_in_vol  = liq_in_mass/RHO_W_KGM
 
     try: #add rain input if it was provided
-       liq_in_vol = liq_in_vol+self.rainSec[iii]*S_PER_YEAR*RHO_I_MGM #[m]
+       liq_in_vol = liq_in_vol + self.rainSec[iii]*S_PER_YEAR*RHO_I_MGM #[m]
     except:
         pass
 
@@ -276,10 +280,19 @@ def bucket(self,iii):
             imp = np.where(self.rho>=RhoImp)[0] # all nodes exceeding RhoImp are considered impermeable
 
     imp = imp.astype(int)
+    # if len(imp)>1:
+    #     print('imp',imp)
+        
+    #     print(imp)
+    #     print(self.z[-1])
+    #     print(self.rho[-1])
+    #     input()
 
     if len(imp) == 0:
         imp = [(len(self.rho) - 1)] # MS addition: If domain does not extend to full ice density, this will ensure the melt routine works (hack solution?)
         # might create issues if ponding allowed?
+    else:
+        imp = np.append(imp,len(self.rho)-1)
 
     stcap[imp] = 0. # set 0 storage capacity for impermeable nodes
     stcap_cum  = np.cumsum(stcap) # cumulative storage capacity, refreezing + irreducible
@@ -332,8 +345,15 @@ def bucket(self,iii):
         else:
             ind_st_bot = 0
 
+
+
         # if np.any(stcap1>0): # there is some storage capacity in the firn column (This is VV original)
         if ((np.any(stcap1[1:]>0)) and (ind_st_bot>jj0)): #there is some storage capacity in the firn column, and it is deeper than jj0
+            ### jj0 is uppmost node with excess LWC
+            ### imp is uppermmost impermeable node
+            # print('imp',imp)
+            # print('jj0',jj0)
+            # print('dzJJ0',self.z[jj0])
 
             while ((jj0 <= ind_ex_bot) or (tostore > 0)):
                 if (np.where(stcap1[jj0:]>0)[0]).size > 0:    
@@ -572,35 +592,36 @@ def bucket(self,iii):
     if abs(liqmcfinal - liqmcinit) > 1e-3:
         print(f'Mass conservation error (2) (melt.py) at step {iii}\n    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
 
-    total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
-    mass_runoff = runofftot*RHO_W_KGM
-    mass_refreeze = refrozentot*RHO_W_KGM
+    # total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
+    # mass_runoff = runofftot*RHO_W_KGM
+    # mass_refreeze = refrozentot*RHO_W_KGM
 
-    tot_mass_end = total_liquid_mass_end+mass_refreeze+mass_runoff
-    mass_diff = tot_mass_end-total_liquid_mass_start
+    # tot_mass_end = total_liquid_mass_end + mass_refreeze + mass_runoff
+    # mass_diff = tot_mass_end - total_liquid_mass_start
 
-    if np.abs(mass_diff)>1e-6:
-        print('#################')
-        print('found a difference between recorded in/out liquid in melt.py')
-        print('total_liquid_mass_start',total_liquid_mass_start)
-        print('tot_mass_end',tot_mass_end)
-        print('difference:',mass_diff)
-        print('total_liquid_mass_end',total_liquid_mass_end)
-        print('R+R', total_liquid_mass_start - total_liquid_mass_end)
-        print('mass_refreeze',mass_refreeze)
-        print('mass_runoff',mass_runoff)
-        print('runofftot (1)',runofftot1)
-        print('runofftot (2a)',runofftot2a)
-        print('runofftot (2b)',runofftot2b)
-        print('runofftot (3)',runofftot3)
-        print('LWCblockedC1', LWCblockedC1)
-        print('LWCblockedC2', LWCblockedC2)
-        print('LWCblockedC3', LWCblockedC3)
-        print('LWCblockedC4', LWCblockedC4)
-        print('LWCblockedC5', LWCblockedC5)
-        print('LWCblockedC6', LWCblockedC6)
-        print('LWC_excess_st',LWC_excess_st)
-        print('LWC_irr_st',LWC_irr_st)
+    # if np.abs(mass_diff)>1e-6:
+    #     print('#################')
+    #     print('found a difference between recorded in/out liquid in melt.py')
+    #     print('total_liquid_mass_start',total_liquid_mass_start)
+    #     print('rain_mass', rain_mass)
+    #     print('tot_mass_end',tot_mass_end)
+    #     print('difference:',mass_diff)
+    #     print('total_liquid_mass_end',total_liquid_mass_end)
+    #     print('R+R', total_liquid_mass_start - total_liquid_mass_end)
+    #     print('mass_refreeze',mass_refreeze)
+    #     print('mass_runoff',mass_runoff)
+    #     print('runofftot (1)',runofftot1)
+        # print('runofftot (2a)',runofftot2a)
+        # print('runofftot (2b)',runofftot2b)
+        # print('runofftot (3)',runofftot3)
+        # print('LWCblockedC1', LWCblockedC1)
+        # print('LWCblockedC2', LWCblockedC2)
+        # print('LWCblockedC3', LWCblockedC3)
+        # print('LWCblockedC4', LWCblockedC4)
+        # print('LWCblockedC5', LWCblockedC5)
+        # print('LWCblockedC6', LWCblockedC6)
+        # print('LWC_excess_st',LWC_excess_st)
+        # print('LWC_irr_st',LWC_irr_st)
         # input('waiting, melt.py 512')
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \

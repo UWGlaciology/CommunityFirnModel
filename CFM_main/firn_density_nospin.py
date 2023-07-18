@@ -91,7 +91,7 @@ class FirnDensityNoSpin:
 
     '''
 
-    def __init__(self, configName, climateTS = None, NewSpin = False):
+    def __init__(self, configName, climateTS = None, NewSpin = False,SEBfluxes=None):
         '''
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
         :param configName: name of json config file containing model configurations
@@ -102,6 +102,8 @@ class FirnDensityNoSpin:
         with open(configName, "r") as f:
             jsonString      = f.read()
             self.c          = json.loads(jsonString)
+
+        self.SEBfluxes = SEBfluxes
 
         spinner = os.path.exists(os.path.join(self.c['resultsFolder'], self.c['spinFileName']))
         
@@ -201,15 +203,19 @@ class FirnDensityNoSpin:
             if climateTS != None: # Input data comes from the input dictionary
                 if updatedStartDate is not None:
                     self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
+                    if self.SEBfluxes is not None:
+                        
+                        self.start_ind_EF = np.where(self.SEBfluxes['time']>=updatedStartDate)[0][0]
                 else:
                     self.start_ind = 0
+                    self.start_ind_EF = 0
 
                 if self.c['SEB']: # make sure to get this working with start_ind
                     if self.c['timesetup']!='exact':
                         print('SEB module only works with "timesetup"=exact')
                         print('Exiting.')
                         sys.exit()
-                    self.SEB = SurfaceEnergyBudget(self.c,climateTS,self.start_ind)
+                    self.SEB = SurfaceEnergyBudget(self.c,climateTS,self.start_ind, self.SEBfluxes, self.start_ind_EF)
                     Tkey = 'T2m'
                 else:
                     Tkey = 'TSKIN'
@@ -1043,26 +1049,17 @@ class FirnDensityNoSpin:
                 else:
                     T_old = self.Ts[iii-1]
 
-                self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
+                if self.SEBfluxes is not None:
+                    if iii==0:
+                        print('SEB subdt')
+                    self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs_subdt(PhysParams,iii,T_old)                   
+                else:
+                    self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
 
-                # if iii<10:
-                #     print('modeltime', self.modeltime[iii])
-                #     print('Ts_fqs', self.Ts[iii])
-                #     print('Ts_M2', M2TS)
-                # if iii==10:
-                #     sys.exit()   
-
-
-                # self.Ts[iii], self.Tz, melt_mass = self.SEB.SEB(PhysParams,iii,T_old)
-                # Ts_test, Tz_test, melt_mass_test = self.SEB.SEB(PhysParams,iii,T_old)
-                # if melt_mass>0:
-                #     print('modeltime', self.modeltime[iii])
-                #     print('Ts_fqs', self.Ts[iii])
-                #     print('Ts_M2', M2TS)
-                #     input(f'melt_mass_fqs {melt_mass}')
 
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmelt[iii] = melt_mass / RHO_I / self.dt[iii] * S_PER_YEAR # m i.e. per year ([kg/m2/timestep] / [kg/m3] / [s/timestep] * [s/year])
+
                 self.snowmeltSec[iii] = self.snowmelt[iii] / S_PER_YEAR / (S_PER_YEAR/self.dt[iii]) # melt at this time step (mIE/s)
                 
                 # self.snowmeltSec[iii] = melt_mass / RHO_I / S_PER_YEAR
@@ -1254,26 +1251,15 @@ class FirnDensityNoSpin:
                 z_bot_new = self.z[-1]
 
                 dzb_diff = dz_bot_new - dz_bot_old
-                # self.ddz_bdot = self.ddz_bdot + dzdiff
-
-                # if np.abs(dzb_diff>0.01):
-                #     print('------')
-                #     print(iii)
-                #     print('modeltime',self.modeltime[iii])
-                #     print('dzb_diff',dzb_diff)
-                #     print('dz_bot_new',dz_bot_new)
-                #     print('dz_bot_old', dz_bot_old)
-                #     print('z_bot_old',z_bot_old)
-                #     print('z_bot_new',z_bot_new)
-                #     input() 
-
 
                 if self.c['physGrain']: # update grain radius
                     r2surface       = FirnPhysics(PhysParams).surfacegrain() #grain size for new surface layer
                     self.r2         = np.concatenate(([r2surface], self.r2[:-1]))               
+                
                 if not self.c['manualT']: # If SEB, the new snow layer will be T2m
-                    if self.c['SEB']:
-                        newSnowT = np.min((self.T2m[iii],T_MELT))
+                    if (self.c['SEB']):
+                        # newSnowT = np.min((self.T2m[iii],T_MELT))
+                        newSnowT = np.min((self.Ts[iii],T_MELT))
                     else:
                         newSnowT = self.Ts[iii]
 
@@ -1300,8 +1286,6 @@ class FirnDensityNoSpin:
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
                 
                 if ((not self.c['SEB']) or (not self.c['manualT'])):
-
-                    # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
                     self.Tz[0] = self.Ts[iii]
                 
                 self.na_count += 1
@@ -1325,25 +1309,6 @@ class FirnDensityNoSpin:
                     d_zbot = (self.z[-1]-zz1[-1])
                     self.melt_sum = self.melt_sum + d_zbot
 
-                # if np.mod(iii,2000)==0:
-                # if d_zbot!=0:
-                    
-                    
-                    # print('melt_sum',self.melt_sum)
-                    # print('self.z',self.z[-1])
-                    # print('zz1',zz1[-1])
-                    # input('--------')
-
-            # if bd_flag=='no accumulation':
-            #     print('--------')
-            #     print(iii)
-            #     print(bd_flag)
-            #     # print('zz1:',zz1[-1])
-            #     # print('zz2:',self.z[-1])
-            #     print('na_count',self.na_count)
-            #     print('na_sum',self.na_sum)
-                # input()
-
             self.w_firn = (znew - self.z_old) / self.dt[iii] # advection rate of the firn, m/s
 
             self.sigma      = (self.mass + (self.LWC * RHO_W_KGM)) * self.dx * GRAVITY
@@ -1351,7 +1316,6 @@ class FirnDensityNoSpin:
             self.mass_sum   = self.mass.cumsum(axis = 0)
             
             self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * np.mean(S_PER_YEAR/self.dt) * S_PER_YEAR
-
 
             ### NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
 
