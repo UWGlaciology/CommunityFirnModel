@@ -123,7 +123,20 @@ class SurfaceEnergyBudget:
 
         # self.EP      = np.zeros_like(self.SW_d)
         # self.G       = np.zeros_like(self.SW_d) # For now we are not considering any flux in/out of the upper model node from below
-        
+        try:
+            self.TL_thick = self.c['SEB_TL_thick']
+        except:
+            print('Top layer thickness ("SEB_TL_thick") not defined in .json')
+            print('Setting to 5 cm')
+            self.TL_thick = 0.05
+
+        try:
+            self.albedo_factor = self.c['albedo_factor']
+            self.ALBEDO = self.ALBEDO * self.albedo_factor
+            print(f'ALBEDO is multipled by {self.albedo_factor}')
+        except:
+            print('"albedo_factor" not defined in .json. Using 1')
+
         
         self.SBC = 5.67e-8 # Stefan-Boltzmann constant [W K^-4 m^-2
         self.emissivity_air = 1
@@ -169,8 +182,8 @@ class SurfaceEnergyBudget:
         G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
         # G = 0
 
-        TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        iTL = np.where(z>=TL_thick)[0][0]
+        # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+        iTL = np.where(z>=self.TL_thick)[0][0]
 
         for kk in range(10): # this loop is to make sure that the toplayer is thick enough        
             dTL = np.cumsum(dz)[iTL]
@@ -241,10 +254,10 @@ class SurfaceEnergyBudget:
 
 
         # TL_thick = 0.05 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        # iTL = np.where(z>=TL_thick)[0][0]
+        iTL = np.where(z>=self.TL_thick)[0][0]
 
-        TL_mass = 400*0.08
-        iTL = np.where(np.cumsum(mass)>=TL_mass)[0][0]
+        # TL_mass = 400*0.08
+        # iTL = np.where(np.cumsum(mass)>=TL_mass)[0][0]
 
         # m = 0.08*400
 
@@ -339,7 +352,7 @@ class SurfaceEnergyBudget:
         # meltmass_tot = 0
 
         # TL_thick = 0.01 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        # iTL = np.where(z>=TL_thick)[0][0]
+        # iTL = np.where(z>=self.TL_thick)[0][0]
 
         # for jjj in range(self.dtRATIO):
         #     # print('subtime', self.time_in[iiisub+jjj])
@@ -667,8 +680,8 @@ class SurfaceEnergyBudget:
         # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        iTL = np.where(z>=TL_thick)[0][0] 
+        # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+        iTL = np.where(z>=self.TL_thick)[0][0] 
         dTL = z[iTL]
 
         i_GL = np.where(z>=1)[0][0]
@@ -765,8 +778,8 @@ class SurfaceEnergyBudget:
         ###
 
 
-        TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        iTL = np.where(z>=TL_thick)[0][0] 
+        # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+        iTL = np.where(z>=self.TL_thick)[0][0] 
         dTL = z[iTL]
 
         i_GL = np.where(z>=1)[0][0]
