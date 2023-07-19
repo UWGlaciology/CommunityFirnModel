@@ -529,8 +529,8 @@ class FirnDensityNoSpin:
                 rsf             = interpolate.interp1d(input_year_rain,input_rain,int_type,fill_value='extrapolate')
                 self.rain       = rsf(self.modeltime) # [mIE/yr]
                 self.rainSec    = self.rain / S_PER_YEAR / (S_PER_YEAR/self.dt) # rain for each time step (mIE/s)
-                self.rainSec    = np.zeros(self.stp)
-                print('CAUTION:RAIN SET TO ZERO (461)')
+                # self.rainSec    = np.zeros(self.stp)
+                # print('CAUTION:RAIN SET TO ZERO (461)')
             else:
                 self.rainSec    = np.zeros(self.stp) #VV to avoid problem in the conditions to call for liquid water routine
         #####################
