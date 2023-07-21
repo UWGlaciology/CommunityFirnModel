@@ -68,17 +68,14 @@ class SurfaceEnergyBudget:
             self.LW_d    = SEBfluxes['LW_d'][start_ind_EF:]
             self.ALBEDO  = SEBfluxes['ALBEDO'][start_ind_EF:]
             self.ALBEDO[np.isnan(self.ALBEDO)] = np.nanmean(self.ALBEDO)
+            try:
+                self.albedo_factor = self.c['albedo_factor']
+                self.ALBEDO = self.ALBEDO * self.albedo_factor
+                print(f'ALBEDO is multipled by {self.albedo_factor}')
+            except:
+                print('"albedo_factor" not defined in .json. Using 1')
             self.T2m     = SEBfluxes['T2m'][start_ind_EF:]
             self.TSKIN   = SEBfluxes['TSKIN'][start_ind_EF:]
-            # if (('EVAP' in SEBfluxes.keys()) and ('SUBLIM' in SEBfluxes.keys())):
-            #     self.EVAP    = SEBfluxes['EVAP'][start_ind_EF:]
-            #     self.SUBLIM    = SEBfluxes['SUBLIM'][start_ind_EF:]
-            # elif 'SUBLIM' in SEBfluxes.keys():
-            #     self.SUBLIM    = SEBfluxes['SUBLIM'][start_ind_EF:]
-            #     self.EVAP    = np.zeros_like(self.SUBLIM)
-            # elif 'EVAP' in SEBfluxes.keys():
-            #     self.EVAP    = SEBfluxes['EVAP'][start_ind_EF:]
-            #     self.SUBLIM    = np.zeros_like(self.EVAP)
             self.QH      = SEBfluxes['QH'][start_ind_EF:] #MERRA fluxes are upward positive, so multiply by -1
             self.QL      = SEBfluxes['QL'][start_ind_EF:]
             self.RAIN    = SEBfluxes['RAIN'][start_ind_EF:] # [m i.e./year]
@@ -86,9 +83,6 @@ class SurfaceEnergyBudget:
                 self.LW_u_input = True
                 self.LW_u = SEBfluxes['LW_u'][start_ind_EF:]
             self.dtRATIO = SEBfluxes['dtRATIO'] # This is the ratio of dt in SEBfluxes to dt in climateTS (how many sub steps to do, e.g it is 6 with daily res climateTS and 4-hourly SEB fields)
-            # print('dtRATIO', self.dtRATIO)
-            # print('self.LW_d',self.LW_d[0:5])
-            # input()
             self.T2m_daily = climateTS['T2m'][start_ind:]
 
             self.df_CLIM = pd.DataFrame({'SW_d':self.SW_d,'LW_d':self.LW_d,'ALBEDO':self.ALBEDO, 'T2m':self.T2m, 
@@ -101,6 +95,12 @@ class SurfaceEnergyBudget:
             self.LW_d    = climateTS['LW_d'][start_ind:]
             self.ALBEDO  = climateTS['ALBEDO'][start_ind:]
             self.ALBEDO[np.isnan(self.ALBEDO)] = np.nanmean(self.ALBEDO)
+            try:
+                self.albedo_factor = self.c['albedo_factor']
+                self.ALBEDO = self.ALBEDO * self.albedo_factor
+                print(f'ALBEDO is multipled by {self.albedo_factor}')
+            except:
+                print('"albedo_factor" not defined in .json. Using 1')
             self.T2m     = climateTS['T2m'][start_ind:]
             self.TSKIN   = climateTS['TSKIN'][start_ind:]
             if (('EVAP' in climateTS.keys()) and ('SUBLIM' in climateTS.keys())):
@@ -129,13 +129,6 @@ class SurfaceEnergyBudget:
             print('Top layer thickness ("SEB_TL_thick") not defined in .json')
             print('Setting to 5 cm')
             self.TL_thick = 0.05
-
-        try:
-            self.albedo_factor = self.c['albedo_factor']
-            self.ALBEDO = self.ALBEDO * self.albedo_factor
-            print(f'ALBEDO is multipled by {self.albedo_factor}')
-        except:
-            print('"albedo_factor" not defined in .json. Using 1')
 
         
         self.SBC = 5.67e-8 # Stefan-Boltzmann constant [W K^-4 m^-2
