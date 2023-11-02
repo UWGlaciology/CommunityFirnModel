@@ -17,7 +17,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-2.2.0
+2.3.0
 
 ## Full Documentation
 
@@ -37,6 +37,14 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.3.0] 2023-11-02
+### Notes
+- This version fixes two issues: when using the 'spinupdate' feature, the code would take the first time step off of each subsequent run when spinupdate was enabled. Now it does not. There was also an issue that merge.py did not correctly change the gridtrack variable when merging layers.
+
+### Fixed
+- *merge.py* Merge.py now includes code to corretly reassign gridtrack values to each layer when it runs. The error only occured in isolated scenarios when melt or sublimation would leave the top layer very thin.
+- *firn_density_nospin.py* The code has been changed to only trigger a spinup file update if it is not the first timestep of the model run. This leaves a typical workflow of: run full model with spinup; at the end of the spinup spinup file (i.e. the restart) gets updated; any subsequent runs will use that restart but not update it. Previously, if 'spinupdate' was true, the restart in the subsequent runs would get updated during the first time step, thereby cutting off the first time step from the previous run. 
 
 ## [2.2.0] 2023-06-26
 ### Notes
