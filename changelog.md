@@ -41,6 +41,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 ## [2.3.0] 2023-11-02
 ### Notes
 - This version fixes two issues: when using the 'spinupdate' feature, the code would take the first time step off of each subsequent run when spinupdate was enabled. Now it does not. There was also an issue that merge.py did not correctly change the gridtrack variable when merging layers.
+- I also made a change to how CFM handles time steps when timesetup is set to 'exact'. The forcing data has a decimal date, and differencing the input times gives a vector (dt) of time-step size. Because length of dt is one less than length of input time, CFM previously used input_time[1:]. Now, CFM appends a value (the mean of dt) to the start of dt. The upshot is where previously the values in the results represented the values in the firn at the start of the time interval, now they represent the values at the end. E.g., if you are using daily time steps, previously the results were the state of the firn at the start of that day, and now they are the state of firn at the end of the day. The reason I made this change is that now the forcing vectors line up exactly with dt, whereas before they were offset by one timestep.
 
 ### Fixed
 - *merge.py* Merge.py now includes code to corretly reassign gridtrack values to each layer when it runs. The error only occured in isolated scenarios when melt or sublimation would leave the top layer very thin.

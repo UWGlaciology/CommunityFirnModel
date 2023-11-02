@@ -374,7 +374,8 @@ class FirnDensityNoSpin:
             # print('"Exact" time setup will not work properly if input forcing does not all have the same time')
             # yr_start = input_year_temp[0] #previously had [1] - error? 20/3/3
             # yr_end = input_year_temp[-1]
-            self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s]
+            self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s] #version 2.2.0 and earlier had just this.
+            self.dt = np.append(np.mean(self.dt),self.dt) # added version 2.3.0 
             # self.dt = np.append(self.dt,self.dt[-1])
             self.stp = len(self.dt)
             self.modeltime = input_year_temp[1:] # this offset because use diff above
@@ -382,7 +383,8 @@ class FirnDensityNoSpin:
             yr_start = self.modeltime[0]
             yr_end = self.modeltime[-1]
             # self.t = np.mean(np.diff(input_year_temp))
-            self.t = np.diff(input_year_temp)
+            # self.t = np.diff(input_year_temp) # old, v2.2.0 and earlier
+            self.t = self.dt/S_PER_YEAR # new in v2.3.0
             init_time = input_year_temp[0]
 
         elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step

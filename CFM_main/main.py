@@ -27,7 +27,7 @@ import RCMpkl_to_spin as RCM
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annika Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@umd.edu"
 __status__ = "Production"
