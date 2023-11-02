@@ -1398,7 +1398,10 @@ class FirnDensityNoSpin:
             ################################
 
             if (self.c['spinUpdate'] and iii==indUpdate):
-                SpinUpdate(self,mtime)
+                if iii==0:
+                    pass
+                else:
+                    SpinUpdate(self,mtime)
 
             if self.doublegrid:
                 #VV changes 09/12/2020
