@@ -44,6 +44,7 @@ def mergesurf(self,thickmin,iii):
         self.age = np.delete(self.age,0)
         self.dz = np.delete(self.dz,0)
         self.LWC = np.delete(self.LWC,0)
+        self.gridtrack = np.delete(self.gridtrack,0)
         self.PLWC_mem = np.delete(self.PLWC_mem,0)
         ## For Dcon, here we remove the layer that is merged but maybe we want to remove the layer that receives the merging (and keep most recent dcon)##
         self.Dcon = np.delete(self.Dcon,0)
@@ -53,6 +54,7 @@ def mergesurf(self,thickmin,iii):
         self.r2 = np.append(self.r2, self.r2[-1])
         self.age = np.append(self.age, self.age[-1])
         self.dz = np.append(self.dz, self.dz[-1])
+        self.gridtrack = np.append(self.gridtrack,self.gridtrack[-1])
         self.LWC = np.append(self.LWC, 0.)
         self.PLWC_mem = np.append(self.PLWC_mem, 0.)
         self.Dcon = np.append(self.Dcon, self.Dcon[-1])
@@ -73,7 +75,7 @@ def mergesurf(self,thickmin,iii):
         # No change of self.compboxes as it keeps value at end of spin up during entire time evolve (nb of layers above 80m depth at end of spinup)
 
     return (self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                    self.Dcon,self.T_mean,self.T10m,self.r2)
+                    self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack)
 
 
 def mergenotsurf(self,thickmin,iii):
@@ -99,7 +101,7 @@ def mergenotsurf(self,thickmin,iii):
             ### Additive variables: take sum ###
             self.LWC[index+1] = (self.LWC[index]+self.LWC[index+1])
             self.PLWC_mem[index+1] = (self.PLWC_mem[index]+self.PLWC_mem[index+1])
-
+            ### do not need to adjust gridtrack, because will automatically take on value of next layer.
             self.dz[index+1] += self.dz[index] # add thickness to underlying 
             rmind = np.append(rmind,index) # add index to the list to remove
     
@@ -114,6 +116,7 @@ def mergenotsurf(self,thickmin,iii):
     self.PLWC_mem = np.delete(self.PLWC_mem,rmind)
     ## For Dcon, here we remove the layer that is merged but maybe we want to remove the layer that receives the merging (and keep most recent dcon)##
     self.Dcon = np.delete(self.Dcon,rmind)
+    self.gridtrack = np.delete(self.gridtrack,rmind)
     # We removed len(rmind) layers
     
     self.rho = np.concatenate((self.rho, self.rho[-1]*np.ones(len(rmind))))
@@ -126,6 +129,7 @@ def mergenotsurf(self,thickmin,iii):
     self.LWC = np.concatenate((self.LWC, np.zeros(len(rmind))))
     self.PLWC_mem = np.concatenate((self.PLWC_mem, np.zeros(len(rmind))))
     self.Dcon = np.concatenate((self.Dcon, self.Dcon[-1]*np.ones(len(rmind))))
+    self.gridtrack = np.concatenate(( self.gridtrack, self.gridtrack[-1] * np.ones(len(rmind)) ))
 
     ### Adjustment of variables ###
     self.z = self.dz.cumsum(axis=0)
@@ -142,7 +146,7 @@ def mergenotsurf(self,thickmin,iii):
     self.T10m           = self.T_mean
     
     return (self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                    self.Dcon,self.T_mean,self.T10m,self.r2)
+                    self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack)
     
 
 def mergeall(self,thickmin,iii):
