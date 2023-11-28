@@ -69,8 +69,9 @@ def bucket(self,iii):
     melt_volume_WE      = melt_volume_IE*RHO_I_MGM         # [m] 
     melt_mass           = melt_volume_WE*RHO_W_KGM         # [kg]
 
+    ### I think this does not get used.
     rain_volume_IE      = self.rainSec[iii] *S_PER_YEAR
-    rain_volume_WE      = rain_volume_IE * S_PER_YEAR
+    rain_volume_WE      = rain_volume_IE * S_PER_YEAR #error here?
     rain_mass           = rain_volume_WE * RHO_W_KGM
 
     total_liquid_mass_start = np.sum(melt_mass) + np.sum(self.LWC*RHO_W_KGM)

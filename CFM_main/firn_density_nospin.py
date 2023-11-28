@@ -1371,19 +1371,6 @@ class FirnDensityNoSpin:
 
             self.rho[self.rho>RHO_I] = RHO_I
 
-            # if np.mod(iii,2000)==0:
-            #     print(iii)
-            #     print(self.modeltime[iii])
-            #     intPhi, self.DIPc, z_co  = self.update_DIP()
-            #     print('self.dsdz_sum',self.dsdz_sum)
-            #     print('self.ddz_bdot',self.ddz_bdot)
-            #     print('dzdiff',dzdiff)
-            #     print('dip', intPhi)
-            #     print('z',self.z[-1])
-            #     print('rho',self.rho[0:5])
-
-            #########
-
             #############################################################
             ### write results as often as specified in the init method ##
             #############################################################
