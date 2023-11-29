@@ -146,9 +146,12 @@ class FirnDensityNoSpin:
                 initGrid = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'gridSpin')
                 self.gridtrack = initGrid[1:]
                 self.nodestocombine = self.c['nodestocombine']
+            else:
+                self.gridtrack = None
 
         except:
             self.doublegrid = False
+            self.gridtrack = None
             print('you should add "doublegrid" to the json')
 
         ### set up the initial age and density of the firn column
@@ -928,10 +931,10 @@ class FirnDensityNoSpin:
             if self.c['merging']: # merging may be deprecated (check with VV)
                 if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergesurf(self,self.c['merge_min'],iii)                    
+                        self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergesurf(self,self.c['merge_min'],iii)                    
                 if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                       
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergenotsurf(self,self.c['merge_min'],iii)
+                        self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergenotsurf(self,self.c['merge_min'],iii)
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -1169,6 +1172,8 @@ class FirnDensityNoSpin:
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
                     # pass
                     print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
+                    print(f'rho: {self.rho[-1]}')
+                    
                     # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
                     # This should never happen if bottom of modelled firn column is at rho >= 830
                 # self.LWC        = np.concatenate(([0], self.LWC[:-1]))
