@@ -11,6 +11,7 @@ import os
 import numpy as np
 import h5py
 from constants import *
+import xarray as xr
 
 def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
     '''
@@ -138,3 +139,35 @@ def SpinUpdate(self,mtime):
         spin_results['gridSpin'][:] = np.append(mtime,self.gridtrack)
 
     spin_results.close()
+    
+def write_nospin_netcdf(self,Mout_dict,forcing_dict=None):
+    '''
+    Write the results from the main model run to netCDF file.
+
+    Parameters
+    ----------
+    Mout_dict: dict
+        contains all of the model outputs; each key is the name of the output 
+    '''
+
+    time  = Mout_dict['climate'][:,0]
+    depth = Mout_dict['z']
+    
+    ds    = xr.Dataset(data_vars = {
+                        'age':           (['time', 'depth'], Mout_dict['age']),
+                        'density':       (['time', 'depth'], Mout_dict['rho']),
+                        'temperature':   (['time', 'depth'], Mout_dict['Tz']),
+                        'LWC':           (['time', 'depth'], Mout_dict['LWC']),
+                        'iso_sig2_d18O': (['time', 'depth'], Mout_dict['iso_sig2_d18O']),
+                        'iso_sig2_dD':   (['time', 'depth'], Mout_dict['iso_sig2_dD']),
+                        'isotopes_d18O': (['time', 'depth'], Mout_dict['isotopes_d18O']),
+                        'isotopes_dD':   (['time', 'depth'], Mout_dict['isotopes_dD']),
+                        },
+                       coords={
+                         'time':  time,
+                         'depth': depth,  
+                        })
+
+    ds.to_netcdf(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']))
+    
+    return
