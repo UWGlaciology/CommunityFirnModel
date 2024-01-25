@@ -47,14 +47,14 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     This is for standard heat (no liquid water), isotope, and air diffusion.
     If there is liquid water is should use the enthalpy solver.
 
-    :param z_edges:
-    :param Z_P:
+    :param z_edges: z_edges_vec
+    :param Z_P: z_P_vec, midpoints
     :param nt:
     :param dt:
     :param Gamma_P:
     :param phi_0:
-    :param nz_P:
-    :param nz_fv:
+    :param nz_P: len(self.z)
+    :param nz_fv: does not get used
     :param phi_s:
     :return phi_t:
     '''

@@ -281,6 +281,8 @@ class FirnDensityNoSpin:
                 input_bdot[input_bdot<0] = 0.0
                 input_bdot_full[input_bdot_full<0] = 0.0
 
+            self.forcing_dict['SUBLIM'] = input_sublim_full
+
         elif not self.c['SUBLIM']:
             print('SUBLIM is OFF')
             input_bdot[input_bdot<0] = 0.0
@@ -810,7 +812,7 @@ class FirnDensityNoSpin:
         self.BCO = np.array([bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
         self.DIP = np.array([intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC, DIPhz])
         #####################
-        self.climate = np.array([self.bdot[0],self.Ts[0]])
+        self.climate = np.array([self.bdot[0],self.Ts[0],self.snowmelt[0],self.rain[0],self.sublim[0]])
         #####################
 
         ######################################
@@ -1387,11 +1389,19 @@ class FirnDensityNoSpin:
                     self.viscosity = RD['viscosity']
 
                 if not self.c['SEB']:
-                    self.climate = np.array([self.bdot[iii],self.Ts[iii]])
+                    self.climate = np.array([self.bdot[iii],self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
                 else: #if SEB true
                     SMBiii = self.bdot[iii] + self.sublim[iii] - self.snowmelt[iii] #sublim negative means mass loss, snowmelt positive is amount lost
-                    self.climate = np.array([SMBiii,self.Ts[iii]])
-   
+                    # self.climate = np.array([SMBiii,self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
+                    self.climate = np.array([self.bdot[iii],self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
+                    if ((mtime>1999.53) & (mtime<1999.57)):
+                        print('#######')
+                        print(mtime)
+                        print('SMBiii', SMBiii)
+                        print(self.bdot[iii])
+                        print(self.snowmelt[iii])
+                        print(self.sublim[iii])
+                        print('#######')
                 bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(iii)
 
                 intPhi, self.DIPc, z_co  = self.update_DIP()

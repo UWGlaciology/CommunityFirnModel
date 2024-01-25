@@ -195,6 +195,14 @@ def enthalpyDiff(self,iii):
     # c_vol = g_ice_1 * RHO_I * c_ice + g_liq_1 * RHO_W_KGM * c_liq #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
     c_vol = (g_ice_1 * c_ice + g_liq_1 * c_liq) * tot_rho #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
 
+    # tot_rho = (mass_solid + mass_liquid) / dz # 'total' density of volume (solid plus liquid)
+    # vol_tot = vol_ice + vol_liquid
+    # g_liq   = vol_liquid / vol_tot  # liquid volume fraction
+    # g_ice   = vol_ice / vol_tot     # ice volume fraction 
+    # c_liq = 4219.9 # J/kg/K
+    # c_ice = 2097.0 # J/kg/K
+    # c_vol   = (g_ice * c_ice + g_liq * c_liq) * tot_rho #'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
+
     ### Conductivity
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity [W/m/K]
 

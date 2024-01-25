@@ -232,7 +232,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM_ids = list(df_CLIM_re.columns)
 
         df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-        df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        # df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        df_CLIM_re = df_CLIM_re.ffill()
 
         # df_TS_re['decdate'] = [toYearFraction(qq) for qq in df_TS_re.index]
         # df_BDOT_re['decdate'] = [toYearFraction(qq) for qq in df_BDOT_re.index]
@@ -247,8 +248,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
-        print(BDOT_mean_IE)
-        print(T_mean)
+        # print(BDOT_mean_IE)
+        # print(T_mean)
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
@@ -294,8 +295,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        print('df_full (no seb):',df_FULL.head())
-        df_FULL.to_csv('df_full_noSEB.csv')
+        # print('df_full (no seb):',df_FULL.head())
+        # df_FULL.to_csv('df_full_noSEB.csv')
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -410,8 +411,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM['SMELT'] = meltmass_out
         df_CLIM['TSKIN'] = Tcalc_out
 
-        print('TSKIN',df_CLIM['TSKIN'].resample('1y').mean().mean())
-        print('SMELT',df_CLIM['SMELT'].resample('1y').sum().mean())
+        # print('TSKIN',df_CLIM['TSKIN'].resample('1y').mean().mean())
+        # print('SMELT',df_CLIM['SMELT'].resample('1y').sum().mean())
         
 
         #############
@@ -439,7 +440,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM_ids = list(df_CLIM_re.columns)
 
         df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-        df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        # df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        df_CLIM_re = df_CLIM_re.ffill()
 
         # df_TS_re['decdate'] = [toYearFraction(qq) for qq in df_TS_re.index]
         # df_BDOT_re['decdate'] = [toYearFraction(qq) for qq in df_BDOT_re.index]
@@ -450,12 +452,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         if 'SUBLIM' not in df_CLIM_re:
             df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
-            print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
+            # print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
 
         BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
-        print(BDOT_mean_IE)
-        print(T_mean)
+        # print(BDOT_mean_IE)
+        # print(T_mean)
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
@@ -501,8 +503,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        print('df_full (no seb):',df_FULL.head())
-        df_FULL.to_csv('df_full_noSEB.csv')
+        # print('df_full (no seb):',df_FULL.head())
+        # df_FULL.to_csv('df_full_noSEB.csv')
 
         # sys.exit('exiting at 501')
 
@@ -541,7 +543,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM_ids = list(df_CLIM_re.columns)
 
         df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-        df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        # df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        df_CLIM_re = df_CLIM_re.ffill()
 
         df_CLIM_seb = df_CLIM[res_dict.keys()]
         df_CLIM_seb.drop(['BDOT','RAIN'],axis=1)
@@ -553,8 +556,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
         stepsperyear_seb = 1/(df_CLIM_seb.decdate.diff().mean())
 
-        print('stepsperyear',stepsperyear)
-        print('stepsperyear_seb',stepsperyear_seb)
+        # print('stepsperyear',stepsperyear)
+        # print('stepsperyear_seb',stepsperyear_seb)
 
         BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
         
@@ -562,8 +565,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             T_mean = (df_CLIM_re['TSKIN']).mean()
         except:
             T_mean = (df_CLIM_re['T2m']).mean()
-        print(BDOT_mean_IE)
-        print(T_mean)
+        # print(BDOT_mean_IE)
+        # print(T_mean)
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
@@ -631,13 +634,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
 
-        df_FULL.to_csv('df_full_SEB.csv')
+        # df_FULL.to_csv('df_full_SEB.csv')
 
         df_FULL_seb = pd.concat([df_spin_seb,df_CLIM_seb_decdate])
-        print('df_full_seb:',df_FULL_seb.head())
+        # print('df_full_seb:',df_FULL_seb.head())
 
         # print(df_CLIM_seb.head())
-        # input('waiting')
+        # input('waiting')f
 
         CD = {}
         CD['time'] = df_FULL.index
