@@ -17,7 +17,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-2.3.1
+2.3.2
 
 ## Full Documentation
 
@@ -37,6 +37,13 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.3.2] 2024-03-04
+### Notes
+- This minor release fixes an issue in 2.3.0 - I did not manage to push the correct time step changes as described in the 2.3.0 release notes.
+
+### Fixed
+- Issue that dt and modeltime were not the same length vectors. 
 
 ## [2.3.1] 2023-11-02
 ### Notes

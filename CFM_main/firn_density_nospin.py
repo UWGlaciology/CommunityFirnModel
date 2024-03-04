@@ -378,13 +378,13 @@ class FirnDensityNoSpin:
             self.dt = np.append(np.mean(self.dt),self.dt) # added version 2.3.0 
             # self.dt = np.append(self.dt,self.dt[-1])
             self.stp = len(self.dt)
-            self.modeltime = input_year_temp[1:] # this offset because use diff above
+            self.modeltime = input_year_temp#[1:] # this offset because use diff above
             # self.modeltime = input_year_temp[0:-1]
             yr_start = self.modeltime[0]
             yr_end = self.modeltime[-1]
             # self.t = np.mean(np.diff(input_year_temp))
             # self.t = np.diff(input_year_temp) # old, v2.2.0 and earlier
-            self.t = self.dt/S_PER_YEAR # new in v2.3.0
+            self.t = self.dt/S_PER_YEAR # years per time step; changed in v2.3.0
             init_time = input_year_temp[0]
 
         elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step
