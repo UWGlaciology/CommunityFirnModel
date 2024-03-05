@@ -1,7 +1,7 @@
 # CFM Change Log
 All notable changes to the Community Firn Model should be documented in this file. Contributors to the CFM who are unfamiliar with changelogs should review the notes at the end of this document.
 
-TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update main branch on github.
+TL;DR: Write down the changes that you made to the the model in this document and update the version number here, in CITATION.cff, and in main.py, then update main branch on github.
 
 General update protocol:
 First, get the staging branch to match main branch.
