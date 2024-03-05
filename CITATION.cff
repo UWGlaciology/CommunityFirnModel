@@ -1,0 +1,51 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: The Community Firn Model
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: C. Max
+    family-names: Stevens
+    email: maxstev@umd.edu
+    orcid: 'https://orcid.org/0000-0003-2005-0876'
+    affiliation: >-
+      Earth System Science Interdisciplinary Center,
+      University of Maryland
+  - given-names: Vincent
+    family-names: Verjans
+    affiliation: IBS Center for Climate Physics
+    orcid: 'https://orcid.org/0000-0002-3928-9556'
+  - given-names: Falk
+    family-names: Orachewski
+    affiliation: University of Tuebingen
+  - given-names: Jessica
+    family-names: Lundin
+  - given-names: Emma
+    family-names: Kahle
+  - given-names: Annika
+    family-names: Horlings
+    affiliation: >-
+      Institute of Arctic and Alpine Research, University of
+      Colorado at Boulder
+  - given-names: Ilyse
+    family-names: Horlings
+    affiliation: Dartmouth College
+  - given-names: 'Edwin '
+    family-names: Waddington
+    affiliation: University of Washington
+  - given-names: Falk
+    family-names: Orachewski
+    affiliation: University of Tuebingen
+  - given-names: Vasileios
+    family-names: Gkinis
+    affiliation: Niels Bohr Institute
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.3585884
+repository-code: 'https://github.com/UWGlaciology/CommunityFirnModel'
+license: MIT
+version: 2.3.2
