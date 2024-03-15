@@ -14,7 +14,7 @@ from reader import read_input
 from reader import read_init
 from writer import write_spin_hdf5
 from writer import write_nospin_hdf5
-from writer import write_nospin_netcdf
+#from writer import write_nospin_netcdf
 from writer import SpinUpdate
 from physics import *
 from constants import *
@@ -1438,7 +1438,9 @@ class FirnDensityNoSpin:
                   f'LWC (init):  {self.LWC_init}\n'
                   f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)}\n'
                   f'DML:            {sum(dml2check)}')
-        write_nospin_netcdf(self,self.MOutputs.Mout_dict,self.forcing_dict)
+        # write_nospin_netcdf(self,self.MOutputs.Mout_dict,self.forcing_dict)
+        write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
+        
 
     ###########################
     ##### END time_evolve #####

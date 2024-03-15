@@ -139,16 +139,20 @@ def SpinUpdate(self,mtime):
         spin_results['gridSpin'][:] = np.append(mtime,self.gridtrack)
 
     spin_results.close()
-    
-def write_nospin_netcdf(self,Mout_dict,forcing_dict=None):
-    '''
-    Write the results from the main model run to netCDF file.
 
-    Parameters
-    ----------
-    Mout_dict: dict
-        contains all of the model outputs; each key is the name of the output 
-    '''
+'''
+def write_nospin_netcdf(self,Mout_dict,forcing_dict=None):
+#    jupyter lab --notebook-dir D:/my_works/jupyter_ipynbs
+
+#    Write the results from the main model run to netCDF file.
+
+#    Parameters
+#    ----------
+#    Mout_dict: dict
+#        contains all of the model outputs; each key is the name of the output 
+
+    
+        
     time  = Mout_dict['climate'][:,0]
     depth = Mout_dict['z']
     
@@ -170,3 +174,4 @@ def write_nospin_netcdf(self,Mout_dict,forcing_dict=None):
     ds.to_netcdf(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']))
     
     return
+'''
