@@ -107,23 +107,26 @@ class FirnDensitySpin:
 
         ### create directory to store results. Deletes if it exists already.
         # Vincent says we do not want to remove existing directory (preferential flow?) - 4/24/19
+        
         if os.path.exists(self.c['resultsFolder']):
-            dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
-            dir_unique = list(set(dir_exts))
+            pass    
+            # dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
+            # dir_unique = list(set(dir_exts))
             
-            CFM_exts = ['.json','.hdf5']
-            if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
+            # CFM_exts = ['.json','.hdf5']
+            # if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
                 
-                rmtree(self.c['resultsFolder'])
-                os.makedirs(self.c['resultsFolder'])
-            else:
-                print('WARNING: THE DIRECTORY YOU ARE USING CONTAINS NON-CFM FILES')
-                print('CFM will delete all files in the results directory with .hdf5 extension')
-                files_in_directory = os.listdir(self.c['resultsFolder'])
-                filtered_files = [file for file in files_in_directory if file.endswith(".hdf5")]
-                for file in filtered_files:
-                    path_to_file = os.path.join(self.c['resultsFolder'], file)
-                    os.remove(path_to_file)
+            #     rmtree(self.c['resultsFolder'])
+            #     os.makedirs(self.c['resultsFolder'])
+            # else:
+            #     print('WARNING: THE DIRECTORY YOU ARE USING CONTAINS NON-CFM FILES')
+            #     print('CFM will delete all files in the results directory with .hdf5 extension')
+            #     files_in_directory = os.listdir(self.c['resultsFolder'])
+            #     filtered_files = [file for file in files_in_directory if file.endswith(".hdf5")]
+            #     for file in filtered_files:
+            #         path_to_file = os.path.join(self.c['resultsFolder'], file)
+            #         os.remove(path_to_file)
+            
         
         else:
             print('making dir')
