@@ -72,7 +72,7 @@
     "grid1bottom": 5,
     "grid2bottom": 10,
     "grid_output_res": 0.25,
-    "grid_outputs": false,
+    "grid_outputs": true,
     "heatDiff": true,
     "iceout": 0.23,
     "initfirnFile": "firndata.csv",
