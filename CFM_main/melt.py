@@ -126,7 +126,8 @@ def bucket(self,iii):
         if ind1>0:
             self.rho       = np.concatenate((self.rho[ind1:-1],self.rho[-1]*np.ones(n_melted)))
             # self.Tz        = np.concatenate((self.Tz[ind1:-1],self.Tz[-1]*np.ones(n_melted)))
-            self.r2        = np.concatenate((self.r2[ind1:-1],self.r2[-1]*np.ones(n_melted)))
+            if self.r2 is not None:
+                self.r2        = np.concatenate((self.r2[ind1:-1],self.r2[-1]*np.ones(n_melted)))
             self.bdot_mean = np.concatenate((self.bdot_mean[ind1:-1],self.bdot_mean[-1]*np.ones(n_melted)))
             self.age       = np.concatenate((self.age[ind1:-1],self.age[-1]*np.ones(n_melted))) 
             self.Dcon      = np.concatenate((self.Dcon[ind1:-1],self.Dcon[-1]*np.ones(n_melted)))

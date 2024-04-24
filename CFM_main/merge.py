@@ -29,7 +29,8 @@ def mergesurf(self,thickmin,iii):
     if ((self.dz[1] < thickmin) or (self.dz[0] < 1e-4)): #test
         self.rho[1] = (self.rho[1]*self.dz[1]+self.rho[0]*self.dz[0]) / (self.dz[1]+self.dz[0])
         self.Tz[1] = (self.Tz[1]*self.mass[1]+self.Tz[0]*self.mass[0]) / (self.mass[1]+self.mass[0])
-        self.r2[1] = (self.r2[1]*self.mass[1]+self.r2[0]*self.mass[0]) / (self.mass[1]+self.mass[0])
+        if self.r2 is not None:
+            self.r2[1] = (self.r2[1]*self.mass[1]+self.r2[0]*self.mass[0]) / (self.mass[1]+self.mass[0])
         self.age[1] = self.age[1] # suggestion of Max 28Jun, important if we use bdot_mean
         ### Additive variables: take sum ###
         self.LWC[1] = (self.LWC[0]+self.LWC[1])
@@ -40,7 +41,8 @@ def mergesurf(self,thickmin,iii):
         ### Remove the thin surface layer ###
         self.rho = np.delete(self.rho,0)
         self.Tz = np.delete(self.Tz,0)
-        self.r2 = np.delete(self.r2,0)
+        if self.r2 is not None:
+            self.r2 = np.delete(self.r2,0)
         self.age = np.delete(self.age,0)
         self.dz = np.delete(self.dz,0)
         self.LWC = np.delete(self.LWC,0)
@@ -51,7 +53,8 @@ def mergesurf(self,thickmin,iii):
         
         self.rho = np.append(self.rho, self.rho[-1])
         self.Tz = np.append(self.Tz, self.Tz[-1])
-        self.r2 = np.append(self.r2, self.r2[-1])
+        if self.r2 is not None:
+            self.r2 = np.append(self.r2, self.r2[-1])
         self.age = np.append(self.age, self.age[-1])
         self.dz = np.append(self.dz, self.dz[-1])
         self.gridtrack = np.append(self.gridtrack,self.gridtrack[-1])
@@ -96,7 +99,8 @@ def mergenotsurf(self,thickmin,iii):
             self.rho[index+1] = (self.rho[index+1]*self.dz[index+1]+self.rho[index]*self.dz[index]) / (self.dz[index+1]+self.dz[index])
             ''' For Tz and r2: use weighted mean according to mass rather than dz!!'''
             self.Tz[index+1] = (self.Tz[index+1]*self.mass[index+1]+self.Tz[index]*self.mass[index]) / (self.mass[index+1]+self.mass[index])
-            self.r2[index+1] = (self.r2[index+1]*self.mass[index+1]+self.r2[index]*self.mass[index]) / (self.mass[index+1]+self.mass[index])
+            if self.r2 is not None:
+                self.r2[index+1] = (self.r2[index+1]*self.mass[index+1]+self.r2[index]*self.mass[index]) / (self.mass[index+1]+self.mass[index])
             self.age[index+1] = self.age[index+1] # suggestion of Max 28Jun, important if we use bdot_mean
             ### Additive variables: take sum ###
             self.LWC[index+1] = (self.LWC[index]+self.LWC[index+1])
@@ -109,7 +113,8 @@ def mergenotsurf(self,thickmin,iii):
     ### Remove the thin layers ###
     self.rho = np.delete(self.rho,rmind)
     self.Tz = np.delete(self.Tz,rmind)
-    self.r2 = np.delete(self.r2,rmind)
+    if self.r2 is not None:
+        self.r2 = np.delete(self.r2,rmind)
     self.age = np.delete(self.age,rmind)
     self.dz = np.delete(self.dz,rmind)
     self.LWC = np.delete(self.LWC,rmind)
@@ -121,7 +126,8 @@ def mergenotsurf(self,thickmin,iii):
     
     self.rho = np.concatenate((self.rho, self.rho[-1]*np.ones(len(rmind))))
     self.Tz = np.concatenate((self.Tz, self.Tz[-1]*np.ones(len(rmind))))
-    self.r2 = np.concatenate((self.r2, self.r2[-1]*np.ones(len(rmind))))
+    if self.r2 is not None:
+        self.r2 = np.concatenate((self.r2, self.r2[-1]*np.ones(len(rmind))))
     self.age = np.concatenate((self.age, self.age[-1]*np.ones(len(rmind))))
     if self.dz[-1]<thickmin:
         self.dz[-1] = thickmin
@@ -162,7 +168,8 @@ def mergeall(self,thickmin,iii):
             ### Non-additive variables: take arithmetic mean ###
             self.rho[index+1] = (self.rho[index+1]*self.dz[index+1]+self.rho[index]*self.dz[index]) / (self.dz[index+1]+self.dz[index])
             self.Tz[index+1] = (self.Tz[index+1]*self.dz[index+1]+self.Tz[index]*self.dz[index]) / (self.dz[index+1]+self.dz[index])
-            self.r2[index+1] = (self.r2[index+1]*self.dz[index+1]+self.r2[index]*self.dz[index]) / (self.dz[index+1]+self.dz[index])
+            if self.r2 is not None:
+                self.r2[index+1] = (self.r2[index+1]*self.dz[index+1]+self.r2[index]*self.dz[index]) / (self.dz[index+1]+self.dz[index])
             self.age[index+1] = self.age[index+1] # suggestion of Max 28Jun, important if we use bdot_mean
             ### Additive variables: take sum ###
             self.LWC[index+1] = (self.LWC[index]+self.LWC[index+1])
@@ -173,7 +180,8 @@ def mergeall(self,thickmin,iii):
     ### Remove the thin layers ###
     self.rho = np.delete(self.rho,rmind)
     self.Tz = np.delete(self.Tz,rmind)
-    self.r2 = np.delete(self.r2,rmind)
+    if self.r2 is not None:
+        self.r2 = np.delete(self.r2,rmind)
     self.age = np.delete(self.age,rmind)
     self.dz = np.delete(self.dz,rmind)
     self.LWC = np.delete(self.LWC,rmind)
