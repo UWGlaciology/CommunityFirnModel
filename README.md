@@ -63,9 +63,15 @@ The software does not include techinal support, but we are happy to help provide
 
 If there is a feature you would like to see (e.g. simulating different processes; writing different outputs), please let us us know and we can try to integrate that for you in the next release.
 
+## Contributing
+
+We welcome contributions to the CFM. If you are interested in adding code, it is best to get in touch (maxstev@umd.edu) to discuss the contribution and then to submit a pull request.
+
 ## Citing
 
-If you use the CFM for your research, please cite your use. The correct citation is: https://doi.org/10.5194/gmd-13-4355-2020
+If you use the CFM for your research, please cite your use. The correct citation is: 
+
+Stevens, C. M., Verjans, V., Lundin, J. M. D., Kahle, E. C., Horlings, A. N., Horlings, B. I., and Waddington, E. D.: The Community Firn Model (CFM) v1.0, Geosci. Model Dev., 13, 4355–4377, https://doi.org/10.5194/gmd-13-4355-2020, 2020.
 
 If you are using the CFM, please consider sending a note (maxstev@umd.edu) to let us know that you are using it. We try to keep track of user numbers, which helps us keep the project going.
 
@@ -73,18 +79,17 @@ If you are using the CFM, please consider sending a note (maxstev@umd.edu) to le
 
 MIT © C. Max Stevens
 
-The CFM is open-source software, but we ask that you please cite your use:
-
-Stevens, C., Waddington E.D., Conway, H., & Koutnik, M. (2018). Investigations of physical processes in polar firn through modeling and field measurements, ProQuest Dissertations and Theses.
+The CFM is open-source software, but we ask that you please cite your use.
 
 ## Contributors
 C. Max Stevens
 Vincent Verjans
 Emma Kahle
 Vasileios Gkinis
-Brita Horlings
+Ilyse (Brita) Horlings
 Annika Horlings
 Brooke Medley
 Jessica Lundin
 Huong Vo
 Ed Waddington
+Falk Orachewski

@@ -1,7 +1,7 @@
 # CFM Change Log
 All notable changes to the Community Firn Model should be documented in this file. Contributors to the CFM who are unfamiliar with changelogs should review the notes at the end of this document.
 
-TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update main branch on github.
+TL;DR: Write down the changes that you made to the the model in this document and update the version number here, in CITATION.cff, and in main.py, then update main branch on github.
 
 General update protocol:
 First, get the staging branch to match main branch.
@@ -17,7 +17,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-2.2.0
+2.3.2
 
 ## Full Documentation
 
@@ -37,6 +37,26 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [2.3.2] 2024-03-04
+### Notes
+- This minor release fixes an issue in 2.3.0 - I did not manage to push the correct time step changes as described in the 2.3.0 release notes.
+
+### Fixed
+- Issue that dt and modeltime were not the same length vectors. 
+
+## [2.3.1] 2023-11-02
+### Notes
+- Changes for 2.3.0 did not all merge correctly.
+
+## [2.3.0] 2023-11-02
+### Notes
+- This version fixes two issues: when using the 'spinupdate' feature, the code would take the first time step off of each subsequent run when spinupdate was enabled. Now it does not. There was also an issue that merge.py did not correctly change the gridtrack variable when merging layers.
+- I also made a change to how CFM handles time steps when timesetup is set to 'exact'. The forcing data has a decimal date, and differencing the input times gives a vector (dt) of time-step size. Because length of dt is one less than length of input time, CFM previously used input_time[1:]. Now, CFM appends a value (the mean of dt) to the start of dt. The upshot is where previously the values in the results represented the values in the firn at the start of the time interval, now they represent the values at the end. E.g., if you are using daily time steps, previously the results were the state of the firn at the start of that day, and now they are the state of firn at the end of the day. The reason I made this change is that now the forcing vectors line up exactly with dt, whereas before they were offset by one timestep.
+
+### Fixed
+- *merge.py* Merge.py now includes code to corretly reassign gridtrack values to each layer when it runs. The error only occured in isolated scenarios when melt or sublimation would leave the top layer very thin.
+- *firn_density_nospin.py* The code has been changed to only trigger a spinup file update if it is not the first timestep of the model run. This leaves a typical workflow of: run full model with spinup; at the end of the spinup spinup file (i.e. the restart) gets updated; any subsequent runs will use that restart but not update it. Previously, if 'spinupdate' was true, the restart in the subsequent runs would get updated during the first time step, thereby cutting off the first time step from the previous run. 
 
 ## [2.2.0] 2023-06-26
 ### Notes
