@@ -1396,14 +1396,7 @@ class FirnDensityNoSpin:
                     SMBiii = self.bdot[iii] + self.sublim[iii] - self.snowmelt[iii] #sublim negative means mass loss, snowmelt positive is amount lost
                     # self.climate = np.array([SMBiii,self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
                     self.climate = np.array([self.bdot[iii],self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
-                    if ((mtime>1999.53) & (mtime<1999.57)):
-                        print('#######')
-                        print(mtime)
-                        print('SMBiii', SMBiii)
-                        print(self.bdot[iii])
-                        print(self.snowmelt[iii])
-                        print(self.sublim[iii])
-                        print('#######')
+
                 bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(iii)
 
                 intPhi, self.DIPc, z_co  = self.update_DIP()

@@ -10,7 +10,7 @@ Isotope diffusion now has its own class.
 from solver import transient_solve_TR
 # from solver import transient_solve_EN_old
 # from solver import transient_solve_EN_new
-from solver import transient_solve_EN, Marshall, apparent_heat
+from solver import transient_solve_EN, apparent_heat
 from constants import *
 import numpy as np
 from scipy import interpolate
@@ -100,7 +100,7 @@ def heatDiff(self,iii):
     '''
 
     nz_P            = len(self.z)
-    nz_fv           = nz_P - 2
+    nz_fv           = nz_P - 2 # this does not actually get used.
     nt              = 1
 
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
@@ -111,8 +111,8 @@ def heatDiff(self,iii):
     phi_0           = self.Tz
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    # c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    c_firn        = CP_I # If you prefer a constant specific heat.
+    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn        = CP_I # If you prefer a constant specific heat.
 
     K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
 
@@ -157,8 +157,8 @@ def enthalpyDiff(self,iii):
     thermal diffusivity: alpha = K_firn / (rho*c_firn)
     '''
     Tstart          = self.Tz.copy()
-    nz_P            = len(self.z) - 1
-    nz_fv           = nz_P - 2
+    nz_P            = len(self.z) - 1 #this is the number of volumes, or can think of as number of firn layers.
+    nz_fv           = nz_P - 2 # this does not actually get used.
 
     if np.any(self.LWC>0): # this behavior is depricated; keeping code for now. (6/16/21)
         nt = 10 # number of iterations for the solver

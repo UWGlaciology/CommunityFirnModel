@@ -46,7 +46,7 @@ class ModelOutputs:
             elif varname == 'BCO':
                 self.Mout_dict[varname] = np.zeros((TWlen+1,10), dtype = self.c['output_bits'])
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
-            elif varname == 'climate':
+            elif varname == 'climate': #[time,bdot,Ts,snowmelt,rain,sublim]
                 self.Mout_dict[varname] = np.zeros((TWlen+1,6), dtype = self.c['output_bits'])
                 self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
             # elif varname == 'runoff':
