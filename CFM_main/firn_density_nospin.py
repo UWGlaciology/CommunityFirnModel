@@ -536,8 +536,6 @@ class FirnDensityNoSpin:
                 rsf             = interpolate.interp1d(input_year_rain,input_rain,int_type,fill_value='extrapolate')
                 self.rain       = rsf(self.modeltime) # [mIE/yr]
                 self.rainSec    = self.rain / S_PER_YEAR / (S_PER_YEAR/self.dt) # rain for each time step (mIE/s)
-                # self.rainSec    = np.zeros(self.stp)
-                # print('CAUTION:RAIN SET TO ZERO (461)')
             else:
                 self.rainSec    = np.zeros(self.stp) #VV to avoid problem in the conditions to call for liquid water routine
         #####################
@@ -1056,11 +1054,11 @@ class FirnDensityNoSpin:
                 else:
                     T_old = self.Ts[iii-1]
 
-                if self.SEBfluxes is not None:
+                if self.SEBfluxes is not None: # Use the sub time step functionality
                     if iii==0:
                         print('SEB subdt')
                     self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs_subdt(PhysParams,iii,T_old)                   
-                else:
+                else: # SEB time step is the same as main model.
                     self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
 
 
@@ -1095,23 +1093,11 @@ class FirnDensityNoSpin:
                         m2X = self.refreeze + self.runoff + np.sum(self.LWC * RHO_W_KGM)
                         if ((self.rainSec[iii] == 0) & (LWCpre!=m2X)):
                             self.mismatch = self.mismatch + (m2X - LWCpre) / RHO_W_KGM
-                            # print('mismatch')
-                            # print(m2X)
-                            # print(LWCpre)
 
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
 
                         self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
-
-                        # d_zbot = (self.z[-1]-zz1[-1])
-                        # if d_zbot!=0:
-                        #     self.melt_sum = self.melt_sum + d_zbot
-                        #     print('dzbot',d_zbot)
-                        #     print('melt_sum',self.melt_sum)
-                        #     print('self.z',self.z[-1])
-                        #     print('zz1',zz1[-1])
-                        #     input()
 
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
@@ -1174,9 +1160,7 @@ class FirnDensityNoSpin:
                 ### end prefsnowpack ##################
 
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
-                    # pass
                     print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
-                    print(f'rho: {self.rho[-1]}')
                     
                     # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
                     # This should never happen if bottom of modelled firn column is at rho >= 830
@@ -1363,16 +1347,6 @@ class FirnDensityNoSpin:
                     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_LWCcorr(self, iii, self.c["LWCcorr_subdt"],self.c['correct_therm_prop'])
 
                 tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
-
-                ### debugging: check if total energy is the same pre and post diffusion solver. 
-
-                # if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-3:
-                #     print(f'change in enthalpy at iteration {iii}!')
-                #     print('pre:', tot_heat_pre)
-                #     print('post:', tot_heat_post)
-                #     ediff = (tot_heat_post-tot_heat_pre)                
-                #     print('difference (kJ):', (tot_heat_post-tot_heat_pre))
-                #     print('difference %:', ediff/tot_heat_pre)
 
                 self.refreeze += LWC0e-sum(self.LWC) 
 

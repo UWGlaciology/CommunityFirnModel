@@ -278,7 +278,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     h_old         = phi_t * g_sol * RHO_I * CP_I
     h_updated     = h_old.copy()
 
-    update_gsol = False
+    update_gsol = False # Still testing whether or not to use this
 
     for i_time in range(100): # Testing indicates that this should never need this many iterations
 

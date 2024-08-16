@@ -3,10 +3,8 @@
 '''
 This is what I use to batch CFM runs (in combination with GNU parallel).
 
-But, it can also be used a standalone access to the CFM. Previously (and still)
-
+But, it can also be used a standalone access to the CFM. Previously (and still an option)
 the CFM is called using main.py and a .json file. 
-
 
 This file takes a different direction - its inputs from the command line are the
 lat/lon pair you want to model. Then it calls spin_up_generator_CFM to make 
