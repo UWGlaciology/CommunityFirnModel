@@ -675,8 +675,6 @@ def w(airdict, z_edges, rho_edges, Z_P, dZ):
         cl_ind1             = np.where(z_edges>airdict['z_co'])[0] #closed indices
         cl_ind              = np.intersect1d(cl_ind1,op_ind2)
 
-        # print('depth co_ind',z_edges[co_ind])
-
         Xi                  = np.zeros((len(op_ind2),len(op_ind2)))
         Xi_up               = por_op_edges[op_ind2]/np.reshape(por_op_edges[op_ind2], (-1,1))
         Xi_down             = (1 + np.log( np.reshape(w_firn_edges[op_ind2], (-1,1))/ w_firn_edges[op_ind2] ))

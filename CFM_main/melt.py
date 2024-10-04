@@ -69,7 +69,7 @@ def bucket(self,iii):
     melt_volume_WE      = melt_volume_IE*RHO_I_MGM         # [m] 
     melt_mass           = melt_volume_WE*RHO_W_KGM         # [kg]
 
-    ### I think this does not get used.
+    ### I think this does not get used. (rain added at line 116)
     # rain_volume_IE      = self.rainSec[iii] *S_PER_YEAR
     # rain_volume_WE      = rain_volume_IE * S_PER_YEAR #error here?
     # rain_mass           = rain_volume_WE * RHO_W_KGM
@@ -94,6 +94,7 @@ def bucket(self,iii):
 
     ### Partially melted node properties ###
     pm_mass = self.mass_sum[ind1] - melt_mass #remaining mass
+    pm_deltamass = self.mass[ind1] - pm_mass
     pm_dz   = pm_mass/self.rho[ind1] #remaining thickness
     pm_rho  = self.rho[ind1] #density of the pm node
     pm_lwc  = self.LWC[ind1]/self.dz[ind1]*pm_dz #LWC of the pm node
@@ -107,7 +108,6 @@ def bucket(self,iii):
         dh_melt = -1 * (dzo[ind1]-pm_dz)
 
     avg_dh_melted = -1 * dh_melt/n_melted # average thickness of melted nodes
-
 
     ### Liquid water input at the surface ###
     liq_in_mass = max(melt_mass + (np.sum(self.LWC[0:ind1+1]) - pm_lwc) * RHO_W_KGM, 0) #avoid negative lwcinput due to numerical round-off errors
@@ -143,9 +143,11 @@ def bucket(self,iii):
         if keep_firnthickness:
             nb_th = np.maximum(avg_dh_melted,self.dz[-1])
             self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],nb_th*np.ones(n_melted)))
+            mass_added = np.sum(self.rho[-1]*(nb_th*np.ones(n_melted-1)))
             zbot_old = self.z[-1]
         else:
             self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(n_melted)))
+            mass_added = np.sum(self.rho[-1]*(self.dz[-1]*np.ones(n_melted-1)))
         
         self.Tz        = np.concatenate(([pm_Tz],self.Tz[ind1+1:-1],self.Tz[-1]*np.ones(n_melted))) # PM layer should have temp=T_MELT
         self.z         = self.dz.cumsum(axis=0)
@@ -338,8 +340,8 @@ def bucket(self,iii):
                             jj1             = imp[np.where(imp>=jj2)[0][0]]-1 # jj1 becomes index of node above the impermeable barrier
                         except:
                             jj1 = -1
-                            print('failure to find jj1')
-                            print(f'bottom rho: {self.rho[-1]}')
+                            # print('failure to find jj1')
+                            # print(f'bottom rho: {self.rho[-1]}')
                         LWCblocked[jj1] += LWC_excess[jj2]          # LWC_excess is blocked above the barrier
                         LWC1[jj2]       = LWCirr[jj2]               # LWC of jj0 is reduced to irreducible water content
                     break # Exit the while loop
@@ -561,7 +563,7 @@ def bucket(self,iii):
 
     ### Mass conservation check 2 ###
     liqmcfinal = sum(self.LWC) + refrozentot + runofftot
-    if abs(liqmcfinal - liqmcinit) > 1e-3:
+    if abs(liqmcfinal - liqmcinit) > 1e-5:
         print(f'Mass conservation error (2) (melt.py) at step {iii}\n    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
 
     # total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)

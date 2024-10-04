@@ -229,8 +229,9 @@ def enthalpyDiff(self,iii):
     
     ICT = 0 #Iteration Count Threshold (deprecated)
 
-    ### Total enthalpy before solver (for testing conservation)
+    ### Total enthalpy/mass before solver (for testing conservation)
     tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
+    tot_mass_pre = np.sum(self.mass + self.LWC*1000)
 
     lwc_old = self.LWC.copy()
     
@@ -249,13 +250,13 @@ def enthalpyDiff(self,iii):
     ### Total enthalpy after solver (for testing conservation)
     tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
 
-    # if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-2:
-    #     print(f'change in enthalpy at iteration {iii}!')
-    #     print('pre:', tot_heat_pre)
-    #     print('post:', tot_heat_post)
-    #     ediff = (tot_heat_post-tot_heat_pre)                
-    #     print('difference (kJ):', (tot_heat_post-tot_heat_pre))
-    #     print('difference %:', ediff/tot_heat_pre)
+    if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-2:
+        print(f'change in enthalpy at iteration {iii}!')
+        print('pre:', tot_heat_pre)
+        print('post:', tot_heat_post)
+        ediff = (tot_heat_post-tot_heat_pre)                
+        print('difference (kJ):', (tot_heat_post-tot_heat_pre))
+        print('difference %:', ediff/tot_heat_pre)
 
     if np.any(self.Tz>273.1500001):
         print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
@@ -277,7 +278,12 @@ def enthalpyDiff(self,iii):
     self.mass       = self.mass + delta_mass_liq
     self.rho        = self.mass/self.dz
 
-    tot_mass_new = self.mass + self.LWC*1000
+    tot_mass_post = np.sum(self.mass + self.LWC*1000)
+
+    if np.abs((tot_mass_post-tot_mass_pre)/tot_mass_pre)>1e-3: # flag if there is larger than 0.1% difference
+        print(f'change in mass (enthalpy solver) at iteration {iii}!')
+        print('pre:', tot_mass_pre)
+        print('post:', tot_mass_post)
 
     return self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum
 

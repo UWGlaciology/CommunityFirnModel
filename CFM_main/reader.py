@@ -52,7 +52,7 @@ def read_input(filename,StartDate=None):
 
     return input_data, input_year, input_data_full, input_year_full
 
-def read_init(folder, resultsFileName, varname):
+def read_init(folder, resultsFileName, varname, udate = None):
 
     '''
     Read in data for initial depth, age, density, and temperature to run the model without spinup
@@ -61,7 +61,17 @@ def read_init(folder, resultsFileName, varname):
 
     '''
     f5          = h5py.File(os.path.join(folder, resultsFileName),'r')
-    init_value  = f5[varname][:]
+    
+    init_value_full  = f5[varname][:]
+    if init_value_full.ndim==1:
+        init_value = init_value_full
+    else:
+        restart_times = init_value_full[0,:]
+        if udate is not None:
+            res_index = (np.abs(restart_times-udate)).argmin()
+        else:
+            res_index = -1
+        init_value = init_value_full[:,res_index]
     f5.close()
 
     return init_value

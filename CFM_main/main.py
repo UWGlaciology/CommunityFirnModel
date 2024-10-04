@@ -77,11 +77,11 @@ if __name__ == '__main__':
         pkl_name = os.path.join(c['InputFileFolder'],c['DFfile'])
         timeres = c['DFresample']
         desired_depth = c['H'] - c['HbaseSpin']
-        climateTS, stepsperyear, depth_S1, depth_S2, desired_depth = RCM.makeSpinFiles(pkl_name,timeres = timeres, melt = c['MELT'], desired_depth = desired_depth)
+        climateTS, stepsperyear, depth_S1, depth_S2, desired_depth, SEBfluxes = RCM.makeSpinFiles(pkl_name,timeres = timeres, melt = c['MELT'], desired_depth = desired_depth)
     else:
         climateTS = None
 
-    firn = FirnDensityNoSpin(configName, climateTS = climateTS, NewSpin = NewSpin)
+    firn = FirnDensityNoSpin(configName, climateTS = climateTS, NewSpin = NewSpin, SEBfluxes=SEBfluxes)
     firn.time_evolve()
 
     shutil.copy(configName,c['resultsFolder'])

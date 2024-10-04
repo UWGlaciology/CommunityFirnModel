@@ -633,7 +633,7 @@ class FQS:
     def __init__(self):
         pass
 
-    # @jit(nopython=True)
+    # @jit(nopython=True)``
     def single_quadratic(self, a0, b0, c0):
         ''' 
         Analytical solver for a single quadratic equation
