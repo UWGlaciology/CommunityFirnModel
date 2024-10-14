@@ -112,6 +112,9 @@ class FirnDensityNoSpin:
         #     print('currently isotope diffusion only available using csv inputs')
         #     self.c['isoDiff']=False
 
+        if self.c['physRho'] == 'Morris2014':
+            self.c['THist'] = True
+
         if ((not spinner) or NewSpin):
             if self.c['timesetup']=='exact':
                 if climateTS != None:
@@ -1043,7 +1046,8 @@ class FirnDensityNoSpin:
                 'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
-                'MaxSP':                FirnPhysics(PhysParams).MaxSP
+                'MaxSP':                FirnPhysics(PhysParams).MaxSP,
+                'Breant2017':           FirnPhysics(PhysParams).Breant2017
             }
 
             RD      = physicsd[self.c['physRho']]()
@@ -1058,7 +1062,7 @@ class FirnDensityNoSpin:
             if self.c['horizontal_divergence']:
                 self.mass = horizontal_divergence(self,iii)
 
-            if self.c['physRho']=='Goujon2003':
+            if ((self.c['physRho']=='Goujon2003') or (self.c['physRho']=='Breant2017')):
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
                 self.Gamma_old2_Gou = RD['Gamma_old2_Gou']

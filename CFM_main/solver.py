@@ -34,7 +34,7 @@ def solver(a_U, a_D, a_P, b):
     big_A = big_A.T
 
     rhs = -b
-    phi_t = splin.spsolve(big_A, rhs)
+    phi_t = splin.spsolve(big_A, rhs, use_umfpack=True)
 
     return phi_t
 
