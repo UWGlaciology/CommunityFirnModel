@@ -79,6 +79,7 @@ class ModelOutputs:
                 
                 else: #not gridding outputs
                     self.Mout_dict[varname]       = np.zeros((TWlen+1,Glen+1),dtype=self.c['output_bits'])
+                    print(varname)
                     self.Mout_dict[varname][0,:]  = np.append(init_time, MOd[varname])
 
     def updateMO(self, MOd, mtime, Wtracker):
