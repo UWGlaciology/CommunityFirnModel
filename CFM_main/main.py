@@ -27,7 +27,7 @@ import RCMpkl_to_spin as RCM
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annika Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "2.3.2"
+__version__ = "3.0.0"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@umd.edu"
 __status__ = "Production"
@@ -78,8 +78,9 @@ if __name__ == '__main__':
         timeres = c['DFresample']
         desired_depth = c['H'] - c['HbaseSpin']
         climateTS, stepsperyear, depth_S1, depth_S2, desired_depth, SEBfluxes = RCM.makeSpinFiles(pkl_name,timeres = timeres, melt = c['MELT'], desired_depth = desired_depth)
-    else:
+    else: # inputs from .csv (original CFM functionality)
         climateTS = None
+        SEBfluxes = None
 
     firn = FirnDensityNoSpin(configName, climateTS = climateTS, NewSpin = NewSpin, SEBfluxes=SEBfluxes)
     firn.time_evolve()

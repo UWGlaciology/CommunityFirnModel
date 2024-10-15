@@ -450,10 +450,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         ### END ITERATION LOOP
         ######################
-<<<<<<< HEAD
-
-=======
->>>>>>> staging
     phi_t_out = phi_t
     phi_t_out[g_liq>0] = 0
     phi_t_out[(phi_t_out>0)] = 0

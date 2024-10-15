@@ -1535,7 +1535,8 @@ class FirnDensityNoSpin:
                 #   f'LWC (init):     {self.LWC_init}\n'
                 #   f'LFdiffsum:      {LFdiffsum}\n'
                   f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)+sum(sublwc2check)}\n'
-                #   f'DML:            {sum(dml2check)}')
+                #   f'DML:            {sum(dml2check)}'
+                )
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
     ###########################

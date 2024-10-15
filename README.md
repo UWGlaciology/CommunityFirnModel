@@ -21,7 +21,7 @@ Funding for this project has come from the National Science Foundation (NSF) and
 
 Full documentation available here: https://communityfirnmodel.readthedocs.io/en/latest/ 
 
-Documentation is still (always) a work in progress. Please let me know of glaring omissions!
+Documentation is still (always) a work in progress, and in the past few years I have been especially negligent of it. Please let me know of glaring omissions, and send me an email if you can't figure something out.
 
 ## Installation
 
@@ -33,13 +33,23 @@ The CFM can be run from the command line using the main.py script. It is also re
 
 All of the details for a model run are specifed in a .json file; the repository includes example.json. The values for each key in the .json file can be altered for a particular model run. The model is run from the command line using:
 
->>> python main.py example.json
+>>> python main.py example_df.json -n
+
+or 
+
+>>> python main.py example_csv.json -n
+
+The df version forces the model using climate data stored in a pandas dataframe, while the csv version uses climate data from csv files (old/original behavior, which will continue to be supported).
+
+Starting with version 3.0.0, the repository also includes a script (run_CFM_example.py) and a jupyter notebook (run_CFM_example_notebook.ipynb) that allow the user to configure and run the CFM from the same script (or notebook). They work for example runs or can be edited for a specific use case. 
 
 More details can be found in the full documentation.
 
 ## Example Runs
 
-The CFMinput_example directory contains example forcing files to run the CFM. It includes .csv files and a .pkl file, which contains a pandas dataframe with climate data. The source for these forcings is MERRA2 data for Summit, Greenland. (72.5 N, -38.75 W). I used a simple degree day model to calculate the melt since MERRA2 does not explicitly calculate melt.
+Starting with version 3.0.0, there are two example .json files as well as a new .py script and notebook that can be used to run CFM examples. (See previous section, 'Running the CFM'.) Further instructions for using run_CFM_example.py are in the script itself. 
+
+The CFMinput_example directory contains example forcing files to run the CFM. It includes .csv files and a .pkl file, which contains a pandas dataframe with climate data. The source for these forcings is MERRA2 data for Summit, Greenland (72.5 N, -38.75 W) or DYE-2 Greenland (66.5 N, -46.25 W). 
 
 The .csv files were created using the data in the .pkl file; effectively I am running RCMpkl_to_spin.py, which returns a dictionary full of arrays of climate variables and saving those arrays as csv files. I do this in a jupyter notebook called CFM_create_examples.ipynb. I am not including that on the repository but would be happy to share.
 
@@ -93,3 +103,4 @@ Jessica Lundin
 Huong Vo
 Ed Waddington
 Falk Orachewski
+Ben Smith
