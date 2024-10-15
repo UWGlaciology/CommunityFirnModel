@@ -32,11 +32,12 @@ def solver(a_U, a_D, a_P, b):
     # which function to solve the equation-- if both are enabled, the
     # normalized difference between the results will be reported.
 
-    #use_splin=True
-    #use_dgtsv=False
+    use_splin=True
+    use_dgtsv=False
 
-    use_splin=False
-    use_dgtsv=True
+    # use_splin=False 
+    # use_dgtsv=True
+
     if use_splin:
         nz = np.size(b)
 
@@ -449,7 +450,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         ### END ITERATION LOOP
         ######################
-
     phi_t_out = phi_t
     phi_t_out[g_liq>0] = 0
     phi_t_out[(phi_t_out>0)] = 0

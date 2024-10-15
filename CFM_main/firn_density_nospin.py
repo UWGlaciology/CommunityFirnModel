@@ -346,6 +346,11 @@ class FirnDensityNoSpin:
 
             if 'RAIN' not in self.c:
                 self.c['RAIN'] = False
+
+            if ((self.c['RAIN']) and (climateTS != None) and ('RAIN' not in climateTS.keys())):
+                print('RAIN set as true in config but no rain forcing \n  data was provided. Setting RAIN to false.')
+                self.c['RAIN'] = False
+
             if self.c['RAIN']:
                 if ((climateTS != None) and ('RAIN' in climateTS.keys())):
                     input_rain = climateTS['RAIN'][self.start_ind:]
@@ -956,6 +961,11 @@ class FirnDensityNoSpin:
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
 
+            # if iii>913:
+            #     print('#################')
+            #     print(iii)
+            #     print(f'mtime:{mtime}')
+
             lwc_startofloop = self.LWC.copy()
             mass_startofloop = self.mass.copy()
 
@@ -1154,6 +1164,12 @@ class FirnDensityNoSpin:
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                         self.refreeze, self.runoff, self.meltvol, self.rainvol, self.dh_melt = 0.,0.,0.,0.,0.
 
+                    # if iii>913:
+                    #     print("%%%%%%%%%%%")
+                    #     print('z',self.z[0:32])
+                    #     print('dz',np.diff(self.z[0:32]))
+                    #     print("%%%%%%%%%%%")
+
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -1323,10 +1339,15 @@ class FirnDensityNoSpin:
                 bd_flag = 'no accumulation'
                 self.age        = self.age + self.dt[iii]
                 ddz = self.dz_old - self.dz
-                self.z[1:] = self.z[1:] - np.cumsum(ddz[0:-1])
+
+                # self.z[1:] = self.z[1:] - np.cumsum(ddz[0:-1]) # this got added in v2.3.2. to deal with not advecting.
+                ### but it does not work when melt is high because the grid shifts.
+                ### but, should not have to do any z/dz adjustment here (all done in individual modules above)
+                
                 # self.z          = self.dz.cumsum(axis=0)
                 # self.z          = np.concatenate(([0],self.z[:-1]))
-                self.dzNew      = 0
+                
+                self.dzNew  = 0
                 self.dh_acc = 0
                 znew = np.copy(self.z)                             
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
@@ -1368,6 +1389,14 @@ class FirnDensityNoSpin:
             self.bdot_mean  = (np.concatenate(( [self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] * self.t[iii] / (self.age[1:] * RHO_I) ))) * np.mean(S_PER_YEAR/self.dt) * S_PER_YEAR
 
             ### NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
+
+            # if iii>913:
+            #     print("iii:",iii)
+            #     print('rho',self.rho[0:32])
+            #     print('T',self.Tz[0:32])
+            #     print('LWC',self.LWC[0:32])
+            #     print('z',self.z[0:32])
+            #     print('dz',np.diff(self.z[0:32]))
 
             ### All temperature work happens at the end of the time loop
 

@@ -184,6 +184,7 @@ def enthalpyDiff(self,iii):
     # z_edges_vec1    = self.z[0:-1] + np.diff(self.z) / 2
     # z_edges_vec     = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
     # z_P_vec         = self.z
+    T_old = self.Tz.copy()
 
     z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
  

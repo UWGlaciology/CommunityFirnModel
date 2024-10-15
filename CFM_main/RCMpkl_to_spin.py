@@ -134,7 +134,7 @@ def calcSEB(SWGNT,LWGAB,HFLUX,EFLUX,TS,tindex,dt,GHTSKIN=0,dz=0.05,rhos=400):
             
     return TcalcH,meltmassH
 
-def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False):
+def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False,num_reps=None):
     '''
     load a pandas dataframe, called df_CLIM, that will be resampled and then used 
     to create a time series of climate variables for spin up. 
@@ -260,12 +260,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             depth_S2 = desired_depth * 0.75
         
         #### Make spin up series ###
-        print('df_CLIM_re:', df_CLIM_re)
-
         RCI_length = spin_date_end-spin_date_st+1
-        num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
-        if num_reps<5:
-            num_reps = 5
+        if num_reps is not None:
+            pass
+        else:
+            num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])

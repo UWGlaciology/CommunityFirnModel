@@ -295,9 +295,12 @@ def bucket(self,iii):
 
     elif liq_in_vol == 0: #no liquid water input
         storageinp = np.zeros(nnd) #no input water storage
+    elif liq_in_vol < 0:
+        print('negative liquid input! Check your inputs. exiting.')
+        sys.exit()
 
     LWCblockedC1 = np.sum(LWCblocked)*RHO_W_KGM
-
+    
     stcap1 = stcap - storageinp #update storage capcity
 
     ### Set LWC_excess in impermeable nodes as blocked LWC ###
@@ -414,6 +417,7 @@ def bucket(self,iii):
     if np.any(self.LWC[coldlayers] > 0.):
         print('#############')
         print('Problem: water content in a cold layer (L358 melt.py)')
+        print(f'iii: {iii}')
         xx = np.where((self.LWC>0) & (self.Tz<T_MELT))[0]
         print(f'Layer depths: {self.z[xx]}')
         print(f'Layer LWC: {self.LWC[xx]}')
