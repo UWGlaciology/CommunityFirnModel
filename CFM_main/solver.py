@@ -34,7 +34,7 @@ def solver(a_U, a_D, a_P, b):
     big_A = big_A.T
 
     rhs = -b
-    phi_t = splin.spsolve(big_A, rhs, use_umfpack=True)
+    phi_t = splin.spsolve(big_A, rhs)
 
     return phi_t
 
@@ -47,14 +47,14 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     This is for standard heat (no liquid water), isotope, and air diffusion.
     If there is liquid water is should use the enthalpy solver.
 
-    :param z_edges: z_edges_vec
-    :param Z_P: z_P_vec, midpoints
+    :param z_edges:
+    :param Z_P:
     :param nt:
     :param dt:
     :param Gamma_P:
     :param phi_0:
-    :param nz_P: len(self.z)
-    :param nz_fv: does not get used
+    :param nz_P:
+    :param nz_fv:
     :param phi_s:
     :return phi_t:
     '''
@@ -163,7 +163,6 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
             # a_P_0 = dZ / dt
             # a_P_0 = tot_rho * dZ / dt #  (old)
             a_P_0 = c_vol * dZ / dt # (new) Patankar eq. 4.41c
-
             # a_P_0 = RHO_I * c_firn * dZ / dt
         #######################################
 
@@ -278,7 +277,7 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     h_old         = phi_t * g_sol * RHO_I * CP_I
     h_updated     = h_old.copy()
 
-    update_gsol = False # Still testing whether or not to use this
+    update_gsol = True
 
     for i_time in range(100): # Testing indicates that this should never need this many iterations
 
@@ -363,15 +362,19 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         #####
         phi_t = solver(a_U, a_D, a_P, b) #sensible enthalpy. 0 for layers at freezing (have LWC), negative for dry layers
         #####
-        
-        '''
-        ### The crux is to adjust liquid fraction and temperture field based on solution
-        ### Calculations are (partially) based on the fact that the freezing temp is 0,
-        ### which means that if H_tot<0 there is no liquid and you can calculate temperature, and if H_tot>0 there is liquid and T is 0.
+
+        ''' 
+        ####
+        The crux is to adjust liquid fraction and temperture field based on solution
+        Calculations are (partially) based on the fact that the freezing temp is 0,
+        which means that if H_tot<0 there is no liquid and you can calculate temperature, and if H_tot>0 there is liquid and T is 0.
         
         Note previous ways of solving in dev branch and previous releases.
+        ###
         '''
-        #### Best option: overshoot only on g_liq
+
+        ### The best way to solve: calculate new g_liq, and apply overshoot correction on g_liq
+        ### Break loop if iteration (prior to overshoot) is the same as previous solution
 
         h_updated = phi_t * CP_I * RHO_I * g_sol_old # updated sensible enthalpy after solver. g_sol is volume_solid/dz
         delta_h = h_updated - h_old # change in sensible enthalpy, relative to initial (not iteration)
@@ -635,6 +638,7 @@ def apparent_heat(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s, mix_
 ### end apparent_heat ########
 ###################################
 
+
 '''
 Functions below are for firn air
 Works, but consider to be in beta
@@ -674,6 +678,8 @@ def w(airdict, z_edges, rho_edges, Z_P, dZ):
         co_ind              = op_ind[-1] 
         cl_ind1             = np.where(z_edges>airdict['z_co'])[0] #closed indices
         cl_ind              = np.intersect1d(cl_ind1,op_ind2)
+
+        # print('depth co_ind',z_edges[co_ind])
 
         Xi                  = np.zeros((len(op_ind2),len(op_ind2)))
         Xi_up               = por_op_edges[op_ind2]/np.reshape(por_op_edges[op_ind2], (-1,1))
