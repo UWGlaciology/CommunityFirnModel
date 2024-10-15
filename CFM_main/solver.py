@@ -26,7 +26,7 @@ def solver(a_U, a_D, a_P, b):
     :return phi_t:
     '''
 
-    #NOTE: lapack contains a dedicated solver that handles tridagonal
+    # NOTE: lapack contains a dedicated solver that handles tridagonal
     # solutions.  It's quite a bit faster than using the general spsolve
     # function.  I've included two boolean variables that let you choose
     # which function to solve the equation-- if both are enabled, the
@@ -37,6 +37,7 @@ def solver(a_U, a_D, a_P, b):
 
     use_splin=False
     use_dgtsv=True
+
     if use_splin:
         nz = np.size(b)
 
@@ -449,7 +450,10 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         ### END ITERATION LOOP
         ######################
+<<<<<<< HEAD
 
+=======
+>>>>>>> staging
     phi_t_out = phi_t
     phi_t_out[g_liq>0] = 0
     phi_t_out[(phi_t_out>0)] = 0

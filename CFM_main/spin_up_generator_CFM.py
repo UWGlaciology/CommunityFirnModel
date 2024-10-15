@@ -149,6 +149,10 @@ def makeSpinFiles(lat_int,lon_int,writer=False,datatype='MERRA',timeres='1D',mel
     lat = 66.5
     lon = -46.2
 
+    note on sublimation:
+    ECMWF and MERRA-2 handle sublimation differently
+    so era 5 is precip+subl/evap and m2 is precip-sublim/evap
+
     Parameters
     ----------
     lat_int: float

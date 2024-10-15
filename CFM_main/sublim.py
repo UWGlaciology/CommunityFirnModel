@@ -63,13 +63,12 @@ def sublim(self,iii):
         avg_dh_sub = -1 * dh_sub/num_boxes_sublim # average thickness of melted nodes
 
         nb_th = np.maximum(avg_dh_sub,self.dz[-1])
+
         self.dz        = np.concatenate(([ps_dz],self.dz[ind1+1:-1],nb_th*np.ones(num_boxes_sublim)))
         zbot_old = self.z[-1]
     else:
         # pass
         self.dz        = np.concatenate(([ps_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(num_boxes_sublim)))
-
-
 
     # self.dz         = np.concatenate((self.dz[ind1:-1] , self.dz[-1]*np.ones(num_boxes_sublim))) # this adds new boxes at the bottom.
     # self.dz[0]      = ps_dz #VV dz calculated for the partially sublimated layer

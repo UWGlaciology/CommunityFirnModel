@@ -112,7 +112,6 @@ def regrid22(self):
     gridtrack keeps track of which grid each layer is in
     '''
 
-
     n1      = self.c['nodestocombine'] # nodes to combine from grid1 to grid2 and to split from grid23 to grid3
     n2      = self.c['multnodestocombine'] # nodes to combine from grid2 to grid22 and to split from grid22 to grid23
     # if self.c['multnodestocombine'] is set to 0 -> process of grid22 is turned off and regrid works as old regrid
@@ -177,7 +176,8 @@ def regrid22(self):
         #     print('doing thing')
         #     input()
         # g3dz = g3dz0 * np.ones(n1)
-        g3dz    = g23dz[-1]/n1 * np.ones(n1)
+
+        # g3dz    = g23dz[-1]/n1 * np.ones(n1)
 
         g3dz    = g23dz[-1]/n1 * np.ones(n1)
         g3rho   = g23rho[-1] * np.ones(n1)

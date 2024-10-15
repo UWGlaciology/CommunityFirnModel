@@ -3,10 +3,8 @@
 '''
 This is what I use to batch CFM runs (in combination with GNU parallel).
 
-But, it can also be used a standalone access to the CFM. Previously (and still)
-
+But, it can also be used a standalone access to the CFM. Previously (and still an option)
 the CFM is called using main.py and a .json file. 
-
 
 This file takes a different direction - its inputs from the command line are the
 lat/lon pair you want to model. Then it calls spin_up_generator_CFM to make 
@@ -99,9 +97,11 @@ def run_CFM(LLpair, json_base, timeres = '1D', Tinterp = 'mean', MELT= True, run
         dsource = None
         dwriter = datatype
 
-    df_CLIM = getClimate(lat_int,lon_int, writer = True, runtype = runtype, datatype=datatype, melt=MELT, dsource = dsource)
+    GCdict = getClimate(lat_int,lon_int, writer = True, runtype = runtype, datatype=datatype, melt=MELT, dsource = dsource)
 
-    Cd, StpsPerYr, depth_S1, depth_S2, grid_bottom = makeSpinFiles(df_CLIM,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0)
+    df_CLIM = GCdict['df_CLIM']
+
+    Cd, StpsPerYr, depth_S1, depth_S2, grid_bottom = makeSpinFiles(df_CLIM,timeres=timeres,Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0)
 
     # Cd, StpsPerYr, depth_S1, depth_S2, grid_bottom = makeSpinFiles(lat_int,lon_int,timeres=timeres,writer = True,Tinterp = Tinterp, runtype = runtype,datatype=datatype,dsource = dsource)
 
@@ -161,7 +161,7 @@ def run_CFM(LLpair, json_base, timeres = '1D', Tinterp = 'mean', MELT= True, run
 
     if 'SMELT' in Cd.keys(): #snowmelt; use SMELT rather than MELT b/c pandas has a function called melt
         data['MELT'] = True
-        data['liquid'] = 'bucketVV'
+        data['liquid'] = 'bucket'
     if 'RAIN' in Cd.keys():
         data['RAIN'] = True
     # if 'subl' in Cd.keys():
@@ -192,10 +192,10 @@ if __name__ == '__main__':
     #############################
     ### THINGS TO CHANGE HERE ###
     ### See docstring ###########
-    timeres = '5D' 
+    timeres = '1D' 
     Tinterp = 'mean' # [mean, effective, weighted]
     runtype = 'local' 
-    datatype = 'MAR' 
+    datatype = 'MERRA' 
     movefiles = False 
     RCdrive = 'drive_name:' 
     json_base = 'example.json' 

@@ -69,6 +69,11 @@ def bucket(self,iii):
     melt_volume_WE      = melt_volume_IE*RHO_I_MGM         # [m] 
     melt_mass           = melt_volume_WE*RHO_W_KGM         # [kg]
 
+    ### I think this does not get used. (rain added at line 116)
+    # rain_volume_IE      = self.rainSec[iii] *S_PER_YEAR
+    # rain_volume_WE      = rain_volume_IE * S_PER_YEAR #error here?
+    # rain_mass           = rain_volume_WE * RHO_W_KGM
+
     total_liquid_mass_start = np.sum(melt_mass) + np.sum(self.LWC*RHO_W_KGM)
     
     ### Define last variables needed for the routine ###
@@ -89,6 +94,7 @@ def bucket(self,iii):
 
     ### Partially melted node properties ###
     pm_mass = self.mass_sum[ind1] - melt_mass #remaining mass
+    pm_deltamass = self.mass[ind1] - pm_mass
     pm_dz   = pm_mass/self.rho[ind1] #remaining thickness
     pm_rho  = self.rho[ind1] #density of the pm node
     pm_lwc  = self.LWC[ind1]/self.dz[ind1]*pm_dz #LWC of the pm node
@@ -103,13 +109,12 @@ def bucket(self,iii):
 
     avg_dh_melted = -1 * dh_melt/n_melted # average thickness of melted nodes
 
-
     ### Liquid water input at the surface ###
     liq_in_mass = max(melt_mass + (np.sum(self.LWC[0:ind1+1]) - pm_lwc) * RHO_W_KGM, 0) #avoid negative lwcinput due to numerical round-off errors
     liq_in_vol  = liq_in_mass/RHO_W_KGM
 
     try: #add rain input if it was provided
-       liq_in_vol = liq_in_vol+self.rainSec[iii]*S_PER_YEAR*RHO_I_MGM #[m]
+       liq_in_vol = liq_in_vol + self.rainSec[iii]*S_PER_YEAR*RHO_I_MGM #[m]
     except:
         pass
 
@@ -121,7 +126,8 @@ def bucket(self,iii):
         if ind1>0:
             self.rho       = np.concatenate((self.rho[ind1:-1],self.rho[-1]*np.ones(n_melted)))
             # self.Tz        = np.concatenate((self.Tz[ind1:-1],self.Tz[-1]*np.ones(n_melted)))
-            self.r2        = np.concatenate((self.r2[ind1:-1],self.r2[-1]*np.ones(n_melted)))
+            if self.r2 is not None:
+                self.r2        = np.concatenate((self.r2[ind1:-1],self.r2[-1]*np.ones(n_melted)))
             self.bdot_mean = np.concatenate((self.bdot_mean[ind1:-1],self.bdot_mean[-1]*np.ones(n_melted)))
             self.age       = np.concatenate((self.age[ind1:-1],self.age[-1]*np.ones(n_melted))) 
             self.Dcon      = np.concatenate((self.Dcon[ind1:-1],self.Dcon[-1]*np.ones(n_melted)))
@@ -137,9 +143,11 @@ def bucket(self,iii):
         if keep_firnthickness:
             nb_th = np.maximum(avg_dh_melted,self.dz[-1])
             self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],nb_th*np.ones(n_melted)))
+            mass_added = np.sum(self.rho[-1]*(nb_th*np.ones(n_melted-1)))
             zbot_old = self.z[-1]
         else:
             self.dz        = np.concatenate(([pm_dz],self.dz[ind1+1:-1],self.dz[-1]*np.ones(n_melted)))
+            mass_added = np.sum(self.rho[-1]*(self.dz[-1]*np.ones(n_melted-1)))
         
         self.Tz        = np.concatenate(([pm_Tz],self.Tz[ind1+1:-1],self.Tz[-1]*np.ones(n_melted))) # PM layer should have temp=T_MELT
         self.z         = self.dz.cumsum(axis=0)
@@ -260,6 +268,8 @@ def bucket(self,iii):
     if len(imp) == 0:
         imp = [(len(self.rho) - 1)] # MS addition: If domain does not extend to full ice density, this will ensure the melt routine works (hack solution?)
         # might create issues if ponding allowed?
+    else:
+        imp = np.append(imp,len(self.rho)-1)
 
     stcap[imp] = 0. # set 0 storage capacity for impermeable nodes
     stcap_cum  = np.cumsum(stcap) # cumulative storage capacity, refreezing + irreducible
@@ -285,9 +295,12 @@ def bucket(self,iii):
 
     elif liq_in_vol == 0: #no liquid water input
         storageinp = np.zeros(nnd) #no input water storage
+    elif liq_in_vol < 0:
+        print('negative liquid input! Check your inputs. exiting.')
+        sys.exit()
 
     LWCblockedC1 = np.sum(LWCblocked)*RHO_W_KGM
-
+    
     stcap1 = stcap - storageinp #update storage capcity
 
     ### Set LWC_excess in impermeable nodes as blocked LWC ###
@@ -312,8 +325,12 @@ def bucket(self,iii):
         else:
             ind_st_bot = 0
 
+
+
         # if np.any(stcap1>0): # there is some storage capacity in the firn column (This is VV original)
         if ((np.any(stcap1[1:]>0)) and (ind_st_bot>jj0)): #there is some storage capacity in the firn column, and it is deeper than jj0
+            ### jj0 is uppmost node with excess LWC
+            ### imp is uppermmost impermeable node
 
             while ((jj0 <= ind_ex_bot) or (tostore > 0)):
                 if (np.where(stcap1[jj0:]>0)[0]).size > 0:    
@@ -326,8 +343,8 @@ def bucket(self,iii):
                             jj1             = imp[np.where(imp>=jj2)[0][0]]-1 # jj1 becomes index of node above the impermeable barrier
                         except:
                             jj1 = -1
-                            print('failure to find jj1')
-                            print(f'bottom rho: {self.rho[-1]}')
+                            # print('failure to find jj1')
+                            # print(f'bottom rho: {self.rho[-1]}')
                         LWCblocked[jj1] += LWC_excess[jj2]          # LWC_excess is blocked above the barrier
                         LWC1[jj2]       = LWCirr[jj2]               # LWC of jj0 is reduced to irreducible water content
                     break # Exit the while loop
@@ -400,6 +417,7 @@ def bucket(self,iii):
     if np.any(self.LWC[coldlayers] > 0.):
         print('#############')
         print('Problem: water content in a cold layer (L358 melt.py)')
+        print(f'iii: {iii}')
         xx = np.where((self.LWC>0) & (self.Tz<T_MELT))[0]
         print(f'Layer depths: {self.z[xx]}')
         print(f'Layer LWC: {self.LWC[xx]}')
@@ -549,15 +567,15 @@ def bucket(self,iii):
 
     ### Mass conservation check 2 ###
     liqmcfinal = sum(self.LWC) + refrozentot + runofftot
-    if abs(liqmcfinal - liqmcinit) > 1e-3:
+    if abs(liqmcfinal - liqmcinit) > 1e-5:
         print(f'Mass conservation error (2) (melt.py) at step {iii}\n    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
 
-    total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
-    mass_runoff = runofftot*RHO_W_KGM
-    mass_refreeze = refrozentot*RHO_W_KGM
+    # total_liquid_mass_end = np.sum(self.LWC*RHO_W_KGM)
+    # mass_runoff = runofftot*RHO_W_KGM
+    # mass_refreeze = refrozentot*RHO_W_KGM
 
-    tot_mass_end = total_liquid_mass_end+mass_refreeze+mass_runoff
-    mass_diff = tot_mass_end-total_liquid_mass_start
+    # tot_mass_end = total_liquid_mass_end + mass_refreeze + mass_runoff
+    # mass_diff = tot_mass_end - total_liquid_mass_start
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
             self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
@@ -963,6 +981,8 @@ def darcyscheme(self,iii):
 ###################################
 ###################################
 ###################################
+
+
 
 
 
