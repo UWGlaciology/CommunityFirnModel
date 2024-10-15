@@ -606,9 +606,6 @@ def single_quartic(a0, b0, c0, d0, e0):
     r2, r3 = single_quadratic(1, -s, z0 - t)
 
     return r0 - a0, r1 - a0, r2 - a0, r3 - a0
-# >>>>>>> main
-
-    # return r0 - a0, r1 - a0, r2 - a0, r3 - a0
 
 def multi_quadratic(a0, b0, c0):
     ''' 

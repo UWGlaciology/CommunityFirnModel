@@ -293,8 +293,6 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        # print('df_full (no seb):',df_FULL.head())
-        # df_FULL.to_csv('df_full_noSEB.csv')
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -537,15 +535,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             T_mean = (df_CLIM_re['T2m']).mean()
 
         hh  = np.arange(0,501)
-        age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
-        # if not desired_depth:
-        #     desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
-        #     depth_S1 = hh[np.where(rho>=550)[0][0]]
-        #     depth_S2 = hh[np.where(rho>=750)[0][0]]
-        # else:
-        #     desired_depth = desired_depth
-        #     depth_S1 = desired_depth * 0.5
-        #     depth_S2 = desired_depth * 0.75
+        age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
 
         if not desired_depth:
             # desired_depth = hh[np.where(rho>=916)[0][0]]

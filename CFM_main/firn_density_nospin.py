@@ -961,11 +961,6 @@ class FirnDensityNoSpin:
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
 
-            # if iii>913:
-            #     print('#################')
-            #     print(iii)
-            #     print(f'mtime:{mtime}')
-
             lwc_startofloop = self.LWC.copy()
             mass_startofloop = self.mass.copy()
 
@@ -1152,24 +1147,12 @@ class FirnDensityNoSpin:
                         vol_post = LWC_vol_post + self.refreeze + self.runoff
                         mass_post = vol_post * 1000
                         
-                        # m2X = (self.refreeze + self.runoff + np.sum(self.LWC)) * RHO_W_KGM
-                        
-                        # if ((self.rainSec[iii] == 0) & (LWCpre!=m2X)):
-                        # self.mismatch = self.mismatch + (m2X - liq_mass_pre) / RHO_W_KGM
-
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
 
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                         self.refreeze, self.runoff, self.meltvol, self.rainvol, self.dh_melt = 0.,0.,0.,0.,0.
-
-                    # if iii>913:
-                    #     print("%%%%%%%%%%%")
-                    #     print('z',self.z[0:32])
-                    #     print('dz',np.diff(self.z[0:32]))
-                    #     print("%%%%%%%%%%%")
-
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -1390,14 +1373,6 @@ class FirnDensityNoSpin:
 
             ### NOTE: sigma = bdot_mean*GRAVITY*age/S_PER_YEAR*917.0) (or, sigma = bdot*g*tau, steady state conversion.)
 
-            # if iii>913:
-            #     print("iii:",iii)
-            #     print('rho',self.rho[0:32])
-            #     print('T',self.Tz[0:32])
-            #     print('LWC',self.LWC[0:32])
-            #     print('z',self.z[0:32])
-            #     print('dz',np.diff(self.z[0:32]))
-
             ### All temperature work happens at the end of the time loop
 
             Ts_old = self.Tz[0]
@@ -1554,13 +1529,13 @@ class FirnDensityNoSpin:
                   f'rainvol:        {rainvol_final}\n' #m w.e.
                   f'Refreezing:     {sum(refreezing2check)}\n'
                   f'Runoff:         {sum(runoff2check)}\n'
-                  f'subLWC:         {sum(sublwc2check)}\n'
-                  f'mismatch:       {self.mismatch}\n'
+                #   f'subLWC:         {sum(sublwc2check)}\n'
+                #   f'mismatch:       {self.mismatch}\n'
                   f'LWC (current):  {sum(self.LWC)}\n'
-                  f'LWC (init):     {self.LWC_init}\n'
-                  f'LFdiffsum:      {LFdiffsum}\n'
+                #   f'LWC (init):     {self.LWC_init}\n'
+                #   f'LFdiffsum:      {LFdiffsum}\n'
                   f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)+sum(sublwc2check)}\n'
-                  f'DML:            {sum(dml2check)}')
+                #   f'DML:            {sum(dml2check)}')
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
     ###########################
