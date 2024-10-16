@@ -507,7 +507,8 @@ class FirnDensitySpin:
                 'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
-                'MaxSP':                FirnPhysics(PhysParams).MaxSP
+                'MaxSP':                FirnPhysics(PhysParams).MaxSP,
+                'Breant2017':           FirnPhysics(PhysParams).Breant2017
             }
 
             RD      = physicsd[self.c['physRho']]()

@@ -14,7 +14,8 @@ from reader import read_input
 from reader import read_init
 from writer import write_spin_hdf5
 from writer import write_nospin_hdf5
-from writer import SpinUpdate
+from writer import SpinUpdate, SpinUpdate_res 
+from writer import forcing_writer
 from physics import *
 from constants import *
 from melt import *
@@ -91,7 +92,7 @@ class FirnDensityNoSpin:
 
     '''
 
-    def __init__(self, configName, climateTS = None, NewSpin = False,SEBfluxes=None):
+    def __init__(self, configName, climateTS = None, NewSpin = False, SEBfluxes=None):
         '''
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
         :param configName: name of json config file containing model configurations
@@ -111,6 +112,9 @@ class FirnDensityNoSpin:
         #     print('currently isotope diffusion only available using csv inputs')
         #     self.c['isoDiff']=False
 
+        if self.c['physRho'] == 'Morris2014':
+            self.c['THist'] = True
+
         if ((not spinner) or NewSpin):
             if self.c['timesetup']=='exact':
                 if climateTS != None:
@@ -124,18 +128,32 @@ class FirnDensityNoSpin:
             firnS.time_evolve()
         else:
             pass
+        
+        climate_writer = True
+        if ((climateTS is not None) and (climate_writer)):
+            if 'forcing_data_start' not in climateTS.keys():
+                climateTS['forcing_data_start'] = climateTS['time'][0]
+            forcing_writer(self,climateTS, SEBfluxes)
 
         print("Main run starting")
         print("physics are", self.c['physRho'])
 
         ### read in initial depth, age, density, temperature from spin-up results
-        initDepth   = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'depthSpin')
-        initAge     = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'ageSpin')
-        initDensity = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'densitySpin')
-        initTemp    = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'tempSpin')
+        if 'spinUpdate' not in self.c:
+            self.c['spinUpdate'] = False
+        
+        if self.c['spinUpdate']:
+            spinUpdateDate = self.c['spinUpdateDate']
+        else:
+            spinUpdateDate = None
+
+        initDepth   = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'depthSpin',   spinUpdateDate)
+        initAge     = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'ageSpin',     spinUpdateDate)
+        initDensity = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'densitySpin', spinUpdateDate)
+        initTemp    = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'tempSpin',    spinUpdateDate)
 
         try: #VV for reading initial lwc from the spin up file
-            initLWC = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'LWCSpin')
+            initLWC = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'LWCSpin', spinUpdateDate)
             print('Initial LWC provided by spin-up')
         except: 
             pass 
@@ -143,12 +161,15 @@ class FirnDensityNoSpin:
         try:
             self.doublegrid = self.c['doublegrid']
             if self.doublegrid:
-                initGrid = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'gridSpin')
+                initGrid = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'gridSpin', spinUpdateDate)
                 self.gridtrack = initGrid[1:]
                 self.nodestocombine = self.c['nodestocombine']
+            else:
+                self.gridtrack = None
 
         except:
             self.doublegrid = False
+            self.gridtrack = None
             print('you should add "doublegrid" to the json')
 
         ### set up the initial age and density of the firn column
@@ -158,15 +179,17 @@ class FirnDensityNoSpin:
         ### set up model grid
         self.z          = initDepth[1:]
         self.dz         = np.diff(self.z)
-        self.dz         = np.append(self.dz, self.dz[-1])
+        self.dz         = np.append(self.dz, self.dz[-1]) # numerics - add on an extra layer at end so that vectors are the same length
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
         ### Feature to update the spin file to not have to repeat a long spin up
-        if 'spinUpdate' not in self.c:
-            self.c['spinUpdate'] = False
+
         if self.c['spinUpdate']:
-            updatedStartDate = initDepth[0] # if the spin file has been updated, this is the date to start the run (find this time in the forcing data)
+            try:
+                updatedStartDate = initDepth[0][0] # if the spin file has been updated, this is the date to start the run (find this time in the forcing data)
+            except:
+                updatedStartDate = initDepth[0]
             print('updatedStartDate', updatedStartDate)
         else:
             updatedStartDate = None
@@ -278,6 +301,8 @@ class FirnDensityNoSpin:
                 input_bdot[input_bdot<0] = 0.0
                 input_bdot_full[input_bdot_full<0] = 0.0
 
+            self.forcing_dict['SUBLIM'] = input_sublim_full
+
         elif not self.c['SUBLIM']:
             print('SUBLIM is OFF')
             input_bdot[input_bdot<0] = 0.0
@@ -321,6 +346,11 @@ class FirnDensityNoSpin:
 
             if 'RAIN' not in self.c:
                 self.c['RAIN'] = False
+
+            if ((self.c['RAIN']) and (climateTS != None) and ('RAIN' not in climateTS.keys())):
+                print('RAIN set as true in config but no rain forcing \n  data was provided. Setting RAIN to false.')
+                self.c['RAIN'] = False
+
             if self.c['RAIN']:
                 if ((climateTS != None) and ('RAIN' in climateTS.keys())):
                     input_rain = climateTS['RAIN'][self.start_ind:]
@@ -380,15 +410,17 @@ class FirnDensityNoSpin:
             # print('"Exact" time setup will not work properly if input forcing does not all have the same time')
             # yr_start = input_year_temp[0] #previously had [1] - error? 20/3/3
             # yr_end = input_year_temp[-1]
-            self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s]
+            self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s] #version 2.2.0 and earlier had just this.
+            self.dt = np.append(np.mean(self.dt),self.dt) # added version 2.3.0 
             # self.dt = np.append(self.dt,self.dt[-1])
             self.stp = len(self.dt)
-            self.modeltime = input_year_temp[1:] # this offset because use diff above
+            self.modeltime = input_year_temp#[1:] # this offset because use diff above
             # self.modeltime = input_year_temp[0:-1]
             yr_start = self.modeltime[0]
             yr_end = self.modeltime[-1]
             # self.t = np.mean(np.diff(input_year_temp))
-            self.t = np.diff(input_year_temp)
+            # self.t = np.diff(input_year_temp) # old, v2.2.0 and earlier
+            self.t = self.dt/S_PER_YEAR # years per time step; changed in v2.3.0
             init_time = input_year_temp[0]
 
         elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step
@@ -468,6 +500,8 @@ class FirnDensityNoSpin:
                 self.bdot[ipSUB] = self.bdot[ipSUB] + self.sublim[ipSUB]
                 self.sublim[ipSUB] = 0
             self.sublimSec  = self.sublim / S_PER_YEAR / (S_PER_YEAR/self.dt) # sublimation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
+        else:
+            self.sublim       = -9999 * np.ones_like(self.bdot)
         self.bdotSec    = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
 
         try: # Rolling mean average surface temperature and accumulation rate (vector)
@@ -529,10 +563,12 @@ class FirnDensityNoSpin:
                 rsf             = interpolate.interp1d(input_year_rain,input_rain,int_type,fill_value='extrapolate')
                 self.rain       = rsf(self.modeltime) # [mIE/yr]
                 self.rainSec    = self.rain / S_PER_YEAR / (S_PER_YEAR/self.dt) # rain for each time step (mIE/s)
-                self.rainSec    = np.zeros(self.stp)
-                print('CAUTION:RAIN SET TO ZERO (461)')
             else:
+                self.rain    = np.zeros(self.stp) #VV to avoid problem in the conditions to call for liquid water routine
                 self.rainSec    = np.zeros(self.stp) #VV to avoid problem in the conditions to call for liquid water routine
+        else:
+            self.snowmelt       = -9999 * np.ones_like(self.bdot)
+            self.rain           = -9999 * np.ones_like(self.bdot)
         #####################
  
         ### Surface Density ####
@@ -629,7 +665,7 @@ class FirnDensityNoSpin:
         ### mean accumulation over the lifetime of the parcel:
         spinF = self.c['resultsFolder']+'/'+self.c['spinFileName']
         if 'bdot_meanSpin' in h5py.File(spinF,'r').keys():
-            self.bdot_mean = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'bdot_meanSpin')[1:]
+            self.bdot_mean = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'bdot_meanSpin', spinUpdateDate)[1:]
         else:
             self.bdot_mean      = (np.concatenate(([self.mass_sum[0] / (RHO_I * S_PER_YEAR)], self.mass_sum[1:] / (self.age[1:] * RHO_I / np.mean(self.t)))))* np.mean(S_PER_YEAR/self.dt) *S_PER_YEAR
         ### It is the mass of the overlying firn divided by the age of the parcel.
@@ -660,9 +696,11 @@ class FirnDensityNoSpin:
             self.lwcerror       = 0. #VV
             self.totallwcerror  = 0. #
             #VV update (23/03/2021)
-            self.refreeze = np.array([0.]) #total liquid water refreezing at each time step [m we]
+            self.refreeze   = np.array([0.]) #total liquid water refreezing at each time step [m we]
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
             self.meltvol    = np.array([0.]) #total melt volume
+            self.rainvol    = np.array([0.]) #total rain volume
+            self.subLWCvol  = np.array([0.]) #volume of liquid evaporated/removed during sublimation routine
 
         ### Strain modules
         self.c = check_strain_settings(self)
@@ -672,7 +710,7 @@ class FirnDensityNoSpin:
 
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
-            initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin')
+            initr2              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'r2Spin', spinUpdateDate)
             self.r2             = initr2[1:]
             r20                 = self.r2
             # self.dr2_dt         = np.zeros_like(self.z) # dr2_dt not currently set up    
@@ -690,7 +728,7 @@ class FirnDensityNoSpin:
                 self.c['QMorris'] = 110.0e3
             
             self.THist          = True
-            initHx              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'HxSpin') 
+            initHx              = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'HxSpin', spinUpdateDate)
             self.Hx             = initHx[1:]
         else:
             self.THist          = False
@@ -807,7 +845,7 @@ class FirnDensityNoSpin:
         self.BCO = np.array([bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815, z_co])
         self.DIP = np.array([intPhi, dHOut, dHOutC, compOut, dHOutcorr, dHOutcorrC, DIPhz])
         #####################
-        self.climate = np.array([self.bdot[0],self.Ts[0]])
+        self.climate = np.array([self.bdot[0],self.Ts[0],self.snowmelt[0],self.rain[0],self.sublim[0]])
         #####################
 
         ######################################
@@ -897,15 +935,23 @@ class FirnDensityNoSpin:
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
 
         if self.c['spinUpdate']:
-            indUpdate = np.where(self.modeltime>=self.c['spinUpdateDate'])[0][0]
+            spinUpdate_final = self.c['spinUpdateDate']
+            spinUpdate_interval = 100 # years
+            indUpdate_vec = np.where(np.mod(self.modeltime,spinUpdate_interval)==0)[0]
+            indUpdate_final = np.where(self.modeltime>=spinUpdate_final)[0][0]
+            indUpdate = np.append(indUpdate_vec[indUpdate_vec<indUpdate_final],indUpdate_final) # timesteps (iii values) at which to update spin file
 
         ### Keep track of total refreeze and runoff for mass conservation
         if self.MELT:
             refreezing2check = np.zeros(self.stp)
             runoff2check     = np.zeros(self.stp)
             meltvol2check    = np.zeros(self.stp)
+            rainvol2check    = np.zeros(self.stp)
             dml2check        = np.zeros(self.stp)
+            sublwc2check     = np.zeros(self.stp)
             self.mismatch = 0
+            LFdiffsum = 0
+
         ####################################
         ##### START TIME-STEPPING LOOP #####
         ####################################
@@ -913,8 +959,10 @@ class FirnDensityNoSpin:
         print('modeltime',self.modeltime[0],self.modeltime[-1])
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
-
             zbot_old = self.z[-1]
+
+            lwc_startofloop = self.LWC.copy()
+            mass_startofloop = self.mass.copy()
 
             self.D_surf[iii] = iii # This gives each layer a tracking number that is just iteration number.
             if iii==1000:
@@ -925,13 +973,15 @@ class FirnDensityNoSpin:
                     print('estimated model run time (seconds):', self.stp*(ntime-start_time)/1000)
 
             ### Merging process #VV ###
+
             if self.c['merging']: # merging may be deprecated (check with VV)
-                if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging
+                lwcPreMerge = np.sum(self.LWC)
+                if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging                     
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergesurf(self,self.c['merge_min'],iii)                    
-                if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                       
+                        self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergesurf(self,self.c['merge_min'],iii)                    
+                if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                   
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2 = mergenotsurf(self,self.c['merge_min'],iii)
+                        self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergenotsurf(self,self.c['merge_min'],iii)
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -1001,7 +1051,8 @@ class FirnDensityNoSpin:
                 'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
                 'Crocus':               FirnPhysics(PhysParams).Crocus,
                 'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
-                'MaxSP':                FirnPhysics(PhysParams).MaxSP
+                'MaxSP':                FirnPhysics(PhysParams).MaxSP,
+                'Breant2017':           FirnPhysics(PhysParams).Breant2017
             }
 
             RD      = physicsd[self.c['physRho']]()
@@ -1016,7 +1067,7 @@ class FirnDensityNoSpin:
             if self.c['horizontal_divergence']:
                 self.mass = horizontal_divergence(self,iii)
 
-            if self.c['physRho']=='Goujon2003':
+            if ((self.c['physRho']=='Goujon2003') or (self.c['physRho']=='Breant2017')):
                 self.Gamma_Gou      = RD['Gamma_Gou'] 
                 self.Gamma_old_Gou  = RD['Gamma_old_Gou']
                 self.Gamma_old2_Gou = RD['Gamma_old2_Gou']
@@ -1039,9 +1090,6 @@ class FirnDensityNoSpin:
 
             ### Surface energy balance #####
             if self.c['SEB']:
-                if iii==0:
-                    print('CAUTION: SEB still in beta')
-
                 PhysParams.update(dz=self.dz,rho=self.rho,mtime=mtime) # update dict, will be used for SEB
 
                 if iii == 0:
@@ -1049,13 +1097,10 @@ class FirnDensityNoSpin:
                 else:
                     T_old = self.Ts[iii-1]
 
-                if self.SEBfluxes is not None:
-                    if iii==0:
-                        print('SEB subdt')
+                if self.SEBfluxes is not None: # Use the sub time step functionality
                     self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs_subdt(PhysParams,iii,T_old)                   
-                else:
+                else: # SEB time step is the same as main model.
                     self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
-
 
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 self.snowmelt[iii] = melt_mass / RHO_I / self.dt[iii] * S_PER_YEAR # m i.e. per year ([kg/m2/timestep] / [kg/m3] / [s/timestep] * [s/year])
@@ -1079,37 +1124,35 @@ class FirnDensityNoSpin:
                     print('WARNING: prefsnowpack and resingledomain liquid schemes are still in development. email Max for more details.')
                 
                 if self.c['liquid'] == 'bucket':
-                    if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is water
-                        LWCpre = np.sum(self.LWC * RHO_W_KGM) #mass of liquid before bucket
+                    if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.): #i.e. there is liquid water
+
+                        LWC_vol_pre = np.sum(self.LWC) #mass of liquid in porosity before bucket
+                        LWC_mass_pre = LWC_vol_pre*1000
+                        meltmass_iii = self.snowmeltSec[iii] * S_PER_YEAR * RHO_I #[kg] (m I.E. * kg/m3)
+                        rainmass_iii = self.rainSec[iii] * S_PER_YEAR * RHO_I #[kg]
+                        self.meltvol = meltmass_iii / 1000
+                        self.rainvol = rainmass_iii / 1000
+                        liq_mass_pre = LWC_mass_pre + meltmass_iii + rainmass_iii
+                        solid_mass_pre = np.sum(self.mass)
+                        liq_vol_pre = LWC_vol_pre + self.meltvol + self.rainvol    
+
                         self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
                         self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff, self.dh_melt = bucket(self,iii)
                         
-                        # refreeze is [m we]
-                        m2X = self.refreeze + self.runoff + np.sum(self.LWC * RHO_W_KGM)
-                        if ((self.rainSec[iii] == 0) & (LWCpre!=m2X)):
-                            self.mismatch = self.mismatch + (m2X - LWCpre) / RHO_W_KGM
-                            # print('mismatch')
-                            # print(m2X)
-                            # print(LWCpre)
+                        bu_refreeze = self.refreeze
 
+                        # m2X is mass of refreeze, runoff and LWC after bucket (all components are volume)
+                        LWC_vol_post = np.sum(self.LWC)
+                        LWC_mass_post = np.sum(self.LWC) * RHO_W_KGM #mass of liquid in porosity before bucket
+                        vol_post = LWC_vol_post + self.refreeze + self.runoff
+                        mass_post = vol_post * 1000
+                        
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
 
-                        self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
-
-                        # d_zbot = (self.z[-1]-zz1[-1])
-                        # if d_zbot!=0:
-                        #     self.melt_sum = self.melt_sum + d_zbot
-                        #     print('dzbot',d_zbot)
-                        #     print('melt_sum',self.melt_sum)
-                        #     print('self.z',self.z[-1])
-                        #     print('zz1',zz1[-1])
-                        #     input()
-
                     else: # Dry firn column and no input of meltwater                        
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
-                        self.refreeze, self.runoff, self.meltvol, self.dh_melt = 0.,0.,0.,0.
-
+                        self.refreeze, self.runoff, self.meltvol, self.rainvol, self.dh_melt = 0.,0.,0.,0.,0.
                 ### end bucket ##################
 
                 elif self.c['liquid'] == 'darcy':
@@ -1122,8 +1165,9 @@ class FirnDensityNoSpin:
                         if self.doublegrid==True: # if we use doublegrid -> use the gridtrack corrected for melting
                             self.gridtrack = np.copy(meltgridtrack)
                         self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
+                        self.rainvol = self.rainSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                     else: # Dry firn column and no input of meltwater                       
-                        self.refreeze, self.runoff,self.meltvol = 0.,0.,0.
+                        self.refreeze, self.runoff,self.meltvol,self.rainvol = 0.,0.,0.,0.
                         self.dzn     = self.dz[0:self.compboxes] # Not sure this is necessary
                 ### end darcy ##################               
 
@@ -1167,8 +1211,8 @@ class FirnDensityNoSpin:
                 ### end prefsnowpack ##################
 
                 if self.LWC[-1] > 0.: #VV we don't want to lose water
-                    # pass
                     print('LWC in last layer that is going to be removed, amount is:',self.LWC[-1])
+                    
                     # self.LWC[-2] += self.LWC[-1] #VV, flow routine will deal with saturation exceeding 1
                     # This should never happen if bottom of modelled firn column is at rho >= 830
                 # self.LWC        = np.concatenate(([0], self.LWC[:-1]))
@@ -1267,6 +1311,7 @@ class FirnDensityNoSpin:
                 
                 self.Dcon       = np.concatenate(([self.D_surf[iii]], self.Dcon[:-1]))
                 massNew         = self.bdotSec[iii] * S_PER_YEAR * RHO_I
+                massremoved     = self.mass[-1]
                 self.mass       = np.concatenate(([massNew], self.mass[:-1]))
                 self.compaction = np.append(0,(self.dz_old[0:self.compboxes-1]-self.dzn[0:self.compboxes-1]))#/self.dt*S_PER_YEAR)
                 if self.doublegrid:
@@ -1277,10 +1322,15 @@ class FirnDensityNoSpin:
                 bd_flag = 'no accumulation'
                 self.age        = self.age + self.dt[iii]
                 ddz = self.dz_old - self.dz
-                self.z[1:] = self.z[1:] - np.cumsum(ddz[0:-1])
+
+                # self.z[1:] = self.z[1:] - np.cumsum(ddz[0:-1]) # this got added in v2.3.2. to deal with not advecting.
+                ### but it does not work when melt is high because the grid shifts.
+                ### but, should not have to do any z/dz adjustment here (all done in individual modules above)
+                
                 # self.z          = self.dz.cumsum(axis=0)
                 # self.z          = np.concatenate(([0],self.z[:-1]))
-                self.dzNew      = 0
+                
+                self.dzNew  = 0
                 self.dh_acc = 0
                 znew = np.copy(self.z)                             
                 self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
@@ -1293,7 +1343,9 @@ class FirnDensityNoSpin:
 
             if self.c['SUBLIM']:
                 zz1 = self.z.copy()
+                self.subLWCvol = 0
                 if self.sublimSec[iii]<0:
+                    lwcpresub = np.sum(self.LWC)
                     self.mass_sum   = self.mass.cumsum(axis = 0)
                     self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.totwatersublim, sublgridtrack, dh_sub     = sublim(self,iii) # keeps track of sublimated water for mass conservation                    
                     self.compaction = (self.dz_old[0:self.compboxes]-self.dzn)
@@ -1305,6 +1357,8 @@ class FirnDensityNoSpin:
                     # if ((not self.c['SEB']) or (not self.c['manualT'])):
                         # self.Tz = np.concatenate(([self.Ts[iii]], self.Tz[1:]))
                         # self.Tz[0] = self.Ts[iii]
+
+                    self.subLWCvol = lwcpresub - np.sum(self.LWC)
 
                     d_zbot = (self.z[-1]-zz1[-1])
                     self.melt_sum = self.melt_sum + d_zbot
@@ -1339,13 +1393,20 @@ class FirnDensityNoSpin:
                 dml_sum = 0
 
             elif np.any(self.LWC>0.): # enthalpy diffusion if water in column
-                LWC0e = sum(self.LWC)
+                LWC0e = sum(self.LWC).copy()
+                tot_mass_pre_en = np.sum(self.mass) + np.sum(self.LWC*1000)
+                sol_mass_pre_en = np.sum(self.mass)
+                liq_mass_pre_en = np.sum(self.LWC*1000)
+
                 tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
                 if "LWC_heat" not in self.c:
                     self.c["LWC_heat"] = 'enthalpy'
 
                 if self.c["LWC_heat"]=='enthalpy':
+                    mass_pre = np.sum(self.mass)
+
                     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
+                    mass_post = np.sum(self.mass)
                 elif self.c["LWC_heat"]=='highC':
                     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_highC(self, iii)
                 elif self.c["LWC_heat"]=='Teff':
@@ -1355,34 +1416,17 @@ class FirnDensityNoSpin:
 
                 tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
 
-                ### debugging: check if total energy is the same pre and post diffusion solver. 
+                tot_mass_post_en = np.sum(self.mass) + np.sum(self.LWC*1000)
+                sol_mass_post_en = np.sum(self.mass)
+                liq_mass_post_en = np.sum(self.LWC*1000)
 
-                # if (np.abs(tot_heat_post-tot_heat_pre)/tot_heat_pre)>1e-3:
-                #     print(f'change in enthalpy at iteration {iii}!')
-                #     print('pre:', tot_heat_pre)
-                #     print('post:', tot_heat_post)
-                #     ediff = (tot_heat_post-tot_heat_pre)                
-                #     print('difference (kJ):', (tot_heat_post-tot_heat_pre))
-                #     print('difference %:', ediff/tot_heat_pre)
-
-                self.refreeze += LWC0e-sum(self.LWC) 
+                en_refreeze = LWC0e-sum(self.LWC) # volume of liquid refrozen in enthalpy scheme
+                self.refreeze = self.refreeze + en_refreeze
+                
 
             self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 
-
+            
             self.rho[self.rho>RHO_I] = RHO_I
-
-            # if np.mod(iii,2000)==0:
-            #     print(iii)
-            #     print(self.modeltime[iii])
-            #     intPhi, self.DIPc, z_co  = self.update_DIP()
-            #     print('self.dsdz_sum',self.dsdz_sum)
-            #     print('self.ddz_bdot',self.ddz_bdot)
-            #     print('dzdiff',dzdiff)
-            #     print('dip', intPhi)
-            #     print('z',self.z[-1])
-            #     print('rho',self.rho[0:5])
-
-            #########
 
             #############################################################
             ### write results as often as specified in the init method ##
@@ -1395,11 +1439,12 @@ class FirnDensityNoSpin:
                     self.viscosity = RD['viscosity']
 
                 if not self.c['SEB']:
-                    self.climate = np.array([self.bdot[iii],self.Ts[iii]])
+                    self.climate = np.array([self.bdot[iii],self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
                 else: #if SEB true
                     SMBiii = self.bdot[iii] + self.sublim[iii] - self.snowmelt[iii] #sublim negative means mass loss, snowmelt positive is amount lost
-                    self.climate = np.array([SMBiii,self.Ts[iii]])
-   
+                    # self.climate = np.array([SMBiii,self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
+                    self.climate = np.array([self.bdot[iii],self.Ts[iii],self.snowmelt[iii],self.rain[iii],self.sublim[iii]])
+
                 bcoAgeMart, bcoDepMart, bcoAge830, bcoDep830, LIZAgeMart, LIZDepMart, bcoAge815, bcoDep815  = self.update_BCO(iii)
 
                 intPhi, self.DIPc, z_co  = self.update_DIP()
@@ -1440,20 +1485,18 @@ class FirnDensityNoSpin:
             ### End write ##################
             ################################
 
-            if (self.c['spinUpdate'] and iii==indUpdate):
+            if (self.c['spinUpdate'] and iii in indUpdate):
                 if iii==0:
                     pass
                 else:
-                    SpinUpdate(self,mtime)
-
+                    print(f'updating spin file at {mtime}')
+                    SpinUpdate_res(self,mtime)
+            
             if self.doublegrid:
                 #VV changes 09/12/2020
                 #if self.gridtrack[-1]==2:
                     ## print('regridding now at ', iii)
                     #self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
-                    #if iii<100:
-                        #tdep = np.where(self.gridtrack==1)[0][-1]
-                        #print('transition at:', self.z[tdep])
                 if self.gridtrack[-1]!=3: #VV works for whatever the gridtrack value we have
                     self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self) #VV regrid22
 
@@ -1462,23 +1505,38 @@ class FirnDensityNoSpin:
                 refreezing2check[iii] = self.refreeze
                 runoff2check[iii]     = self.runoff
                 meltvol2check[iii]    = self.meltvol
+                rainvol2check[iii]    = self.rainvol
                 dml2check[iii]        = dml_sum
+                sublwc2check[iii]     = self.subLWCvol
+                lwc_endofloop = self.LWC.copy()
+                
+                ### liquid in/out checks
+                # Lfluxin = self.meltvol + self.rainvol + np.sum(lwc_startofloop)
+                # Lfluxout = self.refreeze + self.runoff + np.sum(lwc_endofloop) + self.subLWCvol
+                # LFdiff = Lfluxin - Lfluxout
+                # LFdiffsum = LFdiffsum + LFdiff
 
         ##################################
         ##### END TIME-STEPPING LOOP #####
         ##################################
 
         if self.MELT:
+            meltvol_final = sum(meltvol2check)
+            rainvol_final = sum(rainvol2check)
             print(f'Totals (m w.e.)\n'
                   f'Melt+Rain:      {sum(self.snowmeltSec + self.rainSec)*S_PER_YEAR*RHO_I_MGM}\n'
-                  f'meltvol:        {sum(meltvol2check)}\n' #m w.e.
+                  f'meltvol:        {meltvol_final}\n' #m w.e.
+                  f'rainvol:        {rainvol_final}\n' #m w.e.
                   f'Refreezing:     {sum(refreezing2check)}\n'
                   f'Runoff:         {sum(runoff2check)}\n'
-                  f'mismatch:       {self.mismatch}\n'
+                #   f'subLWC:         {sum(sublwc2check)}\n'
+                #   f'mismatch:       {self.mismatch}\n'
                   f'LWC (current):  {sum(self.LWC)}\n'
-                  f'LWC (init):  {self.LWC_init}\n'
-                  f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)}\n'
-                  f'DML:            {sum(dml2check)}')
+                #   f'LWC (init):     {self.LWC_init}\n'
+                #   f'LFdiffsum:      {LFdiffsum}\n'
+                  f'Refrz + Rnff +LWC:   {sum(runoff2check)+sum(refreezing2check)+sum(self.LWC)+sum(sublwc2check)}\n'
+                #   f'DML:            {sum(dml2check)}'
+                )
         write_nospin_hdf5(self,self.MOutputs.Mout_dict,self.forcing_dict)
 
     ###########################

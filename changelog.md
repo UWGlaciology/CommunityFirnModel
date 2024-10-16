@@ -1,13 +1,27 @@
 # CFM Change Log
 All notable changes to the Community Firn Model should be documented in this file. Contributors to the CFM who are unfamiliar with changelogs should review the notes at the end of this document.
 
-TL;DR: Write down the changes that you made to the the model in this document and update the version number here and in main.py, then update main branch on github.
+TL;DR: Write down the changes that you made to the the model in this document and update the version number here, in CITATION.cff, and in main.py, then update main branch on github.
 
 General update protocol:
 First, get the staging branch to match main branch.
 Then, while on staging branch checkout files from whatever branch you want (e.g., git checkout dev melt.py)
 While on staging, test functionality. At minimum, python main.py example.json should work.
-Then, switch to main branch and merge from staging. 
+
+### Tests to do prior to release:
+1) Example run with csv input:
+    a) set "input_type": "csv" and "resultsFolder": "CFMoutput_example/csv" in example.json
+    b) run python main.py example.json -n (make sure to do -n!)
+2) Example run with df input:
+    a) set "input_type": "dataframe" and "resultsFolder": "CFMoutput_example/df" in example.json
+    b) run python main.py example.json -n (make sure to do -n!)
+
+Then, switch to main branch and merge from staging: 
+git checkout main
+git merge staging
+
+Then, double check that changelog is updated on main.
+
 Then:
 git commit -a -m "updating to vX.Y.Z. Details in changelog."
 git push
@@ -17,7 +31,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-2.2.0
+3.0.0
 
 ## Full Documentation
 
@@ -28,7 +42,8 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 - *Issues* 
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
 	- The dH output does not sum to zero when the model reaches or approaches steady state.
-	- There is a small amount of meltwater mass that does not get summed into either the summed runoff or refreezing. This is a small volume so will not significantly affect results.
+	- The siteClimate_from_RCM.py file is a mess; if you want to use it the best thing to do is to get in touch with me (maxstev@umd.edu) and I can help you get it running for your needs.
+
 
 - *Work in progress*
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
@@ -37,6 +52,64 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+
+## [3.0.0] 2024-10-15
+### Notes
+- This is a major release and will not necessarily be backwards compatible with version 2 depending on how the CFM scripts are being called. 
+- The biggest changes are: (1) an improved SEB module, which uses a 'sub' time step to calculate melt at a higher temporal resolution; and (2) the spin routine now saves the model state periodically so that CFM can be restarted if a run fails without having to start again from the beginning.
+- There are now two example json files - one for running with dataframe inputs, and one for running with csv inputs. 
+- There is a new .py script and a jupyter notebook that are examples/templates for running the CFM without first editing a .json and then calling from the command line - they are a bit more "all in one" methods to configure and then run.
+
+### New
+- *SEB.py* includes a "sub" time step for the SEB calculation. So, melt and temperature are calculated at a higher temporal resolution (e.g., 4 hourly) to capture diurnal signal, but main timestepping loop in CFM stays the same (e.g., 1 day). The melt from the sub steps is summed, and the temperature is averaged. *RCMpkl_to_spin.py* now includes code to set up the fluxes for those sub time steps.
+- *writer.py, firn_density_nospin.py* model forcing now gets written to its own hdf5 file at end of run, sublim added to forcing that gets written.  
+- *firn_density_nospin.py* added feature that spinupdate will periodically write model state into spin file (e.g., every 100 years). If the model shuts off it can be restarted from its last write during spin up. All of the periodic writes are saved, so it is recommended that the perodicity is not too frequent.
+- *solver.py* new tridiagonal solver from lapack. Speeds solver significantly. Thanks to Ben Smith (UW APL).
+- Added *run_CFM_example.py* and *run_CFM_example_notebook.ipynb*, which can be used to do some example runs, or they can be edited to help you set up your own run.
+- *json config* added 'TL_thick': thickness of the top layer to consider for SEB calculations.
+
+### Changed
+- *diffusion.py/solver.py* Previously, the finite volume solver centered the volumes on the z coordinates, (e.g., z = 0, 0.1, 0.2 would have dz=0.1, and the edges of the volumes for the solver were 0.05, 0.15, 0.25, etc.). It makes more intuitive sense for the layers and finite volumes to be the same - so a finite volume should extend from z=0 to z=0.1 (i.e., those are the edges), and the volume centers are at 0.05, etc. Testing indicates that this makes negligible difference in the modeled temperature. (have not thoroughly tested with LWC). This means that in the model outputs, if e.g. depth = 0, 0.1, 0.2, ..., and density = 350, 375, 400, ..., the firn layer from 0 to 0.1m has density of 350, and the layer from 0.1 to 0.2 has density 375, etc.
+- *firn_density_nospin.py* In concert with the SEB updates, __init__ now takes SEBfluxes as in input, which is a dictionary similar to climateTS. It contains the energy fluxes at the time resolution for the "sub" time step. If SEBfluxes are not provided but SEB is on, the energy fluxes need to be in climateTS and will be at the same resolution as the other climateTS variables.
+- *firn_density_nospin.py* added code to track mass conservation of liquid input/output
+- *ModelOutputs.py, firn_density_nospin.py* "climate" key now has ,bdot,Ts,snowmelt,rain,sublim
+- *siteClimate_from_RCM.py* getClimate() now returns df_CLIM (as before), and also the spin date start and end dates.
+- *reader.py* read initial condition from most recent restart (model state) in spin file.
+- *siteClimate_from_RCM.py* added functionality to get SEB fluxes from RCM/GCM data
+- *siteClimate_from_RCM.py* now returns a dictionary rather than a dataframe; the dictionary includes spin date start and end
+- *RCMpkl_to_spin.py* now includes calcSEB, a general solver to calculate skin temperature and melt flux based on energy inputs, and includes FQS solver to get the melt from those fluxes
+
+### Fixed
+- *firn_density_nospin.py* fixed an issue with gridtrack. self.gridtrack is now set to None if doublegrid is not turned on. merge module now uses gridtrack, which fixes an issue in which the tracking scheme would not update when layers were merged, thereby mis-assigning grid track numbers and potentially leading to incorrect regridding with the doublegrid scheme.
+- *firn_density_nospin.py* fix to get Morris physics more user friendly (set THist = True automatically)
+- *firn_density_nospin.py* fix issue to turn rain off if not in climateTS
+- *firn_density_nospin.py* fixed issue where spinupdate would continually update the spinfile if using it over and over again.
+- *firn_density_nospin.py* fixed issue that was incorrectly adjusting grid at timesteps that had high melt and 0 snow accumulation.
+- *melt.py* fixed issue that would cause melt to fail if grainsize was turned off
+- *melt.py* fixed issue with impermeable layers; automatically set the bottom layer of the grid to be impermeable regardless of density
+- *merge.py* fixed issue that would cause melt to fail if grainsize was turned off
+- *merge.py* added gridtrack to merge routine
+
+
+## [2.3.2] 2024-03-04
+### Notes
+- This minor release fixes an issue in 2.3.0 - I did not manage to push the correct time step changes as described in the 2.3.0 release notes.
+
+### Fixed
+- Issue that dt and modeltime were not the same length vectors. 
+
+## [2.3.1] 2023-11-02
+### Notes
+- Changes for 2.3.0 did not all merge correctly.
+
+## [2.3.0] 2023-11-02
+### Notes
+- This version fixes two issues: when using the 'spinupdate' feature, the code would take the first time step off of each subsequent run when spinupdate was enabled. Now it does not. There was also an issue that merge.py did not correctly change the gridtrack variable when merging layers.
+- I also made a change to how CFM handles time steps when timesetup is set to 'exact'. The forcing data has a decimal date, and differencing the input times gives a vector (dt) of time-step size. Because length of dt is one less than length of input time, CFM previously used input_time[1:]. Now, CFM appends a value (the mean of dt) to the start of dt. The upshot is where previously the values in the results represented the values in the firn at the start of the time interval, now they represent the values at the end. E.g., if you are using daily time steps, previously the results were the state of the firn at the start of that day, and now they are the state of firn at the end of the day. The reason I made this change is that now the forcing vectors line up exactly with dt, whereas before they were offset by one timestep.
+
+### Fixed
+- *merge.py* Merge.py now includes code to corretly reassign gridtrack values to each layer when it runs. The error only occured in isolated scenarios when melt or sublimation would leave the top layer very thin.
+- *firn_density_nospin.py* The code has been changed to only trigger a spinup file update if it is not the first timestep of the model run. This leaves a typical workflow of: run full model with spinup; at the end of the spinup spinup file (i.e. the restart) gets updated; any subsequent runs will use that restart but not update it. Previously, if 'spinupdate' was true, the restart in the subsequent runs would get updated during the first time step, thereby cutting off the first time step from the previous run. 
 
 ## [2.2.0] 2023-06-26
 ### Notes

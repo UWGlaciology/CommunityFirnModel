@@ -134,7 +134,7 @@ def calcSEB(SWGNT,LWGAB,HFLUX,EFLUX,TS,tindex,dt,GHTSKIN=0,dz=0.05,rhos=400):
             
     return TcalcH,meltmassH
 
-def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False):
+def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False,num_reps=None):
     '''
     load a pandas dataframe, called df_CLIM, that will be resampled and then used 
     to create a time series of climate variables for spin up. 
@@ -161,10 +161,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     Tinterp: 'mean', 'effective', or 'weighted'
         how to resample the temperature; mean is regular mean, 'effective' is 
         Arrhenius mean; 'weighted' is accumulation-weighted mean
- 	spin_date_st: float
- 		decimal date of the start of the reference climate interval (RCI)
- 	spin_date_end: float
- 		decimal date of the end of the RCI
+     spin_date_st: float
+         decimal date of the start of the reference climate interval (RCI)
+     spin_date_end: float
+         decimal date of the end of the RCI
 
     Returns
     -------
@@ -189,11 +189,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     SPY = 365.25*24*3600
 
     if type(CLIM_name) == str:
-    	df_CLIM = pd.read_pickle(CLIM_name)
+        df_CLIM = pd.read_pickle(CLIM_name)
     else: #CLIM_name is not a pickle, it is the dataframe being passed
-    	df_CLIM = CLIM_name
+        df_CLIM = CLIM_name
 
-    if (not SEB and not calc_melt):
+    if (not SEB and not calc_melt): # just use T_surf and melt from the input climate
 
         drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
         try:
@@ -232,7 +232,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM_ids = list(df_CLIM_re.columns)
 
         df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-        df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        df_CLIM_re = df_CLIM_re.ffill()
 
         # df_TS_re['decdate'] = [toYearFraction(qq) for qq in df_TS_re.index]
         # df_BDOT_re['decdate'] = [toYearFraction(qq) for qq in df_BDOT_re.index]
@@ -240,15 +240,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
 
-
         if 'SUBLIM' not in df_CLIM_re:
             df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
             print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
 
         BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
-        print(BDOT_mean_IE)
-        print(T_mean)
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
@@ -264,7 +261,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
-        num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+        if num_reps is not None:
+            pass
+        else:
+            num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])
@@ -287,15 +287,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         spin_dict = {}
         for ID in df_CLIM_ids:
             spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub))
-        # print(spin_days_all[0])
 
         df_CLIM_decdate = df_CLIM_re.set_index('decdate')
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        print('df_full (no seb):',df_FULL.head())
-        df_FULL.to_csv('df_full_noSEB.csv')
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -312,7 +309,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     ##############################################
     ##############################################
 
-    elif (not SEB and calc_melt):
+    elif (not SEB and calc_melt): # calculate the melt flux based on energy fluxes from climate data, but SEB module in CFM will not run
+        #(this is something of a pre-calculation of the melt.)
 
         drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
         try:
@@ -350,14 +348,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         # tindex = df_CLIM.time.data
         tindex = df_CLIM.index
-        # fqs = FQS()
         for kk,mdate in enumerate(tindex): #loop through all time steps, calculate melt for all lat/lon pairs at that time
             pmat = np.zeros(5) # p matrix to put into FQS solver
 
-            # if kk<5:
-                # print(mdate)
-                # print(flux_df1_r[kk])
-                # input('waiting')
             if kk==0:
                 T_0 = dts[kk]
             else:
@@ -374,19 +367,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             pmat[4] = e
             pmat[np.isnan(pmat)] = 0
 
-            # r = fqs.quartic_roots(pmat)
-            # Tnew = (r[((np.isreal(r)) & (r>0))].real)
-            # Tnew[np.isnan(e)] = np.nan
-            
-            # imelt = np.where(Tnew>=273.15)[0]
-            # Tnew[imelt] = 273.15
-            # meltmass[imelt] = (flux_df1_r[kk,imelt] - SBC*273.15**4) / LF_I #*dt #multiply by dt to put in units per day
-            # ### meltmass has units [kg/m2/s]            
-            # Tcalc[kk,:] = Tnew
-
             fqs = FQS()
             r = fqs.quartic_roots(pmat)
-            # print(r)
             Tnew = (r[((np.isreal(r)) & (r>0))].real)
             Tnew[np.isnan(e)] = np.nan
 
@@ -409,10 +391,6 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         
         df_CLIM['SMELT'] = meltmass_out
         df_CLIM['TSKIN'] = Tcalc_out
-
-        print('TSKIN',df_CLIM['TSKIN'].resample('1y').mean().mean())
-        print('SMELT',df_CLIM['SMELT'].resample('1y').sum().mean())
-        
 
         #############
         l1 = df_CLIM.columns.values.tolist()
@@ -439,7 +417,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM_ids = list(df_CLIM_re.columns)
 
         df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-        df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        # df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        df_CLIM_re = df_CLIM_re.ffill()
 
         # df_TS_re['decdate'] = [toYearFraction(qq) for qq in df_TS_re.index]
         # df_BDOT_re['decdate'] = [toYearFraction(qq) for qq in df_BDOT_re.index]
@@ -450,12 +429,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         if 'SUBLIM' not in df_CLIM_re:
             df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
-            print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
 
         BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
-        print(BDOT_mean_IE)
-        print(T_mean)
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
@@ -494,17 +470,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         spin_dict = {}
         for ID in df_CLIM_ids:
             spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub))
-        # print(spin_days_all[0])
 
         df_CLIM_decdate = df_CLIM_re.set_index('decdate')
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        print('df_full (no seb):',df_FULL.head())
-        df_FULL.to_csv('df_full_noSEB.csv')
-
-        # sys.exit('exiting at 501')
+        # df_FULL.to_csv('df_full_noSEB.csv')
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -518,7 +490,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         SEBfluxes = None
 
-    else: #SEB True
+    else: #SEB True - SEB module in CFM will run
+
         l1 = df_CLIM.columns.values.tolist()
 
         if 'SMELT' in l1:
@@ -537,11 +510,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         res_dict = {key:res_dict_all[key] for key in df_CLIM.columns} # resample type for just the data types in df_CLIM
 
-        df_CLIM_re = df_CLIM.resample(timeres).agg(res_dict) #Energy fluxes remain W/m2, mass fluxes are in /tiem step
+        df_CLIM_re = df_CLIM.resample(timeres).agg(res_dict) #Energy fluxes remain W/m2, mass fluxes are in /time step
         df_CLIM_ids = list(df_CLIM_re.columns)
 
         df_CLIM_re['decdate'] = [toYearFraction(qq) for qq in df_CLIM_re.index]
-        df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        # df_CLIM_re = df_CLIM_re.fillna(method='pad')
+        df_CLIM_re = df_CLIM_re.ffill()
 
         df_CLIM_seb = df_CLIM[res_dict.keys()]
         df_CLIM_seb.drop(['BDOT','RAIN'],axis=1)
@@ -553,28 +527,15 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
         stepsperyear_seb = 1/(df_CLIM_seb.decdate.diff().mean())
 
-        print('stepsperyear',stepsperyear)
-        print('stepsperyear_seb',stepsperyear_seb)
-
         BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
         
         try:
             T_mean = (df_CLIM_re['TSKIN']).mean()
         except:
             T_mean = (df_CLIM_re['T2m']).mean()
-        print(BDOT_mean_IE)
-        print(T_mean)
 
         hh  = np.arange(0,501)
-        age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
-        # if not desired_depth:
-        #     desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
-        #     depth_S1 = hh[np.where(rho>=550)[0][0]]
-        #     depth_S2 = hh[np.where(rho>=750)[0][0]]
-        # else:
-        #     desired_depth = desired_depth
-        #     depth_S1 = desired_depth * 0.5
-        #     depth_S2 = desired_depth * 0.75
+        age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
 
         if not desired_depth:
             # desired_depth = hh[np.where(rho>=916)[0][0]]
@@ -631,13 +592,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
 
-        df_FULL.to_csv('df_full_SEB.csv')
+        # df_FULL.to_csv('df_full_SEB.csv')
 
         df_FULL_seb = pd.concat([df_spin_seb,df_CLIM_seb_decdate])
-        print('df_full_seb:',df_FULL_seb.head())
-
-        # print(df_CLIM_seb.head())
-        # input('waiting')
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -669,7 +626,7 @@ class FQS:
     def __init__(self):
         pass
 
-    # @jit(nopython=True)
+    # @jit(nopython=True)``
     def single_quadratic(self, a0, b0, c0):
         ''' 
         Analytical solver for a single quadratic equation

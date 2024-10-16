@@ -670,13 +670,6 @@ class FirnPhysics:
             A_mean_1 = self.bdot_mean[self.rho < RHO_1] * RHO_I
             A_mean_2 = self.bdot_mean[self.rho >= RHO_1] * RHO_I
 
-            # if self.iii==0:
-            #     print('physics A_mean_1', A_mean_1[0:5])
-            #     print(self.bdot_mean[0:5])
-            #     print(self.T_mean[self.iii])
-            #     print(self.Tz[0:5])
-            #     input('phys')
-
             M_0 = 1.042 - 0.0916 * np.log(A_mean_1)
             M_1 = 1.734 - 0.2039 * np.log(A_mean_2)
 
@@ -1090,13 +1083,14 @@ class FirnPhysics:
         
         viscosity = np.zeros(self.gridLen)
         viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
-        
+
         self.RD['drho_dt'] = drho_dt
         # global Gamma_Gou, Gamma_old_Gou, Gamma_old2_Gou, ind1_old
         self.RD['Gamma_Gou'] = self.Gamma_Gou
         self.RD['Gamma_old_Gou'] = self.Gamma_old_Gou
         self.RD['Gamma_old2_Gou'] = self.Gamma_old2_Gou
         self.RD['ind1_old'] = self.ind1_old
+        self.RD['viscosity'] = None
         return self.RD
 
 
