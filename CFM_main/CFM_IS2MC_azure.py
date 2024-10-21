@@ -190,9 +190,9 @@ if __name__ == '__main__':
         df_daily = df_daily.rename({'LW_d_EE':'LW_d'},axis=1).drop(['LW_d_M2'],axis=1)
 
     if ALBEDO_source == 'M2_interp':
-        df_daily = df_daily.rename({'ALBEDO_i':'ALBEDO'},axis=1).drop(['ALBEDO_post'],axis=1)
+        df_daily = df_daily.rename({'ALBEDO_i':'ALBEDO'},axis=1).drop(['ALBEDO_post','SW_n'],axis=1)
     else:
-        df_daily = df_daily.rename({'ALBEDO_post':'ALBEDO'},axis=1).drop(['ALBEDO_i'],axis=1)
+        df_daily = df_daily.rename({'ALBEDO_post':'ALBEDO'},axis=1).drop(['ALBEDO_i','SW_n'],axis=1)
 
     print(ii, jj, y_val, x_val)
     print(df_daily.head())
