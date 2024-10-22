@@ -112,7 +112,10 @@ def heatDiff(self,iii):
     nz_fv           = nz_P - 2 # this does not get used
     nt              = 1
 
-    z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
+    z_dummy = np.zeros(len(self.z)+1)
+    z_dummy[:-1] = self.z
+    z_dummy[-1] = self.z[-1]+np.diff(self.z)[-1]
+    # z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
  
     z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
     z_edges_vec = z_dummy
@@ -165,6 +168,86 @@ def heatDiff(self,iii):
 ### end heat diffusion ###
 ##########################
 
+def heatDiffNEW(self,iii):
+    '''
+    Heat diffusion function
+
+    :param z:
+    :param dz:
+    :param Ts:
+    :param rho:
+
+    :returns self.Tz:
+    :returns self.T10m:
+    
+    thermal diffusivity: alpha = K_firn / (rho*c_firn)
+    '''
+
+    nz_P            = len(self.z) #- 1
+    nz_fv           = nz_P - 2 # this does not get used
+    nt              = 1
+
+    # z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+    # z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+    # z_P_vec     = self.z
+
+    z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1])
+
+    z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
+    z_edges_vec = z_dummy
+
+
+    
+    phi_s           = self.Tz[0]
+    phi_0           = self.Tz
+    # phi_0           = np.append(self.Tz,self.Tz[-1])
+
+    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
+
+    K_firn = firnConductivity(self,iii,K_ice)
+    K_firn = K_firn#[0:-1]
+    phi_0 = phi_0#[0:-1]
+
+    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn        = CP_I # If you prefer a constant specific heat.
+    # [0:-1] # thermal conductivity
+
+    if self.c['MELT']:
+        try:
+            if self.c['LWCheat']=='lowK':
+                K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
+        except:
+            pass
+
+    Gamma_P         = K_firn
+
+    # rho_dummy = np.append(self.rho,self.rho[-1])
+    # tot_rho = rho_dummy
+    # c_vol = rho_dummy * c_firn
+    tot_rho         = self.rho#[0:-1]
+    c_vol           = self.rho * c_firn
+
+    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    # self.Tz = np.append(self.Tz,self.Tz[-1])
+
+    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+
+    if self.c['MELT']:
+        if self.c['LWCheat']=='effectiveT':
+            pass
+
+        elif np.any(self.Tz>273.1500001):
+            print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
+            print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
+
+        self.Tz[self.Tz>=273.15]=273.15
+
+    return self.Tz, self.T10m
+
+##########################
+### end heat diffusion ###
+##########################
+
 def enthalpyDiff(self,iii):
     '''
     enthalpy diffusion function, new
@@ -186,7 +269,10 @@ def enthalpyDiff(self,iii):
     # z_P_vec         = self.z
     T_old = self.Tz.copy()
 
-    z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
+    z_dummy = np.zeros(len(self.z)+1)
+    z_dummy[:-1] = self.z
+    z_dummy[-1] = self.z[-1]+np.diff(self.z)[-1]
+    # z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
  
     z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
     z_edges_vec = z_dummy

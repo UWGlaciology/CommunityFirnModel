@@ -178,8 +178,11 @@ class FirnDensityNoSpin:
 
         ### set up model grid
         self.z          = initDepth[1:]
-        self.dz         = np.diff(self.z)
-        self.dz         = np.append(self.dz, self.dz[-1]) # numerics - add on an extra layer at end so that vectors are the same length
+        self.dz         = np.zeros_like(self.z)
+        zdiff           = np.diff(self.z)
+        self.dz[:-1]    = zdiff
+        self.dz[-1]     = zdiff[-1]
+        # self.dz         = np.append(self.dz, self.dz[-1]) # numerics - add on an extra layer at end so that vectors are the same length
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 

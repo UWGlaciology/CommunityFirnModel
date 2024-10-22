@@ -85,18 +85,32 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     phi_t = phi_0
     phi_t_old = phi_t.copy()
 
+    dZ = np.diff(z_edges) #width of nodes
+
+    Z_P_diff = np.diff(Z_P)
+
+    deltaZ_u = np.zeros_like(Z_P)
+    deltaZ_u[0] = Z_P_diff[0]
+    deltaZ_u[1:] = Z_P_diff
+
+    deltaZ_d = np.zeros_like(Z_P)
+    deltaZ_d[:-1] = Z_P_diff
+    deltaZ_d[-1] = Z_P_diff[-1]
+
+    f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
+    f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+
     for i_time in range(nt):
+        
+        ### older 
+        # deltaZ_u = np.diff(Z_P)
+        # deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
 
-        dZ = np.diff(z_edges) #width of nodes
+        # deltaZ_d = np.diff(Z_P)
+        # deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
 
-        deltaZ_u = np.diff(Z_P)
-        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
-
-        deltaZ_d = np.diff(Z_P)
-        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
-
-        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
-        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+        # f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
+        # f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
         #######################################
         # this part is for gas diffusion, which takes a bit more physics
@@ -166,8 +180,17 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
         #######################################
         else: # just for heat, enthalpy, isotope diffusion
-            Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
-            Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+            
+            Gamma_U = np.zeros_like(Gamma_P)
+            Gamma_U[0] = Gamma_P[0]
+            Gamma_U[1:] = Gamma_P[0: -1]
+
+            Gamma_D = np.zeros_like(Gamma_P)
+            Gamma_D[0:-1] = Gamma_P[1:]
+            Gamma_D[-1] = Gamma_P[-1]
+
+            # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
+            # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
 
             Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
             Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
@@ -289,7 +312,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     itercheck = 0.9
     count = 0
 
-
     ### Big H stands for latent enthalpy, little h is sensible enthalpy
 
     ### H_tot is the sum of latent and sensible enthalpy
@@ -302,6 +324,41 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
     update_gsol = True
 
+    Z_P_diff = np.diff(Z_P)
+
+    deltaZ_u = np.zeros_like(Z_P)
+    deltaZ_u[0] = Z_P_diff[0]
+    deltaZ_u[1:] = Z_P_diff
+
+    deltaZ_d = np.zeros_like(Z_P)
+    deltaZ_d[:-1] = Z_P_diff
+    deltaZ_d[-1] = Z_P_diff[-1]
+
+    ### older 
+    # deltaZ_u = np.diff(Z_P) # [m]
+    # deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
+    # deltaZ_d = np.diff(Z_P)
+    # deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
+
+    f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
+    f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+
+    ### Gamma has units J/s/m/K (W/m/K)
+
+    # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
+    # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+
+    Gamma_U = np.zeros_like(Gamma_P)
+    Gamma_U[0] = Gamma_P[0]
+    Gamma_U[1:] = Gamma_P[0: -1]
+
+    Gamma_D = np.zeros_like(Gamma_P)
+    Gamma_D[0:-1] = Gamma_P[1:]
+    Gamma_D[-1] = Gamma_P[-1]
+
+    Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
+    Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
+
     for i_time in range(100): # Testing indicates that this should never need this many iterations
 
         H_tot_iter  = H_tot.copy()
@@ -310,22 +367,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
         g_sol_iter  = g_sol.copy()
         H_lat_iter  = H_lat.copy()
         h_iter      = h_updated.copy()
-
-        deltaZ_u = np.diff(Z_P) # [m]
-        deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
-
-        deltaZ_d = np.diff(Z_P)
-        deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
-
-        f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
-        f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
-
-        ### Gamma has units J/s/m/K (W/m/K)
-        Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
-        Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
-
-        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
-        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
         #### version with working dt ####
         ### S_C is independent
