@@ -294,6 +294,10 @@ class SurfaceEnergyBudget:
             pmat[4] = e
             pmat[np.isnan(pmat)] = 0
 
+            print('a:',a)
+            print('d:',d)
+            print('e:',e)
+
             r = fqs.quartic_roots(pmat)
             Tnew = (r[((np.isreal(r)) & (r>0))].real)
             Tnew[np.isnan(e)] = np.nan
