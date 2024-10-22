@@ -134,8 +134,8 @@ if __name__ == '__main__':
     
     runloc = 'discover'
     seb = True
-    LWdown_source = 'EMIS_eff'
-    ALBEDO_source = 'post'
+    LWdown_source = 'EMIS_eff' #EMIS_eff, MERRA2
+    ALBEDO_source = 'M2_interp' #post, M2_interp
      
     if runloc =='discover':
         CFM_path = Path('/discover/nobackup/cdsteve2/ATL_masschange/CommunityFirnModel/CFM_main')
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         x_int = c['x_val']
         y_int = c['y_val']
     else:
-        print(f'sys.argv[1]: {sys.argv[1]}')
+        print(f'pixel number: {sys.argv[1]}')
         dkey = int(sys.argv[1]) # this is the array value
         x_int = float(ll_list[dkey][0])
         y_int = float(ll_list[dkey][1])
@@ -201,8 +201,11 @@ if __name__ == '__main__':
     c['SEB'] = True
     calc_melt = False
     c['MELT'] = True
+    
+    c['physRho'] = "GSFC2020"
+    c['spinUpdate'] = True
 
-    rf_po = f'/CFMresults_{dkey}' #results path
+    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}_jit' #results path
 
     if runloc == 'azure':
         c['resultspath'] = '/mnt/firnadls/CFM_outputs'
@@ -211,7 +214,7 @@ if __name__ == '__main__':
 
     # c['resultsFolder'] = c['resultspath'] + c['results_ext'] + rf_po
     c['resultsFolder'] = str(Path(c['resultspath'], rf_po))
-    
+
     c['y_int'] = float(y_int)
     c['x_int'] = float(x_int)
     c['y_val'] = float(y_val)
@@ -231,7 +234,8 @@ if __name__ == '__main__':
     
     c["NewSpin"] = True
 
-    configName = f'CFMconfig_{y_w}_{x_w}.json'
+    # configName = f'CFMconfig_{y_w}_{x_w}.json'
+    configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
     shutil.copyfile(config_in, configName)
     
     if os.path.isfile(os.path.join(c['resultsFolder'],configName)):

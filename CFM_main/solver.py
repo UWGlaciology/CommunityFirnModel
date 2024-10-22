@@ -32,8 +32,8 @@ def solver(a_U, a_D, a_P, b):
     # which function to solve the equation-- if both are enabled, the
     # normalized difference between the results will be reported.
 
-    #use_splin=True
-    #use_dgtsv=False
+    # use_splin=True
+    # use_dgtsv=False
 
     use_splin=False
     use_dgtsv=True
