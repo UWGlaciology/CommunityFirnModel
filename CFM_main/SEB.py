@@ -15,6 +15,7 @@ from numba import njit
 import pandas as pd
 
 usejit = False
+### working on jit implementation. not working 24/10/22
 
 class SurfaceEnergyBudget:
     '''
