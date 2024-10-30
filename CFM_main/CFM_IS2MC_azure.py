@@ -70,23 +70,23 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
 
             varlist = [jj for jj in dsZ.variables if jj not in ['time','y','x']]
             
-            if 'EMIS_eff' in varlist:
-                df_sub['EMIS_eff'] = dsZ.isel(y=[ii],x=[jj])['EMIS_eff'].values.flatten()
-            else:
-                for vv in varlist:
-                        df_sub[vv] = dsZ.isel(y=[ii],x=[jj])[vv].values.flatten()
+            # if 'EMIS_eff' in varlist:
+            #     df_sub['EMIS_eff'] = dsZ.isel(y=[ii],x=[jj])['EMIS_eff'].values.flatten()
+            # else:
+            for vv in varlist: # now includes EMIS_eff in main
+                    df_sub[vv] = dsZ.isel(y=[ii],x=[jj])[vv].values.flatten()
 
-                df_seconds = df_sub.index.diff().mean().total_seconds()
+            df_seconds = df_sub.index.diff().mean().total_seconds()
 
-                df_sub['RAIN'] = (df_sub['PRECLS'] + df_sub['PRECCU']) * df_seconds
-                df_sub['EVAP'] = -1 * df_sub['EVAP'] * df_seconds # multiply by -1 because of MERRA2 sign convention
-                df_sub['PRECSN'] = df_sub['PRECSN'] * df_seconds
-                df_sub['SMELT'] = df_sub['SMELT'] * df_seconds
+            df_sub['RAIN'] = (df_sub['PRECLS'] + df_sub['PRECCU']) * df_seconds
+            df_sub['EVAP'] = -1 * df_sub['EVAP'] * df_seconds # multiply by -1 because of MERRA2 sign convention
+            df_sub['PRECSN'] = df_sub['PRECSN'] * df_seconds
+            df_sub['SMELT'] = df_sub['SMELT'] * df_seconds
 
-                drn = {'T2M_i':'T2m','TS_i':'TSKIN','EVAP':'SUBLIM','HFLUX':'QH','EFLUX':'QL','SWGDN':'SW_d','LWGAB':'LW_d_M2','RAIN':'RAIN','PRECSN':'BDOT','ALBEDO':'ALBEDO_i','SMELT':'SMELT','SWGNT':'SW_n'}
+            drn = {'T2M_i':'T2m','TS_i':'TSKIN','EVAP':'SUBLIM','HFLUX':'QH','EFLUX':'QL','SWGDN':'SW_d','LWGAB':'LW_d_M2','RAIN':'RAIN','PRECSN':'BDOT','ALBEDO':'ALBEDO_i','SMELT':'SMELT','SWGNT':'SW_n','EMIS_eff':'EMIS_eff'}
 
-                df_sub = df_sub[drn.keys()]
-                df_sub.rename(mapper=drn,axis=1,inplace=True)
+            df_sub = df_sub[drn.keys()]
+            df_sub.rename(mapper=drn,axis=1,inplace=True)
 
             return ii,jj,y_val,x_val,df_sub
         
@@ -94,18 +94,19 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
     df_dict = {}
     for decade in decades:
         if zarr_source=='discover':
-            filename = f"/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_IS2mc/zip/M2_GrIS_4h_IS2mc_{decade}.zarr.zip"
-            fn_EE = '/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_IS2mc/MERRA2_GrIS_4h_eff_emis_ALL.nc'
+            filename = f"/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_emis/zarr/M2_GrIS_4h_IS2mc_{decade}.zarr.zip"
+            # fn_EE = '/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_IS2mc/MERRA2_GrIS_4h_eff_emis_ALL.nc'
         elif zarr_source=='azure':
             filename = f'/shared/firndata/M2_GrIS_4h_IS2mc_{decade}.zarr.zip'
-            fn_EE = '/shared/firndata/MERRA2_GrIS_4h_eff_emis_ALL.zarr.zip'
+            # fn_EE = '/shared/firndata/MERRA2_GrIS_4h_eff_emis_ALL.zarr.zip'
 
-        with xr.open_dataset(filename,engine='zarr') as dsZ:
-            ii,jj,y_val,x_val,df_sub= make_dataframe(dsZ,y_int,x_int)
+        # with xr.open_dataset(filename,engine='zarr') as dsZ:
+        with xr.open_zarr(filename) as dsZ:
+            ii,jj,y_val,x_val,df_sub = make_dataframe(dsZ,y_int,x_int)
             df_dict[decade] = df_sub
 
-    with xr.open_dataset(fn_EE,engine='zarr') as fE:
-        _ii,_jj,_y_val,_x_val,df_EE = make_dataframe(fE,y_int,x_int)        
+    # with xr.open_dataset(fn_EE,engine='zarr') as fE:
+    #     _ii,_jj,_y_val,_x_val,df_EE = make_dataframe(fE,y_int,x_int)        
             
     df_out = pd.concat(df_dict.values())
 
@@ -113,7 +114,8 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
     df_out['QH'] = -1 * df_out['QH']
 
     sigma = 5.670374419e-8
-    df_out['LW_d_EE'] = df_EE['EMIS_eff'] * sigma * df_out['T2m']**4
+    # df_out['LW_d_EE'] = df_EE['EMIS_eff'] * sigma * df_out['T2m']**4
+    df_out['LW_d_EE'] = df_out['EMIS_eff'] * sigma * df_out['T2m']**4
     df_out['ALBEDO_post'] = 1 - (df_out['SW_n']/df_out['SW_d'])
 
     return ii,jj,y_val,x_val,df_out
