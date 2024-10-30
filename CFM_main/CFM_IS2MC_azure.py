@@ -246,18 +246,19 @@ if __name__ == '__main__':
     c["NewSpin"] = True
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
-    configName = f'json/CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
+    configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
+    configPath_in = 'json/'+configName
     shutil.copyfile(config_in, configName)
     
     if os.path.isfile(os.path.join(c['resultsFolder'],configName)):
         CFMconfig = os.path.join(c['resultsFolder'],configName)
-        if os.path.isfile(os.path.join(os.getcwd(), configName)):
-            os.remove(os.path.join(os.getcwd(), configName))
-        shutil.move(CFMconfig, os.getcwd())
+        if os.path.isfile(os.path.join(os.getcwd(), configPath_in)):
+            os.remove(os.path.join(os.getcwd(), configPath_in))
+        shutil.move(CFMconfig, Path(os.getcwd(),'json'))
     else:
-        CFMconfig = configName     
+        CFMconfig = configPath_in     
     
-    with open(CFMconfig,'w+') as fp:
+    with open(configPath_in,'w+') as fp:
         fp.write(json.dumps(c,sort_keys=True, indent=4, separators=(',', ': ')))
 
     # if 'NewSpin' in c:
@@ -272,7 +273,7 @@ if __name__ == '__main__':
     firn.time_evolve()
     ###
 
-    shutil.move(configName,os.path.join(c['resultsFolder'],configName))
+    shutil.move(configPath_in,os.path.join(c['resultsFolder'],configName))
 
     print ("output folder = ", c['resultsFolder'])
     print('run time =' , time.time()-tic , 'seconds')
