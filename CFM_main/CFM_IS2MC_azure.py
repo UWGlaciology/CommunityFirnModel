@@ -205,7 +205,7 @@ if __name__ == '__main__':
     c['physRho'] = "GSFC2020"
     c['spinUpdate'] = True
 
-    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}_jit' #results path
+    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
 
     if runloc == 'azure':
         c['resultspath'] = '/mnt/firnadls/CFM_outputs'
