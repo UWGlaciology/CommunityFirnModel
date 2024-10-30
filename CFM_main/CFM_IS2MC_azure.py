@@ -134,7 +134,7 @@ if __name__ == '__main__':
     ### y_int = -2579982
     ### point in IS2_icepixels.csv: 6304
     
-    runloc = 'azure'
+    runloc = 'discover'
     seb = True
     LWdown_source = 'EMIS_eff' #EMIS_eff, MERRA2
     ALBEDO_source = 'M2_interp' #post, M2_interp
@@ -195,9 +195,15 @@ if __name__ == '__main__':
         df_daily = df_daily.rename({'ALBEDO_i':'ALBEDO'},axis=1).drop(['ALBEDO_post','SW_n'],axis=1)
     else:
         df_daily = df_daily.rename({'ALBEDO_post':'ALBEDO'},axis=1).drop(['ALBEDO_i','SW_n'],axis=1)
+        
+    df_daily = df_daily.drop('EMIS_eff',axis=1)
 
     print(ii, jj, y_val, x_val)
     print(df_daily.head())
+    df_spy = 365.25
+    bdot_mean = (df_daily['BDOT']*df_spy/917).mean()
+    print(f'bdot mean: {bdot_mean}')
+
     #######
 
     c['SEB'] = True
@@ -234,10 +240,13 @@ if __name__ == '__main__':
     c["grid2bottom"] = float('%.1f' %(depth_S2))
     c["HbaseSpin"] = float('%.1f' %(3000 - grid_bottom))
     
+    print(f'depth_S1: {depth_S1}')
+    print(f'depth_S2: {depth_S2}')
+    
     c["NewSpin"] = True
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
-    configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
+    configName = f'json/CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
     shutil.copyfile(config_in, configName)
     
     if os.path.isfile(os.path.join(c['resultsFolder'],configName)):
@@ -251,10 +260,12 @@ if __name__ == '__main__':
     with open(CFMconfig,'w+') as fp:
         fp.write(json.dumps(c,sort_keys=True, indent=4, separators=(',', ': ')))
 
-    if 'NewSpin' in c:
-        NewSpin = c['NewSpin']
-    else:
-        NewSpin = True
+    # if 'NewSpin' in c:
+    #     NewSpin = c['NewSpin']
+    # else:
+    #     NewSpin = True
+    
+    NewSpin = False
 
     ### Create CFM instance by passing config file and forcing data, then run the model
     firn = FirnDensityNoSpin(CFMconfig, climateTS = climateTS, NewSpin = NewSpin, SEBfluxes = SEBfluxes)
