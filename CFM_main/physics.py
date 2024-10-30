@@ -296,7 +296,7 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        self.viscosity = np.ones(self.gridLen)
+        viscosity = np.ones(self.gridLen)
         viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
         
         self.RD['drho_dt'] = drho_dt

@@ -48,7 +48,7 @@ import json
 import shutil
 import RCMpkl_to_spin as RCM
 
-def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='blob'):
+def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
     '''
     Create a pandas dataframe for a site in Greenland
     returns:
@@ -97,14 +97,14 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='blob'):
             filename = f"/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_IS2mc/zip/M2_GrIS_4h_IS2mc_{decade}.zarr.zip"
             fn_EE = '/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_IS2mc/MERRA2_GrIS_4h_eff_emis_ALL.nc'
         elif zarr_source=='azure':
-            filename = f'/mnt/firnadls/M2_GrIS_4h_IS2mc_{decade}.zarr.zip'
-            fn_EE = '/mnt/firnadls/MERRA2_GrIS_4h_eff_emis_ALL.nc'
+            filename = f'/shared/firndata/M2_GrIS_4h_IS2mc_{decade}.zarr.zip'
+            fn_EE = '/shared/firndata/MERRA2_GrIS_4h_eff_emis_ALL.zarr.zip'
 
         with xr.open_dataset(filename,engine='zarr') as dsZ:
             ii,jj,y_val,x_val,df_sub= make_dataframe(dsZ,y_int,x_int)
             df_dict[decade] = df_sub
 
-    with xr.open_dataset(fn_EE) as fE:
+    with xr.open_dataset(fn_EE,engine='zarr') as fE:
         _ii,_jj,_y_val,_x_val,df_EE = make_dataframe(fE,y_int,x_int)        
             
     df_out = pd.concat(df_dict.values())
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     ### y_int = -2579982
     ### point in IS2_icepixels.csv: 6304
     
-    runloc = 'discover'
+    runloc = 'azure'
     seb = True
     LWdown_source = 'EMIS_eff' #EMIS_eff, MERRA2
     ALBEDO_source = 'M2_interp' #post, M2_interp
@@ -205,10 +205,10 @@ if __name__ == '__main__':
     c['physRho'] = "GSFC2020"
     c['spinUpdate'] = True
 
-    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}_jit' #results path
+    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
 
     if runloc == 'azure':
-        c['resultspath'] = '/mnt/firnadls/CFM_outputs'
+        c['resultspath'] = '/shared/firndata/CFM_outputs'
     elif runloc == 'discover':
         c['resultspath'] = '/discover/nobackup/cdsteve2/ATL_masschange/CFMoutputs'
 
