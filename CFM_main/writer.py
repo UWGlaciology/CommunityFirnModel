@@ -44,8 +44,10 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
 
         subvars = ['rho','Tz','LWC','age']
 
-        if VW in subvars:
-            data_out = np.column_stack((Mout_dict[VW][:,0],Mout_dict[VW][:,1::5]))
+        subset_time = True
+        if ((VW in subvars) and (subset_time)):
+            # data_out = np.column_stack((Mout_dict[VW][:,0],Mout_dict[VW][:,1::5]))
+            data_out = np.vstack((Mout_dict[VW][0,:],Mout_dict[VW][1::5,:]))
 
         else:
             data_out = Mout_dict[VW]
