@@ -42,28 +42,36 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
         else:
             wn = VW
 
-        f4.create_dataset(wn, data = Mout_dict[VW])
+        subvars = ['rho','Tz','LWC','age']
 
-    if forcing_dict:
-        ks = list(forcing_dict)
-        ll = len(forcing_dict[ks[0]])
-        forcing_out = np.zeros([ll,6])
-        forcing_out[:,0] = forcing_dict['dectime']
-        forcing_out[:,1] = forcing_dict['TSKIN']
-        forcing_out[:,2] = forcing_dict['BDOT']
-        try:
-            forcing_out[:,3] = forcing_dict['SMELT']
-        except:
-            forcing_out[:,3] = -9999* np.ones_like(forcing_dict['dectime'])
-        try:
-            forcing_out[:,4] = forcing_dict['RAIN']
-        except:
-            forcing_out[:,4] = -9999* np.ones_like(forcing_dict['dectime'])
-        try:
-            forcing_out[:,5] = forcing_dict['SUBLIM']
-        except:
-            forcing_out[:,5] = -9999* np.ones_like(forcing_dict['dectime'])
-        f4.create_dataset('forcing',data=forcing_out,dtype='float64')
+        if VW in subvars:
+            data_out = np.column_stack((Mout_dict[VW][:,0],Mout_dict[VW][:,1::5]))
+
+        else:
+            data_out = Mout_dict[VW]
+
+        f4.create_dataset(wn, data = data_out)
+
+    # if forcing_dict:
+    #     ks = list(forcing_dict)
+    #     ll = len(forcing_dict[ks[0]])
+    #     forcing_out = np.zeros([ll,6])
+    #     forcing_out[:,0] = forcing_dict['dectime']
+    #     forcing_out[:,1] = forcing_dict['TSKIN']
+    #     forcing_out[:,2] = forcing_dict['BDOT']
+    #     try:
+    #         forcing_out[:,3] = forcing_dict['SMELT']
+    #     except:
+    #         forcing_out[:,3] = -9999* np.ones_like(forcing_dict['dectime'])
+    #     try:
+    #         forcing_out[:,4] = forcing_dict['RAIN']
+    #     except:
+    #         forcing_out[:,4] = -9999* np.ones_like(forcing_dict['dectime'])
+    #     try:
+    #         forcing_out[:,5] = forcing_dict['SUBLIM']
+    #     except:
+    #         forcing_out[:,5] = -9999* np.ones_like(forcing_dict['dectime'])
+    #     f4.create_dataset('forcing',data=forcing_out,dtype='float64')
 
     f4.close()
 
