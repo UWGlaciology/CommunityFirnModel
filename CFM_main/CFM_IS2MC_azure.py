@@ -284,7 +284,7 @@ if __name__ == '__main__':
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
     configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
     configPath_in = 'json/'+configName
-    shutil.copyfile(config_in, configName)
+    shutil.copyfile(config_in, configPath_in)
     
     if os.path.isfile(os.path.join(c['resultsFolder'],configName)):
         CFMconfig = os.path.join(c['resultsFolder'],configName)
