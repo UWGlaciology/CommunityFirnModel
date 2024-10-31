@@ -160,6 +160,7 @@ if __name__ == '__main__':
     if c['runloc'] == 'azure':
         zarr_source = 'azure'
         ll_list = np.genfromtxt(Path(CFM_path,'IS2_icepixels.csv'),delimiter=',',skip_header=1)
+        if 
     
     elif c['runloc'] == 'discover':
         zarr_source = 'discover'
@@ -182,6 +183,31 @@ if __name__ == '__main__':
         runid = float(sys.argv[1])
     except:
         runid=-9999
+
+    c['SEB'] = True
+    calc_melt = False
+    c['MELT'] = True
+    
+    c['physRho'] = "GSFC2020"
+    c['spinUpdate'] = True
+
+    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
+
+    if runloc == 'azure':
+        c['resultspath'] = '/shared/firndata/CFM_outputs'
+    elif runloc == 'discover':
+        c['resultspath'] = '/discover/nobackup/cdsteve2/ATL_masschange/CFMoutputs'
+
+    # c['resultsFolder'] = c['resultspath'] + c['results_ext'] + rf_po
+    c['resultsFolder'] = str(Path(c['resultspath'], rf_po))
+
+    if os.path.exists(Path(c['resultsFolder'],'CFMresults.hdf5')):
+        rp_str = str(Path(c['resultsFolder'],'CFMresults.hdf5'))
+        print(f'run has already completed at:')
+        print(f'{Path(c['resultsFolder'],'CFMresults.hdf5')}')
+        print('exiting')
+        sys.exit()
+
         
     ### Get climate data from zarr
     ii,jj,y_val,x_val,df_daily = MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source=zarr_source)
@@ -211,22 +237,7 @@ if __name__ == '__main__':
 
     #######
 
-    c['SEB'] = True
-    calc_melt = False
-    c['MELT'] = True
-    
-    c['physRho'] = "GSFC2020"
-    c['spinUpdate'] = True
 
-    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
-
-    if runloc == 'azure':
-        c['resultspath'] = '/shared/firndata/CFM_outputs'
-    elif runloc == 'discover':
-        c['resultspath'] = '/discover/nobackup/cdsteve2/ATL_masschange/CFMoutputs'
-
-    # c['resultsFolder'] = c['resultspath'] + c['results_ext'] + rf_po
-    c['resultsFolder'] = str(Path(c['resultspath'], rf_po))
 
     c['y_int'] = float(y_int)
     c['x_int'] = float(x_int)
@@ -269,7 +280,7 @@ if __name__ == '__main__':
     print(f'depth_S1: {depth_S1}')
     print(f'depth_S2: {depth_S2}')
     
-    c["NewSpin"] = True
+    c["NewSpin"] = False
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
     configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
@@ -287,12 +298,10 @@ if __name__ == '__main__':
     with open(configPath_in,'w+') as fp:
         fp.write(json.dumps(c,sort_keys=True, indent=4, separators=(',', ': ')))
 
-    # if 'NewSpin' in c:
-    #     NewSpin = c['NewSpin']
-    # else:
-    #     NewSpin = True
-    
-    NewSpin = False
+    if 'NewSpin' in c:
+        NewSpin = c['NewSpin']
+    else:
+        NewSpin = False
 
     ### Create CFM instance by passing config file and forcing data, then run the model
     firn = FirnDensityNoSpin(CFMconfig, climateTS = climateTS, NewSpin = NewSpin, SEBfluxes = SEBfluxes)
