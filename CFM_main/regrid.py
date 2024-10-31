@@ -232,7 +232,7 @@ def regrid22(self):
         self.age        = np.concatenate((self.age[0:ind2a],[g2age],self.age[ind2b:-1],g3age))
         self.bdot_mean  = np.concatenate((self.bdot_mean[0:ind2a],[g2bdm],self.bdot_mean[ind2b:-1],g3bdm))
         self.LWC        = np.concatenate((self.LWC[0:ind2a],[g2lwc],self.LWC[ind2b:-1],g3lwc))
-        self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*self.dx*GRAVITY
+        self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*GRAVITY #* self.dx
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.gridtrack  = np.concatenate((self.gridtrack[0:ind2a],[g2gt],self.gridtrack[ind2b:-1],g3gt))
         if self.r2 is not None:
