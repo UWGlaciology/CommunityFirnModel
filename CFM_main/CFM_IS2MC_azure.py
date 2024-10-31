@@ -203,7 +203,7 @@ if __name__ == '__main__':
     if os.path.exists(Path(c['resultsFolder'],'CFMresults.hdf5')):
         rp_str = str(Path(c['resultsFolder'],'CFMresults.hdf5'))
         print(f'run has already completed at:')
-        print(f'{Path(c['resultsFolder'],'CFMresults.hdf5')}')
+        print(f'{rp_str}')
         print('exiting')
         sys.exit()
 
