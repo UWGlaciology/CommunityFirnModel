@@ -436,6 +436,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
 
+        print(f'BDOT_mean_IE: {BDOT_mean_IE}')
+        print(f'T_mean: {T_mean}')
+
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)    
         if not desired_depth:
@@ -536,6 +539,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             T_mean = (df_CLIM_re['TSKIN']).mean()
         except:
             T_mean = (df_CLIM_re['T2m']).mean()
+
+        print(f'BDOT_mean_IE: {BDOT_mean_IE}')
+        print(f'T_mean: {T_mean}')
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
