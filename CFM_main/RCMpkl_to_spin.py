@@ -546,15 +546,19 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
 
-        if not desired_depth:
+        if ((not desired_depth) and (np.any(rho>=rho_bottom))):
             # desired_depth = hh[np.where(rho>=916)[0][0]]
             desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]
             depth_S1 = hh[np.where(rho>=450)[0][0]]
             depth_S2 = hh[np.where(rho>=650)[0][0]]
-        else:
+        elif desired_depth:
             desired_depth = desired_depth
             depth_S1 = desired_depth * 0.5
             depth_S2 = desired_depth * 0.75
+        else:
+            desired_depth = 120
+            depth_S1 = 10
+            depth_S2 = 20
 
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
