@@ -160,7 +160,6 @@ if __name__ == '__main__':
     if c['runloc'] == 'azure':
         zarr_source = 'azure'
         ll_list = np.genfromtxt(Path(CFM_path,'IS2_icepixels.csv'),delimiter=',',skip_header=1)
-        if 
     
     elif c['runloc'] == 'discover':
         zarr_source = 'discover'
