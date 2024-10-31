@@ -14,6 +14,7 @@ import io
 from pathlib import Path
 # import s3fs
 # import fsspec
+import socket
 
 """
 CFM_hpc.py
@@ -133,8 +134,12 @@ if __name__ == '__main__':
     ### x_int = -54042
     ### y_int = -2579982
     ### point in IS2_icepixels.csv: 6304
-    
-    runloc = 'discover'
+    hh = socket.gethostname()
+    if 'disc' in hh:
+        runloc = 'discover'
+    else:
+        runloc = 'azure'
+        
     seb = True
     LWdown_source = 'EMIS_eff' #EMIS_eff, MERRA2
     ALBEDO_source = 'M2_interp' #post, M2_interp
