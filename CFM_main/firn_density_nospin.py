@@ -979,7 +979,7 @@ class FirnDensityNoSpin:
 
             if self.c['merging']: # merging may be deprecated (check with VV)
                 lwcPreMerge = np.sum(self.LWC)
-                if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging                     
+                if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging 
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
                         self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergesurf(self,self.c['merge_min'],iii)                    
                 if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                   
