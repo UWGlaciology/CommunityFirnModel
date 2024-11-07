@@ -232,6 +232,8 @@ if __name__ == '__main__':
     print(df_daily.head())
     df_spy = 365.25
     bdot_mean = (df_daily['BDOT']*df_spy/917).mean()
+    # bdot_mean = ((df_daily['BDOT']+(df_daily['SUBLIM']))*df_spy/917).mean()
+    # BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
     print(f'bdot mean: {bdot_mean}')
 
     #######
@@ -258,18 +260,22 @@ if __name__ == '__main__':
     
     ####
     if bdot_mean>=0.15:
+        print('one')
         pass
     elif ((bdot_mean>0.05) & (bdot_mean<0.15)):
+        print('two')
         c["grid1bottom"] = min(3,depth_S1)
         c["grid2bottom"] = min(10,depth_S2)
         c['nodestocombine'] = 30 
         c['multnodestocombine'] = 12
     elif bdot_mean<0.02:
+        print('three')
         c["grid1bottom"] = 1
         c["grid2bottom"] = 5
         c['nodestocombine'] = 180 
         c['multnodestocombine'] = 12
     else:
+        print('four')
         c["grid1bottom"] = 2
         c["grid2bottom"] = 10
         c['nodestocombine'] = 90 
