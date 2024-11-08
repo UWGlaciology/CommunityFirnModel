@@ -237,9 +237,6 @@ if __name__ == '__main__':
     print(f'bdot mean: {bdot_mean}')
 
     #######
-
-
-
     c['y_int'] = float(y_int)
     c['x_int'] = float(x_int)
     c['y_val'] = float(y_val)
@@ -260,22 +257,18 @@ if __name__ == '__main__':
     
     ####
     if bdot_mean>=0.15:
-        print('one')
         pass
     elif ((bdot_mean>0.05) & (bdot_mean<0.15)):
-        print('two')
         c["grid1bottom"] = min(3,depth_S1)
         c["grid2bottom"] = min(10,depth_S2)
         c['nodestocombine'] = 30 
         c['multnodestocombine'] = 12
     elif bdot_mean<0.02:
-        print('three')
         c["grid1bottom"] = 1
         c["grid2bottom"] = 5
         c['nodestocombine'] = 180 
         c['multnodestocombine'] = 12
     else:
-        print('four')
         c["grid1bottom"] = 2
         c["grid2bottom"] = 10
         c['nodestocombine'] = 90 
