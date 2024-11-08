@@ -134,7 +134,7 @@ def calcSEB(SWGNT,LWGAB,HFLUX,EFLUX,TS,tindex,dt,GHTSKIN=0,dz=0.05,rhos=400):
             
     return TcalcH,meltmassH
 
-def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False,num_reps=None):
+def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False,num_reps=None,bdm_sublim=True):
     '''
     load a pandas dataframe, called df_CLIM, that will be resampled and then used 
     to create a time series of climate variables for spin up. 
@@ -243,10 +243,14 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         if 'SUBLIM' not in df_CLIM_re:
             df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
             print('SUBLIM not in df_CLIM! (RCMpkl_to_spin.py, 232')
-
-        BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+        
+        if bdm_sublim:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+        else:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
 
+        print(f'stepsperyear (RCM): {stepsperyear}')
         print(f'BDOT_mean_IE: {BDOT_mean_IE}')
         print(f'T_mean: {T_mean}')
 
@@ -433,9 +437,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         if 'SUBLIM' not in df_CLIM_re:
             df_CLIM_re['SUBLIM'] = np.zeros_like(df_CLIM_re['BDOT'])
 
-        BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+        if bdm_sublim:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+        else:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
         T_mean = (df_TS_re['TSKIN']).mean()
 
+        print(f'stepsperyear (RCM): {stepsperyear}')
         print(f'BDOT_mean_IE: {BDOT_mean_IE}')
         print(f'T_mean: {T_mean}')
 
@@ -533,7 +541,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         stepsperyear = 1/(df_CLIM_re.decdate.diff().mean())
         stepsperyear_seb = 1/(df_CLIM_seb.decdate.diff().mean())
 
-        BDOT_mean_IE = (df_CLIM_re['BDOT']*stepsperyear/917).mean()
+        if bdm_sublim:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+        else:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
         
         try:
             T_mean = (df_CLIM_re['TSKIN']).mean()

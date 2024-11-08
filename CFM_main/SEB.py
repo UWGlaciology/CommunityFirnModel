@@ -5,7 +5,7 @@ import numpy as np
 from scipy import optimize
 from constants import *
 # import os
-# import sys
+import sys
 import math, cmath
 # try:
 # from numba import njit
@@ -306,14 +306,19 @@ class SurfaceEnergyBudget:
             r = quartic_roots(pmat)
             Tnew = (r[((np.isreal(r)) & (r>0))].real)
             Tnew[np.isnan(e)] = np.nan
+            try:
+                if Tnew>=273.15:
+                    Tcalc[kk] = 273.15000000000000        
+                    meltmass[kk] = (flux_df1_r[kk] - self.SBC*273.15**4) / LF_I * dt #multiply by dt to put in units per time step
 
-            if Tnew>=273.15:
-                Tcalc[kk] = 273.15000000000000        
-                meltmass[kk] = (flux_df1_r[kk] - self.SBC*273.15**4) / LF_I * dt #multiply by dt to put in units per time step
-
-            else:
-                Tcalc[kk] = Tnew
-                meltmass[kk] = 0
+                else:
+                    Tcalc[kk] = Tnew
+                    meltmass[kk] = 0
+            except:
+                print(f'r: {r}')
+                print(f'Tnew:{Tnew}')
+                print(iii)
+                sys.exit()
 
         Tsurface_out = np.mean(Tcalc)
         meltmass_out = np.sum(meltmass) #if you sum the mass, there will be a too much melt because model resolution does not also calculate the temperature profile during the colder hours

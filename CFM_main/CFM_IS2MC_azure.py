@@ -80,7 +80,7 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
             df_seconds = df_sub.index.diff().mean().total_seconds()
 
             df_sub['RAIN'] = (df_sub['PRECLS'] + df_sub['PRECCU']) * df_seconds
-            df_sub['EVAP'] = -1 * df_sub['EVAP'] * df_seconds # multiply by -1 because of MERRA2 sign convention
+            df_sub['EVAP'] = -1 * df_sub['EVAP'] * df_seconds # multiply by -1 because of MERRA2 sign - this makes negative sign mean sublimation (mass loss)
             df_sub['PRECSN'] = df_sub['PRECSN'] * df_seconds
             df_sub['SMELT'] = df_sub['SMELT'] * df_seconds
 
@@ -230,14 +230,19 @@ if __name__ == '__main__':
 
     print(ii, jj, y_val, x_val)
     print(df_daily.head())
-    df_spy = 365.25
-    bdot_mean = (df_daily['BDOT']*df_spy/917).mean()
-    # bdot_mean = ((df_daily['BDOT']+(df_daily['SUBLIM']))*df_spy/917).mean()
-    # BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
+    df_spy = 365.25*24*3600 / (df_daily.index.to_series().diff()).dt.total_seconds().mean()
+    print(f'stepsperyear (az): {df_spy}')
+    
+    c['bdm_sublim'] = False
+    
+    if c['bdm_sublim']:
+        bdot_mean = ((df_daily['BDOT']+(df_daily['SUBLIM']))*df_spy/917).mean()
+    else:
+        bdot_mean = (df_daily['BDOT']*df_spy/917).mean()
+
     print(f'bdot mean: {bdot_mean}')
 
     #######
-
 
 
     c['y_int'] = float(y_int)
@@ -249,14 +254,13 @@ if __name__ == '__main__':
 
     climateTS, StpsPerYr, depth_S1, depth_S2, grid_bottom, SEBfluxes = (
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
-        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt))
+        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
 
     c["stpsPerYear"] = float('%.2f' % (StpsPerYr))
     c["stpsPerYearSpin"] = float('%.2f' % (StpsPerYr))
     c["grid1bottom"] = float('%.1f' %(depth_S1))
     c["grid2bottom"] = float('%.1f' %(depth_S2))
     c["HbaseSpin"] = float('%.1f' %(3000 - grid_bottom))
-    
     
     ####
     if bdot_mean>=0.15:
@@ -281,9 +285,8 @@ if __name__ == '__main__':
         c['nodestocombine'] = 90 
         c['multnodestocombine'] = 12
     ####
-    
-    print(f'depth_S1: {depth_S1}')
-    print(f'depth_S2: {depth_S2}')
+    print(f'depth 1: {c["grid1bottom"]}')
+    print(f'depth 2: {c["grid2bottom"]}')
     
     c["NewSpin"] = False
 

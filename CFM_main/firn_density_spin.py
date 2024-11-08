@@ -128,6 +128,11 @@ class FirnDensitySpin:
         else:
             print('making dir')
             os.makedirs(self.c['resultsFolder'])
+            
+        if 'bdm_sublim' in self.c:
+            bdm_sublim = self.c['bdm_sublim']
+        else:
+            bdm_sublim = True
 
         ############################
         ##### load input files #####
@@ -136,11 +141,18 @@ class FirnDensitySpin:
         if climateTS != None:
             input_temp = climateTS['TSKIN']
             try:
-                input_bdot = climateTS['BDOT'] + climateTS['SUBLIM']
+                if bdm_sublim:
+                    input_bdot = climateTS['BDOT'] + climateTS['SUBLIM']
+                    print('sublim included in mean bdot calc (firn_density_spin)')
+                else:
+                    input_bdot = climateTS['BDOT']
+                    print('sublim not included in mean bdot calc (firn_density_spin)')
             except:
                 input_bdot = climateTS['BDOT']
+                print('sublim not included in mean bdot calc (firn_density_spin) (sublim not found)')
             input_year_temp = input_year_bdot = climateTS['time']
-       
+            print(f'input_bdot(spin):{np.mean(input_bdot)}')
+               
         else:
             input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
             input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
