@@ -963,6 +963,9 @@ class FirnDensityNoSpin:
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
+            
+            # if iii==10979:
+            #     print(f'mtime: {mtime}')
 
             lwc_startofloop = self.LWC.copy()
             mass_startofloop = self.mass.copy()

@@ -190,7 +190,7 @@ if __name__ == '__main__':
     c['physRho'] = "GSFC2020"
     c['spinUpdate'] = True
 
-    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
+    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}_writesds' #results path
 
     if runloc == 'azure':
         c['resultspath'] = '/shared/firndata/CFM_outputs'
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     df_spy = 365.25*24*3600 / (df_daily.index.to_series().diff()).dt.total_seconds().mean()
     print(f'stepsperyear (az): {df_spy}')
     
-    c['bdm_sublim'] = False
+    c['bdm_sublim'] = True
     
     if c['bdm_sublim']:
         bdot_mean = ((df_daily['BDOT']+(df_daily['SUBLIM']))*df_spy/917).mean()
@@ -255,6 +255,21 @@ if __name__ == '__main__':
     climateTS, StpsPerYr, depth_S1, depth_S2, grid_bottom, SEBfluxes = (
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
         spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
+    
+    write_df = True
+    if write_df:
+        i_dec = np.where(SEBfluxes['time']>=sds)[0]
+        df_daily['dectime'] = SEBfluxes['time'][i_dec]
+        df_daily.to_csv(f'CFMforcing_df_{runid}.csv')
+    
+    i1 = np.where(climateTS['time']==sds)[0][0]
+    i2 = np.where(climateTS['time']==sde+1)[0][0]
+    tsu = climateTS['time'][:i1]
+    trep = climateTS['time'][i1:i2]
+    num_reps = len(tsu)/(len(trep))
+    climateTS['sds'] = sds
+    climateTS['sde'] = sde
+    climateTS['num_reps'] = num_reps
 
     c["stpsPerYear"] = float('%.2f' % (StpsPerYr))
     c["stpsPerYearSpin"] = float('%.2f' % (StpsPerYr))
@@ -288,7 +303,7 @@ if __name__ == '__main__':
     print(f'depth 1: {c["grid1bottom"]}')
     print(f'depth 2: {c["grid2bottom"]}')
     
-    c["NewSpin"] = False
+    c["NewSpin"] = True
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
     configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'

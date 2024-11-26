@@ -272,6 +272,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             pass
         else:
             num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+        print(f'num_reps:{num_reps}')
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])
@@ -462,6 +463,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
         num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+        print(num_reps)
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])
@@ -574,6 +576,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
         num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
+        print(num_reps)
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])
