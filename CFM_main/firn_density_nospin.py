@@ -976,7 +976,7 @@ class FirnDensityNoSpin:
                     pass
                 else:
                     ntime = time.time()
-                    print('estimated model run time (seconds):', self.stp*(ntime-start_time)/1000)
+                    print(f'estimated model run time (seconds): {self.stp*(ntime-start_time)/1000}', flush=True)
 
             ### Merging process #VV ###
 
