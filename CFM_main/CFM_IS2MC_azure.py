@@ -17,23 +17,21 @@ from pathlib import Path
 import socket
 
 """
-CFM_hpc.py
+CFM_IS2MC_azure.py
 =======
 This file configures and runs the CFM.
-- On SMCE, it goes in CFM_main 
-- input climate data come from a zarr with daily MERRA-2
+- It goes in CFM_main 
+- input climate data come from a zarr with 4h MERRA-2
 - (the merra-2 data are  preprocessed for this purpose)
 - this script creates a .json configuration file
 - CFM runs with the climate input and config file, results get put
   in the specified directory.
 
-to test on demand: 
+to test on demand: NEED TO UPDATE THIS
 srun -N1 -n1 -c1 --exclusive --partition=hpc-demand-36 singularity run -B /efs/maxstev/CFM/CommunityFirnModel/CFM_main,/efs/maxstev/CFMresultsSNOWPACK_varrho,/efs/maxstev/ ~/containers/ilab-cfm-1.1.0.sif python /efs/maxstev/CFM/CommunityFirnModel/CFM_main/CFM_hpc_SEB_zarr.py 589 -9999
 
 run this script using:
->>>python CFM_hpc.py "LAT,LON" 
-where LAT,LON are your latitude and longitude, e.g. "72.5,-36.5"
-
+>>>python CFM_IS2MC_azure.py X (where X is an integer) 
 """
 
 import sys
@@ -49,9 +47,9 @@ import json
 import shutil
 import RCMpkl_to_spin as RCM
 
-def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
+def MERRA2_zarr_to_dataframe(y_int,x_int,icesheet,zarr_source='azure'):
     '''
-    Create a pandas dataframe for a site in Greenland
+    Create a pandas dataframe for a site in Greenland or Antarctica
     returns:
     df_daily: a dataframe holding all of the forcing fields needed for CFM run
     
@@ -84,7 +82,9 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
             df_sub['PRECSN'] = df_sub['PRECSN'] * df_seconds
             df_sub['SMELT'] = df_sub['SMELT'] * df_seconds
 
-            drn = {'T2M_i':'T2m','TS_i':'TSKIN','EVAP':'SUBLIM','HFLUX':'QH','EFLUX':'QL','SWGDN':'SW_d','LWGAB':'LW_d_M2','RAIN':'RAIN','PRECSN':'BDOT','ALBEDO':'ALBEDO_i','SMELT':'SMELT','SWGNT':'SW_n','EMIS_eff':'EMIS_eff'}
+            ### Below: use the T2M_i line to use the temps calculated from lapse rate; use the other for hte bilinear interp.
+            # drn = {'T2M_i':'T2m','TS_i':'TSKIN','EVAP':'SUBLIM','HFLUX':'QH','EFLUX':'QL','SWGDN':'SW_d','LWGAB':'LW_d_M2','RAIN':'RAIN','PRECSN':'BDOT','ALBEDO':'ALBEDO_i','SMELT':'SMELT','SWGNT':'SW_n','EMIS_eff':'EMIS_eff'}
+            drn = {'T2M':'T2m','TS':'TSKIN','EVAP':'SUBLIM','HFLUX':'QH','EFLUX':'QL','SWGDN':'SW_d','LWGAB':'LW_d_M2','RAIN':'RAIN','PRECSN':'BDOT','ALBEDO':'ALBEDO_i','SMELT':'SMELT','SWGNT':'SW_n','EMIS_eff':'EMIS_eff'}
 
             df_sub = df_sub[drn.keys()]
             df_sub.rename(mapper=drn,axis=1,inplace=True)
@@ -95,11 +95,17 @@ def MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source='azure'):
     df_dict = {}
     for decade in decades:
         if zarr_source=='discover':
-            filename = f"/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_emis/zarr/M2_GrIS_4h_IS2mc_{decade}.zarr.zip"
-            # fn_EE = '/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_IS2mc/MERRA2_GrIS_4h_eff_emis_ALL.nc'
+            if icesheet=='GrIS':
+                zarr_path = Path("/discover/nobackup/cdsteve2/climate/MERRA2/GrIS_emis/zarr/")
+            elif icesheet=='AIS':
+                zarr_path = Path("/discover/nobackup/projects/icesat2/firn/ATL_masschange/CFM_forcing/AIS/zarr")    
         elif zarr_source=='azure':
-            filename = f'/shared/firndata/M2_GrIS_4h_IS2mc_{decade}.zarr.zip'
-            # fn_EE = '/shared/firndata/MERRA2_GrIS_4h_eff_emis_ALL.zarr.zip'
+            if icesheet=='GrIS':
+                zarr_path = Path("/shared/firndata/")
+            elif icesheet=='AIS':
+                zarr_path = Path("/shared/home/cdsteve2/firnadls/CFM_inputs/AIS/")
+            
+        filename = Path(zarr_path,f"M2_{icesheet}_4h_IS2mc_{decade}.zarr.zip")
 
         # with xr.open_dataset(filename,engine='zarr') as dsZ:
         with xr.open_zarr(filename) as dsZ:
@@ -139,6 +145,8 @@ if __name__ == '__main__':
         runloc = 'discover'
     else:
         runloc = 'azure'
+
+    icesheet = 'AIS'
         
     seb = True
     LWdown_source = 'EMIS_eff' #EMIS_eff, MERRA2
@@ -159,11 +167,11 @@ if __name__ == '__main__':
 
     if c['runloc'] == 'azure':
         zarr_source = 'azure'
-        ll_list = np.genfromtxt(Path(CFM_path,'IS2_icepixels.csv'),delimiter=',',skip_header=1)
+        ll_list = np.genfromtxt(Path(CFM_path,f'IS2_icepixels_{icesheet}.csv'),delimiter=',',skip_header=1)
     
     elif c['runloc'] == 'discover':
         zarr_source = 'discover'
-        ll_list = np.genfromtxt(Path(CFM_path,'IS2_icepixels.csv'),delimiter=',',skip_header=1)
+        ll_list = np.genfromtxt(Path(CFM_path,f'IS2_icepixels_{icesheet}.csv'),delimiter=',',skip_header=1)
     
     if c['runloc']=='local':
         x_int = c['x_val']
@@ -190,12 +198,13 @@ if __name__ == '__main__':
     c['physRho'] = "GSFC2020"
     c['spinUpdate'] = True
 
-    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}_writesds' #results path
+    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
 
     if runloc == 'azure':
-        c['resultspath'] = '/shared/firndata/CFM_outputs'
+        # c['resultspath'] = '/shared/firndata/CFM_outputs' # previous GrIS outputs
+        c['resultspath'] = f'/shared/home/cdsteve2/firnadls/CFM_outputs/{icesheet}' # cheaper to put on alds
     elif runloc == 'discover':
-        c['resultspath'] = '/discover/nobackup/cdsteve2/ATL_masschange/CFMoutputs'
+        c['resultspath'] = f'/discover/nobackup/cdsteve2/ATL_masschange/CFMoutputs/{icesheet}'
 
     # c['resultsFolder'] = c['resultspath'] + c['results_ext'] + rf_po
     c['resultsFolder'] = str(Path(c['resultspath'], rf_po))
@@ -209,9 +218,13 @@ if __name__ == '__main__':
 
         
     ### Get climate data from zarr
-    ii,jj,y_val,x_val,df_daily = MERRA2_zarr_to_dataframe(y_int,x_int,zarr_source=zarr_source)
-    sds = 1980.0 #spin date start
-    sde = 1995.0 #spin date end
+    ii,jj,y_val,x_val,df_daily = MERRA2_zarr_to_dataframe(y_int,x_int,icesheet,zarr_source=zarr_source)
+    if icesheet=='GrIS':
+        sds = 1980.0 #spin date start
+        sde = 1995.0 #spin date end
+    elif icesheet=='AIS':
+        sds = 1980.0 #spin date start
+        sde = 2020.0 #spin date end        
     y_w = y_val
     x_w = x_val
 
@@ -281,19 +294,19 @@ if __name__ == '__main__':
     if bdot_mean>=0.15:
         print('one')
         pass
-    elif ((bdot_mean>0.05) & (bdot_mean<0.15)):
+    elif ((bdot_mean>0.06) & (bdot_mean<0.15)):
         print('two')
         c["grid1bottom"] = min(3,depth_S1)
         c["grid2bottom"] = min(10,depth_S2)
         c['nodestocombine'] = 30 
         c['multnodestocombine'] = 12
-    elif bdot_mean<0.02:
+    elif bdot_mean<0.03:
         print('three')
         c["grid1bottom"] = 1
         c["grid2bottom"] = 5
         c['nodestocombine'] = 180 
         c['multnodestocombine'] = 12
-    else:
+    else: # between 0.02 and 0.05
         print('four')
         c["grid1bottom"] = 2
         c["grid2bottom"] = 10
@@ -306,7 +319,7 @@ if __name__ == '__main__':
     c["NewSpin"] = True
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
-    configName = f'CFMconfig_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
+    configName = f'CFMconfig_{icesheet}_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
     configPath_in = 'json/'+configName
     shutil.copyfile(config_in, configPath_in)
     

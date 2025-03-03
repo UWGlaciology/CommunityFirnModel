@@ -229,8 +229,8 @@ class FirnDensityNoSpin:
             if climateTS != None: # Input data comes from the input dictionary
                 if updatedStartDate is not None:
                     self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
-                    if self.SEBfluxes is not None:
-                        
+                    print(f'start_ind: {self.start_ind}')
+                    if self.SEBfluxes is not None:                        
                         self.start_ind_EF = np.where(self.SEBfluxes['time']>=updatedStartDate)[0][0]
                 else:
                     self.start_ind = 0

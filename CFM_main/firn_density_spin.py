@@ -432,6 +432,11 @@ class FirnDensitySpin:
         if self.c['ReehCorrectedT']:
             self.rho = 900 * np.ones_like(self.rho) # use to just set a solid ice column to initialize
 
+        if climateTS is not None: # added 25/03/03: if using climateTS, assign the time at end of spinup to be start of climate forcing
+            self.spin_time = climateTS['time'][0]
+        else:
+            self.spin_time = None
+
 
     ############################
     ##### END INIT #############
@@ -640,19 +645,23 @@ class FirnDensitySpin:
                 # self.rho = initfirn['density']
                 # self.age = np.interp(self.z,zold,self.age)
                 # ###
-
-                self.rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
-                self.Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
-                self.age_time        = np.concatenate(([self.t * iii + 1], self.age))
-                self.z_time          = np.concatenate(([self.t * iii + 1], self.z))
+                if self.spin_time is not None:
+                    pass
+                else:
+                    self.spin_time = self.t * iii + 1
+                
+                self.rho_time        = np.concatenate(([self.spin_time], self.rho))
+                self.Tz_time         = np.concatenate(([self.spin_time], self.Tz))
+                self.age_time        = np.concatenate(([self.spin_time], self.age))
+                self.z_time          = np.concatenate(([self.spin_time], self.z))
 
 
                 if self.c['physGrain']:
-                    self.r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
+                    self.r2_time     = np.concatenate(([self.spin_time], self.r2))
                 else:
                     self.r2_time     = None
                 if self.THist:                
-                    self.Hx_time     = np.concatenate(([self.t * iii + 1], self.Hx))
+                    self.Hx_time     = np.concatenate(([self.spin_time], self.Hx))
                 else:
                     self.Hx_time     = None
                 if self.c['isoDiff']:
@@ -660,27 +669,27 @@ class FirnDensitySpin:
                         # self.Iso_sig2_z[isotope] = np.interp(self.z,zold,self.Iso_sig2_z[isotope]) ###XXX
 
 
-                        self.iso_out[isotope]    = np.concatenate(([self.t * iii + 1], self.Isoz[isotope]))
-                        self.iso_sig2_out[isotope] = np.concatenate(([self.t * iii + 1], self.Iso_sig2_z[isotope]))
+                        self.iso_out[isotope]    = np.concatenate(([self.spin_time], self.Isoz[isotope]))
+                        self.iso_sig2_out[isotope] = np.concatenate(([self.spin_time], self.Iso_sig2_z[isotope]))
                         if ((self.c['initprofile']) and ('iso{}'.format(isotope) in list(initfirn))):
                             print('Interpolating isotope {}'.format(isotope))
                             isoIntFun = interpolate.interp1d(init_depth,initfirn['iso{}'.format(isotope)].values,'nearest',fill_value='extrapolate')
-                            self.iso_out[isotope] = np.concatenate(([self.t * iii + 1], isoIntFun(self.z)))
+                            self.iso_out[isotope] = np.concatenate(([self.spin_time], isoIntFun(self.z)))
 
 
                             # self.iso_out[isotope] = np.interp(self.z,init_depth,initfirn['iso{}'.format(isotope)].values)
                 else:
                     self.iso_time    = None
                 if self.c['MELT']:
-                    self.LWC_time     = np.concatenate(([self.t * iii + 1], self.LWC)) #VV
+                    self.LWC_time     = np.concatenate(([self.spin_time], self.LWC)) #VV
                 else: #VV
                     self.LWC_time     = None #VV
                 if self.doublegrid:
-                    self.grid_time   = np.concatenate(([self.t * iii + 1], self.gridtrack))
+                    self.grid_time   = np.concatenate(([self.spin_time], self.gridtrack))
                 else:
                     self.grid_time   = None
                 # if self.write_bdot:
-                    # self.bdot_mean_time = np.concatenate(([self.t * iii + 1], self.bdot_mean))
+                    # self.bdot_mean_time = np.concatenate(([self.spin_time], self.bdot_mean))
                 # else:
                     # self.bdot_mean_time = None
 
