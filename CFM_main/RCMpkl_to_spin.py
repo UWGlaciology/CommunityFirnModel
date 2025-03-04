@@ -581,6 +581,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             depth_S2 = 20
 
         #### Make spin up series ###
+        print('line 584, rcm', flush=True)
         RCI_length = spin_date_end-spin_date_st+1
         num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
         print(num_reps)
@@ -599,7 +600,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         # smb_spin = df_CLIM_re['BDOT'][msk].values
         # tskin_spin = df_CLIM_re['TSKIN'][msk].values
-
+        print('line 603, rcm', flush=True)
         nu = len(spin_days)
         spin_days_all = np.zeros(len(sub)*nu)
 
@@ -619,11 +620,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_CLIM_decdate = df_CLIM_re.set_index('decdate')
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
-
+        print('line 623, rcm', flush=True)
         df_CLIM_seb_decdate = df_CLIM_seb.set_index('decdate')
         df_spin_seb = pd.DataFrame(spin_dict_seb,index = spin_days_all_seb)
         df_spin_seb.index.name = 'decdate'
-
+        print('line 627, rcm', flush=True)
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
         print("finished df_FULL concat", flush=True)
 
