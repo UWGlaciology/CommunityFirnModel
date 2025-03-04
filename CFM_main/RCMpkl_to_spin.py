@@ -610,12 +610,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         spin_days_all = (sub[:,np.newaxis]+spin_days).flatten()
         spin_dict = {}
         for ID in df_CLIM_ids:
-            spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub))
+            spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub)).astype('float32')
 
         spin_days_all_seb = (sub[:,np.newaxis]+spin_days_seb).flatten()
         spin_dict_seb = {}
         for ID in df_CLIM_seb_ids:
-            spin_dict_seb[ID] = np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub))
+            spin_dict_seb[ID] = np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)).astype('float32')
 
         df_CLIM_decdate = df_CLIM_re.set_index('decdate')
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
