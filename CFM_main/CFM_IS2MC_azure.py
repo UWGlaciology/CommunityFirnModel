@@ -340,6 +340,7 @@ if __name__ == '__main__':
         NewSpin = False
 
     ### Create CFM instance by passing config file and forcing data, then run the model
+    print('Configuring complete. Starting run.', flush=True)
     firn = FirnDensityNoSpin(CFMconfig, climateTS = climateTS, NewSpin = NewSpin, SEBfluxes = SEBfluxes)
     firn.time_evolve()
     ###
