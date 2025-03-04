@@ -271,6 +271,11 @@ if __name__ == '__main__':
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
         spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
     print('spin file made',flush=True)
+
+    print(f'climateTS_keys:{climateTS.keys()}')
+    print(len(climateTS['time']))
+    print(f'sebf_keys:{SEBfluxes.keys()}')
+    print(len(SEBfluxes['time']))
     
     write_df = True
     if write_df:

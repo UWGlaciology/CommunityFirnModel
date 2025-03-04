@@ -193,6 +193,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     else: #CLIM_name is not a pickle, it is the dataframe being passed
         df_CLIM = CLIM_name
 
+    #### Option 1: not using SEB; not calculating melt
     if (not SEB and not calc_melt): # just use T_surf and melt from the input climate
 
         drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
@@ -314,9 +315,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         SEBfluxes = None
 
+    ### end option 1
     ##############################################
     ##############################################
 
+    ### option 2
     elif (not SEB and calc_melt): # calculate the melt flux based on energy fluxes from climate data, but SEB module in CFM will not run
         #(this is something of a pre-calculation of the melt.)
 
@@ -505,9 +508,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
                 CD[ID] = df_FULL[ID].values * stepsperyear / 917
 
         SEBfluxes = None
+    ### end option 2
+    ##################
 
+    ### option 3
     else: #SEB True - SEB module in CFM will run
 
+        print('RCMpkl_to_spin: option 3 start', flush=True)
         l1 = df_CLIM.columns.values.tolist()
 
         if 'SMELT' in l1:
@@ -554,7 +561,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             T_mean = (df_CLIM_re['T2m']).mean()
 
         print(f'BDOT_mean_IE: {BDOT_mean_IE}')
-        print(f'T_mean: {T_mean}')
+        print(f'T_mean: {T_mean}',flush=True)
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
@@ -618,6 +625,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin_seb.index.name = 'decdate'
 
         df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+        print("finished df_FULL concat", flush=True)
 
         # df_FULL.to_csv('df_full_SEB.csv')
 
@@ -631,7 +639,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
                 CD[ID] = df_FULL[ID].values            
             else:
                 CD[ID] = df_FULL[ID].values * stepsperyear / 917
-
+        print(f"cd size: {CD['BDOT'].nbytes/1e6}", flush=True)
         SEBfluxes = {}
         SEBfluxes['time'] = df_FULL_seb.index
         SEBfluxes['dtRATIO'] = int(dtRATIO)
@@ -640,6 +648,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
                 SEBfluxes[ID] = df_FULL_seb[ID].values            
             else:
                 SEBfluxes[ID] = df_FULL_seb[ID].values * stepsperyear_seb / 917
+        print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
 
 
     return CD, stepsperyear, depth_S1, depth_S2, desired_depth, SEBfluxes
