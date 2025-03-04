@@ -216,9 +216,10 @@ if __name__ == '__main__':
         print('exiting')
         sys.exit()
 
-        
+    print('about to get zarr',flush=True)
     ### Get climate data from zarr
     ii,jj,y_val,x_val,df_daily = MERRA2_zarr_to_dataframe(y_int,x_int,icesheet,zarr_source=zarr_source)
+    print('got zarr',flush=True)
     if icesheet=='GrIS':
         sds = 1980.0 #spin date start
         sde = 1995.0 #spin date end
@@ -227,7 +228,7 @@ if __name__ == '__main__':
         sde = 2020.0 #spin date end        
     y_w = y_val
     x_w = x_val
-
+    
     if LWdown_source == 'MERRA2':
         df_daily = df_daily.rename({'LW_d_M2':'LW_d'},axis=1).drop(['LW_d_EE'],axis=1)
     # elif LWdown_source == 'EMIS_eff':
@@ -265,9 +266,11 @@ if __name__ == '__main__':
     c['runid'] = runid
     ##########
 
+    print('about to make spin file',flush=True)
     climateTS, StpsPerYr, depth_S1, depth_S2, grid_bottom, SEBfluxes = (
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
         spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
+    print('spin file made',flush=True)
     
     write_df = True
     if write_df:
