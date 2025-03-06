@@ -660,18 +660,21 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
                 CD[ID] = np.concat((spin_dict[ID],df_CLIM_re[ID].values))           
             else:
                 CD[ID] = (np.concat((spin_dict[ID],df_CLIM_re[ID].values))) * stepsperyear / 917
+        print('line 663, rcm', flush=True)
 
         SEBfluxes = {}
         # SEBfluxes['time'] = df_FULL_seb.index
         SEBfluxes['time'] = np.concat((spin_days_all,df_CLIM_seb['decdate'].values))
         SEBfluxes['dtRATIO'] = int(dtRATIO)
         for ID in df_CLIM_seb_ids:
+            print(ID,flush=True)
+            print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
             if ID not in massIDs:
                 SEBfluxes[ID] = np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))           
             else:
                 SEBfluxes[ID] = (np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))) * stepsperyear / 917
         
-        print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
+        # print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
 
 
     return CD, stepsperyear, depth_S1, depth_S2, desired_depth, SEBfluxes
