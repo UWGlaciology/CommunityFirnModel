@@ -665,7 +665,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         SEBfluxes = {}
         # SEBfluxes['time'] = df_FULL_seb.index
-        SEBfluxes['time'] = np.concat((spin_days_all,df_CLIM_seb['decdate'].values))
+        SEBfluxes['time'] = np.concat((spin_days_all_seb,df_CLIM_seb['decdate'].values))
         SEBfluxes['dtRATIO'] = int(dtRATIO)
         for ID in df_CLIM_seb_ids:
             print(ID,flush=True)
