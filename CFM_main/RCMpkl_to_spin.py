@@ -608,14 +608,14 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         spin_days_all_seb = np.zeros(len(sub)*nu_seb)
 
         spin_days_all = (sub[:,np.newaxis]+spin_days).flatten()
-        spin_dict = {}
-        for ID in df_CLIM_ids:
-            spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub)).astype('float32')
+        # spin_dict = {}
+        # for ID in df_CLIM_ids:
+        #     spin_dict[ID] = np.tile(df_CLIM_re[ID][msk].values, len(sub)).astype('float32')
 
         spin_days_all_seb = (sub[:,np.newaxis]+spin_days_seb).flatten()
-        spin_dict_seb = {}
-        for ID in df_CLIM_seb_ids:
-            spin_dict_seb[ID] = np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)).astype('float32')
+        # spin_dict_seb = {}
+        # for ID in df_CLIM_seb_ids:
+        #     spin_dict_seb[ID] = np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)).astype('float32')
 
         ### #start change 250305 ###
         # df_CLIM_decdate = df_CLIM_re.set_index('decdate')
@@ -657,9 +657,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             if ID not in massIDs:
-                CD[ID] = np.concat((spin_dict[ID],df_CLIM_re[ID].values))           
+                CD[ID] = np.concat((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))           
             else:
-                CD[ID] = (np.concat((spin_dict[ID],df_CLIM_re[ID].values))) * stepsperyear / 917
+                CD[ID] = ((np.concat((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))) * stepsperyear / 917).astype('float32')
         print('line 663, rcm', flush=True)
 
         SEBfluxes = {}
@@ -669,9 +669,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         for ID in df_CLIM_seb_ids:
             print(ID,flush=True)
             if ID not in massIDs:
-                SEBfluxes[ID] = np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))           
+                SEBfluxes[ID] = np.concat((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values)).astype('float32')
             else:
-                SEBfluxes[ID] = (np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))) * stepsperyear / 917
+                SEBfluxes[ID] = ((np.concat((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear / 917).astype('float32')
             print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
         
         # print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
