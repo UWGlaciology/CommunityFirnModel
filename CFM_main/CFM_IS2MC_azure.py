@@ -269,7 +269,7 @@ if __name__ == '__main__':
     print('about to make spin file',flush=True)
     climateTS, StpsPerYr, depth_S1, depth_S2, grid_bottom, SEBfluxes = (
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
-        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=900,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
+        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=910,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
     print('spin file made',flush=True)
 
     # print(f'climateTS_keys:{climateTS.keys()}')
