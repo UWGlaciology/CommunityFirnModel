@@ -579,6 +579,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             desired_depth = 120
             depth_S1 = 10
             depth_S2 = 20
+        print(f'grid_bottom: {desired_depth}',flush=True)
 
         #### Make spin up series ###
         print('line 584, rcm', flush=True)
