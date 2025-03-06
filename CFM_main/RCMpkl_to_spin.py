@@ -668,11 +668,11 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         SEBfluxes['dtRATIO'] = int(dtRATIO)
         for ID in df_CLIM_seb_ids:
             print(ID,flush=True)
-            print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
             if ID not in massIDs:
                 SEBfluxes[ID] = np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))           
             else:
                 SEBfluxes[ID] = (np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))) * stepsperyear / 917
+            print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
         
         # print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
 
