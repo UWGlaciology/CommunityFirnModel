@@ -654,7 +654,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #         SEBfluxes[ID] = df_FULL_seb[ID].values * stepsperyear_seb / 917
         ###
         CD = {}
-        CD['time'] = np.concat((spin_days_all_seb,df_CLIM_re['decdate'].values))
+        CD['time'] = np.concat((spin_days_all,df_CLIM_re['decdate'].values))
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             if ID not in massIDs:
