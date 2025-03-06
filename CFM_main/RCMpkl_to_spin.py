@@ -617,38 +617,60 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         for ID in df_CLIM_seb_ids:
             spin_dict_seb[ID] = np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)).astype('float32')
 
-        df_CLIM_decdate = df_CLIM_re.set_index('decdate')
-        df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
-        df_spin.index.name = 'decdate'
-        print('line 623, rcm', flush=True)
-        df_CLIM_seb_decdate = df_CLIM_seb.set_index('decdate')
-        df_spin_seb = pd.DataFrame(spin_dict_seb,index = spin_days_all_seb)
-        df_spin_seb.index.name = 'decdate'
-        print('line 627, rcm', flush=True)
-        df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        print("finished df_FULL concat", flush=True)
+        ### #start change 250305 ###
+        # df_CLIM_decdate = df_CLIM_re.set_index('decdate')
+        # df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
+        # df_spin.index.name = 'decdate'
+        # print('line 623, rcm', flush=True)
+        
+        # df_CLIM_seb_decdate = df_CLIM_seb.set_index('decdate')
+        # df_spin_seb = pd.DataFrame(spin_dict_seb,index = spin_days_all_seb)
+        # df_spin_seb.index.name = 'decdate'
+        # print('line 627, rcm', flush=True)
+        # df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+        # print("finished df_FULL concat", flush=True)
 
         # df_FULL.to_csv('df_full_SEB.csv')
 
-        df_FULL_seb = pd.concat([df_spin_seb,df_CLIM_seb_decdate])
+        # df_FULL_seb = pd.concat([df_spin_seb,df_CLIM_seb_decdate])
 
+        # CD = {}
+        # CD['time'] = df_FULL.index
+        # massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
+        # for ID in df_CLIM_ids:
+        #     if ID not in massIDs:
+        #         CD[ID] = df_FULL[ID].values            
+        #     else:
+        #         CD[ID] = df_FULL[ID].values * stepsperyear / 917
+        # print(f"cd size: {CD['BDOT'].nbytes/1e6}", flush=True)
+        # SEBfluxes = {}
+        # SEBfluxes['time'] = df_FULL_seb.index
+        # SEBfluxes['dtRATIO'] = int(dtRATIO)
+        # for ID in df_CLIM_seb_ids:
+        #     if ID not in massIDs:
+        #         SEBfluxes[ID] = df_FULL_seb[ID].values            
+        #     else:
+        #         SEBfluxes[ID] = df_FULL_seb[ID].values * stepsperyear_seb / 917
+        ###
         CD = {}
-        CD['time'] = df_FULL.index
+        CD['time'] = np.concat((spin_days_all_seb,df_CLIM_re['decdate'].values))
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             if ID not in massIDs:
-                CD[ID] = df_FULL[ID].values            
+                CD[ID] = np.concat((spin_dict[ID],df_CLIM_re[ID].values))           
             else:
-                CD[ID] = df_FULL[ID].values * stepsperyear / 917
-        print(f"cd size: {CD['BDOT'].nbytes/1e6}", flush=True)
+                CD[ID] = (np.concat((spin_dict[ID],df_CLIM_re[ID].values))) * stepsperyear / 917
+
         SEBfluxes = {}
-        SEBfluxes['time'] = df_FULL_seb.index
+        # SEBfluxes['time'] = df_FULL_seb.index
+        SEBfluxes['time'] = np.concat((spin_days_all,df_CLIM_seb['decdate'].values))
         SEBfluxes['dtRATIO'] = int(dtRATIO)
         for ID in df_CLIM_seb_ids:
             if ID not in massIDs:
-                SEBfluxes[ID] = df_FULL_seb[ID].values            
+                SEBfluxes[ID] = np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))           
             else:
-                SEBfluxes[ID] = df_FULL_seb[ID].values * stepsperyear_seb / 917
+                SEBfluxes[ID] = (np.concat((spin_dict_seb[ID],df_CLIM_seb[ID].values))) * stepsperyear / 917
+        
         print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
 
 
