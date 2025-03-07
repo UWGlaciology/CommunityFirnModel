@@ -336,7 +336,7 @@ if __name__ == '__main__':
     c["NewSpin"] = False
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
-    configName = f'CFMconfig_{icesheet}_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
+    configName = f'CFMconfig_{icesheet}_{quad}_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
     configPath_in = 'json/'+configName
     shutil.copyfile(config_in, configPath_in)
     
