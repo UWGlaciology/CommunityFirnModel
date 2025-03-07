@@ -514,7 +514,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     ### option 3
     else: #SEB True - SEB module in CFM will run
 
-        print('RCMpkl_to_spin: option 3 start', flush=True)
+        print('RCMpkl_to_spin: option 3 start')
         l1 = df_CLIM.columns.values.tolist()
 
         if 'SMELT' in l1:
@@ -561,7 +561,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             T_mean = (df_CLIM_re['T2m']).mean()
 
         print(f'BDOT_mean_IE: {BDOT_mean_IE}')
-        print(f'T_mean: {T_mean}',flush=True)
+        print(f'T_mean: {T_mean}')
 
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
@@ -581,10 +581,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             desired_depth = 120
             depth_S1 = 10
             depth_S2 = 20
-        print(f'grid_bottom: {desired_depth}',flush=True)
+        print(f'grid_bottom: {desired_depth}')
 
         #### Make spin up series ###
-        print('line 584, rcm', flush=True)
         RCI_length = spin_date_end-spin_date_st+1
         num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
         print(num_reps)
@@ -603,7 +602,6 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         # smb_spin = df_CLIM_re['BDOT'][msk].values
         # tskin_spin = df_CLIM_re['TSKIN'][msk].values
-        print('line 603, rcm', flush=True)
         nu = len(spin_days)
         spin_days_all = np.zeros(len(sub)*nu)
 
@@ -663,19 +661,16 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
                 CD[ID] = np.concat((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))           
             else:
                 CD[ID] = ((np.concat((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))) * stepsperyear / 917).astype('float32')
-        print('line 663, rcm', flush=True)
 
         SEBfluxes = {}
         # SEBfluxes['time'] = df_FULL_seb.index
         SEBfluxes['time'] = np.concat((spin_days_all_seb,df_CLIM_seb['decdate'].values))
         SEBfluxes['dtRATIO'] = int(dtRATIO)
         for ID in df_CLIM_seb_ids:
-            print(ID,flush=True)
             if ID not in massIDs:
                 SEBfluxes[ID] = np.concat((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values)).astype('float32')
             else:
                 SEBfluxes[ID] = ((np.concat((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear / 917).astype('float32')
-            print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
         
         # print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
 

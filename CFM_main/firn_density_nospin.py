@@ -123,7 +123,7 @@ class FirnDensityNoSpin:
                 else:
                     input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
                     self.c['stpsPerYear'] = 1/np.mean(np.diff(input_year_bdot))
-            print('Starting spin up', flush=True)
+            print('Starting spin up')
             firnS = FirnDensitySpin(self.c, climateTS = climateTS)
             firnS.time_evolve()
         else:
@@ -135,7 +135,7 @@ class FirnDensityNoSpin:
                 climateTS['forcing_data_start'] = climateTS['time'][0]
             forcing_writer(self,climateTS, SEBfluxes)
 
-        print("Main run starting",flush=True)
+        print("Main run starting")
         print("physics are", self.c['physRho'])
 
         ### read in initial depth, age, density, temperature from spin-up results

@@ -164,14 +164,18 @@ if __name__ == '__main__':
         c          = json.loads(jsonString) 
 
     c['runloc'] = runloc
+    quad = 'A3'
+    c['quad'] = quad 
 
     if c['runloc'] == 'azure':
         zarr_source = 'azure'
-        ll_list = np.genfromtxt(Path(CFM_path,f'IS2_icepixels_{icesheet}.csv'),delimiter=',',skip_header=1)
+        # ll_list = np.genfromtxt(Path(CFM_path,f'IS2_icepixels_{icesheet}.csv'),delimiter=',',skip_header=1)
+        ll_list = np.genfromtxt(Path(CFM_path,f'IS2_pixelstorun_{icesheet}_{quad}.csv'),delimiter=',',skip_header=1)
     
     elif c['runloc'] == 'discover':
         zarr_source = 'discover'
-        ll_list = np.genfromtxt(Path(CFM_path,f'IS2_icepixels_{icesheet}.csv'),delimiter=',',skip_header=1)
+        # ll_list = np.genfromtxt(Path(CFM_path,f'IS2_icepixels_{icesheet}.csv'),delimiter=',',skip_header=1)
+        ll_list = np.genfromtxt(Path(CFM_path,f'IS2_pixelstorun_{icesheet}_{quad}.csv'),delimiter=',',skip_header=1)
     
     if c['runloc']=='local':
         x_int = c['x_val']
@@ -198,7 +202,7 @@ if __name__ == '__main__':
     c['physRho'] = "GSFC2020"
     c['spinUpdate'] = True
 
-    rf_po = f'CFMresults_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
+    rf_po = f'CFMresults_{quad}_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}' #results path
 
     if runloc == 'azure':
         # c['resultspath'] = '/shared/firndata/CFM_outputs' # previous GrIS outputs
@@ -216,10 +220,8 @@ if __name__ == '__main__':
         print('exiting')
         sys.exit()
 
-    print('about to get zarr',flush=True)
     ### Get climate data from zarr
     ii,jj,y_val,x_val,df_daily = MERRA2_zarr_to_dataframe(y_int,x_int,icesheet,zarr_source=zarr_source)
-    print('got zarr',flush=True)
     ### spin date end is inclusive, so e.g. if sde is 2019, it goes to 12/31/19
     if icesheet=='GrIS':
         sds = 1980.0 #spin date start
@@ -267,11 +269,17 @@ if __name__ == '__main__':
     c['runid'] = runid
     ##########
 
-    print('about to make spin file',flush=True)
+    if bdot_mean>0.2:
+        rho_bottom=916
+    elif bdot_mean<0.1:
+        rho_bottom=900
+    else:
+        rho_bottom=910
+        
     climateTS, StpsPerYr, depth_S1, depth_S2, grid_bottom, SEBfluxes = (
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
-        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
-    print('spin file made',flush=True)
+        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=rho_bottom,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
+    print('spin file made')
 
     # print(f'climateTS_keys:{climateTS.keys()}')
     # print(len(climateTS['time']))
@@ -349,7 +357,7 @@ if __name__ == '__main__':
         NewSpin = False
 
     ### Create CFM instance by passing config file and forcing data, then run the model
-    print('Configuring complete. Starting run.', flush=True)
+    print('Configuring complete. Starting run.')
     firn = FirnDensityNoSpin(CFMconfig, climateTS = climateTS, NewSpin = NewSpin, SEBfluxes = SEBfluxes)
     firn.time_evolve()
     ###
