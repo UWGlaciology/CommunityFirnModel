@@ -175,6 +175,7 @@ class FirnDensityNoSpin:
         ### set up the initial age and density of the firn column
         self.age        = initAge[1:]
         self.rho        = initDensity[1:]
+        print('rho: (l178)',self.rho[0:10])
 
         ### set up model grid
         self.z          = initDepth[1:]

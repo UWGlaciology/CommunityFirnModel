@@ -566,6 +566,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         hh  = np.arange(0,501)
         age, rho = hla.hl_analytic(350,hh,T_mean,BDOT_mean_IE)
 
+        print(f'rhomax:{rho[-1]}')
+
         if ((not desired_depth) and (np.any(rho>=rho_bottom))):
             # desired_depth = hh[np.where(rho>=916)[0][0]]
             desired_depth = hh[np.where(rho>=rho_bottom)[0][0]]

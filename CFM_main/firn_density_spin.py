@@ -282,6 +282,10 @@ class FirnDensitySpin:
             # Recompute HL analytic on the regridded profile #
             self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
             print('After doublegrid, grid length is ', self.gridLen)
+
+        self.iceblock=True
+        if self.iceblock:
+            self.rho = 917*np.ones_like(self.rho)
         
         # except:
         #     self.doublegrid = False
@@ -305,7 +309,10 @@ class FirnDensitySpin:
             self.years = self.c['yearSpin'] # number of years to spin up for
         
         dt1         = S_PER_YEAR / self.c['stpsPerYear']
-        self.stp    = int(self.years*S_PER_YEAR/dt1)
+        if self.iceblock:
+            self.stp = 2
+        else:
+            self.stp    = int(self.years*S_PER_YEAR/dt1)
         self.t      =  1.0 / self.c['stpsPerYear'] # years per time step
         self.dt     = dt1 * np.ones(self.stp)
         ############################
@@ -650,7 +657,10 @@ class FirnDensitySpin:
                 else:
                     self.spin_time = self.t * iii + 1
                 
-                self.rho_time        = np.concatenate(([self.spin_time], self.rho))
+                if self.iceblock:
+                    self.rho_time        = np.concatenate(([self.spin_time], 917.0*np.ones_like(self.rho)))
+                else:
+                    self.rho_time        = np.concatenate(([self.spin_time], self.rho))
                 self.Tz_time         = np.concatenate(([self.spin_time], self.Tz))
                 self.age_time        = np.concatenate(([self.spin_time], self.age))
                 self.z_time          = np.concatenate(([self.spin_time], self.z))

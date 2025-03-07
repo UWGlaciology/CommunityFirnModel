@@ -220,12 +220,13 @@ if __name__ == '__main__':
     ### Get climate data from zarr
     ii,jj,y_val,x_val,df_daily = MERRA2_zarr_to_dataframe(y_int,x_int,icesheet,zarr_source=zarr_source)
     print('got zarr',flush=True)
+    ### spin date end is inclusive, so e.g. if sde is 2019, it goes to 12/31/19
     if icesheet=='GrIS':
         sds = 1980.0 #spin date start
         sde = 1995.0 #spin date end
-    elif icesheet=='AIS':
+    elif icesheet=='AIS': 
         sds = 1980.0 #spin date start
-        sde = 2020.0 #spin date end        
+        sde = 2019.0 #spin date end        
     y_w = y_val
     x_w = x_val
     
@@ -269,7 +270,7 @@ if __name__ == '__main__':
     print('about to make spin file',flush=True)
     climateTS, StpsPerYr, depth_S1, depth_S2, grid_bottom, SEBfluxes = (
         RCM.makeSpinFiles(df_daily,timeres=c['DFresample'],Tinterp='mean',spin_date_st = sds, 
-        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=910,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
+        spin_date_end = sde,melt=c['MELT'],desired_depth = None,SEB=c['SEB'],rho_bottom=916,calc_melt=calc_melt,bdm_sublim=c['bdm_sublim']))
     print('spin file made',flush=True)
 
     # print(f'climateTS_keys:{climateTS.keys()}')
@@ -324,7 +325,7 @@ if __name__ == '__main__':
     print(f'depth 1: {c["grid1bottom"]}')
     print(f'depth 2: {c["grid2bottom"]}')
     
-    c["NewSpin"] = True
+    c["NewSpin"] = False
 
     # configName = f'CFMconfig_{y_w}_{x_w}.json'
     configName = f'CFMconfig_{icesheet}_{dkey}_{c["physRho"]}_LW-{LWdown_source}_ALB-{ALBEDO_source}.json'
