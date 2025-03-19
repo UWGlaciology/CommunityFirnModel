@@ -252,7 +252,8 @@ class FirnDensityNoSpin:
                 
             else: # Input data comes from a .csv
                 input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
-            if input_temp[0] < 0.0:
+            # if input_temp[0] < 0.0:
+            if np.mean(input_temp) < 0.0:    
                 input_temp      = input_temp + K_TO_C
             input_temp[input_temp>T_MELT] = T_MELT
 

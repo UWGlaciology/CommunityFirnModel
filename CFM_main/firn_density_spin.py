@@ -157,7 +157,8 @@ class FirnDensitySpin:
             input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
             input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 
-        if input_temp[0] < 0.0:
+        # if input_temp[0] < 0.0:
+        if np.mean(input_temp) < 0.0:
             input_temp              = input_temp + K_TO_C
         try:
             if self.c['spinup_climate_type']=='initial':

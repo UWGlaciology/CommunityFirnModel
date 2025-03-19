@@ -149,7 +149,7 @@ def heatDiff(self,iii):
     try:
         self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
     except:
-        print(f'domain depth is {self.z[-1]}, so T10m does not exist')
+        # print(f'domain depth is {self.z[-1]}, so T10m does not exist')
         self.T10m = np.nan
 
     if self.c['MELT']:
