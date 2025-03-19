@@ -5,7 +5,7 @@ Script to change the grid to have different resolutions at different depths.
 
 from constants import *
 import numpy as np
-
+import sys
 
 
 def regrid(self):
@@ -111,6 +111,7 @@ def regrid22(self):
 
     gridtrack keeps track of which grid each layer is in
     '''
+    startlen = len(self.rho)
 
     n1      = self.c['nodestocombine'] # nodes to combine from grid1 to grid2 and to split from grid23 to grid3
     n2      = self.c['multnodestocombine'] # nodes to combine from grid2 to grid22 and to split from grid22 to grid23
@@ -232,7 +233,13 @@ def regrid22(self):
         self.age        = np.concatenate((self.age[0:ind2a],[g2age],self.age[ind2b:-1],g3age))
         self.bdot_mean  = np.concatenate((self.bdot_mean[0:ind2a],[g2bdm],self.bdot_mean[ind2b:-1],g3bdm))
         self.LWC        = np.concatenate((self.LWC[0:ind2a],[g2lwc],self.LWC[ind2b:-1],g3lwc))
-        self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*GRAVITY #* self.dx
+        try:
+            self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*GRAVITY * self.dx
+        except:
+            print(f'LWC len: {len(self.LWC)}')
+            print(f'dx len: {len(self.dx)}')
+            print(f'start len: {startlen}')
+            sys.exit()
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.gridtrack  = np.concatenate((self.gridtrack[0:ind2a],[g2gt],self.gridtrack[ind2b:-1],g3gt))
         if self.r2 is not None:
