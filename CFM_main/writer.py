@@ -256,12 +256,32 @@ def forcing_writer(self, climateTS, SEBfluxes = None):
     
     f6 = h5py.File(os.path.join(self.c['resultsFolder'], forcing_filename),'w')
     f6.create_group('main')
+    if 'sds' in  climateTS.keys():
+        sds = True
+        f6['main'].create_dataset('sds', data = climateTS['sds'])
+        f6['main'].create_dataset('sde', data = climateTS['sde'])
+        f6['main'].create_dataset('num_reps', data = climateTS['num_reps'])
+        main_start_i = np.where(climateTS['time']>=climateTS['sds'])[0][0]
+        seb_start_i = np.where(SEBfluxes['time']>=climateTS['sds'])[0][0]
+    else:
+        sds = False
+        main_start_i = 0
+        seb_start_i = 0
+            
     for VW in climateTS.keys():
-        f6['main'].create_dataset(VW, data = climateTS[VW])
+        if ((VW == 'sds') or (VW == 'sde') or (VW == 'num_reps')): 
+            pass
+        elif VW=='forcing_data_start':
+            f6['main'].create_dataset(VW, data = climateTS[VW])
+        else:
+            f6['main'].create_dataset(VW, data = climateTS[VW][main_start_i:])
     
     if SEBfluxes is not None:
         f6.create_group('SEB')
         for VW in SEBfluxes.keys():
-            f6['SEB'].create_dataset(VW, data = SEBfluxes[VW])
+            if VW == 'dtRATIO':
+                f6['SEB'].create_dataset(VW, data = SEBfluxes[VW])
+            else:
+                f6['SEB'].create_dataset(VW, data = SEBfluxes[VW][seb_start_i:])
     
     f6.close()

@@ -317,6 +317,8 @@ class SurfaceEnergyBudget:
             except:
                 print(f'r: {r}')
                 print(f'Tnew:{Tnew}')
+                print(f'T_0:{Tcalc[kk-10:kk]}')
+                
                 print(iii)
                 sys.exit()
 

@@ -123,7 +123,7 @@ class FirnDensityNoSpin:
                 else:
                     input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
                     self.c['stpsPerYear'] = 1/np.mean(np.diff(input_year_bdot))
-
+            print('Starting spin up')
             firnS = FirnDensitySpin(self.c, climateTS = climateTS)
             firnS.time_evolve()
         else:
@@ -175,6 +175,7 @@ class FirnDensityNoSpin:
         ### set up the initial age and density of the firn column
         self.age        = initAge[1:]
         self.rho        = initDensity[1:]
+        print('rho: (l178)',self.rho[0:10])
 
         ### set up model grid
         self.z          = initDepth[1:]
@@ -229,8 +230,8 @@ class FirnDensityNoSpin:
             if climateTS != None: # Input data comes from the input dictionary
                 if updatedStartDate is not None:
                     self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
-                    if self.SEBfluxes is not None:
-                        
+                    print(f'start_ind: {self.start_ind}')
+                    if self.SEBfluxes is not None:                        
                         self.start_ind_EF = np.where(self.SEBfluxes['time']>=updatedStartDate)[0][0]
                 else:
                     self.start_ind = 0
@@ -939,6 +940,7 @@ class FirnDensityNoSpin:
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
 
         if self.c['spinUpdate']:
+            print('spinUpdate is true')
             spinUpdate_final = self.c['spinUpdateDate']
             spinUpdate_interval = 100 # years
             indUpdate_vec = np.where(np.mod(self.modeltime,spinUpdate_interval)==0)[0]
@@ -964,6 +966,9 @@ class FirnDensityNoSpin:
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
+            
+            if np.mod(mtime,20)==0:
+                print(f'mtime: {mtime}')
 
             lwc_startofloop = self.LWC.copy()
             mass_startofloop = self.mass.copy()
@@ -974,7 +979,7 @@ class FirnDensityNoSpin:
                     pass
                 else:
                     ntime = time.time()
-                    print('estimated model run time (seconds):', self.stp*(ntime-start_time)/1000)
+                    print(f'estimated model run time (seconds): {self.stp*(ntime-start_time)/1000}', flush=True)
 
             ### Merging process #VV ###
 
