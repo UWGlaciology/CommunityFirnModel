@@ -227,7 +227,7 @@ class SurfaceEnergyBudget:
     ### end SEB_fqs
     ############################
 
-    def SEB_fqs_subdt(self,PhysParams,iii,T_old):
+    def SEB_fqs_subdt(self,PhysParams,iii,T_old,mtime):
         '''
         Same as above, but loops to find Ts, melt when SEB fluxes have finer time resolution
         Calculate surface energy using fqs solver
@@ -264,6 +264,9 @@ class SurfaceEnergyBudget:
         
         flux_df1 = self.df_CLIM.iloc[iiisub:iiisub+self.dtRATIO]
         flux_df1_r = flux_df1.flux.values + G
+
+        if iii==0:
+            print(list(flux_df1.columns))
 
         Tcalc = np.zeros_like(flux_df1_r)
         meltmass = np.zeros_like(flux_df1_r)
@@ -306,6 +309,18 @@ class SurfaceEnergyBudget:
             r = quartic_roots(pmat)
             Tnew = (r[((np.isreal(r)) & (r>0))].real)
             Tnew[np.isnan(e)] = np.nan
+            # if iii>535:
+            #     print('########')
+            #     print('checking in')
+            #     if kk==0:
+            #         print(f'flux_df1:{flux_df1}')
+            #         print(f'TTL:{TTL}')
+            #         print(f'T1m:{Tz[i_GL]}')
+            #     print(f'iii:{iii}')
+            #     print(f'r:{r}')
+            #     print(f'kk:{kk}')
+            #     print(f'G:{G}')
+            #     input('key to continue')
             try:
                 if Tnew>=273.15:
                     Tcalc[kk] = 273.15000000000000        
@@ -318,8 +333,12 @@ class SurfaceEnergyBudget:
                 print(f'r: {r}')
                 print(f'Tnew:{Tnew}')
                 print(f'T_0:{Tcalc[kk-10:kk]}')
-                
-                print(iii)
+                print(f'TTL: {TTL}')
+                print(f'Tz[i_GL]:{Tz[i_GL]}')
+                print(f'Tz[0]:{Tz[0]}')
+                print(f'G:{G}')
+                print(f'mtime: {mtime}')
+                print(f'iii:{iii}')
                 sys.exit()
 
         Tsurface_out = np.mean(Tcalc)

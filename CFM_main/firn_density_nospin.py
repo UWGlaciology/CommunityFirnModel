@@ -899,7 +899,7 @@ class FirnDensityNoSpin:
             except:
                 pass
 
-        MOd = {key:value for key, value in self.__dict__.items() if key in self.output_list}
+        MOd = {key:value for key, value in self.__dict__.items() if key in self.output_list} #Model Output dictionary
 
         if self.c['FirnAir']:    
             for gas in self.cg['gaschoice']:
@@ -1107,11 +1107,12 @@ class FirnDensityNoSpin:
                     T_old = self.Ts[iii-1]
 
                 if self.SEBfluxes is not None: # Use the sub time step functionality
-                    self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs_subdt(PhysParams,iii,T_old)                   
+                    self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs_subdt(PhysParams,iii,T_old,mtime)                   
                 else: # SEB time step is the same as main model.
                     self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.SEB_fqs(PhysParams,iii,T_old)
 
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
+                ### SEB gives us mass of melt flux, at this time step. the following makes it consistent with other surface mass fluxes
                 self.snowmelt[iii] = melt_mass / RHO_I / self.dt[iii] * S_PER_YEAR # m i.e. per year ([kg/m2/timestep] / [kg/m3] / [s/timestep] * [s/year])
 
                 self.snowmeltSec[iii] = self.snowmelt[iii] / S_PER_YEAR / (S_PER_YEAR/self.dt[iii]) # melt at this time step (mIE/s)
@@ -1139,8 +1140,8 @@ class FirnDensityNoSpin:
                         LWC_mass_pre = LWC_vol_pre*1000
                         meltmass_iii = self.snowmeltSec[iii] * S_PER_YEAR * RHO_I #[kg] (m I.E. * kg/m3)
                         rainmass_iii = self.rainSec[iii] * S_PER_YEAR * RHO_I #[kg]
-                        self.meltvol = meltmass_iii / 1000
-                        self.rainvol = rainmass_iii / 1000
+                        self.meltvol = meltmass_iii / 1000 # [m w.e. AT THIS TIMESTEP] (kg/m2 / 1000kg/m3)
+                        self.rainvol = rainmass_iii / 1000 # [m w.e.] (kg/m2 / 1000kg/m3)
                         liq_mass_pre = LWC_mass_pre + meltmass_iii + rainmass_iii
                         solid_mass_pre = np.sum(self.mass)
                         liq_vol_pre = LWC_vol_pre + self.meltvol + self.rainvol    

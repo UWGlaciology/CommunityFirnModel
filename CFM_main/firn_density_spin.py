@@ -129,7 +129,7 @@ class FirnDensitySpin:
             print('making dir')
             os.makedirs(self.c['resultsFolder'])
             
-        if 'bdm_sublim' in self.c:
+        if 'bdm_sublim' in self.c: #bdot mean (BDM) sublim
             bdm_sublim = self.c['bdm_sublim']
         else:
             bdm_sublim = True
@@ -150,7 +150,14 @@ class FirnDensitySpin:
             except:
                 input_bdot = climateTS['BDOT']
                 print('sublim not included in mean bdot calc (firn_density_spin) (sublim not found)')
+            
             input_year_temp = input_year_bdot = climateTS['time']
+            
+            if np.mean(input_bdot)<0:
+                old_mean = np.mean(input_bdot)
+                input_bdot = climateTS['BDOT']
+                print(f'bdot for spin was <0 ({old_mean}). Initializing CFM using snowfall only (no sublimation)')
+                
             print(f'input_bdot(spin):{np.mean(input_bdot)}')
                
         else:
@@ -284,7 +291,7 @@ class FirnDensitySpin:
             self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
             print('After doublegrid, grid length is ', self.gridLen)
 
-        self.iceblock=True
+        self.iceblock=False
         if self.iceblock:
             self.rho = 917*np.ones_like(self.rho)
         

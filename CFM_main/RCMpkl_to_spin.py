@@ -306,7 +306,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
 
-        df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+        df_FULL = pd.concatenate([df_spin,df_CLIM_decdate])
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -499,7 +499,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
 
-        df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+        df_FULL = pd.concatenate([df_spin,df_CLIM_decdate])
         # df_FULL.to_csv('df_full_noSEB.csv')
 
         CD = {}
@@ -558,6 +558,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         if bdm_sublim:
             BDOT_mean_IE = ((df_CLIM_re['BDOT']+df_CLIM_re['SUBLIM'])*stepsperyear/917).mean()
         else:
+            BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
+
+        if BDOT_mean_IE<0:
+            print('BDOT_mean_IE was <0. Using precip only (no sublim)\nto determine number of spin repeats')
             BDOT_mean_IE = ((df_CLIM_re['BDOT'])*stepsperyear/917).mean()
         
         try:
@@ -633,12 +637,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         # df_spin_seb = pd.DataFrame(spin_dict_seb,index = spin_days_all_seb)
         # df_spin_seb.index.name = 'decdate'
         # print('line 627, rcm', flush=True)
-        # df_FULL = pd.concat([df_spin,df_CLIM_decdate])
-        # print("finished df_FULL concat", flush=True)
+        # df_FULL = pd.concatenate([df_spin,df_CLIM_decdate])
+        # print("finished df_FULL concatenate", flush=True)
 
         # df_FULL.to_csv('df_full_SEB.csv')
 
-        # df_FULL_seb = pd.concat([df_spin_seb,df_CLIM_seb_decdate])
+        # df_FULL_seb = pd.concatenate([df_spin_seb,df_CLIM_seb_decdate])
 
         # CD = {}
         # CD['time'] = df_FULL.index
@@ -659,23 +663,23 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #         SEBfluxes[ID] = df_FULL_seb[ID].values * stepsperyear_seb / 917
         ###
         CD = {}
-        CD['time'] = np.concat((spin_days_all,df_CLIM_re['decdate'].values))
+        CD['time'] = np.concatenate((spin_days_all,df_CLIM_re['decdate'].values))
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             if ID not in massIDs:
-                CD[ID] = np.concat((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))           
+                CD[ID] = np.concatenate((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))           
             else:
-                CD[ID] = ((np.concat((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))) * stepsperyear / 917).astype('float32')
+                CD[ID] = ((np.concatenate((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))) * stepsperyear / 917).astype('float32')
 
         SEBfluxes = {}
         # SEBfluxes['time'] = df_FULL_seb.index
-        SEBfluxes['time'] = np.concat((spin_days_all_seb,df_CLIM_seb['decdate'].values))
+        SEBfluxes['time'] = np.concatenate((spin_days_all_seb,df_CLIM_seb['decdate'].values))
         SEBfluxes['dtRATIO'] = int(dtRATIO)
         for ID in df_CLIM_seb_ids:
             if ID not in massIDs:
-                SEBfluxes[ID] = np.concat((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values)).astype('float32')
+                SEBfluxes[ID] = np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values)).astype('float32')
             else:
-                SEBfluxes[ID] = ((np.concat((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear / 917).astype('float32')
+                SEBfluxes[ID] = ((np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear / 917).astype('float32')
         
         # print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
 
