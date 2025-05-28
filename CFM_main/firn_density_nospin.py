@@ -127,7 +127,9 @@ class FirnDensityNoSpin:
             firnS = FirnDensitySpin(self.c, climateTS = climateTS)
             firnS.time_evolve()
         else:
-            pass
+            print('Initializing CFM run using existing spin up file')
+            spinpath = str(os.path.join(self.c['resultsFolder'], self.c['spinFileName']))
+            print(spinpath)
         
         climate_writer = True
         if ((climateTS is not None) and (climate_writer)):
