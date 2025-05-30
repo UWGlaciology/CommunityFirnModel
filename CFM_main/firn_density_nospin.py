@@ -1501,7 +1501,7 @@ class FirnDensityNoSpin:
                 if iii==0:
                     pass
                 else:
-                    print(f'updating spin file at {mtime}')
+                    print(f'updating spin file at {mtime}',flush=True)
                     SpinUpdate_res(self,mtime)
             
             if self.doublegrid:

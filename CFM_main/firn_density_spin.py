@@ -152,7 +152,7 @@ class FirnDensitySpin:
                 print('sublim not included in mean bdot calc (firn_density_spin) (sublim not found)')
             
             input_year_temp = input_year_bdot = climateTS['time']
-            
+
             if np.mean(input_bdot)<0:
                 old_mean = np.mean(input_bdot)
                 input_bdot = climateTS['BDOT']
