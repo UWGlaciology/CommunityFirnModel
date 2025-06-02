@@ -599,8 +599,6 @@ def regrid22_reciprocal(self):
 
     return self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self.mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2
 
-
-
 def init_regrid22(self):
     '''
     Splits the column in 5 grids: grid1(high res)-grid2(low res)-grid22(v. low res)-grid23(low res)-grid3(high res)

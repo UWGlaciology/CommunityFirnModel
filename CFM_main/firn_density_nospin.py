@@ -970,6 +970,7 @@ class FirnDensityNoSpin:
             zbot_old = self.z[-1]
             
             # if np.mod(mtime,20)==0:
+            #     print(iii)
             #     print(f'mtime: {mtime}')
 
             lwc_startofloop = self.LWC.copy()
