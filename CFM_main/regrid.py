@@ -98,7 +98,7 @@ def init_regrid(self):
 
 ############### VV changes 09/12/2020 ###############
 
-def regrid22(self):
+def regrid22(self,iii):
     '''
     Called in both firn_density_spin and firn_density_nospin
     5 grids:
@@ -117,6 +117,7 @@ def regrid22(self):
     n2      = self.c['multnodestocombine'] # nodes to combine from grid2 to grid22 and to split from grid22 to grid23
     # if self.c['multnodestocombine'] is set to 0 -> process of grid22 is turned off and regrid works as old regrid
     inds1   = np.where(self.gridtrack==1)[0] # layers in grid1 
+    # print(f'inds1:{len(inds1)}')
     inds2   = np.where(self.gridtrack==2)[0] # layers in grid2
     i1_2    = inds1[-1*n1:] # layers to transition from grid1 to grid2
     ind2a   = i1_2[0] # index of the future upper layer of grid2
@@ -208,7 +209,93 @@ def regrid22(self):
         if self.r2 is not None:
             self.r2         = np.concatenate((self.r2[0:ind2a],[g2r2],self.r2[ind2b:ind22a],[g22r2],self.r2[ind22b:ind22c],g23r2[0:-1],g3r2))
         
-    if (len(inds23)>0 or n2==0): # Still some layers in grid23 -> no need to split a layer from grid22
+    elif ((len(inds23)>0) & (len(inds1)<(1.5*n1)) & (n2!=0)):
+        ### We need to get more layers into grid 3 from grid23 (this gets called when the last layer is NOT gridtrack==3)
+        ### if there are not very many layers in grid1, we will instead do a combine of the bottom n1 layers
+        ### in this case, we need to get more layers into grid 3 from grid23
+        ### this will combine n1 layers from grid2 into a single grid22 layer, as opposed to the normal
+        ### combining of n2 layers grid2 -> grid22.
+        ### But, this should be relatively fringe behavior. 
+
+        n1      = self.c['nodestocombine'] # nodes to combine from grid1 to grid2 and to split from grid23 to grid3
+        n2      = self.c['multnodestocombine'] # nodes to combine from grid2 to grid22 and to split from grid22 to grid23
+        # if self.c['multnodestocombine'] is set to 0 -> process of grid22 is turned off and regrid works as old regrid
+        inds1   = np.where(self.gridtrack==1)[0] # layers in grid1 
+        # print(f'inds1:{len(inds1)}')
+        inds2   = np.where(self.gridtrack==2)[0] # layers in grid2
+        inds22  = np.where(self.gridtrack==22)[0] # layers in grid22
+        inds23  = np.where(self.gridtrack==23)[0] # all nodes in grid23
+        i2_22    = inds2[-1*n1:] # layers to transition from grid2 to grid22 - the last n1 layers in grid2.
+        ind22a   = i2_22[0] # index of the future upper layer of grid22
+        ind22b   = inds22[0] # index of old upper layer of grid22
+        # Next grids
+        
+        ### properties of the new subgrid 22 node
+        g22dz    = np.array([np.sum(self.dz[i2_22])]) # sum thickness
+        g22mass  = np.sum(self.mass[i2_22]) # sum mass
+        g22rho   = g22mass/g22dz
+        g22Tz0   = np.sum(self.Tz[i2_22]*self.mass[i2_22])
+        g22Tz    = np.array([g22Tz0 / g22mass]) # Use a weighted average for temperature (effectively the enthalpy)
+        g22gt    = 22 #gridtrack
+        g22age   = np.mean(self.age[i2_22]) # mean age
+        #g2age   = np.sum(self.age[i1_2]*self.mass[i1_2])/g2mass #VV test weighted average for age -> change is imperceptible
+        g22bdm   = np.mean(self.bdot_mean[i2_22]) #mean bdot_mean
+        g22lwc   = np.sum(self.LWC[i2_22]) # sum for lwc
+        if self.r2 is not None:
+            g22r2    = np.mean(self.r2[i2_22]) # mean for r2
+
+        ## Split the last layer of grid23 (layer [-1]) in n1 layers for grid3
+        g3dz    = self.dz[-1]/n1 * np.ones(n1)
+        g3rho   = self.rho[-1] * np.ones(n1)
+        g3mass  = g3rho * g3dz
+        g3gt    = 3 * np.ones(n1)
+        g3Tz    = self.Tz[-1]* np.ones(n1)
+        g3age   = self.age[-1]*np.ones(n1)
+        g3bdm   = self.bdot_mean[-1]*np.ones(n1)
+        g3lwc   = self.LWC[-1]/n1 * np.ones(n1)
+        if self.r2 is not None:
+            g3r2    = self.r2[-1]*np.ones(n1)
+        
+        ### Concatenate everything together
+        ### x[0:ind22a] is surface to new top of 22
+        ### g22XX (or similar) is the single layer that is newly created with the combining
+        ### [ind22b:-1] are all layers below ind22b, i.e. all of (old) 22 and 23, except for the last layer
+        ### g3XX is the array of new layers, i.e. what the old last layer (from 23) was split into.
+        self.dz         = np.concatenate((self.dz[0:ind22a],g22dz,self.dz[ind22b:-1],g3dz))
+        self.z          = self.dz.cumsum(axis=0)
+        self.z          = np.concatenate(([0], self.z[:-1]))
+        self.rho        = np.concatenate((self.rho[0:ind22a],g22rho,self.rho[ind22b:-1],g3rho))
+        self.Tz         = np.concatenate((self.Tz[0:ind22a],g22Tz,self.Tz[ind22b:-1],g3Tz))
+        self.mass       = np.concatenate((self.mass[0:ind22a],[g22mass],self.mass[ind22b:-1],g3mass))
+        self.mass_sum   = self.mass.cumsum(axis = 0)
+        self.age        = np.concatenate((self.age[0:ind22a],[g22age],self.age[ind22b:-1],g3age))
+        self.bdot_mean  = np.concatenate((self.bdot_mean[0:ind22a],[g22bdm],self.bdot_mean[ind22b:-1],g3bdm))
+        self.LWC        = np.concatenate((self.LWC[0:ind22a],[g22lwc],self.LWC[ind22b:-1],g3lwc))
+                
+        self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*GRAVITY * self.dx
+
+        self.sigma      = self.sigma.cumsum(axis = 0)
+        self.gridtrack  = np.concatenate((self.gridtrack[0:ind22a],[g22gt],self.gridtrack[ind22b:-1],g3gt))
+        if self.r2 is not None:
+            self.r2 = np.concatenate((self.r2[0:ind22a],[g22r2],self.r2[ind22b:-1],g3r2)) 
+
+    #########################
+    ### changed to elif (from if) - 6/2/25
+    elif (len(inds23)>0 or n2==0): # Still some layers in grid23 -> no need to split a layer from grid22 to grid23
+        ### in this case, we need to get more layers into grid 3 from grid23
+        ### to keep number of layers constant, we also need to regrid the bottom grid1 layer into grid2
+        # if iii>4500:
+        #     print('XXX')
+        #     print(f'iii:{iii}')
+        #     print(f'len init: {len(self.LWC)}')
+        #     print(f'len init (dz): {len(self.dz)}')
+        #     print(f'ind2a: {ind2a}')
+        #     print(f'inds1:{len(inds1)}')
+        #     print(f'inds2:{len(inds2)}')
+        #     print(f'inds22:{len(inds22)}')
+        #     print(f'inds23:{len(inds23)}')
+        #     print(f'i1_2: {len(i1_2)}')
+        #     print(f'gridtrack: {self.gridtrack[0:4]}')
         ## Split the last layer of grid23 (layer [-1]) in n1 layers for grid3
         g3dz    = self.dz[-1]/n1 * np.ones(n1)
         g3rho   = self.rho[-1] * np.ones(n1)
@@ -233,12 +320,35 @@ def regrid22(self):
         self.age        = np.concatenate((self.age[0:ind2a],[g2age],self.age[ind2b:-1],g3age))
         self.bdot_mean  = np.concatenate((self.bdot_mean[0:ind2a],[g2bdm],self.bdot_mean[ind2b:-1],g3bdm))
         self.LWC        = np.concatenate((self.LWC[0:ind2a],[g2lwc],self.LWC[ind2b:-1],g3lwc))
+        
+        ##########
+        # if iii>4500:
+        #     print(iii)
+        #     print(f'ind2a: {ind2a}')
+        #     print(f'ind2b: {ind2b}')
+        #     print(f'LWC len: {len(self.LWC)}')
+        #     print(f'dx len: {len(self.dx)}')
+        #     print(f'age len: {len(self.age)}')
+        #     print(f'mass len: {len(self.mass)}')
+        #     print(f'rho len: {len(self.rho)}')
+        #     print(f'start len: {startlen}')
+
+        #     print(f'self.LWC[0:ind2a]: {(self.LWC[0:ind2a])}')
+        #     print(f'self.dz[0:ind2a]: {(self.dz[0:ind2a])}')
+            
+        #     print(f'g2lwc: {g2lwc}')
+        #     print(f'g2dz: {g2dz}')
+            
+        #     print(f'self.LWC[ind2b:-1], {len(self.LWC[ind2b:-1])}')
+        #     print(f'self.dz[ind2b:-1], {len(self.dz[ind2b:-1])}')
+            
+        #     print(f'g3lwc: {len(g3lwc)}')
+        #     print(f'g3dz: {len(g3dz)}')
+        #     input('waiting ####################')
+        
         try:
             self.sigma      = (self.mass+self.LWC*RHO_W_KGM)*GRAVITY * self.dx
         except:
-            print(f'LWC len: {len(self.LWC)}')
-            print(f'dx len: {len(self.dx)}')
-            print(f'start len: {startlen}')
             sys.exit()
         self.sigma      = self.sigma.cumsum(axis = 0)
         self.gridtrack  = np.concatenate((self.gridtrack[0:ind2a],[g2gt],self.gridtrack[ind2b:-1],g3gt))

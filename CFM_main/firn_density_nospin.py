@@ -986,13 +986,22 @@ class FirnDensityNoSpin:
             ### Merging process #VV ###
 
             if self.c['merging']: # merging may be deprecated (check with VV)
+                merged1 = False
+                merged2 = False
                 lwcPreMerge = np.sum(self.LWC)
                 if ((self.dz[1] < self.c['merge_min']) or (self.dz[0] < 1e-10)): # Start with surface merging 
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
-                        self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergesurf(self,self.c['merge_min'],iii)                    
+                        self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergesurf(self,self.c['merge_min'],iii)
+                    merged1=True                  
                 if (np.any(self.dz[2:] < self.c['merge_min'])): # Then merge rest of the firn column                   
                     self.dz,self.z,self.gridLen,self.dx,self.rho,self.age,self.LWC,self.PLWC_mem,self.mass,self.mass_sum,self.sigma,self.bdot_mean,\
                         self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergenotsurf(self,self.c['merge_min'],iii)
+                    merged2=True
+                
+                if merged1:
+                    print(f'merged1 at {iii}')
+                if merged2:
+                    print(f'merged2 at {iii}')
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
@@ -1507,10 +1516,9 @@ class FirnDensityNoSpin:
             if self.doublegrid:
                 #VV changes 09/12/2020
                 #if self.gridtrack[-1]==2:
-                    ## print('regridding now at ', iii)
                     #self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
                 if self.gridtrack[-1]!=3: #VV works for whatever the gridtrack value we have
-                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self) #VV regrid22
+                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self,iii) #VV regrid22
 
             #VV (23/03/2021) checking that refreeze and runoff work fine
             if self.MELT:
