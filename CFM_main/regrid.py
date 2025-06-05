@@ -220,6 +220,7 @@ def regrid22(self,iii,spin=False):
         ### But, this should be relatively fringe behavior. 
 
         print(f'Regrid fringe case: {iii}')
+        print(f'n1: {n1}')
         print(f'inds1: {len(inds1)}')
 
         n1      = self.c['nodestocombine'] # nodes to combine from grid1 to grid2 and to split from grid23 to grid3
