@@ -117,7 +117,9 @@ def regrid22(self,iii,spin=False):
     n2      = self.c['multnodestocombine'] # nodes to combine from grid2 to grid22 and to split from grid22 to grid23
     # if self.c['multnodestocombine'] is set to 0 -> process of grid22 is turned off and regrid works as old regrid
     inds1   = np.where(self.gridtrack==1)[0] # layers in grid1 
-    # print(f'inds1:{len(inds1)}')
+    if len(inds1)<n1:
+        print(f'few inds1 at {iii}')
+        print(f'inds1:{len(inds1)}')
     inds2   = np.where(self.gridtrack==2)[0] # layers in grid2
     i1_2    = inds1[-1*n1:] # layers to transition from grid1 to grid2
     ind2a   = i1_2[0] # index of the future upper layer of grid2
@@ -216,6 +218,9 @@ def regrid22(self,iii,spin=False):
         ### this will combine n1 layers from grid2 into a single grid22 layer, as opposed to the normal
         ### combining of n2 layers grid2 -> grid22.
         ### But, this should be relatively fringe behavior. 
+
+        print(f'Regrid fringe case: {iii}')
+        print(f'inds1: {len(inds1)}')
 
         n1      = self.c['nodestocombine'] # nodes to combine from grid1 to grid2 and to split from grid23 to grid3
         n2      = self.c['multnodestocombine'] # nodes to combine from grid2 to grid22 and to split from grid22 to grid23
