@@ -627,7 +627,7 @@ class FirnDensitySpin:
                 #     self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 
                 if self.gridtrack[-1]!=3: #VV works for whatever the gridtrack value we have
-                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self,iii) #VV regrid22
+                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self,iii,spin=True) #VV regrid22
 
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):

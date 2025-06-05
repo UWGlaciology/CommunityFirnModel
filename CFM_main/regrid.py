@@ -98,7 +98,7 @@ def init_regrid(self):
 
 ############### VV changes 09/12/2020 ###############
 
-def regrid22(self,iii):
+def regrid22(self,iii,spin=False):
     '''
     Called in both firn_density_spin and firn_density_nospin
     5 grids:
@@ -209,7 +209,7 @@ def regrid22(self,iii):
         if self.r2 is not None:
             self.r2         = np.concatenate((self.r2[0:ind2a],[g2r2],self.r2[ind2b:ind22a],[g22r2],self.r2[ind22b:ind22c],g23r2[0:-1],g3r2))
         
-    elif ((len(inds23)>0) & (len(inds1)<(1.5*n1)) & (n2!=0)):
+    elif ((len(inds23)>0) & (len(inds1)<(1.5*n1)) & (n2!=0) & spin=False):
         ### We need to get more layers into grid 3 from grid23 (this gets called when the last layer is NOT gridtrack==3)
         ### if there are not very many layers in grid1, we will instead do a combine of the bottom n1 layers
         ### in this case, we need to get more layers into grid 3 from grid23
