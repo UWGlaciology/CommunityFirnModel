@@ -292,7 +292,10 @@ class FirnDensitySpin:
             print('After doublegrid, grid length is ', self.gridLen)
 
         self.iceblock=False
+        print(f'self.iceblock: {self.iceblock}')
+        
         if self.iceblock:
+            print('iceblock spin is true')
             self.rho = 917*np.ones_like(self.rho)
         
         # except:

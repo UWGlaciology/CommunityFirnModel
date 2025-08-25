@@ -252,8 +252,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
 
         SMELT_mean_IE = ((df_CLIM_re['SMELT'])*stepsperyear/917).mean()
 
-        BDOT_mean_IE = BDOT_mean_IE - SMELT_mean_IE
-        print('BDOT_mean corrected for SMELT')
+        # BDOT_mean_IE = BDOT_mean_IE - SMELT_mean_IE
+        # print('BDOT_mean corrected for SMELT')
         T_mean = (df_TS_re['TSKIN']).mean()
 
         print(f'stepsperyear (RCM): {stepsperyear}')
@@ -306,7 +306,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
 
-        df_FULL = pd.concatenate([df_spin,df_CLIM_decdate])
+        df_FULL = pd.concat([df_spin,df_CLIM_decdate])
 
         CD = {}
         CD['time'] = df_FULL.index
@@ -499,7 +499,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         df_spin.index.name = 'decdate'
 
-        df_FULL = pd.concatenate([df_spin,df_CLIM_decdate])
+        df_FULL = pd.concat([df_spin,df_CLIM_decdate])
         # df_FULL.to_csv('df_full_noSEB.csv')
 
         CD = {}
@@ -637,12 +637,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         # df_spin_seb = pd.DataFrame(spin_dict_seb,index = spin_days_all_seb)
         # df_spin_seb.index.name = 'decdate'
         # print('line 627, rcm', flush=True)
-        # df_FULL = pd.concatenate([df_spin,df_CLIM_decdate])
-        # print("finished df_FULL concatenate", flush=True)
+        # df_FULL = pd.concat([df_spin,df_CLIM_decdate])
+        # print("finished df_FULL concat", flush=True)
 
         # df_FULL.to_csv('df_full_SEB.csv')
 
-        # df_FULL_seb = pd.concatenate([df_spin_seb,df_CLIM_seb_decdate])
+        # df_FULL_seb = pd.concat([df_spin_seb,df_CLIM_seb_decdate])
 
         # CD = {}
         # CD['time'] = df_FULL.index

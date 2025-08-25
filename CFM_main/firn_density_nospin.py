@@ -969,8 +969,8 @@ class FirnDensityNoSpin:
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
             
-            # if np.mod(mtime,20)==0:
-            #     print(f'mtime: {mtime}')
+            if np.mod(mtime,5)==0:
+                print(f'mtime: {mtime}')
 
             lwc_startofloop = self.LWC.copy()
             mass_startofloop = self.mass.copy()
@@ -998,10 +998,10 @@ class FirnDensityNoSpin:
                         self.Dcon,self.T_mean,self.T10m,self.r2,self.gridtrack = mergenotsurf(self,self.c['merge_min'],iii)
                     merged2=True
                 
-                if merged1:
-                    print(f'merged1 at {iii}')
-                if merged2:
-                    print(f'merged2 at {iii}')
+                # if merged1:
+                #     print(f'merged1 at {iii}')
+                # if merged2:
+                #     print(f'merged2 at {iii}')
 
             ### dictionary of the parameters that get passed to physics
             PhysParams = {
