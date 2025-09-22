@@ -237,6 +237,7 @@ class FirnDensitySpin:
         ############################
         # if not self.c['initprofile']: #VV
         THL                 = self.temp0
+        print(f'THL (240):{THL}')
         AHL                 = self.bdot0
 
 
