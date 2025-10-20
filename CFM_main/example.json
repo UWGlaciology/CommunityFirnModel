@@ -109,7 +109,10 @@
 "bdm_sublim": true,
 "iceblock": false,
 "iceblock_rho": 917.0,
-"truncate_outputs": false
+"truncate_outputs": false,
+"stage_zero": false,
+"snow_model": "Yamazaki1993",
+"s_zero_rho": 200
 }
 
 

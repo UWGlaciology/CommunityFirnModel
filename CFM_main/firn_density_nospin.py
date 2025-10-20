@@ -752,6 +752,22 @@ class FirnDensityNoSpin:
             self.ind1_old       = 0
         #######################
 
+        ### Add snow model for stage-zero densification
+        if "stage_zero" not in self.c:
+            self.c["stage_zero"] = False
+            print('stage_zero not in .json; default to false')
+        else: # if stage_zero set to true, but snow_model not specified
+            print("STAGE_ZERO DENSIFICATION STILL IN DEVELOPMENT!")
+            if "snow_model" not in self.c:
+                print('stage_zero densification is enabled but you do not have a snow model set.')
+                print("please set your preferred snow model in the config; using Yamazaki1993")
+                self.c['snow_model'] = "Yamazaki1993"
+            if "s_zero_rho" not in self.c:
+                self.c['s_zero_rho'] = 200.0
+                print('stage_zero densification is enabled but you do not have a transition density set.')
+                print('defaulting to 200 kg/m3.')
+            print(f"snow model is {self.c['snow_model']}")
+
         ### Isotopes ########
         if self.c['isoDiff']:
             self.spin = False
@@ -1089,19 +1105,18 @@ class FirnDensityNoSpin:
 
             # RD      = physicsd[self.c['physRho']]()
             RD = getattr(FirnPhysics(PhysParams),self.c['physRho'])()
-            RD_snow = getattr(FirnPhysics(PhysParams),'Yamazaki1993')()
-            
-
-            if ((iii>139) and (iii<145)):
-                print(self.rho[0:5])
-                print(RD_snow['drho_dt'][0:5])
-                print(RD['drho_dt'][0:5])
-                print(self.sigma[0:5])
-                input('#########')
-            
             drho_dt = RD['drho_dt']
-            drho_dt[self.rho<300] = RD_snow['drho_dt'][self.rho<300]
 
+            if self.c['stage_zero']:
+                RD_snow = getattr(FirnPhysics(PhysParams),'Yamazaki1993')()
+                drho_dt[self.rho<300] = RD_snow['drho_dt'][self.rho<300]            
+
+            # if ((iii>139) and (iii<145)):
+            #     print(self.rho[0:5])
+            #     print(RD_snow['drho_dt'][0:5])
+            #     print(RD['drho_dt'][0:5])
+            #     print(self.sigma[0:5])
+            #     input('#########')
             
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
