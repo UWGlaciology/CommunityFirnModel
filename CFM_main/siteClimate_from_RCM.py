@@ -183,6 +183,11 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Tr
         smb has units of kg m^-2 s^-1 per day (because I sum the hourly values to get a value for each day, but do not divde by 24 after that) (pretty sure, at least!)
         temperature has dimensions of (time,lat,lon)
         temperature has units K
+        NOTE: in MERRA, positive sublimation flux = sublimation, ?negative? = deposition,
+        but CFM uses opposite of that (which is the ERA-5 convention). So, make sure that you
+        multiply MERRA-2 EVAP/SUBLIM by -1 at some point in your workflow (I do it in run_CFM_example.py)
+
+        After switching sign, PRECTOT + EVAP = net precip. 
 
         '''
 

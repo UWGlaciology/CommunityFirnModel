@@ -51,6 +51,7 @@ def solver(a_U, a_D, a_P, b):
         phi_t = splin.spsolve(big_A, rhs)
         if use_dgtsv:
             phi_t_spsolve=phi_t.copy()
+
     if use_dgtsv:
         dl=np.ascontiguousarray(a_U[1:])
         d=np.ascontiguousarray(-a_P)
@@ -70,8 +71,8 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     This is for standard heat (no liquid water), isotope, and air diffusion.
     If there is liquid water is should use the enthalpy solver.
 
-    :param z_edges:
-    :param Z_P:
+    :param z_edges: edges of the layers (i.e., volumes) [m]
+    :param Z_P: centers of the layers [m]
     :param nt:
     :param dt:
     :param Gamma_P:
@@ -85,9 +86,8 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     phi_t = phi_0
     phi_t_old = phi_t.copy()
 
-    dZ = np.diff(z_edges) #width of nodes
-
-    Z_P_diff = np.diff(Z_P)
+    dZ = np.diff(z_edges) # thickness of volumes [m]. Same length as Z_P. This is nearly the same as self.dz, except the last value is different (?)
+    Z_P_diff = np.diff(Z_P) # distance between volume centers [m]. Length = len(Z_P) - 1
 
     deltaZ_u = np.zeros_like(Z_P)
     deltaZ_u[0] = Z_P_diff[0]
@@ -100,157 +100,147 @@ def transient_solve_TR(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
     f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
-    for i_time in range(nt):
+    # for i_time in range(nt):
         
-        ### older 
-        # deltaZ_u = np.diff(Z_P)
-        # deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
+    #######################################
+    # this part is for gas diffusion, which takes a bit more physics
+    if airdict!=None:
+        Gamma_Po    = Gamma_P * airdict['por_op'] #This is the diffusivity times the open porosity.
 
-        # deltaZ_d = np.diff(Z_P)
-        # deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
+        Gamma_U     = np.append(Gamma_Po[0], Gamma_Po[0: -1] )
+        Gamma_D     = np.append(Gamma_Po[1:], Gamma_Po[-1])
+        Gamma_u     =  1 / ((1 - f_u) / Gamma_Po + f_u / Gamma_U) #Patankar Eq. 4.11
+        Gamma_d     =  1 / ((1 - f_d) / Gamma_Po + f_d / Gamma_D)
 
-        # f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:]
-        # f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
+        d_eddy_P    = airdict['d_eddy'] * airdict['por_op']
+        d_eddy_U    = np.append(d_eddy_P[0], d_eddy_P[0:-1] )
+        d_eddy_D    = np.append(d_eddy_P[1:], d_eddy_P[-1])
+        d_eddy_u    =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
+        d_eddy_d    =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
 
-        #######################################
-        # this part is for gas diffusion, which takes a bit more physics
-        if airdict!=None:
-            Gamma_Po    = Gamma_P * airdict['por_op'] #This is the diffusivity times the open porosity.
+        if airdict['gravity']=="off" and airdict['thermal']=="off":
+            S_C_0   = 0.0
 
-            Gamma_U     = np.append(Gamma_Po[0], Gamma_Po[0: -1] )
-            Gamma_D     = np.append(Gamma_Po[1:], Gamma_Po[-1])
-            Gamma_u     =  1 / ((1 - f_u) / Gamma_Po + f_u / Gamma_U) #Patankar Eq. 4.11
-            Gamma_d     =  1 / ((1 - f_d) / Gamma_Po + f_d / Gamma_D)
+        elif airdict['gravity']=='on' and airdict['thermal']=='off':
+            S_C_0   = (-Gamma_d + Gamma_u) * (airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) / airdict['dz'] #S_C is independent source term in Patankar
 
-            d_eddy_P    = airdict['d_eddy'] * airdict['por_op']
-            d_eddy_U    = np.append(d_eddy_P[0], d_eddy_P[0:-1] )
-            d_eddy_D    = np.append(d_eddy_P[1:], d_eddy_P[-1])
-            d_eddy_u    =  1/ ( (1 - f_u)/d_eddy_P + f_u/d_eddy_U )
-            d_eddy_d    =  1/ ( (1 - f_d)/d_eddy_P + f_d/d_eddy_D )
+        elif airdict['gravity']=='on' and airdict['thermal']=='on':
+            # dTdz    = np.gradient(airdict['Tz'])/airdict['dz']
+            dTdz    = np.gradient(airdict['Tz'], Z_P)
+            Gamma_del = (Gamma_d-Gamma_u)
+            # Gamma_del[Gamma_del<0]=1e-65
+            S_C_0   = Gamma_del * (-(airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) + (airdict['omega'] * dTdz)) / airdict['dz'] # should thermal still work in LIZ? if so use d_eddy+diffu
+            # S_C_0[S_C_0<0]=1.e-40
+        else:
+            print('Error at in solver.py at 119')
+            sys.exit()
 
-            if airdict['gravity']=="off" and airdict['thermal']=="off":
-                S_C_0   = 0.0
+        S_C         = S_C_0 * phi_t
+        b_0         = S_C * dZ
 
-            elif airdict['gravity']=='on' and airdict['thermal']=='off':
-                S_C_0   = (-Gamma_d + Gamma_u) * (airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) / airdict['dz'] #S_C is independent source term in Patankar
+        rho_edges = np.interp(z_edges,Z_P,airdict['rho'])
 
-            elif airdict['gravity']=='on' and airdict['thermal']=='on':
-                # dTdz    = np.gradient(airdict['Tz'])/airdict['dz']
-                dTdz    = np.gradient(airdict['Tz'], Z_P)
-                Gamma_del = (Gamma_d-Gamma_u)
-                # Gamma_del[Gamma_del<0]=1e-65
-                S_C_0   = Gamma_del * (-(airdict['deltaM'] * GRAVITY / (R * airdict['Tz'])) + (airdict['omega'] * dTdz)) / airdict['dz'] # should thermal still work in LIZ? if so use d_eddy+diffu
-                # S_C_0[S_C_0<0]=1.e-40
-            else:
-                print('Error at in solver.py at 119')
-                sys.exit()
+        w_edges = w(airdict, z_edges, rho_edges, Z_P, dZ) # advection term (upward relative motion due to porosity changing)
 
-            S_C         = S_C_0 * phi_t
-            b_0         = S_C * dZ
+        w_p = np.interp(Z_P,z_edges,w_edges) # Units m/s
+        w_edges[z_edges>airdict['z_co']] = 0.0
+        w_u = w_edges[0:-1]
+        w_d = w_edges[1:]
 
-            rho_edges = np.interp(z_edges,Z_P,airdict['rho'])
+        D_u = ((Gamma_u+d_eddy_u) / deltaZ_u) # Units m/s
+        D_d = ((Gamma_d+d_eddy_d) / deltaZ_d)
 
-            w_edges = w(airdict, z_edges, rho_edges, Z_P, dZ) # advection term (upward relative motion due to porosity changing)
+        F_u =  w_u * airdict['por_op'] # Units m/s
+        F_d =  w_d * airdict['por_op']
 
-            w_p = np.interp(Z_P,z_edges,w_edges) # Units m/s
-            w_edges[z_edges>airdict['z_co']] = 0.0
-            w_u = w_edges[0:-1]
-            w_d = w_edges[1:]
+        P_u = F_u / D_u
+        P_d = F_d / D_d
 
-            D_u = ((Gamma_u+d_eddy_u) / deltaZ_u) # Units m/s
-            D_d = ((Gamma_d+d_eddy_d) / deltaZ_d)
+        op_ind              = np.where(z_edges<=airdict['z_co'])[0] #indices of all nodes wiht open porosity (shallower than CO)
+        op_ind2             = np.where(z_edges<=airdict['z_co']+20)[0] # a bit deeper
+        co_ind              = op_ind[-1]
 
-            F_u =  w_u * airdict['por_op'] # Units m/s
-            F_d =  w_d * airdict['por_op']
+        a_U = D_u * A( P_u ) + F_upwind(  F_u )
+        a_D = D_d * A( P_d ) + F_upwind( -F_d )
 
-            P_u = F_u / D_u
-            P_d = F_d / D_d
+        a_P_0 = airdict['por_op'] * dZ / dt
+    #######################################
+    ### end gas physics portion ###########
+    #######################################
 
-            op_ind              = np.where(z_edges<=airdict['z_co'])[0] #indices of all nodes wiht open porosity (shallower than CO)
-            op_ind2             = np.where(z_edges<=airdict['z_co']+20)[0] # a bit deeper
-            co_ind              = op_ind[-1]
+    #######################################
+    else: # just for heat, enthalpy, isotope diffusion
+        
+        Gamma_U = np.zeros_like(Gamma_P)
+        Gamma_U[0] = Gamma_P[0]
+        Gamma_U[1:] = Gamma_P[0: -1]
 
-            a_U = D_u * A( P_u ) + F_upwind(  F_u )
-            a_D = D_d * A( P_d ) + F_upwind( -F_d )
+        Gamma_D = np.zeros_like(Gamma_P)
+        Gamma_D[0:-1] = Gamma_P[1:]
+        Gamma_D[-1] = Gamma_P[-1]
 
-            a_P_0 = airdict['por_op'] * dZ / dt
-        #######################################
-        ### end gas physics portion ###########
-        #######################################
+        # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
+        # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
 
-        #######################################
-        else: # just for heat, enthalpy, isotope diffusion
-            
-            Gamma_U = np.zeros_like(Gamma_P)
-            Gamma_U[0] = Gamma_P[0]
-            Gamma_U[1:] = Gamma_P[0: -1]
+        Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
+        Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
 
-            Gamma_D = np.zeros_like(Gamma_P)
-            Gamma_D[0:-1] = Gamma_P[1:]
-            Gamma_D[-1] = Gamma_P[-1]
+        S_C = 0
+        S_C = S_C * np.ones(nz_P)
 
-            # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1] )
-            # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
+        D_u = (Gamma_u / deltaZ_u)
+        D_d = (Gamma_d / deltaZ_d)
 
-            Gamma_u =  1 / ((1 - f_u) / Gamma_P + f_u / Gamma_U) # Patankar eq. 4.9
-            Gamma_d =  1 / ((1 - f_d) / Gamma_P + f_d / Gamma_D)
+        b_0 = S_C * dZ # first term of Patankar eq. 4.41d
 
-            S_C = 0
-            S_C = S_C * np.ones(nz_P)
+        a_U = D_u # Patankar eq. 4.41a,b
+        a_D = D_d # Patankar eq. 4.41a,b
 
-            D_u = (Gamma_u / deltaZ_u)
-            D_d = (Gamma_d / deltaZ_d)
+        # a_P_0 = dZ / dt
+        # a_P_0 = tot_rho * dZ / dt #  (old)
+        a_P_0 = c_vol * dZ / dt # (new) Patankar eq. 4.41c
+        # a_P_0 = RHO_I * c_firn * dZ / dt
+    #######################################
 
-            b_0 = S_C * dZ # first term of Patankar eq. 4.41d
+    S_P     = 0.0
+    a_P     = a_U + a_D + a_P_0 - S_P*dZ
 
-            a_U = D_u # Patankar eq. 4.41a,b
-            a_D = D_d # Patankar eq. 4.41a,b
+    #######################################
+    ### Boundary conditions:
+    ### type 1 is a specified value, type 2 is a specified gradient
+    ### (units for gradient are degrees/meter)
+    bc_u_0  = phi_s # need to pay attention to surface boundary for gas
+    bc_type_u = 1
+    bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
 
-            # a_P_0 = dZ / dt
-            # a_P_0 = tot_rho * dZ / dt #  (old)
-            a_P_0 = c_vol * dZ / dt # (new) Patankar eq. 4.41c
-            # a_P_0 = RHO_I * c_firn * dZ / dt
-        #######################################
+    bc_d_0  = 0
+    bc_type_d = 2 # 2 is gradient
+    # bc_d_0  = 273.149
+    # bc_type_d = 1
+    bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
+    #########################################
 
-        S_P     = 0.0
-        a_P     = a_U + a_D + a_P_0 - S_P*dZ
+    b       = b_0 + a_P_0 * phi_t #Patankar 4.41d
 
-        #######################################
-        ### Boundary conditions:
-        ### type 1 is a specified value, type 2 is a specified gradient
-        ### (units for gradient are degrees/meter)
-        bc_u_0  = phi_s # need to pay attention to surface boundary for gas
-        bc_type_u = 1
-        bc_u    = np.concatenate(([ bc_u_0], [bc_type_u]))
+    #Upper boundary
+    a_P[0]  = 1
+    a_U[0]  = 0
+    a_D[0]  = 0
+    b[0]    = bc_u[0]
 
-        bc_d_0  = 0
-        bc_type_d = 2 # 2 is gradient
-        # bc_d_0  = 273.149
-        # bc_type_d = 1
-        bc_d    = np.concatenate(([ bc_d_0 ], [ bc_type_d ]))
-        #########################################
+    #Down boundary
+    a_P[-1] = 1
+    a_D[-1] = 0
+    if bc_type_d==2:
+        a_U[-1] = 1
+        b[-1]   = deltaZ_u[-1] * bc_d[0]
+    elif bc_type_d==1:
+        a_U[-1] = 0
+        b[-1]   = bc_d[0]
 
-        b       = b_0 + a_P_0 * phi_t #Patankar 4.41d
+    phi_t = solver(a_U, a_D, a_P, b)
 
-        #Upper boundary
-        a_P[0]  = 1
-        a_U[0]  = 0
-        a_D[0]  = 0
-        b[0]    = bc_u[0]
-
-        #Down boundary
-        a_P[-1] = 1
-        a_D[-1] = 0
-        if bc_type_d==2:
-            a_U[-1] = 1
-            b[-1]   = deltaZ_u[-1] * bc_d[0]
-        elif bc_type_d==1:
-            a_U[-1] = 0
-            b[-1]   = bc_d[0]
-
-        phi_t = solver(a_U, a_D, a_P, b)
-
-        a_P = a_U + a_D + a_P_0
+    a_P = a_U + a_D + a_P_0
 
     if airdict!=None:
         return phi_t, w_p
@@ -268,8 +258,8 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     This is for heat diffusion when there is liquid water present.
     It uses a source term for the latent heat associated with the liquid water.
 
-    :param z_edges:
-    :param Z_P:
+    :param z_edges: edges of the layers (i.e., volumes) [m]
+    :param Z_P: centers of the layers [m]
     :param nt: number of iterations; depricated (now uses while loop)
     :param dt: time step size
     :param Gamma_P:
@@ -299,8 +289,6 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     g_liq       = LWC / dz    #  use liquid volume fraction of total volume of the control, which will net us the enthalpy/volume
     g_sol       = vol_S / dz #unitless
 
-    dZ = np.diff(z_edges) #width of nodes
-
     H_L_liq = RHO_W_KGM*LF_I #volumetric latent enthalpy [J/m3]
 
     phi_t = phi_0 # phi_t is just the temperature
@@ -324,7 +312,8 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
 
     update_gsol = True
 
-    Z_P_diff = np.diff(Z_P)
+    dZ = np.diff(z_edges) # thickness of volumes [m]. Same length as Z_P. This is nearly the same as self.dz, except the last value is different (?)
+    Z_P_diff = np.diff(Z_P) # distance between volume centers [m]. Length = len(Z_P) - 1
 
     deltaZ_u = np.zeros_like(Z_P)
     deltaZ_u[0] = Z_P_diff[0]
@@ -334,19 +323,10 @@ def transient_solve_EN(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, phi_s,
     deltaZ_d[:-1] = Z_P_diff
     deltaZ_d[-1] = Z_P_diff[-1]
 
-    ### older 
-    # deltaZ_u = np.diff(Z_P) # [m]
-    # deltaZ_u = np.append(deltaZ_u[0], deltaZ_u)
-    # deltaZ_d = np.diff(Z_P)
-    # deltaZ_d = np.append(deltaZ_d, deltaZ_d[-1])
-
     f_u = 1 - (Z_P[:] - z_edges[0:-1]) / deltaZ_u[:] # unitless
     f_d = 1 - (z_edges[1:] - Z_P[:]) / deltaZ_d[:]
 
     ### Gamma has units J/s/m/K (W/m/K)
-
-    # Gamma_U = np.append(Gamma_P[0], Gamma_P[0: -1])
-    # Gamma_D = np.append(Gamma_P[1:], Gamma_P[-1])
 
     Gamma_U = np.zeros_like(Gamma_P)
     Gamma_U[0] = Gamma_P[0]

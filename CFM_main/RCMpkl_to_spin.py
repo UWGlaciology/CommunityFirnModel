@@ -29,6 +29,7 @@ import calendar
 import hl_analytic as hla
 import cmath
 import sys
+import math
 
 def toYearFraction(date):
     '''
@@ -225,6 +226,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         elif Tinterp == 'effective':
             df_TS_re = df_TS.resample(timeres).apply(effectiveT)
         elif Tinterp == 'weighted':
+            df_BDOT = pd.DataFrame(df_CLIM.BDOT)
             df_TS_re = pd.DataFrame(data=(df_BDOT.BDOT*df_TS.TSKIN).resample(timeres).sum()/(df_BDOT.BDOT.resample(timeres).sum()),columns=['TSKIN'])
             # pass
 
@@ -595,7 +597,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #### Make spin up series ###
         RCI_length = spin_date_end-spin_date_st+1
         num_reps = int(np.round(desired_depth/BDOT_mean_IE/RCI_length))
-        print(num_reps)
+        print(f'num_reps:{num_reps}')
         years = num_reps*RCI_length
         sub = np.arange(-1*years,0,RCI_length)
         startyear = int(df_CLIM_re.index[0].year + sub[0])
@@ -628,6 +630,7 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #     spin_dict_seb[ID] = np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)).astype('float32')
 
         ### #start change 250305 ###
+        ### (retain for now in v3.1.0)
         # df_CLIM_decdate = df_CLIM_re.set_index('decdate')
         # df_spin = pd.DataFrame(spin_dict,index = spin_days_all)
         # df_spin.index.name = 'decdate'
@@ -661,7 +664,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         #         SEBfluxes[ID] = df_FULL_seb[ID].values            
         #     else:
         #         SEBfluxes[ID] = df_FULL_seb[ID].values * stepsperyear_seb / 917
-        ###
+        ### end change 250305
+
         CD = {}
         CD['time'] = np.concatenate((spin_days_all,df_CLIM_re['decdate'].values))
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
@@ -680,9 +684,6 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
                 SEBfluxes[ID] = np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values)).astype('float32')
             else:
                 SEBfluxes[ID] = ((np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear / 917).astype('float32')
-        
-        # print(f'SEB size: {SEBfluxes[ID].nbytes/1e6}', flush=True)
-
 
     return CD, stepsperyear, depth_S1, depth_S2, desired_depth, SEBfluxes
 

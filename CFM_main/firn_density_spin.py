@@ -237,7 +237,7 @@ class FirnDensitySpin:
         ############################
         # if not self.c['initprofile']: #VV
         THL                 = self.temp0
-        print(f'THL (240):{THL}')
+        # print(f'THL (240):{THL}')
         AHL                 = self.bdot0
 
 
@@ -292,12 +292,19 @@ class FirnDensitySpin:
             self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
             print('After doublegrid, grid length is ', self.gridLen)
 
-        self.iceblock=False
-        print(f'self.iceblock: {self.iceblock}')
+        if 'iceblock' in self.c:
+            self.iceblock = self.c['iceblock']
+        else:    
+            self.iceblock = False
         
         if self.iceblock:
-            print('iceblock spin is true')
-            self.rho = 917*np.ones_like(self.rho)
+            print('iceblock spin is ON;')
+            if 'iceblock_rho' not in self.c:
+                print('initializing CFM with constant density of 917 kg/m3')
+                self.rho = 917 * np.ones_like(self.rho)
+            else:
+                print(f'initializing CFM with constant density of {self.c["iceblock_rho"]} kg/m3')
+                self.rho = self.c['iceblock_rho'] * np.ones_like(self.rho)
         
         # except:
         #     self.doublegrid = False
@@ -524,30 +531,31 @@ class FirnDensitySpin:
                 PhysParams['ind1_old']       = self.ind1_old
 
             ### choose densification-physics based on user input
-            physicsd = {
-                'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
-                'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
-                'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
-                'Li2004':               FirnPhysics(PhysParams).Li_2004,
-                'Li2011':               FirnPhysics(PhysParams).Li_2011,
-                'Li2015':               FirnPhysics(PhysParams).Li_2015,
-                'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
-                'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
-                'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
-                'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
-                'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
-                'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
-                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
-                'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
-                'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
-                'Crocus':               FirnPhysics(PhysParams).Crocus,
-                'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
-                'MaxSP':                FirnPhysics(PhysParams).MaxSP,
-                'Breant2017':           FirnPhysics(PhysParams).Breant2017
-            }
+            # physicsd = {
+            #     'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
+            #     'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
+            #     'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
+            #     'Li2004':               FirnPhysics(PhysParams).Li_2004,
+            #     'Li2011':               FirnPhysics(PhysParams).Li_2011,
+            #     'Li2015':               FirnPhysics(PhysParams).Li_2015,
+            #     'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
+            #     'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
+            #     'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
+            #     'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
+            #     'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
+            #     'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
+            #     'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
+            #     'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+            #     'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
+            #     'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
+            #     'Crocus':               FirnPhysics(PhysParams).Crocus,
+            #     'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
+            #     'MaxSP':                FirnPhysics(PhysParams).MaxSP,
+            #     'Breant2017':           FirnPhysics(PhysParams).Breant2017
+            # }
 
-            RD      = physicsd[self.c['physRho']]()
+            # RD      = physicsd[self.c['physRho']]()
+            RD = getattr(FirnPhysics(PhysParams),self.c['physRho'])()
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)

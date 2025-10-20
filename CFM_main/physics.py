@@ -1226,6 +1226,7 @@ class FirnPhysics:
         except:
             pass
 
+        # print(f'GSFC: {drho_dt[0:5]}')
         return self.RD
     ### end GSFC2020 ###
     #########################
@@ -1376,6 +1377,61 @@ class FirnPhysics:
         self.RD['viscosity'] = viscosity
 
         return self.RD
+    
+    def Yamazaki1993(self):
+
+        '''
+        Denisfication scheme for wet snow from:
+        A one-dimensional model of the evolution of snow-coverncharacteristics
+        Yamazaki et al., 1993
+        Annals of Glaciology
+
+        Uses compactive viscosity formulation
+        Equation based on temperature being in C
+
+        parameters:
+        : rho_lw: mass of liquid water per unit volume
+        : rho_wet: total density (liquid plus solid mass)/volume
+        : eta: compactive viscosity
+        '''
+
+        def Afunc(w):
+            b_s=18
+            A=(np.exp(-b_s*w)-np.exp(-b_s))/(1-np.exp(-b_s))
+            return A
+        
+        eta_0 = 6.9e5 #[kg s/m2]
+        K = 2.1e-3 #[m3/kg]
+        alpha_s = 9.58e-2 #[C^{-1}]
+
+        vol_ice     = self.mass / RHO_I     # volume of the ice portion of each volume
+        vol_tot     = vol_ice + self.LWC    # total volume of ice and liquid in each volume
+        mass_liq    = self.LWC * RHO_W_KGM  # mass of liquid water
+        rho_lw = mass_liq / self.dz      # effective density of the liquid portion
+        rho_wet     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
+
+        w = rho_lw / rho_wet
+
+        A_w = Afunc(w)
+        eta = A_w * eta_0 * np.exp(K * self.rho - alpha_s*(self.Tz-273.15))
+
+        drho_dt = self.sigma / eta * self.rho
+
+        self.RD['viscosity'] = eta
+        self.RD['drho_dt'] = drho_dt
+        # print(f'Yama: {drho_dt[0:5]}')
+        return self.RD
+
+    def Marshall1999(self):
+        '''
+        Densification scheme from Marshall, Conway, ans Rasmussen (1999)
+
+        Snow compaction during rain, based on measurements from Snoqualmie Pass, WA, USA
+
+        '''
+        return None
+
+
 
     # def grainGrowth(self):
     #     '''

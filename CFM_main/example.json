@@ -103,7 +103,13 @@
 "RunoffZuoOerlemans": false,
 "Slope": 0.1,
 "SUBLIM": true,
-"keep_firnthickness": false
+"keep_firnthickness": false,
+"SEB_TL_thick": 0.05,
+"albedo_factor": 1,
+"bdm_sublim": true,
+"iceblock": false,
+"iceblock_rho": 917.0,
+"truncate_outputs": false
 }
 
 

@@ -4,9 +4,10 @@ All notable changes to the Community Firn Model should be documented in this fil
 TL;DR: Write down the changes that you made to the the model in this document and update the version number here, in CITATION.cff, and in main.py, then update main branch on github.
 
 General update protocol:
-First, get the staging branch to match main branch.
-Then, while on staging branch checkout files from whatever branch you want (e.g., git checkout dev melt.py)
-While on staging, test functionality. At minimum, python main.py example.json should work.
+- First, get the staging branch to match main branch.
+- Then, while on staging branch checkout files from whatever branch you want (e.g., git checkout dev melt.py)
+- While on staging, test functionality. At minimum, python main.py example.json should work.
+- If there are new keys for the json, update: *example.json*, *example_df.json*, *example_csv.json*, and *run_CFM_example_notebook.ipynb*
 
 ### Tests to do prior to release:
 1) Example run with csv input:
@@ -31,7 +32,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-3.0.0
+3.1.0
 
 ## Full Documentation
 
@@ -52,6 +53,37 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Documentation for the CFM
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
+	- I am working on adding additional physics to simulate near-surface snow compaction ("stage zero compaction")
+	- I am working on adding turbulent flux calculations to the SEB module
+
+
+## [3.1.0] 2025-09-23
+### Notes
+- This release has a number of small feature updates and bug fixes.
+- Much of the CFM-related work in the last several months has focused on developing scripts to do gridded runs of the CFM over the ice sheets on HPC clusters. This is a work in progress, but those scripts can be found in this repository: https://github.com/maximusjstevens/ATL_masschange
+- Note that those scripts include python scripts and slurm batch scripts (.j files) to leverage HPC resources. If you have use for these scripts and have questions, please email me at maxstev@umd.edu
+
+### New
+- *RCMpkl_to_spin.py, firn_density_spin.py* These scripts both use mean annual accumulation rate (bdot_mean) to calculate the initial density profile and the grid structure. In areas of the ice sheet where sublimation is greater than the accumulation, the bdot_mean would be calculated as negative, and thusly the CFM would fail. There is a new key in the .json config called "bdm_sublim" (bdot mean sublimation). When bdm_sublim is True, sublimation is included in the calculation of bdot_mean. When False, sublimation is excluded. In this case (False), the grid is initialized using the mean ansnowfall snowfall, which will create a grid with thicker layers. During the model run, the total domain thickness will decrease substantially. The net effect of this is still not fully tested, but potentially could lead to a scenario in which the spin up (if automatically calculated in RCMpkl_to_spin.py) will not be long enough. Likely the best option in this case is to use the new "iceblock" feature.
+- *firn_density_spin.py* There is a new option to just initialize the firn column with a constant density. This is controlled with the "iceblock" key in the configuration. The default value is 917 kg/m3, but this can also be customized using the key "iceblock_rho". This is recommended in high-melt areas or where sublimation is greater than snowfall. This sometimes fails when there are very thin layers - it seems that the numerics of a large density contrast in combination with thin layers causes a numerical in the SEB calculation. 
+- *writer.py* New feature ("truncate_outputs") that will write only a subset of the matrix outputs ('rho','Tz','LWC','age') to save memory. The subsetting is along the time dimension, so if truncate_outputs is true, it only writes those outputs at every 5th time step. Vector outputs (e.g., DIP) are still saved at every time step.
+
+### Changed
+- *RCMpkl_to_spin.py* now foregoes the creation of a pandas dataframe (in "option 3") and puts the climate forcing data straight into a dictionary, which saves a bit of memory.
+- *SEB.py* small changes to implementation of FQS solver to improve cross-platform compatibility
+- *diffusion.py* small edit to the way 'z_dummy' is calculated, which is used to calculate finite volume centers.
+- *diffusion.py* changed variable names from z_P_vec and z_edges_vec to z_P and z_edges, which makes it easier to track them into solver.py.
+- *firn_density_spin.py* when using climate forcing from a dictionary (i.e., climateTS), we now assign the time written to the spinup file (CFMspin.hdf5) to match the start of climate forcing.
+- *siteClimate_from_RCM.py* Added code to load MAR data, including dealing with varible "MSK" in MAR data and unit calculation for mass fluxes in MAR (bottom of MAR section in code - double check the MAR data being used!)
+- *siteClimate_from_RCM.py* changed defaults for SEB and melt in function "getClimate" to True
+- *solver.py* moved code that sets up grid in enthalpy solver outside of the iteration loop
+- *writer.py* changed code to no longer write model forcings in main results. Now, forcing data is written to a separate forcing file (CFMforcing.hdf5, or similar).
+
+### Fixed
+- *firn_density_nospin.py, firn_density_spin.py* fixed bug in code the converts temperature to Kelvin to avoid (rare) situation where first temperature was above zero but units provided were celsius. (This happed in a few cases using mountain glacier air temperature data that started in melt season.) Now, code checks if the mean of the temperature time series is negative, rather than the first value of the time series.
+- *physics.py* small bug fix to viscosity calculation in Li physics
+- *regrid.py* fixed an issue in which under high melt or sublimation scenarios there would not be enough layers in "grid1" to split, and the length of the grid would reduce and cause a model failure.
+
 
 ## [3.0.0] 2024-10-15
 ### Notes

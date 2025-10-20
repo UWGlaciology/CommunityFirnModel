@@ -129,10 +129,12 @@ class FirnDensityNoSpin:
         else:
             print('Initializing CFM run using existing spin up file')
             spinpath = str(os.path.join(self.c['resultsFolder'], self.c['spinFileName']))
-            print(spinpath)
+            print(f"Path to spinfile: {spinpath}")
         
         climate_writer = True
         if ((climateTS is not None) and (climate_writer)):
+            ### Write the climate forcing data to an hdf5 file.
+            ### units are the same as those in climateTS, which is m ice eq. per year.
             if 'forcing_data_start' not in climateTS.keys():
                 climateTS['forcing_data_start'] = climateTS['time'][0]
             forcing_writer(self,climateTS, SEBfluxes)
@@ -177,15 +179,16 @@ class FirnDensityNoSpin:
         ### set up the initial age and density of the firn column
         self.age        = initAge[1:]
         self.rho        = initDensity[1:]
-        print('rho: (l178)',self.rho[0:10])
 
         ### set up model grid
+        ### self.z is vector of layer edges
+        ### dz is thickness of layers; 
+        ### dz has a dummy value at the end (same as previous value, i.e. dz_-1 == dz_-2) to make z and dz the same length
         self.z          = initDepth[1:]
         self.dz         = np.zeros_like(self.z)
         zdiff           = np.diff(self.z)
         self.dz[:-1]    = zdiff
         self.dz[-1]     = zdiff[-1]
-        # self.dz         = np.append(self.dz, self.dz[-1]) # numerics - add on an extra layer at end so that vectors are the same length
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
@@ -945,9 +948,21 @@ class FirnDensityNoSpin:
             print('spinUpdate is true')
             spinUpdate_final = self.c['spinUpdateDate']
             spinUpdate_interval = 100 # years
-            indUpdate_vec = np.where(np.mod(self.modeltime,spinUpdate_interval)==0)[0]
+            # indUpdate_vec = np.where(np.mod(self.modeltime,spinUpdate_interval)==0)[0]
+            _reps = (np.ceil((2100 - self.modeltime[0])/spinUpdate_interval)) * spinUpdate_interval
+            _ups = (np.floor(self.modeltime[0]/spinUpdate_interval)*spinUpdate_interval) + np.arange(spinUpdate_interval,_reps,spinUpdate_interval) #estimate of when spinupdate should occur
+            _ups = _ups[_ups<=spinUpdate_final]
+            indUpdate_vec = []
+            for _up in _ups:
+                _ind = np.where(self.modeltime>=_up)[0][0]
+                indUpdate_vec.append(_ind)
+            indUpdate_vec = np.array(indUpdate_vec)
             indUpdate_final = np.where(self.modeltime>=spinUpdate_final)[0][0]
             indUpdate = np.append(indUpdate_vec[indUpdate_vec<indUpdate_final],indUpdate_final) # timesteps (iii values) at which to update spin file
+
+            # _df = pd.DataFrame(self.modeltime)
+            # _df.to_csv('modeltime.csv')
+            
 
         ### Keep track of total refreeze and runoff for mass conservation
         if self.MELT:
@@ -969,11 +984,8 @@ class FirnDensityNoSpin:
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
             
-            if np.mod(mtime,5)==0:
-                print(f'mtime: {mtime}')
-
-            lwc_startofloop = self.LWC.copy()
-            mass_startofloop = self.mass.copy()
+            # lwc_startofloop = self.LWC.copy()
+            # mass_startofloop = self.mass.copy()
 
             self.D_surf[iii] = iii # This gives each layer a tracking number that is just iteration number.
             if iii==1000:
@@ -1051,32 +1063,46 @@ class FirnDensityNoSpin:
                 PhysParams['Gamma_old2_Gou'] = self.Gamma_old2_Gou
                 PhysParams['ind1_old']       = self.ind1_old
 
-            ### choose densification-physics based on user input
-            physicsd = {
-                'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
-                'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
-                'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
-                'Li2004':               FirnPhysics(PhysParams).Li_2004,
-                'Li2011':               FirnPhysics(PhysParams).Li_2011,
-                'Li2015':               FirnPhysics(PhysParams).Li_2015,
-                'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
-                'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
-                'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
-                'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
-                'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
-                'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
-                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
-                'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
-                'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
-                'Crocus':               FirnPhysics(PhysParams).Crocus,
-                'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
-                'MaxSP':                FirnPhysics(PhysParams).MaxSP,
-                'Breant2017':           FirnPhysics(PhysParams).Breant2017
-            }
+            # ### choose densification-physics based on user input
+            # physicsd = {
+            #     'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
+            #     'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
+            #     'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
+            #     'Li2004':               FirnPhysics(PhysParams).Li_2004,
+            #     'Li2011':               FirnPhysics(PhysParams).Li_2011,
+            #     'Li2015':               FirnPhysics(PhysParams).Li_2015,
+            #     'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
+            #     'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
+            #     'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
+            #     'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
+            #     'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
+            #     'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
+            #     'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
+            #     'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+            #     'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
+            #     'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
+            #     'Crocus':               FirnPhysics(PhysParams).Crocus,
+            #     'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
+            #     'MaxSP':                FirnPhysics(PhysParams).MaxSP,
+            #     'Breant2017':           FirnPhysics(PhysParams).Breant2017
+            # }
 
-            RD      = physicsd[self.c['physRho']]()
+            # RD      = physicsd[self.c['physRho']]()
+            RD = getattr(FirnPhysics(PhysParams),self.c['physRho'])()
+            RD_snow = getattr(FirnPhysics(PhysParams),'Yamazaki1993')()
+            
+
+            if ((iii>139) and (iii<145)):
+                print(self.rho[0:5])
+                print(RD_snow['drho_dt'][0:5])
+                print(RD['drho_dt'][0:5])
+                print(self.sigma[0:5])
+                input('#########')
+            
             drho_dt = RD['drho_dt']
+            drho_dt[self.rho<300] = RD_snow['drho_dt'][self.rho<300]
+
+            
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
             self.viscosity = RD['viscosity']

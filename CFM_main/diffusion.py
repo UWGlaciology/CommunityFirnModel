@@ -89,7 +89,7 @@ def heatDiff(self,iii):
     Heat diffusion function
 
     Newer heat diffusion function - uses points 1/2 way between self.z as 
-    z_P_vec (finite volume centers), and self.z is the volume edges. This to me
+    z_P (finite volume centers), and self.z is the volume edges. This to me
     seems more natural, as in general then the temperature at z[0] in the output
     represents the temperature in the layer of firn between z[0] and z[1]. For temperature
     this perhaps doesn't matter too much, but for the sake of e.g. LWC it does, because 
@@ -112,13 +112,16 @@ def heatDiff(self,iii):
     nz_fv           = nz_P - 2 # this does not get used
     nt              = 1
 
+    ### Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
     z_dummy = np.zeros(len(self.z)+1)
     z_dummy[:-1] = self.z
     z_dummy[-1] = self.z[-1]+np.diff(self.z)[-1]
-    # z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
  
-    z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
-    z_edges_vec = z_dummy
+    z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
+    z_edges = z_dummy
+
+    # z_P is layer centers
+    # z_edges is layer edges
 
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
@@ -144,12 +147,11 @@ def heatDiff(self,iii):
     tot_rho         = self.rho#[0:-1]
     c_vol           = self.rho * c_firn
 
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    self.Tz         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
     try:
         self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
     except:
-        # print(f'domain depth is {self.z[-1]}, so T10m does not exist')
         self.T10m = np.nan
 
     if self.c['MELT']:
@@ -165,87 +167,7 @@ def heatDiff(self,iii):
     return self.Tz, self.T10m
 
 ##########################
-### end heat diffusion ###
-##########################
-
-def heatDiffNEW(self,iii):
-    '''
-    Heat diffusion function
-
-    :param z:
-    :param dz:
-    :param Ts:
-    :param rho:
-
-    :returns self.Tz:
-    :returns self.T10m:
-    
-    thermal diffusivity: alpha = K_firn / (rho*c_firn)
-    '''
-
-    nz_P            = len(self.z) #- 1
-    nz_fv           = nz_P - 2 # this does not get used
-    nt              = 1
-
-    # z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    # z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    # z_P_vec     = self.z
-
-    z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1])
-
-    z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
-    z_edges_vec = z_dummy
-
-
-    
-    phi_s           = self.Tz[0]
-    phi_0           = self.Tz
-    # phi_0           = np.append(self.Tz,self.Tz[-1])
-
-    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-
-    K_firn = firnConductivity(self,iii,K_ice)
-    K_firn = K_firn#[0:-1]
-    phi_0 = phi_0#[0:-1]
-
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
-    # [0:-1] # thermal conductivity
-
-    if self.c['MELT']:
-        try:
-            if self.c['LWCheat']=='lowK':
-                K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
-        except:
-            pass
-
-    Gamma_P         = K_firn
-
-    # rho_dummy = np.append(self.rho,self.rho[-1])
-    # tot_rho = rho_dummy
-    # c_vol = rho_dummy * c_firn
-    tot_rho         = self.rho#[0:-1]
-    c_vol           = self.rho * c_firn
-
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-    # self.Tz = np.append(self.Tz,self.Tz[-1])
-
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-    if self.c['MELT']:
-        if self.c['LWCheat']=='effectiveT':
-            pass
-
-        elif np.any(self.Tz>273.1500001):
-            print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
-            print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
-
-        self.Tz[self.Tz>=273.15]=273.15
-
-    return self.Tz, self.T10m
-
-##########################
-### end heat diffusion ###
+### end heatDiff ###
 ##########################
 
 def enthalpyDiff(self,iii):
@@ -254,7 +176,15 @@ def enthalpyDiff(self,iii):
     1/30/19 - method from Voller and Swaminathan
     LWC is in volume (m^3)
     thermal diffusivity: alpha = K_firn / (rho*c_firn)
+
+    layers = volumes. Used somewhat interchangably in this documentation, 
+    as a layer of snow/firn is the finite volume for the diffusion calculation
+    
+    :param z_P: locations of centers of the layers [m]. Length is same as self.z, i.e. nz_P
+    :param z_edges: locations of edges of the layers [m]. Length = nz_P + 1
+
     '''
+
     Tstart          = self.Tz.copy()
     nz_P            = len(self.z) # this is the number of volumes, or can think of as number of firn layers.
     nz_fv           = nz_P - 2 # this does not actually get used.
@@ -264,18 +194,22 @@ def enthalpyDiff(self,iii):
     else:
         nt = 1
 
-    # z_edges_vec1    = self.z[0:-1] + np.diff(self.z) / 2
-    # z_edges_vec     = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    # z_P_vec         = self.z
-    T_old = self.Tz.copy()
+    # T_old = self.Tz.copy() # initial temperature profile
 
+    ### Add a dummy point at the end so that the fields at z[-1] have a volume associated with them 
     z_dummy = np.zeros(len(self.z)+1)
     z_dummy[:-1] = self.z
     z_dummy[-1] = self.z[-1]+np.diff(self.z)[-1]
-    # z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1]) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
  
-    z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
-    z_edges_vec = z_dummy
+    z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
+    z_edges = z_dummy
+
+    # print(f'nz_P:{nz_P}')
+    # print(f'rho len:{len(self.rho)}')
+    # print(f'z_edges: {len(z_edges)}')
+    # print(f'z_P: {len(z_P)}')
+    # print(f'len self.dz: {len(self.dz)}')
+    # print(f'self.dz: {self.dz}')
 
     phi_s           = self.Tz[0] - T_MELT # work in [C] so that reference Temperature is 0 for enthalpy
     phi_0           = self.Tz - T_MELT
@@ -322,7 +256,7 @@ def enthalpyDiff(self,iii):
 
     lwc_old = self.LWC.copy()
     
-    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges_vec, z_P_vec, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
+    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges, z_P, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
 
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
@@ -382,9 +316,90 @@ def enthalpyDiff(self,iii):
 ### DEVELOPMENT CODE BELOW HERE
 ###############################
 
+### heatDiffNew: testing code to use volume centers
+# def heatDiffNEW(self,iii):
+#     '''
+#     Heat diffusion function
+
+#     :param z:
+#     :param dz:
+#     :param Ts:
+#     :param rho:
+
+#     :returns self.Tz:
+#     :returns self.T10m:
+    
+#     thermal diffusivity: alpha = K_firn / (rho*c_firn)
+#     '''
+
+#     nz_P            = len(self.z) #- 1
+#     nz_fv           = nz_P - 2 # this does not get used
+#     nt              = 1
+
+#     # z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
+#     # z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+#     # z_P     = self.z
+
+#     z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1])
+
+#     z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
+#     z_edges = z_dummy
+
+
+    
+#     phi_s           = self.Tz[0]
+#     phi_0           = self.Tz
+#     # phi_0           = np.append(self.Tz,self.Tz[-1])
+
+#     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
+
+#     K_firn = firnConductivity(self,iii,K_ice)
+#     K_firn = K_firn#[0:-1]
+#     phi_0 = phi_0#[0:-1]
+
+#     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+#     # c_firn        = CP_I # If you prefer a constant specific heat.
+#     # [0:-1] # thermal conductivity
+
+#     if self.c['MELT']:
+#         try:
+#             if self.c['LWCheat']=='lowK':
+#                 K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
+#         except:
+#             pass
+
+#     Gamma_P         = K_firn
+
+#     # rho_dummy = np.append(self.rho,self.rho[-1])
+#     # tot_rho = rho_dummy
+#     # c_vol = rho_dummy * c_firn
+#     tot_rho         = self.rho#[0:-1]
+#     c_vol           = self.rho * c_firn
+
+#     self.Tz         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+#     # self.Tz = np.append(self.Tz,self.Tz[-1])
+
+#     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+
+#     if self.c['MELT']:
+#         if self.c['LWCheat']=='effectiveT':
+#             pass
+
+#         elif np.any(self.Tz>273.1500001):
+#             print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
+#             print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
+
+#         self.Tz[self.Tz>=273.15]=273.15
+
+#     return self.Tz, self.T10m
+
+##########################
+### end heatDiffNew ###
+##########################
+
 def heatDiffOLD(self,iii):
     '''
-    Older Heat diffusion function - uses self.z as z_P_vec (finite volume centers)
+    Older Heat diffusion function - uses self.z as z_P (finite volume centers)
     and 1/2 way betwee self.z as the volume edges
 
     :param z:
@@ -403,8 +418,8 @@ def heatDiffOLD(self,iii):
     nt              = 1
 
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P_vec     = self.z
+    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+    z_P     = self.z
     
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
@@ -428,7 +443,7 @@ def heatDiffOLD(self,iii):
     tot_rho         = self.rho
     c_vol           = self.rho * c_firn
 
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    self.Tz         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
@@ -464,8 +479,8 @@ def heatDiff_highC(self,iii):
     nt              = 1
 
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P_vec     = self.z
+    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+    z_P     = self.z
 
     dt_sub = self.dt[iii]
 
@@ -491,7 +506,7 @@ def heatDiff_highC(self,iii):
     c_vol = c_vol_0 + C_lat
 
 
-    self.Tz        = transient_solve_TR(z_edges_vec, z_P_vec, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    self.Tz        = transient_solve_TR(z_edges, z_P, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
     self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
@@ -527,8 +542,8 @@ def heatDiff_Teff(self,iii):
     nt              = 1
 
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P_vec     = self.z
+    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+    z_P     = self.z
 
     Q = LF_I * self.LWC * RHO_W_KGM
     deltaT = Q / (self.mass*CP_I)
@@ -556,7 +571,7 @@ def heatDiff_Teff(self,iii):
     tot_rho         = self.rho
     c_vol           = self.rho * c_firn
 
-    T_eff_new         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    T_eff_new         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
 
     excessT = np.maximum(0.0,(T_eff_new - T_MELT))
     LWC_new = (excessT * self.mass * CP_I)/ LF_I / 1000 # divide by 1000 to put in volume (m3)
@@ -600,8 +615,8 @@ def heatDiff_LWCcorr(self,iii, iters,correct_therm_prop):
     nt              = 1
 
     z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P_vec     = self.z
+    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
+    z_P     = self.z
     
     # iters = 24
     dt_sub = self.dt[iii]/iters
@@ -652,7 +667,7 @@ def heatDiff_LWCcorr(self,iii, iters,correct_therm_prop):
             c_vol           = self.rho * c_firn
 
 
-        self.Tz        = transient_solve_TR(z_edges_vec, z_P_vec, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+        self.Tz        = transient_solve_TR(z_edges, z_P, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
         self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
 
         self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)

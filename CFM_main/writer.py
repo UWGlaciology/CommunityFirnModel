@@ -44,8 +44,13 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
 
         subvars = ['rho','Tz','LWC','age']
 
-        subset_time = True
-        if ((VW in subvars) and (subset_time)):
+        if 'truncate_outputs' in self.c:
+            truncate_outputs = self.c['truncate_outputs']
+        else:
+            truncate_outputs = False
+            print('truncate_outputs not in .json. Setting to false')
+
+        if ((VW in subvars) and (truncate_outputs)):
             # data_out = np.column_stack((Mout_dict[VW][:,0],Mout_dict[VW][:,1::5]))
             data_out = np.vstack((Mout_dict[VW][0,:],Mout_dict[VW][1::5,:]))
 
@@ -247,6 +252,12 @@ def SpinUpdate_res(self,mtime):
     spin_results.close()
 
 def forcing_writer(self, climateTS, SEBfluxes = None):
+    
+    '''
+    write forcing data to its own hdf5 file
+    units on mass fluxes (e.g., bdot, rain, etc.) are m ice eq. per year.
+    
+    '''
     
     try:
         forcing_filename = self.c['forcingFileName']

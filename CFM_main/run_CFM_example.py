@@ -136,7 +136,7 @@ class M2_CFM():
         runloc='local' #'local','SMCE','MAAP','loki'
         seb = True
         RCMtype = 'MERRA2'
-        variable_srho = True
+        variable_srho = False
         # rf_mid = 'CFMresults/'
 
         try:
@@ -185,6 +185,7 @@ class M2_CFM():
             c          = json.loads(jsonString) 
 
         c['physRho'] = 'GSFC2020'
+        # c['physRho'] = 'Yamazaki1993'
         c['runID'] = runid
         c['DFresample'] = '1d' # resolution of the model run, e.g. '1d' is 1 day.
         
@@ -211,7 +212,7 @@ class M2_CFM():
             c['variable_srho'] = True
             c['srho_type'] = "noise"
         else:
-            c['rhos0'] = 350.0 #e.g here you could change the surface density
+            c['rhos0'] = 150.0 #e.g here you could change the surface density
             rhotype=f"rho{c['rhos0']}"
         #######
 
@@ -220,7 +221,7 @@ class M2_CFM():
 
         ### Specify where results should go ###
     
-        rf_pre = 'CFMoutputs_example'
+        rf_pre = 'CFMoutput_example'
         rf_po = f'/CFMresults_{lat_w}_{lon_w}_{c["physRho"]}'
 
         c['resultsFolder'] = rf_pre + rf_po
