@@ -24,6 +24,12 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
 
     f4 = h5py.File(os.path.join(self.c['resultsFolder'], self.c['resultsFileName']),'w')
 
+    if 'truncate_outputs' in self.c:
+        truncate_outputs = self.c['truncate_outputs']
+    else:
+        truncate_outputs = False
+        print('truncate_outputs not in .json. Setting to false')
+
     for VW in Mout_dict.keys():
 
         if VW == 'rho': 
@@ -43,12 +49,6 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
             wn = VW
 
         subvars = ['rho','Tz','LWC','age']
-
-        if 'truncate_outputs' in self.c:
-            truncate_outputs = self.c['truncate_outputs']
-        else:
-            truncate_outputs = False
-            print('truncate_outputs not in .json. Setting to false')
 
         if ((VW in subvars) and (truncate_outputs)):
             # data_out = np.column_stack((Mout_dict[VW][:,0],Mout_dict[VW][:,1::5]))
@@ -256,7 +256,7 @@ def forcing_writer(self, climateTS, SEBfluxes = None):
     '''
     write forcing data to its own hdf5 file
     units on mass fluxes (e.g., bdot, rain, etc.) are m ice eq. per year.
-    
+
     '''
     
     try:

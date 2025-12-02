@@ -48,7 +48,8 @@ class FirnPhysics:
         self.RD = {} # RD = Return Dictionary, set up this way so that more things can be returned easily if needed.
 
 
-    def HL_dynamic(self):
+    # def HL_dynamic(self):
+    def HLdynamic(self):        
         '''
         Accumulation units are m W.E. per year
         viscosity doesn't work
@@ -98,7 +99,8 @@ class FirnPhysics:
     ### end HL_dynamic ###
     ######################
 
-    def HL_Sigfus(self):
+    # def HL_Sigfus(self):
+    def HLSigfus(self):
         '''
         Accumulation units are m W.E. per year (zone 1); uses stress for zone 2 
         '''
@@ -153,7 +155,8 @@ class FirnPhysics:
     ### end HL_Sigfus ###
     #####################
 
-    def Li_2004(self):
+    # def Li_2004(self):
+    def Li2004(self):
         '''
         Accumulation units are m W.E. per year (?)
         Equation from Arthern, 2010 (eq. 2): not sure where Rob got that? 
@@ -186,7 +189,8 @@ class FirnPhysics:
     ### end Li_2004 ###
     ###################
 
-    def Li_2011(self):
+    # def Li_2011(self):
+    def Li2011(self):
         '''
         Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
         Temperature in the equation for beta is in C.
@@ -240,8 +244,8 @@ class FirnPhysics:
     ### end Li_2011 ###
     ###################
 
-    def Li_2015(self):
-
+    # def Li_2015(self):
+    def Li2015(self):
         
         '''
         Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
@@ -305,7 +309,8 @@ class FirnPhysics:
     ### end Li_2015 ###
     ###################
 
-    def Arthern_2010S(self):
+    # def Arthern_2010S(self):
+    def Arthern2010S(self):
         '''
         This is the steady-state solution described in the main text of Arthern et al. (2010)
         Accumulation units are kg/m^2/year
@@ -344,7 +349,8 @@ class FirnPhysics:
     ### end Arthern_2010S ###
     #########################
 
-    def Arthern_2010T(self):
+    # def Arthern_2010T(self):
+    def Arthern2010T(self):
         '''
         This is the transient solution described in the appendix of Arthern et al. (2010)
 
@@ -376,7 +382,8 @@ class FirnPhysics:
     ### end Arthern_2010T ###
     #########################
 
-    def Helsen_2008(self):
+    # def Helsen_2008(self):
+    def Helsen2008(self):    
         '''
         Accumulation units are m W.E. per year (?)
         Equation is from Arthern et al. 2010 (2)
@@ -406,7 +413,8 @@ class FirnPhysics:
     ### end Helsen_2008 ###
     #######################
 
-    def Simonsen_2013(self):
+    # def Simonsen_2013(self):
+    def Simonsen2013(self):        
         '''
         Accumulation units are kg/m^2/year
 
@@ -450,7 +458,8 @@ class FirnPhysics:
     ### end Simonsen_2013 ###
     #########################
 
-    def Ligtenberg_2011(self):
+    # def Ligtenberg_2011(self):
+    def Ligtenberg2011(self):
         '''
         Units are mm W.E. per year
         b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
@@ -509,7 +518,8 @@ class FirnPhysics:
     ### end Ligtenberg_2011 ###
     ###########################
 
-    def Barnola_1991(self):
+    # def Barnola_1991(self):
+    def Barnola1991(self):
         '''
 
         uses m W.E. (zone 1) and stress (zone 2)
@@ -567,7 +577,8 @@ class FirnPhysics:
     ### end Barnola_1991 ###
     ########################
     
-    def Morris_HL_2014(self):
+    # def Morris_HL_2014(self):
+    def Morris2014(self):
         '''
 
         Uses stress instead of accumulation.
@@ -640,7 +651,8 @@ class FirnPhysics:
     ### end Morris_HL_2014 ###
     ##########################
 
-    def KuipersMunneke_2015(self):
+    # def KuipersMunneke_2015(self):
+    def KuipersMunneke2015(self):
         '''
 
         Units are mm W.E. per year
@@ -709,7 +721,8 @@ class FirnPhysics:
     ### end KuipersMunneke_2015 ###
     ###############################
 
-    def Brils_2022(self):
+    # def Brils_2022(self):
+    def Brils2022(self):
         '''
 
         Units are mm W.E. per year
@@ -763,7 +776,8 @@ class FirnPhysics:
     ### end Brils_2022 ###
     ###############################
 
-    def Veldhuijsen_2023(self):
+    # def Veldhuijsen_2023(self):
+    def Veldhuijsen2023(self):        
         '''
 
         Units are mm W.E. per year
@@ -815,7 +829,8 @@ class FirnPhysics:
     ### end Veldhuijsen_2023 ###
     ###############################
 
-    def Goujon_2003(self):
+    # def Goujon_2003(self):
+    def Goujon2003(self):
         '''
         Uses stress
         '''
