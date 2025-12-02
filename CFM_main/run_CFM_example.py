@@ -108,24 +108,19 @@ def MERRA2_zarr_to_dataframe(lat_int,lon_int, zarr_path=None):
             varlist = [jj for jj in dsZ.variables if jj not in ['time','lat','lon']]
 
             for vv in varlist:
-                if vv=='FRLANDICE':
-                    FRLI = dsZ.isel(lat=[ii],lon=[jj])[vv].values.flatten()
-                else:
-                    df_sub[vv] = dsZ.isel(lat=[ii],lon=[jj])[vv].values.flatten()
+                df_sub[vv] = dsZ.isel(lat=[ii],lon=[jj])[vv].values.flatten()
 
             df_sub['RAIN'] = (df_sub['PRECLS']+df_sub['PRECCU'])*4*3600
             df_sub['EVAP'] = df_sub['EVAP']*4*3600
             df_sub['PRECSN'] = df_sub['PRECSN']*4*3600
             df_sub['SMELT'] = df_sub['SMELT']*4*3600
 
-            FRLI = dsZ.isel(lat=[ii],lon=[jj]).FRLANDICE.values
-
             drn = {'T2M':'T2m','TS':'TSKIN','EVAP':'SUBLIM','HFLUX':'QH','EFLUX':'QL','SWGDN':'SW_d','LWGAB':'LW_d','RAIN':'RAIN','PRECSN':'BDOT','ALBEDO':'ALBEDO','SMELT':'SMELT'}
 
             df_sub = df_sub[drn.keys()]
             df_sub.rename(mapper=drn,axis=1,inplace=True)
 
-            return ii,jj,lat_val,lon_val,df_sub, FRLI
+            return ii,jj,lat_val,lon_val,df_sub
         
     decades = [1980,1990,2000,2010,2020]
     df_dict = {}
@@ -136,7 +131,7 @@ def MERRA2_zarr_to_dataframe(lat_int,lon_int, zarr_path=None):
     for decade in decades:
         file = Path(zarr_path,f'M2_GrIS_daily_IS2mc_{decade}.zarr.zip')
         with xr.open_dataset(file,engine='zarr') as dsZ:
-            ii,jj,lat_val,lon_val,df_sub, FRLI = make_dataframe(dsZ,lat_int,lon_int)
+            ii,jj,lat_val,lon_val,df_sub = make_dataframe(dsZ,lat_int,lon_int)
             df_dict[decade] = df_sub
             
     df_out = pd.concat(df_dict.values())
@@ -144,7 +139,7 @@ def MERRA2_zarr_to_dataframe(lat_int,lon_int, zarr_path=None):
     df_out['QL'] = -1 * df_out['QL']
     df_out['QH'] = -1 * df_out['QH']
 
-    return ii,jj,lat_val,lon_val,df_out,FRLI
+    return ii,jj,lat_val,lon_val,df_out
 
 #################################
 #################################
@@ -170,21 +165,60 @@ class M2_CFM():
         except:
             runid=-9999
 
-        ### Below is to generate the forcing data from from zarr
-        ### get zarr from: https://zenodo.org/records/17317018
-        
-        # if RCMtype == 'MERRA2':
-        #     ii,jj,lat_val,lon_val,df_daily, FRLI = MERRA2_zarr_to_dataframe(lat_int,lon_int)
-        #     print(f'FRLI:{FRLI}')
-        #     print(ii, jj, lat_val, lon_val)
-        #     pd.to_pickle(df_daily,f'CFM_example_{lat_val}_{lon_val}.pkl')
-        ######
+        climate_source='dataframe' # 'dataframe' (option 2 below) or 'zarr' (option 1 below)
 
-        ### instead we are importing the data from a saved pickle for the example
-        lat_val = lat_int
-        lon_val = lon_int
-        df_daily = pd.read_pickle(f'CFMinput_example/CFM_example_{lat_val}_{lon_val}.pkl')
-        ###
+        if climate_source=='zarr':
+            #############################
+            ### OPTION 1: GET CLIMATE FORCING FROM THE ZARR
+            ### Below is to generate the forcing data from from zarr
+            ### get zarr from: https://zenodo.org/records/17317018
+
+            ### Call the function to create a pandas dataframe with climte forcing
+            ### (need the zarr for this)
+            ### optionally, save the dataframe as a pkl
+            ### returns "lat_val" and "lon_val", which are "latitude value" 
+            ### and "longitude value", i.e. the MERRA-2 grid point
+            ### closest to lat_int and lon_int.
+
+            ii,jj,lat_val,lon_val,df_daily = MERRA2_zarr_to_dataframe(lat_int,lon_int,zarr_path=zarr_path) # make sure zarr_path is set correctly (first cell)
+            print(ii, jj, lat_val, lon_val)
+
+            save_df=True
+            save_format = '.pkl' # .csv or pkl
+
+            if save_df:
+                if save_format=='.pkl':
+                    pd.to_pickle(df_daily,f'CFM_example_{lat_val}_{lon_val}.pkl')
+                else: # csv
+                    df_daily.to_csv(f'CFMinput_example/CFM_example_{lat_val}_{lon_val}.csv')
+
+            ### END OPTION 1
+            #############################
+
+        elif climate_source=='dataframe':
+            #############################
+            ### OPTION 2: LOAD CLIMATE DATA FROM AN EXTANT DATAFRAME
+            ### (which is saved in .pkl or .csv file)
+            '''
+            If you already have the forcing data for the lat/lon pair pickled,
+            you can instead load it here.
+
+            This example notebooke only works with the provided example files.
+
+            But, you can also create your own dataframe with climate data
+            and load it here
+            If you are doing this you can mimic the format of the example files.
+            '''
+
+            lat_val = lat_int
+            lon_val = lon_int
+
+            ### e.g.:
+            df_daily = pd.read_pickle(f'CFMinput_example/CFM_example_{lat_val}_{lon_val}.pkl') # if your dataframe is in a pkl
+            # df_daily = pd.read_csv(f'CFMinput_example/CFM_example_{lat_val}_{lon_val}.csv') # if your dataframe is in a csv
+            
+            ### END OPTION 2
+            #############################
 
         print(df_daily.head())
         df_spy = 365.25

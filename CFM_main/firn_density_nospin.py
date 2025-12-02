@@ -756,7 +756,7 @@ class FirnDensityNoSpin:
         if "stage_zero" not in self.c:
             self.c["stage_zero"] = False
             print('stage_zero not in .json; default to false')
-        else: # if stage_zero set to true, but snow_model not specified
+        elif self.c["stage_zero"]: # if stage_zero set to true, but snow_model not specified
             print("STAGE_ZERO DENSIFICATION STILL IN DEVELOPMENT!")
             if "snow_model" not in self.c:
                 print('stage_zero densification is enabled but you do not have a snow model set.')
@@ -767,6 +767,8 @@ class FirnDensityNoSpin:
                 print('stage_zero densification is enabled but you do not have a transition density set.')
                 print('defaulting to 200 kg/m3.')
             print(f"snow model is {self.c['snow_model']}")
+        else:
+            pass
 
         ### Isotopes ########
         if self.c['isoDiff']:
