@@ -11,7 +11,7 @@ general runs). I have started using all-in-one scripts that set up model forcing
 configure model run details, and then launch the run. Please let me know if you 
 need a script like this, and I'll be happy to send you one.
 
-Copyright © 2021 C. Max Stevens
+Copyright © 2025 C. Max Stevens
 
 Distributed under terms of the MIT license.
 """
@@ -27,7 +27,7 @@ import RCMpkl_to_spin as RCM
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annika Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@umd.edu"
 __status__ = "Production"

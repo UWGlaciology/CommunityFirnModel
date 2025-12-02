@@ -59,9 +59,13 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 
 ## [3.1.0] 2025-09-23
 ### Notes
+- This release features updates to the examples, and subsetted MERRA-2 climate data for Greenland is now downloadable from zenodo (https://zenodo.org/records/17317018)
 - This release has a number of small feature updates and bug fixes.
 - Much of the CFM-related work in the last several months has focused on developing scripts to do gridded runs of the CFM over the ice sheets on HPC clusters. This is a work in progress, but those scripts can be found in this repository: https://github.com/maximusjstevens/ATL_masschange
 - Note that those scripts include python scripts and slurm batch scripts (.j files) to leverage HPC resources. If you have use for these scripts and have questions, please email me at maxstev@umd.edu
+
+### Example updates
+- *run_CFM_example.py, run_CFM_example_notebook.ipynb* These examples have been updated to hopefully make them a bit easier to use. Notably, the MERRA-2 data that is required to force CFM is now available on zenodo at https://zenodo.org/records/17317018 (Greenland only). Details on this are provided on the zenodo repository and in the example scripts, but the gist is that the climate data is in a zarr store, and the example scripts can pull MERRA-2 data from the zarr to run CFM for any lat/lon point in Greenland. 
 
 ### New
 - *RCMpkl_to_spin.py, firn_density_spin.py* These scripts both use mean annual accumulation rate (bdot_mean) to calculate the initial density profile and the grid structure. In areas of the ice sheet where sublimation is greater than the accumulation, the bdot_mean would be calculated as negative, and thusly the CFM would fail. There is a new key in the .json config called "bdm_sublim" (bdot mean sublimation). When bdm_sublim is True, sublimation is included in the calculation of bdot_mean. When False, sublimation is excluded. In this case (False), the grid is initialized using the mean ansnowfall snowfall, which will create a grid with thicker layers. During the model run, the total domain thickness will decrease substantially. The net effect of this is still not fully tested, but potentially could lead to a scenario in which the spin up (if automatically calculated in RCMpkl_to_spin.py) will not be long enough. Likely the best option in this case is to use the new "iceblock" feature.
