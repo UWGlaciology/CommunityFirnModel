@@ -90,6 +90,9 @@ def read_netcdfs_mar(files, dim, ii, jj, vv):
                 # print(v)
                 if len(ds[v].dims)==4:
                     dsd[v] = ds[v][:,0,ii,jj].to_dataframe()
+                elif v=='MSK':
+                    msk = (ds[['MSK']]).isel(y=ii,x=jj)['MSK'].values
+
                 else:
                     dsd[v] = ds[v][:,ii,jj].to_dataframe()
             df_list = [v for k,v in dsd.items()]
@@ -108,7 +111,7 @@ def effectiveT(T):
     km  = np.mean(k)
     return Q/(R*np.log(km))
 
-def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=False,runtype='local',dsource = None,SEB=False):
+def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=True,runtype='local',dsource = None,SEB=True):
     '''
     Load data from MERRA or MAR or whatever.
     Put it into a pandas dataframe, called df_CLIM. index must be datetimeindex for 
@@ -180,6 +183,11 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
         smb has units of kg m^-2 s^-1 per day (because I sum the hourly values to get a value for each day, but do not divde by 24 after that) (pretty sure, at least!)
         temperature has dimensions of (time,lat,lon)
         temperature has units K
+        NOTE: in MERRA, positive sublimation flux = sublimation, ?negative? = deposition,
+        but CFM uses opposite of that (which is the ERA-5 convention). So, make sure that you
+        multiply MERRA-2 EVAP/SUBLIM by -1 at some point in your workflow (I do it in run_CFM_example.py)
+
+        After switching sign, PRECTOT + EVAP = net precip. 
 
         '''
 
@@ -282,7 +290,7 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             sys.exit()            
        
         if not dsource:
-            dsource = 'ERA10km'
+            dsource = 'ERA5_20km'
             print('using MAR ', dsource)
 
         if dsource == 'ERA10km':
@@ -309,18 +317,29 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             spin_date_end = 1979       
         elif dsource == 'ERA5_20km': # MAR3.12
             MARver='312'
-            d2 = '/ERA5_20km/'
+            d2 = '/ERA5_20k/'
             if SEB:
-                vv = ['AL2','LHF','ME','RF','SF','SHF','ST2','SU','SWD','TT']
+                vv = ['AL2','LHF','ME','RF','SF','SHF','ST2','SU','SWD','TT','MSK']
             else:    
-                vv = ['ME','SF','ST2','RF','SU','TT']
-            spin_date_st = 1958
+                vv = ['ME','SF','ST2','RF','SU','TT','MSK']
+            spin_date_st = 1950
+            spin_date_end = 1979
+
+        elif dsource == 'ERA510k': # MAR3.12
+            MARver='312'
+            d2 = '/ERA510k/'
+            if SEB:
+                vv = ['AL2','LHF','ME','RF','SF','SHF','ST2','SU','SWD','TT','MSK','LWD','LWU','SWU']
+            else:    
+                vv = ['ME','SF','ST2','RF','SU','TT','MSK']
+            spin_date_st = 1950
             spin_date_end = 1979
 
         if MARver == '311':
             ddir = f'/Volumes/Samsung_T1/MAR{MARver}/Greenland/daily'
         elif MARver == '312':
-            ddir = '/Volumes/LaCie'
+            # ddir = '/Volumes/LaCie'
+            ddir = '/Users/cdsteve2/nobackup/RCMdata/MAR312'
         
 
         pickle_folder = ddir + '/pickles' + d2
@@ -329,6 +348,7 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
             os.makedirs(pickle_folder)
 
         # searchdir = ddir + d2 + '/*.nc'
+        print(ddir+d2)
         flist = glob.glob(ddir + d2 + '*.nc')
         rgr = nc.Dataset(flist[0],'r')
         lat = rgr['LAT'][:,:]
@@ -355,25 +375,30 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
 
         else:
             pwriter = True
+            with xr.open_dataset(flist[0]) as ds1:
+                msk = (ds1[['MSK']]).isel(y=ii,x=jj)['MSK'].values
+            print(f'ice area is {msk}')
+
             df_CLIM = (read_netcdfs_mar(flist,'TIME',ii=ii,jj=jj,vv=vv))[str(spin_date_st):]
+            print(f'msk is {msk}')
             if not SEB:
                 if 'SMB' in df_CLIM.columns:
-                    df_BDOT = pd.DataFrame(df_CLIM['SMB']/1000*917).rename(columns = ['BDOT']) #put into units kg/m^2/day (i.e. per time resolution in the files))
+                    df_BDOT = pd.DataFrame(df_CLIM['SMB']/1000*1000).rename(columns = ['BDOT']) #put into units kg/m^2/day (i.e. per time resolution in the files))
                     df_MELT = None
                     df_RAIN = None
                 else:
                     if 'SU' in df_CLIM.columns:
-                        df_BDOT = pd.DataFrame(((df_CLIM['SF']-df_CLIM['SU'])/1000*917),columns=['BDOT']) #put into units kg/m^2/day (i.e. per time resolution in the files))
+                        df_BDOT = pd.DataFrame(((df_CLIM['SF']-df_CLIM['SU'])/1000*1000),columns=['BDOT']) #put into units kg/m^2/day (i.e. per time resolution in the files))
                         df_CLIM['BDOT'] = df_BDOT.BDOT.values
                         df_CLIM.drop(['SF','SU'],axis=1,inplace=True)
                     else:
-                        df_BDOT = pd.DataFrame((df_CLIM['SF'])/1000*917).rename(columns={'SF':'BDOT'}) #put into units kg/m^2/day (i.e. per time resolution in the files))
+                        df_BDOT = pd.DataFrame((df_CLIM['SF'])/1000*1000).rename(columns={'SF':'BDOT'}) #put into units kg/m^2/day (i.e. per time resolution in the files))
                         df_CLIM['BDOT'] = df_BDOT.BDOT.values
                         df_CLIM.drop(['SF'],axis=1,inplace=True)
-                    df_CLIM['ME'] = df_CLIM['ME']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
-                    df_CLIM['RF'] = df_CLIM['RF']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
-                    # df_MELT = pd.DataFrame(df_CLIM['ME']/1000*917/3600).rename(columns={'ME':'MELT'}) #put into equivalent units to the merra data (kg/m^2/s)
-                    # df_RAIN = pd.DataFrame(df_CLIM['RF']/1000*917/3600).rename(columns={'RF':'RAIN'}) #put into equivalent units to the merra data (kg/m^2/s)
+                    df_CLIM['ME'] = df_CLIM['ME']/1000*1000 #put into units kg/m^2/day (i.e. per time resolution in the files))
+                    df_CLIM['RF'] = df_CLIM['RF']/1000*1000 #put into units kg/m^2/day (i.e. per time resolution in the files))
+                    # df_MELT = pd.DataFrame(df_CLIM['ME']/1000*1000/3600).rename(columns={'ME':'MELT'}) #put into equivalent units to the merra data (kg/m^2/s)
+                    # df_RAIN = pd.DataFrame(df_CLIM['RF']/1000*1000/3600).rename(columns={'RF':'RAIN'}) #put into equivalent units to the merra data (kg/m^2/s)
                 df_TS = pd.DataFrame(df_CLIM[['ST2','TT']]).rename(columns = {'ST2':'TSKIN','TT':'T2m'}) + 273.15
 
                 drn = {'ME':'SMELT','SU':'SUBLIMATION','SF':'BDOT','RF':'RAIN','ST2':'TSKIN','SMB':'BDOT','TT':'T2m'}
@@ -381,10 +406,10 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
                 df_CLIM.TSKIN = df_CLIM.TSKIN + 273.15
                 df_CLIM.T2m = df_CLIM.T2m + 273.15
             else:
-                df_CLIM['ME'] = df_CLIM['ME']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
-                df_CLIM['RF'] = df_CLIM['RF']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
-                df_CLIM['SU'] = df_CLIM['SU']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
-                df_CLIM['SF'] = df_CLIM['SF']/1000*917 #put into units kg/m^2/day (i.e. per time resolution in the files))
+                df_CLIM['ME'] = df_CLIM['ME']/1000*1000 #put into units kg/m^2/day (i.e. per time resolution in the files))
+                df_CLIM['RF'] = df_CLIM['RF']/1000*1000 #put into units kg/m^2/day (i.e. per time resolution in the files))
+                df_CLIM['SU'] = df_CLIM['SU']/1000*1000 #put into units kg/m^2/day (i.e. per time resolution in the files))
+                df_CLIM['SF'] = df_CLIM['SF']/1000*1000 #put into units kg/m^2/day (i.e. per time resolution in the files))
                 drn = {'AL2':'ALBEDO','LHF':'QL','ME':'SMELT','RF':'RAIN','SF':'BDOT','SHF':'QH','ST2':'TSKIN','SU':'SUBL','SWD':'SW_d','TT':'T2m'}
                 # drn = {'ME':'SMELT','SU':'SUBLIMATION','SF':'BDOT','RF':'RAIN','ST2':'TSKIN','SMB':'BDOT','TT':'T2m'}
                 df_CLIM.rename(mapper=drn,axis=1,inplace=True)
@@ -452,15 +477,21 @@ def getClimate(lat_int,lon_int,writer=True,datatype='MERRA',timeres='1D',melt=Fa
 if __name__ == '__main__':
     tic = time.time()
 
-    LLpair = sys.argv[1]
-    nn = np.fromstring(LLpair,dtype =float, sep=' ')
+    LLpair = str(sys.argv[1])
+    print(f"LLpair:{LLpair}")
+    nn = np.fromstring(LLpair,dtype = float, sep=",")
+    print(nn)
+    print(type(nn))
     lat_int = nn[0]
     lon_int = nn[1]
+    print(lat_int)
+    print(lon_int)
     writer=True
-    datatype='MERRA'
+    datatype='MAR'
     runtype = 'local'
+    dsource='ERA510k'
 
-    df_CLIM = getClimate(lat_int,lon_int,writer = True, runtype = runtype)
+    df_CLIM = getClimate(lat_int,lon_int,writer = True, runtype = runtype, datatype='MAR',dsource=dsource)
     print(time.time()-tic)
 
 

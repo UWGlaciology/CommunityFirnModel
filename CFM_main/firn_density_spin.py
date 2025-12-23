@@ -128,6 +128,11 @@ class FirnDensitySpin:
         else:
             print('making dir')
             os.makedirs(self.c['resultsFolder'])
+            
+        if 'bdm_sublim' in self.c: #bdot mean (BDM) sublim
+            bdm_sublim = self.c['bdm_sublim']
+        else:
+            bdm_sublim = True
 
         ############################
         ##### load input files #####
@@ -136,16 +141,31 @@ class FirnDensitySpin:
         if climateTS != None:
             input_temp = climateTS['TSKIN']
             try:
-                input_bdot = climateTS['BDOT'] + climateTS['SUBLIM']
+                if bdm_sublim:
+                    input_bdot = climateTS['BDOT'] + climateTS['SUBLIM']
+                    print('sublim included in mean bdot calc (firn_density_spin)')
+                else:
+                    input_bdot = climateTS['BDOT']
+                    print('sublim not included in mean bdot calc (firn_density_spin)')
             except:
                 input_bdot = climateTS['BDOT']
+                print('sublim not included in mean bdot calc (firn_density_spin) (sublim not found)')
+            
             input_year_temp = input_year_bdot = climateTS['time']
-       
+
+            if np.mean(input_bdot)<0:
+                old_mean = np.mean(input_bdot)
+                input_bdot = climateTS['BDOT']
+                print(f'bdot for spin was <0 ({old_mean}). Initializing CFM using snowfall only (no sublimation)')
+                
+            print(f'input_bdot(spin):{np.mean(input_bdot)}')
+               
         else:
             input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']))
             input_bdot, input_year_bdot, input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']))
 
-        if input_temp[0] < 0.0:
+        # if input_temp[0] < 0.0:
+        if np.mean(input_temp) < 0.0:
             input_temp              = input_temp + K_TO_C
         try:
             if self.c['spinup_climate_type']=='initial':
@@ -217,6 +237,7 @@ class FirnDensitySpin:
         ############################
         # if not self.c['initprofile']: #VV
         THL                 = self.temp0
+        # print(f'THL (240):{THL}')
         AHL                 = self.bdot0
 
 
@@ -270,6 +291,20 @@ class FirnDensitySpin:
             # Recompute HL analytic on the regridded profile #
             self.age, self.rho = hl_analytic(self.c['rhos0'], self.z, THL, AHL) # self.age is in age in seconds
             print('After doublegrid, grid length is ', self.gridLen)
+
+        if 'iceblock' in self.c:
+            self.iceblock = self.c['iceblock']
+        else:    
+            self.iceblock = False
+        
+        if self.iceblock:
+            print('iceblock spin is ON;')
+            if 'iceblock_rho' not in self.c:
+                print('initializing CFM with constant density of 917 kg/m3')
+                self.rho = 917 * np.ones_like(self.rho)
+            else:
+                print(f'initializing CFM with constant density of {self.c["iceblock_rho"]} kg/m3')
+                self.rho = self.c['iceblock_rho'] * np.ones_like(self.rho)
         
         # except:
         #     self.doublegrid = False
@@ -293,7 +328,10 @@ class FirnDensitySpin:
             self.years = self.c['yearSpin'] # number of years to spin up for
         
         dt1         = S_PER_YEAR / self.c['stpsPerYear']
-        self.stp    = int(self.years*S_PER_YEAR/dt1)
+        if self.iceblock:
+            self.stp = 2
+        else:
+            self.stp    = int(self.years*S_PER_YEAR/dt1)
         self.t      =  1.0 / self.c['stpsPerYear'] # years per time step
         self.dt     = dt1 * np.ones(self.stp)
         ############################
@@ -420,6 +458,11 @@ class FirnDensitySpin:
         if self.c['ReehCorrectedT']:
             self.rho = 900 * np.ones_like(self.rho) # use to just set a solid ice column to initialize
 
+        if climateTS is not None: # added 25/03/03: if using climateTS, assign the time at end of spinup to be start of climate forcing
+            self.spin_time = climateTS['time'][0]
+        else:
+            self.spin_time = None
+
 
     ############################
     ##### END INIT #############
@@ -488,30 +531,31 @@ class FirnDensitySpin:
                 PhysParams['ind1_old']       = self.ind1_old
 
             ### choose densification-physics based on user input
-            physicsd = {
-                'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
-                'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
-                'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
-                'Li2004':               FirnPhysics(PhysParams).Li_2004,
-                'Li2011':               FirnPhysics(PhysParams).Li_2011,
-                'Li2015':               FirnPhysics(PhysParams).Li_2015,
-                'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
-                'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
-                'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
-                'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
-                'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
-                'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
-                'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
-                'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
-                'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
-                'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
-                'Crocus':               FirnPhysics(PhysParams).Crocus,
-                'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
-                'MaxSP':                FirnPhysics(PhysParams).MaxSP,
-                'Breant2017':           FirnPhysics(PhysParams).Breant2017
-            }
+            # physicsd = {
+            #     'HLdynamic':            FirnPhysics(PhysParams).HL_dynamic,
+            #     'HLSigfus':             FirnPhysics(PhysParams).HL_Sigfus,
+            #     'Barnola1991':          FirnPhysics(PhysParams).Barnola_1991,
+            #     'Li2004':               FirnPhysics(PhysParams).Li_2004,
+            #     'Li2011':               FirnPhysics(PhysParams).Li_2011,
+            #     'Li2015':               FirnPhysics(PhysParams).Li_2015,
+            #     'Ligtenberg2011':       FirnPhysics(PhysParams).Ligtenberg_2011,
+            #     'Arthern2010S':         FirnPhysics(PhysParams).Arthern_2010S,
+            #     'Simonsen2013':         FirnPhysics(PhysParams).Simonsen_2013,
+            #     'Morris2014':           FirnPhysics(PhysParams).Morris_HL_2014,
+            #     'Helsen2008':           FirnPhysics(PhysParams).Helsen_2008,
+            #     'Arthern2010T':         FirnPhysics(PhysParams).Arthern_2010T,
+            #     'Goujon2003':           FirnPhysics(PhysParams).Goujon_2003,
+            #     'KuipersMunneke2015':   FirnPhysics(PhysParams).KuipersMunneke_2015,
+            #     'Brils2022':            FirnPhysics(PhysParams).Brils_2022,
+            #     'Veldhuijsen2023':      FirnPhysics(PhysParams).Veldhuijsen_2023,
+            #     'Crocus':               FirnPhysics(PhysParams).Crocus,
+            #     'GSFC2020':             FirnPhysics(PhysParams).GSFC2020,
+            #     'MaxSP':                FirnPhysics(PhysParams).MaxSP,
+            #     'Breant2017':           FirnPhysics(PhysParams).Breant2017
+            # }
 
-            RD      = physicsd[self.c['physRho']]()
+            # RD      = physicsd[self.c['physRho']]()
+            RD = getattr(FirnPhysics(PhysParams),self.c['physRho'])()
             drho_dt = RD['drho_dt']
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
@@ -595,7 +639,7 @@ class FirnDensitySpin:
                 #     self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid(self)
 
                 if self.gridtrack[-1]!=3: #VV works for whatever the gridtrack value we have
-                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self) #VV regrid22
+                    self.dz, self.z, self.rho, self.Tz, self.mass, self.sigma, self. mass_sum, self.age, self.bdot_mean, self.LWC, self.gridtrack, self.r2 = regrid22(self,iii,spin=True) #VV regrid22
 
             # write results at the end of the time evolution
             if (iii == (self.stp - 1)):
@@ -628,19 +672,26 @@ class FirnDensitySpin:
                 # self.rho = initfirn['density']
                 # self.age = np.interp(self.z,zold,self.age)
                 # ###
-
-                self.rho_time        = np.concatenate(([self.t * iii + 1], self.rho))
-                self.Tz_time         = np.concatenate(([self.t * iii + 1], self.Tz))
-                self.age_time        = np.concatenate(([self.t * iii + 1], self.age))
-                self.z_time          = np.concatenate(([self.t * iii + 1], self.z))
+                if self.spin_time is not None:
+                    pass
+                else:
+                    self.spin_time = self.t * iii + 1
+                
+                if self.iceblock:
+                    self.rho_time        = np.concatenate(([self.spin_time], 917.0*np.ones_like(self.rho)))
+                else:
+                    self.rho_time        = np.concatenate(([self.spin_time], self.rho))
+                self.Tz_time         = np.concatenate(([self.spin_time], self.Tz))
+                self.age_time        = np.concatenate(([self.spin_time], self.age))
+                self.z_time          = np.concatenate(([self.spin_time], self.z))
 
 
                 if self.c['physGrain']:
-                    self.r2_time     = np.concatenate(([self.t * iii + 1], self.r2))
+                    self.r2_time     = np.concatenate(([self.spin_time], self.r2))
                 else:
                     self.r2_time     = None
                 if self.THist:                
-                    self.Hx_time     = np.concatenate(([self.t * iii + 1], self.Hx))
+                    self.Hx_time     = np.concatenate(([self.spin_time], self.Hx))
                 else:
                     self.Hx_time     = None
                 if self.c['isoDiff']:
@@ -648,27 +699,27 @@ class FirnDensitySpin:
                         # self.Iso_sig2_z[isotope] = np.interp(self.z,zold,self.Iso_sig2_z[isotope]) ###XXX
 
 
-                        self.iso_out[isotope]    = np.concatenate(([self.t * iii + 1], self.Isoz[isotope]))
-                        self.iso_sig2_out[isotope] = np.concatenate(([self.t * iii + 1], self.Iso_sig2_z[isotope]))
+                        self.iso_out[isotope]    = np.concatenate(([self.spin_time], self.Isoz[isotope]))
+                        self.iso_sig2_out[isotope] = np.concatenate(([self.spin_time], self.Iso_sig2_z[isotope]))
                         if ((self.c['initprofile']) and ('iso{}'.format(isotope) in list(initfirn))):
                             print('Interpolating isotope {}'.format(isotope))
                             isoIntFun = interpolate.interp1d(init_depth,initfirn['iso{}'.format(isotope)].values,'nearest',fill_value='extrapolate')
-                            self.iso_out[isotope] = np.concatenate(([self.t * iii + 1], isoIntFun(self.z)))
+                            self.iso_out[isotope] = np.concatenate(([self.spin_time], isoIntFun(self.z)))
 
 
                             # self.iso_out[isotope] = np.interp(self.z,init_depth,initfirn['iso{}'.format(isotope)].values)
                 else:
                     self.iso_time    = None
                 if self.c['MELT']:
-                    self.LWC_time     = np.concatenate(([self.t * iii + 1], self.LWC)) #VV
+                    self.LWC_time     = np.concatenate(([self.spin_time], self.LWC)) #VV
                 else: #VV
                     self.LWC_time     = None #VV
                 if self.doublegrid:
-                    self.grid_time   = np.concatenate(([self.t * iii + 1], self.gridtrack))
+                    self.grid_time   = np.concatenate(([self.spin_time], self.gridtrack))
                 else:
                     self.grid_time   = None
                 # if self.write_bdot:
-                    # self.bdot_mean_time = np.concatenate(([self.t * iii + 1], self.bdot_mean))
+                    # self.bdot_mean_time = np.concatenate(([self.spin_time], self.bdot_mean))
                 # else:
                     # self.bdot_mean_time = None
 

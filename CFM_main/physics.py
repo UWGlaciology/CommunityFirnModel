@@ -48,7 +48,8 @@ class FirnPhysics:
         self.RD = {} # RD = Return Dictionary, set up this way so that more things can be returned easily if needed.
 
 
-    def HL_dynamic(self):
+    # def HL_dynamic(self):
+    def HLdynamic(self):        
         '''
         Accumulation units are m W.E. per year
         viscosity doesn't work
@@ -98,7 +99,8 @@ class FirnPhysics:
     ### end HL_dynamic ###
     ######################
 
-    def HL_Sigfus(self):
+    # def HL_Sigfus(self):
+    def HLSigfus(self):
         '''
         Accumulation units are m W.E. per year (zone 1); uses stress for zone 2 
         '''
@@ -153,7 +155,8 @@ class FirnPhysics:
     ### end HL_Sigfus ###
     #####################
 
-    def Li_2004(self):
+    # def Li_2004(self):
+    def Li2004(self):
         '''
         Accumulation units are m W.E. per year (?)
         Equation from Arthern, 2010 (eq. 2): not sure where Rob got that? 
@@ -186,7 +189,8 @@ class FirnPhysics:
     ### end Li_2004 ###
     ###################
 
-    def Li_2011(self):
+    # def Li_2011(self):
+    def Li2011(self):
         '''
         Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
         Temperature in the equation for beta is in C.
@@ -240,8 +244,8 @@ class FirnPhysics:
     ### end Li_2011 ###
     ###################
 
-    def Li_2015(self):
-
+    # def Li_2015(self):
+    def Li2015(self):
         
         '''
         Accumulation units are m W.E. per year (email correspondence with J. Li, 12/3/13)
@@ -296,7 +300,7 @@ class FirnPhysics:
 
         drho_dt = dr_dt / S_PER_YEAR
         
-        self.viscosity = np.ones(self.gridLen)
+        viscosity = np.ones(self.gridLen)
         viscosity[self.rho < RHO_I]   = (self.rho[self.rho < RHO_I]/ (2 * self.sigma[self.rho < RHO_I]))/drho_dt[self.rho < RHO_I]
         
         self.RD['drho_dt'] = drho_dt
@@ -305,7 +309,8 @@ class FirnPhysics:
     ### end Li_2015 ###
     ###################
 
-    def Arthern_2010S(self):
+    # def Arthern_2010S(self):
+    def Arthern2010S(self):
         '''
         This is the steady-state solution described in the main text of Arthern et al. (2010)
         Accumulation units are kg/m^2/year
@@ -344,7 +349,8 @@ class FirnPhysics:
     ### end Arthern_2010S ###
     #########################
 
-    def Arthern_2010T(self):
+    # def Arthern_2010T(self):
+    def Arthern2010T(self):
         '''
         This is the transient solution described in the appendix of Arthern et al. (2010)
 
@@ -376,7 +382,8 @@ class FirnPhysics:
     ### end Arthern_2010T ###
     #########################
 
-    def Helsen_2008(self):
+    # def Helsen_2008(self):
+    def Helsen2008(self):    
         '''
         Accumulation units are m W.E. per year (?)
         Equation is from Arthern et al. 2010 (2)
@@ -406,7 +413,8 @@ class FirnPhysics:
     ### end Helsen_2008 ###
     #######################
 
-    def Simonsen_2013(self):
+    # def Simonsen_2013(self):
+    def Simonsen2013(self):        
         '''
         Accumulation units are kg/m^2/year
 
@@ -450,7 +458,8 @@ class FirnPhysics:
     ### end Simonsen_2013 ###
     #########################
 
-    def Ligtenberg_2011(self):
+    # def Ligtenberg_2011(self):
+    def Ligtenberg2011(self):
         '''
         Units are mm W.E. per year
         b_dot is meant to be accumulation over a reference period (20 years for spin up, 1 year for regular?) (not mean over the lifetime  of a parcel)
@@ -509,7 +518,8 @@ class FirnPhysics:
     ### end Ligtenberg_2011 ###
     ###########################
 
-    def Barnola_1991(self):
+    # def Barnola_1991(self):
+    def Barnola1991(self):
         '''
 
         uses m W.E. (zone 1) and stress (zone 2)
@@ -567,7 +577,8 @@ class FirnPhysics:
     ### end Barnola_1991 ###
     ########################
     
-    def Morris_HL_2014(self):
+    # def Morris_HL_2014(self):
+    def Morris2014(self):
         '''
 
         Uses stress instead of accumulation.
@@ -640,7 +651,8 @@ class FirnPhysics:
     ### end Morris_HL_2014 ###
     ##########################
 
-    def KuipersMunneke_2015(self):
+    # def KuipersMunneke_2015(self):
+    def KuipersMunneke2015(self):
         '''
 
         Units are mm W.E. per year
@@ -709,7 +721,8 @@ class FirnPhysics:
     ### end KuipersMunneke_2015 ###
     ###############################
 
-    def Brils_2022(self):
+    # def Brils_2022(self):
+    def Brils2022(self):
         '''
 
         Units are mm W.E. per year
@@ -763,7 +776,8 @@ class FirnPhysics:
     ### end Brils_2022 ###
     ###############################
 
-    def Veldhuijsen_2023(self):
+    # def Veldhuijsen_2023(self):
+    def Veldhuijsen2023(self):        
         '''
 
         Units are mm W.E. per year
@@ -815,7 +829,8 @@ class FirnPhysics:
     ### end Veldhuijsen_2023 ###
     ###############################
 
-    def Goujon_2003(self):
+    # def Goujon_2003(self):
+    def Goujon2003(self):
         '''
         Uses stress
         '''
@@ -1226,6 +1241,7 @@ class FirnPhysics:
         except:
             pass
 
+        # print(f'GSFC: {drho_dt[0:5]}')
         return self.RD
     ### end GSFC2020 ###
     #########################
@@ -1376,6 +1392,61 @@ class FirnPhysics:
         self.RD['viscosity'] = viscosity
 
         return self.RD
+    
+    def Yamazaki1993(self):
+
+        '''
+        Denisfication scheme for wet snow from:
+        A one-dimensional model of the evolution of snow-coverncharacteristics
+        Yamazaki et al., 1993
+        Annals of Glaciology
+
+        Uses compactive viscosity formulation
+        Equation based on temperature being in C
+
+        parameters:
+        : rho_lw: mass of liquid water per unit volume
+        : rho_wet: total density (liquid plus solid mass)/volume
+        : eta: compactive viscosity
+        '''
+
+        def Afunc(w):
+            b_s=18
+            A=(np.exp(-b_s*w)-np.exp(-b_s))/(1-np.exp(-b_s))
+            return A
+        
+        eta_0 = 6.9e5 #[kg s/m2]
+        K = 2.1e-3 #[m3/kg]
+        alpha_s = 9.58e-2 #[C^{-1}]
+
+        vol_ice     = self.mass / RHO_I     # volume of the ice portion of each volume
+        vol_tot     = vol_ice + self.LWC    # total volume of ice and liquid in each volume
+        mass_liq    = self.LWC * RHO_W_KGM  # mass of liquid water
+        rho_lw = mass_liq / self.dz      # effective density of the liquid portion
+        rho_wet     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
+
+        w = rho_lw / rho_wet
+
+        A_w = Afunc(w)
+        eta = A_w * eta_0 * np.exp(K * self.rho - alpha_s*(self.Tz-273.15))
+
+        drho_dt = self.sigma / eta * self.rho
+
+        self.RD['viscosity'] = eta
+        self.RD['drho_dt'] = drho_dt
+        # print(f'Yama: {drho_dt[0:5]}')
+        return self.RD
+
+    def Marshall1999(self):
+        '''
+        Densification scheme from Marshall, Conway, ans Rasmussen (1999)
+
+        Snow compaction during rain, based on measurements from Snoqualmie Pass, WA, USA
+
+        '''
+        return None
+
+
 
     # def grainGrowth(self):
     #     '''
