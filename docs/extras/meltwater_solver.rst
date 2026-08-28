@@ -3,27 +3,104 @@ Choosing a meltwater solver
 
 When **MELT** is on, the CFM has to solve heat diffusion with phase change: liquid water refreezing releases latent heat, which couples the temperature and liquid-water-content fields. The CFM offers four interchangeable numerical schemes for this problem, selected with the **meltwater_solver** json key (see :doc:`../running/json`). All four solve the same physics; they differ in numerical formulation, accuracy, and robustness.
 
+Solver choice involves a genuine trade-off, and ranking the four on a single
+number is misleading. Two properties matter, and they are independent:
+
+**Freezing-front accuracy** -- how well the scheme places a refreezing front in
+space and time. Relevant if you care about where a refrozen lens forms within a
+melt season.
+
+**Energy conservation** -- whether the scheme creates or destroys energy over
+many steps. Relevant if you care about cumulative firn temperature, firn air
+content, or multi-decadal SMB.
+
+The orderings differ. ``decp`` is the least accurate of the three working
+solvers on the front, and among the best at conserving energy. ``ncz`` is the
+reverse. Choose on the axis that matters for your application.
+
 Quick recommendation
 =====================
 
-If you are starting a new run and are not trying to reproduce older CFM output, use ``ncz``. It is the most accurate of the four on the one case where an analytical solution exists, and it is the only one of the four with a convergence proof at arbitrary time step.
+For a new run, use ``ncz`` if front accuracy is your priority, or leave the
+default ``enthalpy`` if cumulative energy conservation is. Do not use ``ahc``.
 
-The default remains ``enthalpy`` for backward compatibility -- it reproduces the CFM's prior refreezing behavior, so existing configs that don't set **meltwater_solver** are unaffected by the addition of the other three schemes.
+The default is ``enthalpy``. After a 2026-08 correction it conserves energy to
+round-off, and most of its apparent accuracy disadvantage relative to ``ncz``
+is a conductivity-coupling artifact rather than a property of the scheme.
+
+.. warning::
+
+   The ``enthalpy`` solver changed in 2026-08: a redundant temperature-snapping
+   step that injected spurious energy was removed. Runs made before that change
+   are **not** bit-reproducible with current CFM, and refreezing totals differ.
+   Front-position accuracy is unaffected. If you need to reproduce the old
+   behavior, ``diffusion.py`` retains it as ``enthalpyDiff_old`` (calling
+   ``transient_solve_EN_old``); it is not exposed via ``meltwater_solver`` and
+   must be called directly in place of ``refreezeDiff`` in
+   ``firn_density_nospin.py``.
 
 The solvers
 ============
 
 ``ncz``
-  Nested Newton-Casulli-Zanolli enthalpy method (Tubini et al., 2021). Solves the enthalpy formulation directly using a nested Newton algorithm, which avoids the non-monotonic apparent heat capacity that causes simpler iteration schemes to stall or cycle. Most accurate of the four on the analytical benchmark below, and the only one with a convergence proof independent of time step size.
+  Nested Newton-Casulli-Zanolli enthalpy method (Tubini et al., 2021). Solves
+  the enthalpy formulation directly using a nested Newton algorithm, which
+  avoids the non-monotonic apparent heat capacity that causes simpler iteration
+  schemes to stall or cycle. Most accurate of the four on the analytical
+  benchmark, and the only one with a convergence proof independent of time step
+  size -- verified here at time steps from 60 s to one day with no failures.
+
+  Its energy conservation is less good than ``enthalpy`` or ``decp`` by several
+  orders of magnitude, because the liquid/solid split is recovered from
+  temperature across a finite window ``eps``: a layer just below fusion retains
+  a small spurious amount of liquid. The resulting error is systematically
+  signed -- ``ncz`` consistently under-freezes -- so it accumulates over long
+  runs rather than cancelling.
+
+  This is controllable. Narrowing ``eps`` reduces the conservation error in
+  direct proportion, with no measurable change in front accuracy and no
+  stability or convergence penalty. Consider ``eps`` smaller than its 1e-4
+  default for multi-decadal runs.
 
 ``enthalpy``
-  Enthalpy formulation with Picard iteration, a large effective heat capacity in mushy layers, and explicit overshoot clamping. Reliable and well-tested (this is the scheme the CFM used before the other three were added), but roughly 5x less accurate than ``ncz`` on the benchmark below.
+  Enthalpy formulation with Picard iteration, a large effective heat capacity in
+  mushy layers, and explicit overshoot clamping. This is the scheme the CFM used
+  before the other three were added, and it remains the default.
+
+  Conserves energy to round-off. Its front-position error is roughly 5x larger
+  than ``ncz`` under temperature-keyed conductivity, but most of that gap is
+  conductivity feedback, not the phase-change treatment: with conductivity keyed
+  on liquid fraction the two schemes agree to all printed digits.
 
 ``decp``
-  Decoupled/operator-split scheme: each sub-step diffuses heat with no latent term, then explicitly refreezes liquid water in any layer left below fusion temperature. Converges to the same accuracy as ``enthalpy``, but only once the internal sub-stepping (``iters``) is pushed well above its default of 10 -- meaning it needs to be noticeably more expensive than ``enthalpy`` to match it.
+  Decoupled/operator-split scheme: each sub-step diffuses heat with no latent
+  term, then explicitly refreezes liquid water in any layer left below fusion
+  temperature.
+
+  Conserves energy to round-off, at any ``iters``, because its latent-heat step
+  is explicit bookkeeping that moves energy between reservoirs and cannot leak.
+  Its error is entirely in the *timing* of that transfer, which is what
+  sub-stepping controls. Front-position error falls monotonically with ``iters``
+  toward a floor equal to ``enthalpy``'s -- the two are the same discrete
+  solution once splitting error is removed. The default ``iters=10`` sits at
+  roughly twice its own converged error while performing ten tridiagonal solves
+  per call; either ``iters=1`` (cheap, larger splitting error) or ``iters>=100``
+  (converged) is a more coherent choice.
 
 ``ahc``
-  Apparent heat capacity method: folds latent heat into an effective heat capacity smeared over a fixed temperature window. Retained for comparison only. It fails the analytical benchmark at every window width tested, and frequently fails to converge outright. Prefer one of the other three unless you specifically need this method for comparison.
+  Apparent heat capacity method: folds latent heat into an effective heat
+  capacity smeared over a fixed temperature window ``W``.
+
+  **Not recommended.** It fails the analytical benchmark at every window width
+  tested, frequently fails to converge, and destroys energy at a rate comparable
+  to the refreezing signal itself. Retained for comparison only.
+
+  Narrowing ``W`` makes it worse, not better: a layer can cool clean through the
+  window within one time step, so the latent-heat term is never sampled and
+  never applied, and errors saturate at the value obtained by ignoring latent
+  heat entirely. Note that the front still grows as t^0.52 in these failed
+  cases, so confirming square-root growth does **not** verify that a scheme is
+  handling latent heat at all.
 
 Why keep four solvers around
 ==============================
