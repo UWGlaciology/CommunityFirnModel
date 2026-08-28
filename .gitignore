@@ -35,3 +35,6 @@ tempSpin.csv
 docs/_build
 docs/_static
 docs/_templates
+
+.ipynb_checkpoints/
+.vscode/

@@ -1,29 +1,90 @@
 #!/usr/bin/env python
 '''
-code to handle diffusion (heat, enthalpy)
-calls solver
-Draws from Numerical Heat Transfer and Heat Flow (Patankar, 1980)
-Enthalpy from Voller, Swaminathan, and Thomas (1990)
-Isotope diffusion now has its own class.
+diffusion.py
+
+Functions for handling firn temperature evolution via diffusion, including
+standard heat diffusion (no liquid water) and refreezing/enthalpy diffusion
+(when liquid water is present in the firn column). Calls solver functions
+defined in solver.py.
+
+Draws from:
+    - Numerical Heat Transfer and Fluid Flow (Patankar, 1980) for the
+      finite volume discretization.
+    - Voller, Swaminathan, and Thomas (1990) for the enthalpy formulation
+      of phase change.
+
+Grid convention:
+    - self.z: layer edges [m] as tracked by the CFM elsewhere in the model.
+    - z_P: layer (finite volume) centers, computed here from self.z.
+    - z_edges: layer edges, padded with one dummy point past self.z[-1] so
+      that the last real layer has a well-defined volume.
+
+Main entry points (called each time step from the CFM's main loop):
+    - heatDiff(self, iii): standard heat diffusion, no liquid water present.
+      Calls transient_solve_TR in solver.py.
+    - refreezeDiff(self, iii, _solver=...): heat diffusion with refreezing,
+      used when liquid water (LWC) is present in the firn. Dispatches to one
+      of several solver functions in solver.py (see solver_map inside the
+      function) for comparison/testing purposes.
+
+Other functions:
+    - firnConductivity(self, iii, K_ice): computes firn thermal conductivity
+      using one of several parameterizations, set via self.c['conductivity'].
+      References for each parameterization are noted inline.
+    - total_enthalpy(), total_h2o_mass(): diagnostic helpers for checking
+      energy/mass conservation.
+
+Isotope diffusion has its own dedicated class/module.
+
+Note: refreezeDiff's default solver argument must match a key in solver_map;
+see solver.py's module header for a description of the available solvers.
 '''
 
-from solver import transient_solve_TR
-# from solver import transient_solve_EN_old
-# from solver import transient_solve_EN_new
-from solver import transient_solve_EN, apparent_heat
+from solver import (
+    transient_solve_TR,
+    transient_solve_enthalpy,
+    transient_solve_ahc,
+    transient_solve_decp,
+    transient_solve_ncz
+)
 from constants import *
 import numpy as np
-from scipy import interpolate
 
-def firnConductivity(self,iii,K_ice):
+def firnConductivity(self, iii, K_ice):
     '''
-    Function to set the firn's thermal conductivity
-    based on one of a number of parameterizations.
+    Compute firn thermal conductivity using a selectable parameterization.
 
-    Choose your favorite!
-    Default is Calonne et al. 2019.
-    References are provided at the end of this script.
+    The parameterization is chosen via self.c['conductivity']; see the
+    elif chain in this function for the full list of supported string
+    values. If self.c['conductivity'] does not match any known option,
+    falls back to the Calonne et al. (2019) parameterization and prints
+    a warning (once, at iii==0).
+
+    :param iii: current model time step index (used only to control
+        one-time print statements on the first step)
+    :param K_ice: thermal conductivity of ice [W/m/K] at each layer,
+        typically temperature-dependent (see caller, e.g. Cuffey and
+        Paterson eq. 9.2 / Yen 1981)
+
+    :return: K_firn, firn thermal conductivity [W/m/K] at each layer,
+        same shape as self.rho
+
+    Supported self.c['conductivity'] options (see inline comments for
+    full references)::
+
+        'Calonne2019' (default/fallback), 'Schwander', 'Yen_fixed',
+        'Yen_var', 'Anderson', 'Yen_b', 'Sturm', 'VanDusen',
+        'Schwerdtfeger', 'Riche', 'Jiawen', 'Calonne2011', 'mix'
+        ('mix' blends Sturm and Anderson by depth; see inline code for
+        the exact depth thresholds used)
+
+    NOTE: the 'Calonne2019' branch and the fallback (else) branch contain
+        duplicated code (identical formula, copy-pasted). Consider
+        refactoring the fallback to simply call/reuse the 'Calonne2019'
+        branch's logic to avoid the two implementations silently
+        diverging if one is edited without the other.
     '''
+
     if self.c['conductivity']=='Calonne2019':  #Calonne et al. 2019
         rho_transition = 450.0 #[kg/m^3]
         a = 0.02 #[m^3/kg]
@@ -84,58 +145,59 @@ def firnConductivity(self,iii,K_ice):
     return K_firn
 ##########################
 
-def heatDiff(self,iii):
+def heatDiff(self, iii):
     '''
-    Heat diffusion function
+    Standard heat diffusion step (no liquid water / no phase change).
 
-    Newer heat diffusion function - uses points 1/2 way between self.z as 
-    z_P (finite volume centers), and self.z is the volume edges. This to me
-    seems more natural, as in general then the temperature at z[0] in the output
-    represents the temperature in the layer of firn between z[0] and z[1]. For temperature
-    this perhaps doesn't matter too much, but for the sake of e.g. LWC it does, because 
-    LWC is a volume (or mass) liquid per volume firn.
+    Sets up the finite volume grid (layer centers and edges, with a dummy
+    point appended past the last layer so it has a well-defined volume),
+    computes temperature-dependent ice conductivity and firn conductivity
+    (via firnConductivity), specific heat, and volumetric heat capacity,
+    then calls transient_solve_TR in solver.py to advance temperature by
+    one time step. Also enforces an upper bound of 273.15 K (melting point)
+    on the result, printing a warning if this bound was exceeded before
+    clamping.
 
-    Old code is still below and can be used by calling heatDiffOLD()
+    Use refreezeDiff instead of this function when liquid water (LWC) is
+    present in the firn column, since that requires latent heat handling
+    that this function does not provide.
 
-    :param z:
-    :param dz:
-    :param Ts:
-    :param rho:
+    An older/alternate version of this logic may exist as heatDiffOLD()
+    (see comment in original source); not covered by this docstring.
 
-    :returns self.Tz:
-    :returns self.T10m:
-    
-    thermal diffusivity: alpha = K_firn / (rho*c_firn)
+    :param iii: current model time step index (used to index self.dt,
+        and to control one-time print statements via firnConductivity)
+
+    :return: self.Tz (updated temperature profile [K]), self.T10m
+        (temperature at 10 m depth [K], or NaN if the firn column is
+        shallower than 10 m)
+
+    Reference: Patankar (1980); Cuffey and Paterson (2010), eqs. 9.1-9.2
+        for ice conductivity/specific heat.
+
+    NOTE: as of this writing, this function contains a couple of no-op
+        self-assignments (K_firn = K_firn; phi_0 = phi_0) left over from
+        editing; safe to remove.
     '''
 
     nz_P            = len(self.z) #- 1
     nz_fv           = nz_P - 2 # this does not get used
-    nt              = 1
 
     ### Add a dummy point at the end so that the fields at z[-1] have a volume associated with them
     z_dummy = np.zeros(len(self.z)+1)
     z_dummy[:-1] = self.z
     z_dummy[-1] = self.z[-1]+np.diff(self.z)[-1]
  
+    ### z_P is layer centers
     z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
+    ### z_edges is layer edges
     z_edges = z_dummy
-
-    # z_P is layer centers
-    # z_edges is layer edges
 
     phi_s           = self.Tz[0]
     phi_0           = self.Tz
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-<<<<<<< HEAD
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
-=======
->>>>>>> main
-
     K_firn = firnConductivity(self,iii,K_ice)
-    K_firn = K_firn
-    phi_0 = phi_0
 
     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
     # c_firn        = CP_I # If you prefer a constant specific heat.
@@ -148,11 +210,9 @@ def heatDiff(self,iii):
             pass
 
     Gamma_P         = K_firn
-
-    tot_rho         = self.rho#[0:-1]
     c_vol           = self.rho * c_firn
 
-    self.Tz         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
+    self.Tz         = transient_solve_TR(z_edges, z_P, self.dt[iii], Gamma_P, phi_0, nz_P, phi_s, c_vol)
 
     try:
         self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
@@ -175,109 +235,240 @@ def heatDiff(self,iii):
 ### end heatDiff ###
 ##########################
 
-def heatDiffNEW(self,iii):
-    '''
-    Heat diffusion function
-
-    :param z:
-    :param dz:
-    :param Ts:
-    :param rho:
-
-    :returns self.Tz:
-    :returns self.T10m:
-    
-    thermal diffusivity: alpha = K_firn / (rho*c_firn)
-    '''
-
-    nz_P            = len(self.z) #- 1
-    nz_fv           = nz_P - 2 # this does not get used
-    nt              = 1
-
-    # z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    # z_edges_vec = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    # z_P_vec     = self.z
-
-    z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1])
-
-    z_P_vec = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
-    z_edges_vec = z_dummy
-
-
-    
-    phi_s           = self.Tz[0]
-    phi_0           = self.Tz
-    # phi_0           = np.append(self.Tz,self.Tz[-1])
-
-    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-
-    K_firn = firnConductivity(self,iii,K_ice)
-    K_firn = K_firn#[0:-1]
-    phi_0 = phi_0#[0:-1]
-
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
-    # [0:-1] # thermal conductivity
-
-    if self.c['MELT']:
-        try:
-            if self.c['LWCheat']=='lowK':
-                K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
-        except:
-            pass
-
-    Gamma_P         = K_firn
-
-    # rho_dummy = np.append(self.rho,self.rho[-1])
-    # tot_rho = rho_dummy
-    # c_vol = rho_dummy * c_firn
-    tot_rho         = self.rho#[0:-1]
-    c_vol           = self.rho * c_firn
-
-    self.Tz         = transient_solve_TR(z_edges_vec, z_P_vec, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-    # self.Tz = np.append(self.Tz,self.Tz[-1])
-
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-    if self.c['MELT']:
-        if self.c['LWCheat']=='effectiveT':
-            pass
-
-        elif np.any(self.Tz>273.1500001):
-            print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
-            print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
-
-        self.Tz[self.Tz>=273.15]=273.15
-
-    return self.Tz, self.T10m
-
 ##########################
-### end heat diffusion ###
+### Meltwater refreezing methods
 ##########################
 
-def enthalpyDiff(self,iii):
+# def total_enthalpy(T_C, th_solid, th_liquid, z_edges):
+#     dZ = np.diff(z_edges)
+#     return np.sum(enthalpy_of(T_C, th_solid, th_liquid) * dZ)   # [J/m2]
+
+# def total_h2o_mass(th_solid, th_liquid, z_edges):
+#     dZ = np.diff(z_edges)
+#     return np.sum((th_solid + th_liquid) * dZ)                  # [kg/m2]
+
+def refreezeDiff(self, iii, solver_name='transient_solve_enthalpy'):
     '''
-    enthalpy diffusion function, new
-    1/30/19 - method from Voller and Swaminathan
-    LWC is in volume (m^3)
-    thermal diffusivity: alpha = K_firn / (rho*c_firn)
+    Heat diffusion step with refreezing (liquid water present in firn).
 
-    layers = volumes. Used somewhat interchangably in this documentation, 
-    as a layer of snow/firn is the finite volume for the diffusion calculation
+    Sets up the finite volume grid (same convention as heatDiff), converts
+    temperature to deg C (fusion at T=0), computes effective thermal
+    conductivity as a liquid/solid volume-fraction-weighted mix, then
+    dispatches to one of several refreezing solver functions in solver.py
+    (see solver_map below) to advance temperature, solid mass, and liquid
+    mass by one time step. Which solver is used is controlled by the
+    _solver argument, primarily to support side-by-side comparison of
+    solver methods during development (see solver.py module header).
+
+    After the solver call, converts results back to Kelvin/density/LWC,
+    clamps any temperature exceeding melting point back to 273.15 K, and
+    runs several diagnostic checks: liquid-mass-gain detection (flags
+    layers where diffusion appears to have created liquid water), an
+    overshoot-clamp report (only for solvers that return claw_mushy/
+    claw_dry -- currently only transient_solve_enthalpy), and an overall
+    mass conservation check (pre- vs. post-solve total H2O mass).
+
+    :param iii: current model time step index (used to index self.dt,
+        for print diagnostics, and passed through to firnConductivity)
+    :param _solver: string key selecting which solver function to call;
+        must match a key in solver_map (currently 'transient_solve_enthalpy',
+        'transient_solve_ahc', or 'transient_solve_decp').
+    :return: self.Tz (updated temperature [K]), self.T10m (temperature at
+        10 m depth [K] or None), self.rho (updated density [kg/m3]),
+        self.mass (updated solid mass [kg/m2] per layer), self.LWC
+        (updated liquid water volume [m3] per layer), dml_sum (sum of any
+        negative liquid-mass changes flagged as unexpected losses [kg/m2];
+        0.0 if none detected)
+
+    Reference: Voller, Swaminathan, and Thomas (1990) for enthalpy method;
+        see individual solver docstrings in solver.py for method-specific
+        references.
+
+    NOTE: several intermediate quantities computed in this function
+        (vol_total, mass_total, rho_total, and the commented-out c_vol
+        block) are not currently used downstream; candidates for removal
+        or for completing an intended (but currently incomplete) enthalpy
+        conservation check (tot_heat_pre is computed but no tot_heat_post
+        comparison exists yet).
+    '''
+
+    solver_map = {
+        'transient_solve_enthalpy': transient_solve_enthalpy,
+        'transient_solve_ahc': transient_solve_ahc,
+        'transient_solve_decp': transient_solve_decp,
+        'transient_solve_ncz': transient_solve_ncz,
+    }
     
-    :param z_P: locations of centers of the layers [m]. Length is same as self.z, i.e. nz_P
-    :param z_edges: locations of edges of the layers [m]. Length = nz_P + 1
+    solver = solver_map[solver_name]
 
+
+    ### Grid:
+    z_dummy = np.zeros(len(self.z)+1) # Add a dummy point at the end so that the fields at z[-1] have a volume associated with them 
+    z_dummy[:-1] = self.z
+    z_dummy[-1] = self.z[-1]+np.diff(self.z)[-1] 
+    z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
+    z_edges = z_dummy
+    ###
+
+    T_s           = self.Tz[0] - T_MELT # Surface work in [C] so that reference Temperature is 0 for enthalpy
+    TzC           = self.Tz - T_MELT
+  
+    vol_solid     = self.mass / RHO_I     # volume of the ice portion of each volume
+    vol_liquid     = self.LWC
+    # vol_total     = vol_solid + vol_liquid    # total volume of ice and liquid in each layer (porosity ignored)
+
+    mass_liquid    = vol_liquid * RHO_W_KGM  # mass of liquid water
+    mass_liquid_start = mass_liquid.copy()
+    mass_solid    = self.mass
+    # mass_total    = mass_solid + mass_liquid    
+
+    th_liquid      = mass_liquid / self.dz      # th_wat = φ_wat · ρ_wat — liquid water mass per total volume
+    th_liquid_old = th_liquid.copy()
+    th_solid      = self.rho                   # th_solid = φ_ice · ρ_ice — ice mass per total volume
+
+    # rho_total     = (self.mass + mass_liquid) / self.dz # 'total' density of volume (solid plus liquid)
+
+    ### claude code calls this phi. It is volume fraction
+    g_liquid    = th_liquid / RHO_W_KGM # liquid volume fraction (of the material portion, porosity ignored)
+    g_solid     = th_solid / RHO_I     # solid/ice volume fraction 
+
+    ### Specific Heats
+    ### not sure c_vol gets used
+    # c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
+    # c_firn  = CP_I # If you prefer a constant specific heat
+    # c_solid = c_firn
+    
+    # c_liquid = 4219.9 # J/kg/K, taken from engineeringtoolbox.com. Ha!
+    
+    # # c_vol = g_solid * RHO_I * c_solid + g_liquid * RHO_W_KGM * c_liquid #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
+    # c_vol = (g_solid * c_solid + g_liquid * c_liquid) * rho_total #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
+    #######
+
+    ### Conductivity
+    K_solid   = 9.828 * np.exp(-0.0057 * self.Tz) # thermal conductivity of ice (W/m/K), Cuffey and Paterson, eq. 9.2 (Yen 1981)
+    K_firn = firnConductivity(self,iii,K_solid) # thermal conductivity [W/m/K]
+    
+    K_water = 0.55575                         # thermal conductivity, water (W/m/K)
+    # K_liquid = K_water * (th_wat/1000)**1.885 # assume that conductivity of water in porous material follows a similar relationship to ice.
+    K_liquid = K_water
+    K_eff = g_liquid * K_liquid + g_solid * K_firn # effective conductivity
+    ###
+    
+    ### Total enthalpy/mass before solver (for testing conservation)
+    # tot_heat_pre = np.sum(CP_I_kJ * self.mass * self.Tz + T_MELT * CP_W/1000 * vol_liquid * RHO_W_KGM + LF_I_kJ * vol_liquid * RHO_W_KGM)
+    tot_mass_pre = np.sum(self.mass + vol_liquid*1000)
+    lwc_old = vol_liquid.copy()
+
+    ### call the solver
+    solver_out = solver(z_edges, z_P, self.dt[iii], K_eff, TzC, th_liquid, th_solid, iii)
+    ###
+    self.total_count += solver_out['count']
+
+    self.Tz         = solver_out['TzC_return'] + 273.15
+    self.rho        = solver_out['th_solid']
+    _mass_liquid    = solver_out['th_liquid'] * self.dz
+    self.LWC        = _mass_liquid / RHO_W_KGM 
+    self.mass       = self.rho * self.dz
+    try:
+        self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    except:
+        self.T10m = None
+
+    gain = (self.LWC * RHO_W_KGM) - mass_liquid_start      # >0 = liquid created
+    gain_layers = np.where(gain > 1e-6)[0]
+    if gain_layers.size:
+        print(f"[iii={iii}] liquid gained in {gain_layers.size} layers, "
+            f"max {gain.max():.3e} kg/m2")
+        had_liq = mass_liquid_start[gain_layers] > 0
+        print(f"init mass: {mass_liquid_start[gain_layers].max():.3e}")
+        print(f"   of those, initially mushy: {had_liq.sum()}, "
+            f"initially dry: {(~had_liq).sum()}")
+        print(f"   T at those layers (C): {solver_out['TzC_return'][gain_layers][:5]}")
+
+    if 'claw_mushy' in solver_out.keys():
+        CLAW_TOL = 5e-2   # kg/m2 per step; tune to your noise floor
+        claw_total = solver_out['claw_mushy'] + solver_out['claw_dry']
+
+        if claw_total > CLAW_TOL:
+            total_lwc_mass = np.sum(lwc_old * RHO_W_KGM)   # kg/m2, pre-solve liquid mass
+            rel_claw = claw_total / total_lwc_mass if total_lwc_mass > 0 else np.inf
+
+            print(f"[iii={iii}] clamp clawed back liquid: "
+                f"mushy={solver_out['claw_mushy']:.3e}, dry={solver_out['claw_dry']:.3e} kg/m2 "
+                f"(TOTAL {claw_total:.3e})")
+            print(f"    relative to total column LWC ({total_lwc_mass:.3e} kg/m2): "
+                f"{rel_claw*100:.3f}%")
+    
+    delta_mass_liquid  = mass_liquid_start - (self.LWC * RHO_W_KGM)
+    dml_sum = 0.0 
+
+    if np.any(self.Tz>273.1500001):
+        print('WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE')
+        print('Maximal temperature was:',np.max(self.Tz),' at layers:',np.where(self.Tz == np.max(self.Tz)))
+        print('iii, modeltime', iii, self.modeltime[iii])
+        print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
+    self.Tz[self.Tz>=273.15]=273.15
+
+    if np.any(delta_mass_liquid<0):
+        if np.any(np.abs(delta_mass_liquid[delta_mass_liquid<0])>1e-5):
+            print('------')
+            print('If you are seeing this message there was a liquid mass gain in diffusion.') 
+            print('Please email maxstev@umd.edu so I can fix it.')
+        dml_sum = np.sum(delta_mass_liquid[delta_mass_liquid<0])
+
+    tot_mass_post = np.sum(self.mass + _mass_liquid)
+
+    if np.abs((tot_mass_post-tot_mass_pre)/tot_mass_pre)>1e-3: # flag if there is larger than 0.1% difference
+        print(f'change in mass (enthalpy solver) at iteration {iii}!')
+        print('pre:', tot_mass_pre)
+        print('post:', tot_mass_post)
+
+    return self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum
+
+
+########################
+### end refreezeDiff ###
+########################
+
+def enthalpyDiff_old(self, iii):
+    '''
+    Legacy enthalpy diffusion function (used until mid-July 2026).
+
+    Superseded by refreezeDiff (which dispatches to transient_solve_enthalpy,
+    transient_solve_ahc, or transient_solve_decp). Retained for
+    testing/comparison purposes only; calls transient_solve_EN_old in
+    solver.py. Not part of the current default CFM time-stepping pipeline.
+
+    Method: Voller and Swaminathan (1991)/Voller, Swaminathan, and Thomas
+    (1990) enthalpy formulation. LWC is tracked in volume [m^3].
+    Thermal diffusivity: alpha = K_firn / (rho * c_firn).
+
+    Grid convention: layers = volumes (finite volume centers/edges), same
+    as heatDiff/refreezeDiff.
+
+    :param iii: current model time step index (used to index self.dt, for
+        firnConductivity's one-time print, and for diagnostic messages)
+
+    :return: self.Tz (updated temperature [K]), self.T10m (temperature at
+        10 m depth [K] or None), self.rho (updated density [kg/m3]),
+        self.mass (updated solid mass [kg] per layer), self.LWC (updated
+        liquid water volume [m3] per layer), dml_sum (sum of any negative
+        liquid-mass changes flagged as unexpected losses [kg]; 0.0 if none
+        detected)
+
+    NOTE: sets nt=10 if any LWC>0 else nt=1, intending to control solver
+        iteration count -- however, transient_solve_EN_old no longer uses
+        this argument (iteration count is controlled by its own max_iter
+        parameter instead). This nt logic is currently inert; see
+        transient_solve_EN_old's docstring for details.
+
+    NOTE: contains several commented-out alternate calculations (e.g., for
+        c_vol, K_liq) preserved from earlier development; left as-is since
+        this function is for legacy comparison testing rather than active
+        development.
     '''
 
     Tstart          = self.Tz.copy()
-    nz_P            = len(self.z) # this is the number of volumes, or can think of as number of firn layers.
-    nz_fv           = nz_P - 2 # this does not actually get used.
-
-    if np.any(self.LWC>0): # this behavior is deprecated; keeping code for now. (6/16/21)
-        nt = 10 # number of iterations for the solver
-    else:
-        nt = 1
 
     # T_old = self.Tz.copy() # initial temperature profile
 
@@ -289,13 +480,6 @@ def enthalpyDiff(self,iii):
     z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
     z_edges = z_dummy
 
-    # print(f'nz_P:{nz_P}')
-    # print(f'rho len:{len(self.rho)}')
-    # print(f'z_edges: {len(z_edges)}')
-    # print(f'z_P: {len(z_P)}')
-    # print(f'len self.dz: {len(self.dz)}')
-    # print(f'self.dz: {self.dz}')
-
     phi_s           = self.Tz[0] - T_MELT # work in [C] so that reference Temperature is 0 for enthalpy
     phi_0           = self.Tz - T_MELT
   
@@ -303,7 +487,7 @@ def enthalpyDiff(self,iii):
     vol_tot     = vol_ice + self.LWC    # total volume of ice and liquid in each volume
     mass_liq    = self.LWC * RHO_W_KGM  # mass of liquid water
     rho_liq_eff = mass_liq / self.dz      # effective density of the liquid portion
-    tot_rho     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
+    # tot_rho     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
     g_liq_1     = self.LWC / vol_tot     # liquid volume fraction (of the material portion, porosity ignored)
     g_ice_1     = vol_ice / vol_tot     # solid/ice volume fraction 
 
@@ -332,16 +516,14 @@ def enthalpyDiff(self,iii):
 
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
-    
-    ICT = 0 #Iteration Count Threshold (deprecated)
 
     ### Total enthalpy/mass before solver (for testing conservation)
     tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
     tot_mass_pre = np.sum(self.mass + self.LWC*1000)
 
     lwc_old = self.LWC.copy()
-    
-    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN(z_edges, z_P, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz,ICT,self.rho,iii)
+
+    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN_old(z_edges, z_P, self.dt[iii], K_eff, phi_0, phi_s, self.LWC, self.mass, self.dz, iii)
 
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot
@@ -351,7 +533,10 @@ def enthalpyDiff(self,iii):
 
     self.LWC = LWC_ret.copy()
     self.Tz = phi_ret + 273.15
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    try:
+        self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    except:
+        self.T10m = None
 
     ### Total enthalpy after solver (for testing conservation)
     tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
@@ -396,449 +581,6 @@ def enthalpyDiff(self,iii):
 ##############################
 ### end enthalpy diffusion ###
 ##############################
-
-#############################################################################################
-### DEVELOPMENT CODE BELOW HERE
-###############################
-
-### heatDiffNew: testing code to use volume centers
-# def heatDiffNEW(self,iii):
-#     '''
-#     Heat diffusion function
-
-#     :param z:
-#     :param dz:
-#     :param Ts:
-#     :param rho:
-
-#     :returns self.Tz:
-#     :returns self.T10m:
-    
-#     thermal diffusivity: alpha = K_firn / (rho*c_firn)
-#     '''
-
-#     nz_P            = len(self.z) #- 1
-#     nz_fv           = nz_P - 2 # this does not get used
-#     nt              = 1
-
-#     # z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-#     # z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-#     # z_P     = self.z
-
-#     z_dummy = np.append(self.z,self.z[-1]+np.diff(self.z)[-1])
-
-#     z_P = (z_dummy[1:] + z_dummy[:-1])/2 # this assumes that self.z are the edges of the firn layers; this gets the centers of the layers for finite volume solver
-#     z_edges = z_dummy
-
-
-    
-#     phi_s           = self.Tz[0]
-#     phi_0           = self.Tz
-#     # phi_0           = np.append(self.Tz,self.Tz[-1])
-
-#     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-
-#     K_firn = firnConductivity(self,iii,K_ice)
-#     K_firn = K_firn#[0:-1]
-#     phi_0 = phi_0#[0:-1]
-
-#     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-#     # c_firn        = CP_I # If you prefer a constant specific heat.
-#     # [0:-1] # thermal conductivity
-
-#     if self.c['MELT']:
-#         try:
-#             if self.c['LWCheat']=='lowK':
-#                 K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
-#         except:
-#             pass
-
-#     Gamma_P         = K_firn
-
-#     # rho_dummy = np.append(self.rho,self.rho[-1])
-#     # tot_rho = rho_dummy
-#     # c_vol = rho_dummy * c_firn
-#     tot_rho         = self.rho#[0:-1]
-#     c_vol           = self.rho * c_firn
-
-#     self.Tz         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-#     # self.Tz = np.append(self.Tz,self.Tz[-1])
-
-#     self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-#     if self.c['MELT']:
-#         if self.c['LWCheat']=='effectiveT':
-#             pass
-
-#         elif np.any(self.Tz>273.1500001):
-#             print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
-#             print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
-
-#         self.Tz[self.Tz>=273.15]=273.15
-
-#     return self.Tz, self.T10m
-
-##########################
-### end heatDiffNew ###
-##########################
-
-def heatDiffOLD(self,iii):
-    '''
-    Older Heat diffusion function - uses self.z as z_P (finite volume centers)
-    and 1/2 way betwee self.z as the volume edges
-
-    :param z:
-    :param dz:
-    :param Ts:
-    :param rho:
-
-    :returns self.Tz:
-    :returns self.T10m:
-    
-    thermal diffusivity: alpha = K_firn / (rho*c_firn)
-    '''
-
-    nz_P            = len(self.z)
-    nz_fv           = nz_P - 2 # this does not actually get used.
-    nt              = 1
-
-    z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P     = self.z
-    
-    phi_s           = self.Tz[0]
-    phi_0           = self.Tz
-
-    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
-
-    K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
-
-    if self.c['MELT']:
-        try:
-            if self.c['LWCheat']=='lowK':
-                K_firn[self.LWC>0]=K_firn[self.LWC>0]/1.e4
-        except:
-            pass
-
-    Gamma_P         = K_firn
-
-
-    tot_rho         = self.rho
-    c_vol           = self.rho * c_firn
-
-    self.Tz         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-    if self.c['MELT']:
-        if self.c['LWCheat']=='effectiveT':
-            pass
-
-        elif np.any(self.Tz>273.1500001):
-            print(f'WARNING: TEMPERATURE EXCEEDS MELTING TEMPERATURE at {iii}')
-            print('WARM TEMPERATURES HAVE BEEN SET TO 273.15; MODEL RUN IS CONTINUING')
-
-        self.Tz[self.Tz>=273.15]=273.15
-
-    return self.Tz, self.T10m
-
-##########################
-### end heat diffusion ###
-##########################
-
-def heatDiff_highC(self,iii):
-
-    '''
-    IN DEVELOPMENT
-
-    One way of dealing with liquid water in the firn
-    is to just set the heat capacity to be very high. 
-    '''
-    if iii==0:
-        print('WARNING: heatDiff_highC IS IN DEVELOPMENT')
-
-    nz_P            = len(self.z)
-    nz_fv           = nz_P - 2
-    nt              = 1
-
-    z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P     = self.z
-
-    dt_sub = self.dt[iii]
-
-    phi_s           = self.Tz[0]
-    phi_0           = self.Tz
-
-    g_liq = self.LWC/self.dz
-    H_L_liq = RHO_W_KGM*LF_I #volumetric latent enthalpy [J/m3]
-    H_lat = g_liq*H_L_liq
-
-    K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
-    
-    K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
-
-    Gamma_P         = K_firn
-    tot_rho         = self.rho
-    c_vol_0         = self.rho * c_firn 
-    
-    C_lat = H_lat/T_MELT
-
-    c_vol = c_vol_0 + C_lat
-
-
-    self.Tz        = transient_solve_TR(z_edges, z_P, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-    self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
-
-    if np.any(self.Tz>273.15001):
-        print('Tz higher than 273.15001')
-        iHT = np.where(self.Tz>273.15001)[0]
-        print(f'iHT: {iHT}')
-        print(f'HT: {self.Tz[iHT]}')
-
-    self.Tz[self.Tz>=273.15]=273.15
-
-    dml_sum = 0
-
-    return self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum
-
-##############################
-### end highC diffusion ###
-##############################
-
-def heatDiff_Teff(self,iii):
-    '''    
-    IN DEVELOPMENT
-    artificially set the temperature of volumes with liquid water 
-    to be higher than T_melt 
-    '''
-
-    if iii==0:
-        print('WARNING: heatDiff_Teff IS IN DEVELOPMENT')
-
-    nz_P            = len(self.z)
-    nz_fv           = nz_P - 2
-    nt              = 1
-
-    z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P     = self.z
-
-    Q = LF_I * self.LWC * RHO_W_KGM
-    deltaT = Q / (self.mass*CP_I)
-
-    # Tc = self.Tz - 273.15
-    # c0 = deltaT>-Tc
-    # deltaT[c0] = -Tc[c0]
-
-    Tz_eff = self.Tz + deltaT
-    
-    # phi_s           = self.Tz[0]
-    # phi_0           = self.Tz
-
-    phi_s           = Tz_eff[0]
-    phi_0           = Tz_eff
-
-    K_ice           = 9.828 * np.exp(-0.0057 * self.Tz) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-    c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-    # c_firn        = CP_I # If you prefer a constant specific heat.
-    lwc_layers  = np.where(self.LWC>0)[0]
-    
-    K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
-
-    Gamma_P         = K_firn
-    tot_rho         = self.rho
-    c_vol           = self.rho * c_firn
-
-    T_eff_new         = transient_solve_TR(z_edges, z_P, nt, self.dt[iii], Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-
-    excessT = np.maximum(0.0,(T_eff_new - T_MELT))
-    LWC_new = (excessT * self.mass * CP_I)/ LF_I / 1000 # divide by 1000 to put in volume (m3)
-    self.LWC = LWC_new
-    T_eff_new[self.LWC>0] = T_MELT
-    self.Tz = T_eff_new
-
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-    # self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
-
-    if np.any(self.Tz>273.15001):
-        print('Tz higher than 273.15001')
-        iHT = np.where(self.Tz>273.15001)[0]
-        print(f'iHT: {iHT}')
-        print(f'HT: {self.Tz[iHT]}')
-
-    self.Tz[self.Tz>=273.15]=273.15
-
-    dml_sum = 0
-
-    return self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum
-
-##############################
-### end T-eff diffusion ###
-##############################
-
-def heatDiff_LWCcorr(self,iii, iters,correct_therm_prop):
-    '''
-
-    IN DEVELOPMENT  
-
-    just run the heat diffusion as normal and then balance energy.  
-    '''
-
-    if iii==0:
-        print('WARNING: heatDiff_LWCcorr IS IN DEVELOPMENT')
-
-    nz_P            = len(self.z)
-    nz_fv           = nz_P - 2
-    nt              = 1
-
-    z_edges_vec1 = self.z[0:-1] + np.diff(self.z) / 2
-    z_edges = np.concatenate(([self.z[0]], z_edges_vec1, [self.z[-1]]))
-    z_P     = self.z
-    
-    # iters = 24
-    dt_sub = self.dt[iii]/iters
-
-    for jj in range(iters):
-
-        phi_s           = self.Tz[0]
-        phi_0           = self.Tz
-
-        ###
-        if correct_therm_prop:
-            vol_ice     = self.mass / RHO_I     # volume of the ice portion of each volume
-            vol_tot     = vol_ice + self.LWC    # total volume of ice and liquid in each volume
-            mass_liq    = self.LWC * RHO_W_KGM  # mass of liquid water
-            rho_liq_eff = mass_liq / self.dz      # effective density of the liquid portion
-            tot_rho     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
-            g_liq_1     = self.LWC / vol_tot     # liquid volume fraction (of the material portion, porosity ignored)
-            g_ice_1     = vol_ice / vol_tot     # solid/ice volume fraction 
-
-            K_water = 0.55575                         # thermal conductivity, water (W/m/K)
-            K_ice   = 9.828 * np.exp(-0.0057 * self.Tz) # thermal conductivity, ice (W/m/K), Cuffey and Paterson, eq. 9.2 (Yen 1981)
-            # K_mix = g_liq_1*K_liq + g_ice_1*K_ice
-
-            c_firn          = 152.5 + 7.122 * self.Tz # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-            # c_firn  = CP_I # If you prefer a constant specific heat
-            c_ice = c_firn
-            c_liq = 4219.9 # J/kg/K, taken from engineeringtoolbox.com. Ha!
-            # c_vol = g_ice_1 * RHO_I * c_ice + g_liq_1 * RHO_W_KGM * c_liq #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
-            c_vol = (g_ice_1 * c_ice + g_liq_1 * c_liq) * tot_rho #Voller eq. 10., the 'volume-averaged specific heat of mixture', or rho * cp. (so really heat capacity)
-
-            K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
-
-            K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
-            K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
-            Gamma_P = K_eff
-        ###
-
-        ###
-        else:
-            K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
-            c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
-            # c_firn        = CP_I # If you prefer a constant specific heat.
-            
-            K_firn = firnConductivity(self,iii,K_ice) # thermal conductivity
-
-            Gamma_P         = K_firn
-            tot_rho         = self.rho
-            c_vol           = self.rho * c_firn
-
-
-        self.Tz        = transient_solve_TR(z_edges, z_P, nt, dt_sub, Gamma_P, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol)
-        self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
-
-        self.Tz, self.LWC, self.rho, self.mass, refrozen_mass = LWC_correct(self)
-
-        if np.any(self.Tz>273.15001):
-            print('Tz higher than 273.15001')
-            iHT = np.where(self.Tz>273.15001)[0]
-            print(f'iHT: {iHT}')
-            print(f'HT: {self.Tz[iHT]}')
-
-        self.Tz[self.Tz>=273.15]=273.15
-
-    dml_sum = 0
-
-    return self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum
-
-##############################
-### end T-eff diffusion ###
-##############################
-
-def LWC_correct(self):
-    '''
-    *** TEST FUNCTION ***
-    If there is LWC in a layer after temperature diffusion and the temperature
-    is less than zero, one option is to just balance the energy to increase the
-    temperature and lower the LWC. It isn't the best way to solve the problem 
-    but it is one way. 
-
-    This should be vectorized but that is not a priority.
-    '''
-
-    ind_wetcold = np.where((self.Tz<T_MELT) & (self.LWC>0))[0]
-    refrozen_mass = np.zeros_like(self.rho)
-    if ind_wetcold.size!=0:
-        cold_content = CP_I * self.mass * (T_MELT - self.Tz) # [J]
-        ### LWC is volume (m^3)
-        heattofreeze = self.LWC * RHO_W_KGM * LF_I # [J]
-        
-        for kk in ind_wetcold:
-            if cold_content[kk] < heattofreeze[kk]:
-                # not enough cold content
-                # temperature raised to T_MELT
-                # some water refreeze to bring T to T_MELT
-
-                self.Tz[kk] = T_MELT
-                self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
-                refrozen_mass[kk] = cold_content[kk]/LF_I
-                self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
-                self.rho[kk] = self.mass[kk]/self.dz[kk]
-                # self.LWC[kk] = self.LWC[kk] - (cold_content[kk]/1000/LF_I)
-            else: #enough cold content, all LWC refreezes
-                # Temperature is raised from refreezing
-                refrozen_mass[kk] = self.LWC[kk] * 1000
-                self.LWC[kk] = 0
-                self.Tz[kk] = self.Tz[kk] + heattofreeze[kk]/CP_I/self.mass[kk]
-                self.mass[kk] = self.mass[kk] + refrozen_mass[kk]
-                self.rho[kk] = self.mass[kk]/self.dz[kk]
-                if self.Tz[kk]>273.15001:
-                    print(f'kk is {kk}, Tz is {self.Tz[kk]}')
-                
-
-                # self.Tz[kk] = self.Tz[kk] + (heattofreeze[kk]/1000/LF_I)
-        # print(f'max Tz is {np.max(self.Tz)}')
-        if np.any(self.LWC<0):
-            print("negative LWC from correction (LWC_correct function)")
-            self.LWC[self.LWC<0] = 0
-        if np.any(self.Tz>273.15001):
-            print("temps above T_MELT from correction (LWC_correct function)")
-            print()
-            # print(self.Tz[self.Tz>T_MELT])
-        self.Tz[self.Tz>T_MELT] = T_MELT
-    return self.Tz, self.LWC, self.rho, self.mass, refrozen_mass
-
-
-#### Radiation penetration (in development)
-# def rad_pen(self,E_rp):
-
-#     def exco(rho):
-#     return -0.0338*rho +33.54
-
-#     k_ex = exco(self.rho)
-#     c_firn    = 0.021 + 2.5 * (self.rho/1000.)**2
-#     deltaE_layers = E_rp * np.exp(-k_ex*self.z)
-#     deltaT = deltaE_layers/(self.mass*CP_I)
-#     self.Tz[1:] = self.Tz[1:]+deltaT
-
 
 '''
 ### References for conductivity parameterizations ###

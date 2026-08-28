@@ -21,7 +21,6 @@ Here is a list.
     melt.rst
     merge.rst
     physics.rst
-    plotter.rst
     prefflow_snowpack.rst
     RCMpkl_to_spin.rst
     re_snowpack.rst

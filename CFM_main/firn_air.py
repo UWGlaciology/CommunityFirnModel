@@ -215,8 +215,6 @@ class FirnAir:
             setattr(self,k,v)
 
         nz_P        = len(self.z)
-        nz_fv       = nz_P - 2
-        nt          = 1
 
         z_edges1 = self.z[0:-1] + np.diff(self.z) / 2
         z_edges = np.concatenate(([self.z[0]], z_edges1, [self.z[-1]]))
@@ -295,7 +293,7 @@ class FirnAir:
         msk = np.where(self.z>self.z_co)[0][0]
         c_vol = np.ones_like(self.rho) # Just a filler here to make the diffusion work.
         
-        self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, nt, self.dt, self.diffu, phi_0, nz_P, nz_fv, phi_s, self.rho, c_vol, airdict)
+        self.Gz, w_p = transient_solve_TR(z_edges, z_P_vec, self.dt, self.diffu, phi_0, nz_P, phi_s, c_vol, airdict)
         self.Gz = np.concatenate(([self.Gs[iii]], self.Gz[:-1]))
 
         ind_LID = np.where(self.z>=self.LID)[0]

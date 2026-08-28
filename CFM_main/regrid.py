@@ -101,7 +101,9 @@ def init_regrid(self):
 def regrid22(self,iii,spin=False):
     '''
     Called in both firn_density_spin and firn_density_nospin
-    5 grids:
+
+    5 grids::
+
         grid1  -> high resolution determined by accumulation events
         grid2  -> low resolution by merging the batch of lowest nodestocombine layers of grid 1
         grid22 -> very low resolution by merging the batch of lowest multnodestocombine layers of grid 2
@@ -327,16 +329,18 @@ def regrid22_reciprocal(self):
 
     '''
     Reciprocal of regrid22: must be called if we accumulate too many grid3 nodes because of
-    heavy melting of surface nodes (problematic in ablation area)
-    -> merge k batches of n1 grid3 nodes into k grid23 nodes (k is maximum nb of batches of n1 grid3 nodes available)
-    if nb of layers in grid2 is <k:
-        -> calculate the nb of supplementary grid2 layers required
-        -> calculate xx: the number of grid22 layers that must be split to provide the supplementary grid2 layers
-        -> merge xx batches of n2 grid23 layers into xx grid22 layer
-        -> divide xx grid22 layers into xx*n2 grid2 layers
-    -> divide k grid2 layer into n1 grid1 layer
-    
-    5 grids:
+    heavy melting of surface nodes (problematic in ablation area)::
+
+        -> merge k batches of n1 grid3 nodes into k grid23 nodes (k is maximum nb of batches of n1 grid3 nodes available)
+        if nb of layers in grid2 is <k:
+            -> calculate the nb of supplementary grid2 layers required
+            -> calculate xx: the number of grid22 layers that must be split to provide the supplementary grid2 layers
+            -> merge xx batches of n2 grid23 layers into xx grid22 layer
+            -> divide xx grid22 layers into xx*n2 grid2 layers
+        -> divide k grid2 layer into n1 grid1 layer
+
+    5 grids::
+
         grid1  -> high resolution determined by accumulation events
         grid2  -> low resolution
         grid22 -> very low resolution

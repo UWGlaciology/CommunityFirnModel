@@ -10,6 +10,7 @@ Distributed under terms of the MIT license.
 '''
 
 from diffusion import *
+import solver
 from reader import read_input
 from reader import read_init
 from writer import write_spin_hdf5
@@ -38,6 +39,7 @@ import h5py
 import scipy.interpolate as interpolate
 from firn_air import FirnAir
 from regrid import *
+from config_validation import validate_config
 try:
     import pandas as pd
 except:
@@ -56,39 +58,41 @@ class FirnDensityNoSpin:
     '''
     Class for the main, transient model run.
 
-    Parameters
+    Attributes
     ----------
-    : gridLen: size of grid used in the model run
-                (unit: number of boxes, type: int)
-    : dx: vector of width of each box, used for stress calculations
-                (unit: m, type: array of ints)
-    : dt: number of seconds per time step
-                (unit: seconds, type: float)
-    : t: number of years per time step
-                (unit: years, type: float)
-    : modeltime: linearly spaced time vector from indicated start year to indicated end year
-                (unit: years, type: array of floats)
-    : years: total number of years in the model run
-                (unit: years, type: float)
-    : stp: total number of steps in the model run
-                (unit: number of steps, type: int)
-    : T_mean: interpolated temperature vector based on the model time and the initial user temperature data
-                (unit: K, type: array of floats)
-    : Ts: interpolated temperature vector based on the model time & the initial user temperature data
-                may have a seasonal signal imposed depending on number of years per time step (< 1)
-                (unit: K, type: array of floats)
-    : bdot: bdot is meters of ice equivalent/year. multiply by 0.917 for W.E. or 917.0 for kg/year
-                (unit: m ice eq. per year, type: array of floats)
-    : bdotSec: accumulation rate vector at each time step
-                (unit: m ice eq. per second, type: array of floats)
-    : rhos0: surface accumulate rate vector
-                (unit: kg m^-3, type: array of floats)
-    : bdot_mean: mean accumulation over the lifetime of each parcel
-                (units are m I.E. per year)
-    : sublim: sublimation/deposition. Negative means sublimation, positive means depostion
-                
-    :returns D_surf: diffusivity tracker
-                (unit: ???, type: array of floats)
+    gridLen : int
+        size of grid used in the model run (unit: number of boxes)
+    dx : array of ints
+        vector of width of each box, used for stress calculations (unit: m)
+    dt : float
+        number of seconds per time step (unit: seconds)
+    t : float
+        number of years per time step (unit: years)
+    modeltime : array of floats
+        linearly spaced time vector from indicated start year to indicated end year (unit: years)
+    years : float
+        total number of years in the model run (unit: years)
+    stp : int
+        total number of steps in the model run (unit: number of steps)
+    T_mean : array of floats
+        interpolated temperature vector based on the model time and the initial user temperature data (unit: K)
+    Ts : array of floats
+        interpolated temperature vector based on the model time and the initial user temperature data; may have a seasonal signal imposed depending on number of years per time step (< 1) (unit: K)
+    bdot : array of floats
+        meters of ice equivalent/year; multiply by 0.917 for W.E. or 917.0 for kg/year (unit: m ice eq. per year)
+    bdotSec : array of floats
+        accumulation rate vector at each time step (unit: m ice eq. per second)
+    rhos0 : array of floats
+        surface density vector (unit: kg m^-3)
+    bdot_mean : array of floats
+        mean accumulation over the lifetime of each parcel (unit: m ice eq. per year)
+    sublim : array of floats
+        sublimation/deposition; negative means sublimation, positive means deposition
+
+    Returns
+    -------
+    D_surf : array of floats
+        diffusivity tracker
 
     '''
 
@@ -103,6 +107,8 @@ class FirnDensityNoSpin:
         with open(configName, "r") as f:
             jsonString      = f.read()
             self.c          = json.loads(jsonString)
+
+        validate_config(self.c, config_path=configName)
 
         self.SEBfluxes = SEBfluxes
 
@@ -258,8 +264,9 @@ class FirnDensityNoSpin:
                 
             else: # Input data comes from a .csv
                 input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
+            input_temp = np.array(input_temp, dtype=float)
             # if input_temp[0] < 0.0:
-            if np.mean(input_temp) < 0.0:    
+            if np.mean(input_temp) < 0.0:
                 input_temp      = input_temp + K_TO_C
             input_temp[input_temp>T_MELT] = T_MELT
 
@@ -276,6 +283,8 @@ class FirnDensityNoSpin:
 
         else: # Input data comes from a .csv
             input_bdot, input_year_bdot,input_bdot_full, input_year_bdot_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNamebdot']), updatedStartDate)
+        input_bdot = np.array(input_bdot, dtype=float)
+        input_bdot_full = np.array(input_bdot_full, dtype=float)
         self.forcing_dict['BDOT'] = input_bdot_full
         #####################
 
@@ -332,6 +341,13 @@ class FirnDensityNoSpin:
             self.raininput      = False #VV no rain input
 
         if self.c['MELT']:
+            ### current solvers for meltwater: 'transient_solve_enthalpy', 'transient_solve_ahc', 'transient_solve_decp', 'transient_solve_ncz'
+            if 'meltwater_solver' not in self.c:
+                self.c['meltwater_solver'] = 'enthalpy'
+            
+            print(f'Using {self.c["meltwater_solver"]} solver for meltwater refreezing')
+            self.melt_solver = f"transient_solve_{self.c['meltwater_solver']}"
+            
             if self.c['SEB']: #melt will be calculated within the time-stepping loop
                 input_year_snowmelt = climateTS['time'][self.start_ind:]
                 input_snowmelt = np.zeros_like(input_year_snowmelt)
@@ -947,6 +963,9 @@ class FirnDensityNoSpin:
         self.ddz_bdot = 0
         ######################################
         ######################################
+        self.total_count = 0
+
+        self.write_diag = True
 
     ####################    
     ##### END INIT #####
@@ -961,6 +980,8 @@ class FirnDensityNoSpin:
         '''
         self.steps = 1 / np.mean(self.t) # steps per year
         start_time=time.time() # this is a timer to keep track of how long the model run takes.
+
+        solver._diag_reset()
 
         if self.c['spinUpdate']:
             print('spinUpdate is true')
@@ -1463,20 +1484,24 @@ class FirnDensityNoSpin:
                 liq_mass_pre_en = np.sum(self.LWC*1000)
 
                 tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
+                
                 if "LWC_heat" not in self.c:
                     self.c["LWC_heat"] = 'enthalpy'
 
                 if self.c["LWC_heat"]=='enthalpy':
                     mass_pre = np.sum(self.mass)
-
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = enthalpyDiff(self,iii)
+                
+                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = refreezeDiff(self, iii, solver_name=self.melt_solver)
                     mass_post = np.sum(self.mass)
-                elif self.c["LWC_heat"]=='highC':
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_highC(self, iii)
-                elif self.c["LWC_heat"]=='Teff':
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_Teff(self, iii)
-                elif self.c["LWC_heat"]=='LWCcorr':
-                    self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_LWCcorr(self, iii, self.c["LWCcorr_subdt"],self.c['correct_therm_prop'])
+                
+                # elif self.c["LWC_heat"]=='highC':
+                #     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_highC(self, iii)
+                
+                # elif self.c["LWC_heat"]=='Teff':
+                #     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_Teff(self, iii)
+                
+                # elif self.c["LWC_heat"]=='LWCcorr':
+                #     self.Tz, self.T10m, self.rho, self.mass, self.LWC, dml_sum = heatDiff_LWCcorr(self, iii, self.c["LWCcorr_subdt"],self.c['correct_therm_prop'])
 
                 tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
 
@@ -1578,7 +1603,10 @@ class FirnDensityNoSpin:
                 # Lfluxout = self.refreeze + self.runoff + np.sum(lwc_endofloop) + self.subLWCvol
                 # LFdiff = Lfluxin - Lfluxout
                 # LFdiffsum = LFdiffsum + LFdiff
-
+        
+        if self.write_diag:
+            solver._diag_write(f'diagnostics_{self.c["meltwater_solver"]}.csv')
+        # print(f'iteration count: {self.total_count}')
         ##################################
         ##### END TIME-STEPPING LOOP #####
         ##################################

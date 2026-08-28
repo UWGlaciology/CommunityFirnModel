@@ -1,7 +1,7 @@
 # This CITATION.cff file was generated with cffinit.
 # Visit https://bit.ly/cffinit to generate yours today!
 
-cff-version: 3.1.0
+cff-version: 1.2.0
 title: The Community Firn Model
 message: >-
   If you use this software, please cite it using the
@@ -47,4 +47,4 @@ identifiers:
     value: 10.5281/zenodo.3585884
 repository-code: 'https://github.com/UWGlaciology/CommunityFirnModel'
 license: MIT
-version: 3.0.0
+version: 3.2.0

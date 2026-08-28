@@ -32,7 +32,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-3.1.0
+3.2.0
 
 ## Full Documentation
 
@@ -56,6 +56,41 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- I am working on adding additional physics to simulate near-surface snow compaction ("stage zero compaction")
 	- I am working on adding turbulent flux calculations to the SEB module
 
+
+## [3.2.0] 2026-08-25
+### Notes
+- This release focuses on ease of use (examples, documentation, config validation) and on the meltwater-refreezing solver, which now offers several interchangeable schemes.
+- The default behavior is unchanged for existing configurations: if the new "meltwater_solver" key is absent, the model uses the enthalpy solver, which reproduces the previous refreezing behavior. The key has been added to the example .json files, the example notebook, and the JSON documentation reference.
+- The version number was updated to 3.2.0 in main.py, CITATION.cff, and this changelog. (CITATION.cff also had its "cff-version" corrected to 1.2.0, the Citation File Format schema version, which had been mistakenly set to the software version.)
+
+### Example updates
+- *run_CFM_example.py, run_CFM_example_notebook.ipynb* Removed hardcoded machine-specific paths so the examples run out of the box from a fresh clone. `cfm_path` now derives from the script location (`Path(__file__).resolve().parent`) in the script and defaults to the current working directory (`Path.cwd()`) in the notebook. `zarr_path` is now a `/Path/To/zarr` placeholder, with comments clarifying that it is only needed for the optional "zarr" climate source (the default "dataframe" source uses the example .pkl files that ship with the repo).
+- *README.md* Reorganized the "Running the CFM" section to lead with the recommended all-in-one script/notebook workflow (including a copy-pasteable example invocation), and to present `main.py` as the legacy command-line path, matching its own deprecated docstring.
+
+### New
+- *config_validation.py (new file), firn_density_nospin.py* Added a fail-fast configuration validator that runs once from `FirnDensityNoSpin.__init__` immediately after the config is loaded. It raises a single clear error on missing required keys, unmet conditional requirements, or invalid option values, and prints a warning for unrecognized keys (usually typos), rather than surfacing a cryptic KeyError deep inside a run. Because the config dictionary is passed on to `FirnDensitySpin`, one call covers the whole run.
+- *solver.py, diffusion.py, firn_density_nospin.py* Added a choice of interchangeable meltwater-refreezing solvers, selected with a new "meltwater_solver" key in the .json config. Options are "enthalpy" (default), "ahc" (apparent heat capacity), "decp" (decoupled), and "ncz". Refreezing is now dispatched through a new `refreezeDiff` function in diffusion.py, which calls the corresponding `transient_solve_*` function in solver.py. When "meltwater_solver" is omitted, the model defaults to "enthalpy", reproducing prior behavior.
+- *solver.py, firn_density_nospin.py* Added a solver diagnostics logger. Per-time-step solver diagnostics (energy residual, iteration counts, etc.) are accumulated during the run and written to `diagnostics_<solver>.csv` in the working directory at the end of the time-stepping loop.
+
+### Changed
+- *docs/running/json.rst* Substantially expanded the JSON configuration reference: audited against the config keys the code actually reads, filled in previously undocumented keys (surface energy balance, melt/liquid water/runoff, sublimation, densification/thermal, outputs/metadata), refreshed stale option lists to match example.json, and documented previously-empty entries (e.g., ReehCorrectedT, coreless, the current strain-scheme keys). See DOC_CHANGES_2026-07-14.md for details.
+- *docs/conf.py* Removed the deprecated, unused `recommonmark` extension. The HTML theme now prefers `sphinx_rtd_theme` when installed and falls back to the built-in `alabaster` theme, so local documentation builds work without extra installs.
+- *docs/requirements.txt* Added `sphinx` and `sphinx_rtd_theme` so that Read the Docs / full documentation builds are reproducible.
+- *docs/extras/index.rst, docs/files/index.rst, docs/running/inputs.rst* Fixed pre-existing documentation build warnings (removed a non-existent toctree entry and the orphaned plotter page, and converted a leftover line into a proper cross-reference), taking the build from 9 warnings to 0.
+- *docs/extras/meltwater_solver.rst (new file), docs/extras/index.rst, docs/running/json.rst* Added a narrative "Choosing a meltwater solver" page summarizing the four `meltwater_solver` options and benchmark results, and cross-referenced it from the `meltwater_solver` key in the JSON reference.
+- *example.json, example_df.json, example_csv.json* Expanded the `physRho_options` list to match the densification schemes available in physics.py (added Simonsen2013, Brils2022, Veldhuijsen2023, Breant2017, and GSFC2020).
+- *SEB.py* Cast the surface-temperature solution to a scalar (`Tnew.item()`) to avoid a NumPy array-assignment issue, and re-enabled diagnostic prints in the surface-temperature/melt error branch to aid debugging.
+
+### Fixed
+- *sublim.py* Fixed the partial-sublimation mass accounting to sum the mass and LWC over all fully-sublimated layers (`np.sum(self.mass[:ind1])`) rather than indexing a single layer, and added a guard against tiny negative values from rounding.
+- *isotopeDiffusion.py, firn_air.py* Fixed a `TypeError` (csv-input runs) caused by two call sites still using `transient_solve_TR`'s pre-refactor signature (which had dropped the dead `nt`, `nz_fv`, and `tot_rho` parameters). Updated both call sites to the current signature and removed the now-unused local variables.
+- *firn_density_nospin.py* Fixed a `ValueError: assignment destination is read-only` (dataframe-input runs) that occurred when `input_temp` (and, latently, `input_bdot`/`input_bdot_full`) was a non-writable view into the caller-supplied climate dictionary. These arrays are now copied into owned, writable arrays before any in-place clamping.
+
+### Removed
+- The scripts, benchmark outputs, and papers used to develop and validate the meltwater-refreezing solvers (`refreeze_benchmarks.py`, `stefan_benchmark.py`, `neumann_test_2608.py`, associated diagnostics CSVs and output directories, etc.) have moved out of this repository into a separate working directory, now that the solvers themselves have landed. `solver.py`'s docstrings retain the validation/accuracy notes relevant to using the solvers.
+
+### Docstring / documentation-only source edits
+- *solver.py, regrid.py, firn_density_nospin.py* Reformatted docstrings for correct RST rendering: removed a malformed parameter line and fixed pseudo-code literal blocks (regrid.py), and converted the `FirnDensityNoSpin` class docstring from invalid field syntax into proper NumPy-style Attributes/Returns sections rendered by napoleon.
 
 ## [3.1.0] 2025-09-23
 ### Notes

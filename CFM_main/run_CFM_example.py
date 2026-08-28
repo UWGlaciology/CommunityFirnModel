@@ -68,13 +68,18 @@ Email me if you have questions or issues! maxstev@umd.edu
 
 """
 
-### CHANGE THESE PATHS TO MATCH YOUR FILESYSTEM
-### set paths:
-# cfm_path = Path('/Path/To/CommunityFirnModel/CFM_main') #You can use this if you want this notebook in a directory other than CFM_main
-# zarr_path = Path('/Path/To/zarr')
+### PATHS
+### By default cfm_path is the directory this script lives in (CFM_main), so the
+### example runs from a fresh clone with no edits. If you keep this script somewhere
+### else, uncomment the line below and point it at your CFM_main directory.
+cfm_path = Path(__file__).resolve().parent
+# cfm_path = Path('/Path/To/CommunityFirnModel/CFM_main')
 
-cfm_path = Path('/Users/cdsteve2/research/firn/CommunityFirnModel/CFM_main')
-zarr_path = Path('/Users/cdsteve2/nobackup/RCMdata/MERRA2/GrIS/zarr')
+### zarr_path is only needed for the optional "zarr" climate source below (getting
+### MERRA-2 forcing straight from the zarr store). The default "dataframe" source
+### uses the example .pkl files that ship with the repo and does NOT need this.
+### To use the zarr source, download it (see docstring) and set the path here.
+zarr_path = Path('/Path/To/zarr')
 ###
 
 sys.path.append(str(cfm_path))
@@ -126,7 +131,7 @@ def MERRA2_zarr_to_dataframe(lat_int,lon_int, zarr_path=None):
     df_dict = {}
 
     if zarr_path is None: # this is old behavior. Now zarr_path is set at beginning of script.
-        zarr_path = Path('/Users/cdsteve2/nobackup/RCMdata/MERRA2/GrIS/zarr/')
+        zarr_path = Path('/Path/To/zarr')
 
     for decade in decades:
         file = Path(zarr_path,f'M2_GrIS_daily_IS2mc_{decade}.zarr.zip')
@@ -324,6 +329,8 @@ class M2_CFM():
         with open(CFMconfig,'w') as fp:
             fp.write(json.dumps(c,sort_keys=True, indent=4, separators=(',', ': ')))
 
+        c['NewSpin'] = True
+        
         if 'NewSpin' in c:
             NewSpin = c['NewSpin']
         else:

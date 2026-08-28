@@ -1,3 +1,5 @@
+.. _json-page:
+
 **************************************
 The .json-formatted configuration file
 **************************************
@@ -75,7 +77,7 @@ physRho
   The firn-densification physics to use for the model run.
 
   :type: ``string``
-  :Options: ``HLdynamic``, ``HLSigfus``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Goujon2003``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Crocus``, ``Ligtenberg2011``
+  :Options: ``HLdynamic``, ``HLSigfus``, ``Li2004``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Simonsen2013``, ``Goujon2003``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Brils2022``, ``Veldhuijsen2023``, ``GSFC2020``, ``Crocus``, ``Ligtenberg2011``
 
 MELT
 ----
@@ -86,7 +88,7 @@ MELT
 
 ReehCorrectedT
 --------------
-  If melt is enabled, (NEED TO FILL IN WHAT THIS DOES)
+  Only used when **MELT** is True. If True, applies the Reeh (1991, 2008) latent-heat temperature correction during spin up: the mean firn temperature is warmed to account for the latent heat released by refreezing meltwater, using the superimposed-ice rate (capped at 0.6 of the annual accumulation, following Reeh's PMAX). The correction raised temperature is :math:`T + 26.6\,\textrm{SIR}` (bounded at 273.15 K). If **MELT** is False, the model exits with a warning.
 
   :type: ``boolean``
   :default: ``False``
@@ -142,7 +144,7 @@ SeasonalThemi
 
 coreless
 --------
-  If 'SeasonalTCycle' is True, add the coreless winter. ADD MORE INFO HERE
+  Only used when **SeasonalTcycle** is True and **SeasonalThemi** is ``south``. If True, adds a "coreless winter" to the seasonal temperature cycle: a second harmonic (following Orsi) is superimposed on the annual cosine, giving the flat mid-winter temperature plateau characteristic of the Antarctic interior. Has no effect in the northern hemisphere.
 
   :type: ``boolean``
   :default: ``false``
@@ -229,9 +231,10 @@ AutoSpinUpTime
 
 yearSpin
 --------
-  How many years to spin up for. COULD EXPAND ON THIS
+  How many years to spin up for. Only used when **AutoSpinUpTime** is False; if **AutoSpinUpTime** is True, the spin-up length is calculated automatically and this value is ignored. The spin up should be long enough to refresh the entire firn column at least once (i.e. long enough for a parcel deposited at the surface to advect to the bottom of the domain).
 
   :type: ``float``
+  :units: years
 
 stpsPerYearSpin
 ---------------
@@ -296,33 +299,49 @@ isoDiff
 
 iso
 ---
-  If isoDiff is true, which isotopes to model. 'NoDiffusion' will include the isotopes but does not diffuse them at each time step to allow analysis of the effects of advection and compaction alone (it uses the d18O forcing).
+  If isoDiff is true, which isotopes to model. ``NoDiffusion`` will include the isotopes but does not diffuse them at each time step, to allow analysis of the effects of advection and compaction alone (it uses the d18O forcing).
 
   :type: ``list of strings``
-  :default: ``["18", "D", "NoDiffusion"]``
-  :options: ``18``, ``D``, ``NoDiffusion``
+  :default: ``["d18O", "dD"]``
+  :options: ``d18O``, ``dD``, ``NoDiffusion``
 
 spacewriteint
 -------------
-  NOT WORKING CURRENTLY. Spatial resolution interval to save to results. 1 is every node; 2 is every other, etc.
+  **DEPRECATED / NON-FUNCTIONAL.** Was intended to set the spatial resolution interval saved to results (1 = every node, 2 = every other, etc.), but is not read by the current code. To reduce output size, use **grid_outputs** / **grid_output_res** or **truncate_outputs** instead.
 
   :type: ``int``
   :default: ``1``
 
-strain
-------
-  Whether or not to include layer thinning due to horizontal strain from dynamic ice sheet/glacier flow.
+horizontal_divergence
+---------------------
+  Whether to include the effect of horizontal divergence (from dynamic ice-sheet/glacier flow) on the firn. When True, the mass in each layer is rescaled at each time step according to the horizontal strain rate, which thins (divergence) or thickens (convergence) the column. The strain-rate forcing is supplied via **InputFileNameStrain**.
+
+  (Replaces the older ``strain`` key, which is still accepted and automatically converted.)
 
   :type: ``boolean``
   :default: ``False``
 
-du_dx
------
-  If strain is true, this is the horizontal strain rate. Future work will allow this to vary in time. NEED TO CHECK UNITS ARE CORRECT.
+strain_softening
+----------------
+  Whether to include strain softening in the stage-2 (power-law creep) densification regime. When True, densification rates are scaled by the effective horizontal strain rate. Requires a strain-rate forcing via **InputFileNameStrain**.
+
+  :type: ``boolean``
+  :default: ``False``
+
+residual_strain
+---------------
+  Regularization threshold for strain-softening calculations. Vertical strain rates with magnitude below this value are set to zero to avoid singularities.
 
   :type: ``float``
-  :default: ``1e-5``
-  :units: :math:`\textrm{m a}^{-1}`
+  :default: ``2e-4``
+  :units: :math:`\textrm{a}^{-1}`
+
+tuning_bias_correction
+----------------------
+  If True, applies a bias correction to the strain-softening scheme to account for the strain-softening signal already implicitly captured by the tuned Herron-Langway densification model. Only relevant when **strain_softening** is True.
+
+  :type: ``boolean``
+  :default: ``False``
 
 outputs
 -------
@@ -330,7 +349,7 @@ outputs
 
   :type: ``list of strings``
   :example: ``["density", "depth"]``
-  :options: ``density``, ``depth``, ``temperature``, ``age``, ``dcon``, ``bdot_mean``, ``climate``, ``compaction``, ``grainsize``, ``temp_Hx``, ``isotopes``, ``BCO``, ``LIZ``, ``DIP``, ``LWC``, ``gasses``
+  :options: ``density``, ``depth``, ``temperature``, ``age``, ``Dcon``, ``bdot_mean``, ``climate``, ``compaction``, ``grainsize``, ``temp_Hx``, ``isotopes``, ``BCO``, ``DIP``, ``DIPc``, ``LWC``, ``PLWC_mem``, ``viscosity``, ``runoff``, ``refrozen``, ``meltoutputs``, ``gasses``
 
 resultsFileName
 ---------------
@@ -440,10 +459,25 @@ timesetup
 
 liquid
 ------
-  If **MELT** is true, which percolation scheme to use.
+  If **MELT** is true, which percolation scheme to use. ``bucket`` is the standard single-bucket scheme (``bucketVV`` / ``percolation_bucket`` are accepted aliases for the Verjans variant); ``darcy`` solves flow with Darcy's law; ``prefsnowpack`` and ``resingledomain`` are the preferential-flow and single-domain Richards-equation snowpack schemes (in development).
 
   :type: ``string``
-  :options: ``percolation_bucket``, ``bucketVV``, ``resingledomain``, ``prefsnowpack``
+  :options: ``bucket``, ``darcy``, ``resingledomain``, ``prefsnowpack``
+
+meltwater_solver
+----------------
+  If **MELT** is true, which numerical scheme is used to solve heat diffusion with meltwater refreezing (i.e., the coupled temperature / latent-heat problem for wet firn). All four schemes solve the same physics but differ in their numerical formulation and conservation properties:
+
+  - ``enthalpy`` -- solves for enthalpy directly (default); reproduces the model's prior refreezing behavior.
+  - ``ahc`` -- apparent-heat-capacity method.
+  - ``decp`` -- decoupled (operator-split) scheme.
+  - ``ncz`` -- Newton-based scheme (Jordan-style).
+
+  If the key is omitted, the model defaults to ``enthalpy``. Refreezing is dispatched through ``refreezeDiff`` in ``diffusion.py``, which calls the corresponding ``transient_solve_*`` function in ``solver.py``. Per-time-step solver diagnostics are written to ``diagnostics_<solver>.csv`` at the end of the run. See :doc:`../extras/meltwater_solver` for guidance on which scheme to choose.
+
+  :type: ``string``
+  :default: ``enthalpy``
+  :options: ``enthalpy``, ``ahc``, ``decp``, ``ncz``
 
 merging
 -------
@@ -522,6 +556,306 @@ NewSpin
 
   :type: ``boolean``
   :default: ``false``
+
+Input file names
+~~~~~~~~~~~~~~~~~
+
+The CFM reads each climate/boundary forcing from its own file (when **input_type** is ``csv``) or from a column of the climate dataframe (when **input_type** is ``dataframe``). The ``InputFileName*`` keys give the file name (relative to **InputFileFolder**) for each forcing. Only the files needed for the enabled physics are required.
+
+InputFileNameTemp
+-----------------
+  Surface (skin) temperature forcing time series. Required.
+
+  :type: ``string``
+  :Example: ``example_TSKIN.csv``
+
+InputFileNamebdot
+-----------------
+  Accumulation-rate (surface mass balance) forcing time series. Required.
+
+  :type: ``string``
+  :Example: ``example_BDOT.csv``
+
+InputFileNamemelt
+-----------------
+  Surface-melt forcing time series. Required when **MELT** is True and **SEB** is False (when **SEB** is True, melt is computed internally).
+
+  :type: ``string``
+  :Example: ``example_SMELT.csv``
+
+InputFileNameRain
+-----------------
+  Rain forcing time series. Required when **RAIN** is True.
+
+  :type: ``string``
+  :Example: ``example_RAIN.csv``
+
+InputFileNameSublim
+-------------------
+  Sublimation/deposition forcing time series. Used when **SUBLIM** is True; if omitted, sublimation is inferred from negative values of the accumulation forcing.
+
+  :type: ``string``
+  :Example: ``example_SUBLIM.csv``
+
+InputFileNameIso
+----------------
+  Surface water-isotope forcing time series. Required when **isoDiff** is True.
+
+  :type: ``string``
+  :Example: ``example_ISOTOPE.csv``
+
+InputFileNamerho
+----------------
+  Surface-density forcing time series. Required when **variable_srho** is True and **srho_type** is ``userinput``.
+
+  :type: ``string``
+  :Example: ``example_RHOS.csv``
+
+InputFileNameStrain
+-------------------
+  Horizontal strain-rate forcing, used when **horizontal_divergence** or **strain_softening** is True. The file may contain one column (divergence), two columns (the two principal strain rates), or three columns (:math:`\dot\epsilon_{xx}`, :math:`\dot\epsilon_{yy}`, :math:`\dot\epsilon_{xy}`). Replaces the deprecated ``InputFileNamedudx`` (still accepted and auto-converted).
+
+  :type: ``string``
+  :Example: ``example_STRAIN.csv``
+
+ManualTFilename
+---------------
+  File containing a 2-D (depth × time) temperature field, e.g. from a thermistor string. Used only when **manualT** is True. The first row is the time vector, the first column is the depth vector, and the remaining entries are the temperature matrix.
+
+  :type: ``string``
+
+forcingFileName
+---------------
+  Name of the .hdf5 file into which the climate forcing is written alongside the model output.
+
+  :type: ``string``
+  :default: ``CFMforcing.hdf5``
+
+Surface energy balance (SEB)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SEB
+---
+  Whether to run the surface-energy-balance module, which computes surface temperature and melt from energy fluxes rather than using a prescribed melt forcing. When True, melt is calculated internally within the time-stepping loop and **InputFileNamemelt** is not needed.
+
+  :type: ``boolean``
+  :default: ``false``
+
+SEB_TL_thick
+------------
+  Thickness of the surface "top layer" over which the surface energy fluxes are integrated to compute melt. Smaller values make the surface temperature/melt response more sensitive. Only used when **SEB** is True.
+
+  :type: ``float``
+  :default: ``0.05``
+  :units: :math:`\textrm{m}`
+
+albedo_factor
+-------------
+  Scaling factor applied to the input albedo (albedo is multiplied by this value). Use for tuning surface reflectivity. Only used when **SEB** is True.
+
+  :type: ``float``
+  :default: ``1``
+
+Melt, liquid water, and runoff
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These keys configure the bucket percolation scheme (**liquid** = ``bucket``).
+
+RAIN
+----
+  Whether to include rain as a liquid-water input at the surface. Requires **InputFileNameRain**.
+
+  :type: ``boolean``
+  :default: ``false``
+
+ColeouLesaffre
+--------------
+  How to set the irreducible water content (the fraction of pore space that retains water against gravity). If True, uses the Coléou and Lesaffre (1998) parameterization; if False, uses the constant value **IrrVal**.
+
+  :type: ``boolean``
+  :default: ``true``
+
+IrrVal
+------
+  Irreducible water content as a fraction of available pore space. Used only when **ColeouLesaffre** is False.
+
+  :type: ``float``
+  :default: ``0.02``
+
+RhoImp
+------
+  Density at or above which a layer is treated as an impermeable ice lens that blocks percolation.
+
+  :type: ``float``
+  :default: ``830``
+  :units: :math:`\textrm{kg m}^{-3}`
+
+ThickImp
+--------
+  Minimum thickness for an ice lens (density :math:`\geq` **RhoImp**) to be treated as impermeable. Set to 0 to make every ice layer impermeable. Used only when **DownToIce** is False.
+
+  :type: ``float``
+  :default: ``0.1``
+  :units: :math:`\textrm{m}`
+
+DownToIce
+---------
+  If True, meltwater bypasses all ice lenses and percolates down to the depth where density reaches **RhoImp**; if False, water stops at the first impermeable ice lens (see **ThickImp**).
+
+  :type: ``boolean``
+  :default: ``false``
+
+Ponding
+-------
+  If True, meltwater that is blocked by an impermeable barrier ponds in the layers above it rather than running off.
+
+  :type: ``boolean``
+  :default: ``false``
+
+DirectRunoff
+------------
+  Fraction of blocked (ponded) water that runs off immediately rather than ponding. Only used when **Ponding** is True.
+
+  :type: ``float``
+  :default: ``0.0``
+
+RunoffZuoOerlemans
+------------------
+  If True, lateral runoff of ponded water is computed with the Zuo and Oerlemans (1996) parameterization. Only used when **Ponding** is True.
+
+  :type: ``boolean``
+  :default: ``false``
+
+Slope
+-----
+  Surface slope (rise/run) used in the Zuo and Oerlemans (1996) lateral-runoff calculation. Only used when **RunoffZuoOerlemans** is True.
+
+  :type: ``float``
+  :default: ``0.1``
+
+keep_firnthickness
+------------------
+  Controls grid behavior when melt removes surface layers. If True, the domain thickness is maintained by adding nodes at the base; if False, the original layer thicknesses are kept.
+
+  :type: ``boolean``
+  :default: ``false``
+
+LWC_heat
+--------
+  **Deprecated.** Formerly selected the method for handling the latent heat of liquid water during heat diffusion. The choice of refreezing scheme is now made with **meltwater_solver** (see above); only the ``enthalpy`` path remains active, and the ``highC`` / ``Teff`` / ``LWCcorr`` branches have been retired. If present in a config it is forced to ``enthalpy`` internally and otherwise ignored. The related internal flags ``LWCheat``, ``LWCcorr_subdt``, and ``correct_therm_prop`` are likewise inactive and kept only for backward compatibility.
+
+  :type: ``string``
+  :default: ``enthalpy``
+
+Sublimation
+~~~~~~~~~~~
+
+SUBLIM
+------
+  Whether to include sublimation/deposition. When False, negative values in the accumulation forcing (interpreted as sublimation) are set to zero.
+
+  :type: ``boolean``
+  :default: ``true``
+
+bdm_sublim
+----------
+  Whether to include sublimation when computing the mean accumulation rate used for spin up. If True, sublimation is subtracted from accumulation; if False, accumulation alone is used.
+
+  :type: ``boolean``
+  :default: ``true``
+
+Densification and thermal options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MQ
+--
+  Activation energy for the Morris and Wingham (2014) densification model. Only used when **physRho** is ``Morris2014``.
+
+  :type: ``float``
+  :default: ``60``
+  :units: :math:`\textrm{kJ mol}^{-1}`
+
+THist
+-----
+  Whether to track the temperature history of each layer (required by physics such as Morris2014). Set automatically to True when **physRho** is ``Morris2014``.
+
+  :type: ``boolean``
+  :default: ``false``
+
+stage_zero
+----------
+  **In development.** Enables a "stage-zero" (fresh-snow) densification stage below the transition density **s_zero_rho**, using the parameterization selected by **snow_model**, before the usual firn densification physics take over.
+
+  :type: ``boolean``
+  :default: ``false``
+
+snow_model
+----------
+  Which stage-zero (snow) densification parameterization to use. Only used when **stage_zero** is True.
+
+  :type: ``string``
+  :default: ``Yamazaki1993``
+
+s_zero_rho
+----------
+  Transition density separating the stage-zero snow regime from firn densification. Only used when **stage_zero** is True.
+
+  :type: ``float``
+  :default: ``200``
+  :units: :math:`\textrm{kg m}^{-3}`
+
+iceblock
+--------
+  If True, the firn column is initialized at a uniform density (**iceblock_rho**) instead of using the Herron-Langway analytic spin-up profile. Useful e.g. for simulating a solid ice block.
+
+  :type: ``boolean``
+  :default: ``false``
+
+iceblock_rho
+------------
+  Uniform initial density used when **iceblock** is True.
+
+  :type: ``float``
+  :default: ``917``
+  :units: :math:`\textrm{kg m}^{-3}`
+
+Outputs and run metadata
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+truncate_outputs
+----------------
+  If True, reduces output file size by writing only every 5th depth node for the large fields (density, temperature, LWC, age). If False, every node is written.
+
+  :type: ``boolean``
+  :default: ``false``
+
+runID
+-----
+  Optional numeric identifier used to label a run, convenient for batch runs and parameter studies.
+
+  :type: ``int`` or ``float``
+  :default: ``-9999``
+
+lat_val
+-------
+  Latitude of the site being modeled. Used for bookkeeping/metadata and for site lookups in the example scripts.
+
+  :type: ``float``
+  :units: degrees
+
+lon_val
+-------
+  Longitude of the site being modeled. Used for bookkeeping/metadata and for site lookups in the example scripts.
+
+  :type: ``float``
+  :units: degrees
+
+lat_int / lon_int
+-----------------
+  Requested latitude/longitude used to select the nearest climate grid point when building forcing from a regional climate model (see the example run scripts). **lat_val** / **lon_val** hold the actual coordinates of the selected grid point.
+
+  :type: ``float``
+  :units: degrees
 
 
 

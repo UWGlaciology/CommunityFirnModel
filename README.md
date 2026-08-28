@@ -29,9 +29,24 @@ The CFM is coded in python. To use the software, you need to clone the repositor
 
 ## Running the CFM
 
-The CFM can be run from the command line using the main.py script. It is also relatively easy to create a separate script or jupyter notebook to configure and run the CFM; this can make it easier to do a large number of runs with similar parameters. 
+All of the details for a model run are specified in a .json configuration file; the repository includes `example.json` (and site-specific `example_df.json` / `example_csv.json`). The values for each key can be altered for a particular model run.
 
-All of the details for a model run are specifed in a .json file; the repository includes example.json. The values for each key in the .json file can be altered for a particular model run. For basic use, the model can be run from the command line using:
+### Recommended: all-in-one script or notebook
+
+The easiest way to get started is the self-contained script and notebook, which configure a run (build the .json in-process), prepare the forcing data, and launch the model — all in one place:
+
+- `run_CFM_example.py` — an example of running the CFM in batch mode (e.g., from a SLURM job).
+- `run_CFM_example_notebook.ipynb` — a more guided, step-by-step introduction to running the CFM for a single site.
+
+Both work out of the box with the example forcing files included in the repository. From the `CFM_main` directory, run:
+
+>>> python run_CFM_example.py "66.5,-46.25"
+
+for the DYE-2 example, or `"72.5,-38.75"` for the Summit example. Instructions and configuration options are documented inside the files themselves.
+
+### Legacy: command line via main.py
+
+`main.py` still works and can be convenient for general runs, but it is being deprecated in favor of the all-in-one script/notebook above. To use it:
 
 >>> python main.py example_df.json -n
 
@@ -40,8 +55,6 @@ or
 >>> python main.py example_csv.json -n
 
 The df version forces the model using climate data stored in a pandas dataframe, while the csv version uses climate data from csv files (old/original behavior, which will continue to be supported, but is not recommended).
-
-Starting with version 3.0.0, the repository also includes a script (run_CFM_example.py) and a jupyter notebook (run_CFM_example_notebook.ipynb) that allow the user to configure and run the CFM from the same script (or notebook). They work for example runs or can be edited for a specific use case. Instructions on running those are found in the files themselves.
 
 More details can be found in the full documentation.
 

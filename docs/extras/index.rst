@@ -7,5 +7,5 @@ Here is some extra information you might use when running the CFM.
     :maxdepth: 2
 
     doublegrid.rst
-    initfile.rst
     MWfix.rst
+    meltwater_solver.rst

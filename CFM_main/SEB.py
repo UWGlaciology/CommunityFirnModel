@@ -78,7 +78,7 @@ class SurfaceEnergyBudget:
                 print('"albedo_factor" not defined in .json. Using 1')
             self.T2m     = SEBfluxes['T2m'][start_ind_EF:]
             self.TSKIN   = SEBfluxes['TSKIN'][start_ind_EF:]
-            self.QH      = SEBfluxes['QH'][start_ind_EF:] #MERRA fluxes are upward positive, so multiply by -1
+            self.QH      = SEBfluxes['QH'][start_ind_EF:] # Assumes that positive fluxes are into the snow, negative into sky
             self.QL      = SEBfluxes['QL'][start_ind_EF:]
             self.RAIN    = SEBfluxes['RAIN'][start_ind_EF:] # [m i.e./year]
             if 'LW_u' in SEBfluxes:
@@ -314,18 +314,19 @@ class SurfaceEnergyBudget:
                     meltmass[kk] = (flux_df1_r[kk] - self.SBC*273.15**4) / LF_I * dt #multiply by dt to put in units per time step
 
                 else:
-                    Tcalc[kk] = Tnew
+                    Tcalc[kk] = Tnew.item()
                     meltmass[kk] = 0
             except:
-                # print(f'r: {r}')
-                # print(f'Tnew:{Tnew}')
-                # print(f'T_0:{Tcalc[kk-10:kk]}')
-                # print(f'TTL: {TTL}')
-                # print(f'Tz[i_GL]:{Tz[i_GL]}')
-                # print(f'Tz[0]:{Tz[0]}')
-                # print(f'G:{G}')
-                # print(f'mtime: {mtime}')
-                # print(f'iii:{iii}')
+                print(f'r: {r}')
+                print(f'Tnew:{Tnew}')
+                print(type(Tnew))
+                print(f'T_0:{Tcalc[kk-10:kk]}')
+                print(f'TTL: {TTL}')
+                print(f'Tz[i_GL]:{Tz[i_GL]}')
+                print(f'Tz[0]:{Tz[0]}')
+                print(f'G:{G}')
+                print(f'mtime: {mtime}')
+                print(f'iii:{iii}')
                 print('error with SEB Tsurf and meltmass calculation (line 328)')
                 traceback.print_exc()
                 sys.exit()
