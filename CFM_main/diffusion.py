@@ -266,7 +266,10 @@ def enthalpyDiff(self,iii):
 
     self.LWC = LWC_ret.copy()
     self.Tz = phi_ret + 273.15
-    self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    try:
+        self.T10m       = self.Tz[np.where(self.z>=10.0)[0][0]]
+    except:
+        self.T10m = np.nan
 
     ### Total enthalpy after solver (for testing conservation)
     tot_heat_post = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)

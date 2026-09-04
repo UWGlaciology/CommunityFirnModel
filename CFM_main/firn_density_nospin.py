@@ -156,6 +156,12 @@ class FirnDensityNoSpin:
         initDensity = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'densitySpin', spinUpdateDate)
         initTemp    = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'tempSpin',    spinUpdateDate)
 
+        print(f"initDensity: {initDepth}")
+        print(f"initDensity: {initDepth[0]}")
+        print(f"initDensity: {initDepth[1]}")
+        print(f"initDensity: {initDepth[-1]}")
+        print(f"initDensity: {np.shape(initDepth)}")
+
         try: #VV for reading initial lwc from the spin up file
             initLWC = read_init(self.c['resultsFolder'], self.c['spinFileName'], 'LWCSpin', spinUpdateDate)
             print('Initial LWC provided by spin-up')
@@ -195,18 +201,23 @@ class FirnDensityNoSpin:
         ### Feature to update the spin file to not have to repeat a long spin up
 
         if self.c['spinUpdate']:
+            print(f'initDepth: {initDepth}')
             try:
                 updatedStartDate = initDepth[0][0] # if the spin file has been updated, this is the date to start the run (find this time in the forcing data)
+                _stip1 = True 
             except:
                 updatedStartDate = initDepth[0]
+                _stip1 = True
             print('updatedStartDate', updatedStartDate)
         else:
             updatedStartDate = None
+            _stip1 = False
 
         ### get temperature and accumulation rate from input csv file
         self.forcing_dict = {} # This dictionary holds all forcing data and will be saved
         if 'SEB' not in self.c:
             self.c['SEB'] = False
+            _stip1 = False
 
         try:
             if self.c['manualT']:
@@ -234,10 +245,25 @@ class FirnDensityNoSpin:
         else:
             if climateTS != None: # Input data comes from the input dictionary
                 if updatedStartDate is not None:
-                    self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
+                    
+                    if not _stip1:
+                        print('!!!!! START INDEX SET TO +0 !!!!')
+                        self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][0]
+                    else:
+                        print('!!!!! WARNING: START INDEX SET TO +1 !!!!')
+                        self.start_ind = np.where(climateTS['time']>=updatedStartDate)[0][1]
+                    
                     print(f'start_ind: {self.start_ind}')
-                    if self.SEBfluxes is not None:                        
-                        self.start_ind_EF = np.where(self.SEBfluxes['time']>=updatedStartDate)[0][0]
+                    print(f"start time (regular): {climateTS['time'][self.start_ind]}")
+                    
+                    if self.SEBfluxes is not None:
+                        _dtr = SEBfluxes['dtRATIO']
+                        if not _stip1:
+                            self.start_ind_EF = np.where(self.SEBfluxes['time']>=updatedStartDate)[0][0]                        
+                        else:
+                            self.start_ind_EF = np.where(self.SEBfluxes['time']>=updatedStartDate)[0][_dtr]
+                        
+                        print(f"start time (SEB): {self.SEBfluxes['time'][self.start_ind_EF]}")
                 else:
                     self.start_ind = 0
                     self.start_ind_EF = 0
@@ -255,6 +281,9 @@ class FirnDensityNoSpin:
                 input_year_temp = climateTS['time'][self.start_ind:]
                 input_temp_full = climateTS[Tkey]
                 input_year_temp_full = climateTS['time']
+
+                print(f'input_year_temp: {input_year_temp}')
+                print(f'input_year_temp_full: {input_year_temp_full}')
                 
             else: # Input data comes from a .csv
                 input_temp, input_year_temp, input_temp_full, input_year_temp_full = read_input(os.path.join(self.c['InputFileFolder'],self.c['InputFileNameTemp']), updatedStartDate)
@@ -420,18 +449,25 @@ class FirnDensityNoSpin:
             # print('"Exact" time setup will not work properly if input forcing does not all have the same time')
             # yr_start = input_year_temp[0] #previously had [1] - error? 20/3/3
             # yr_end = input_year_temp[-1]
-            self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s] #version 2.2.0 and earlier had just this.
-            self.dt = np.append(np.mean(self.dt),self.dt) # added version 2.3.0 
+            # if self.start_ind>0:
+            if _stip1:
+                self.dt = (np.diff(input_year_temp_full)*S_PER_YEAR)[self.start_ind-1:]
+                init_time = climateTS['time'][self.start_ind-1]
+            else:
+                self.dt = np.diff(input_year_temp)*S_PER_YEAR #[units s] #version 2.2.0 and earlier had just this.
+                self.dt = np.append(np.mean(self.dt),self.dt) # added version 2.3.0
+                init_time = input_year_temp[0]
             # self.dt = np.append(self.dt,self.dt[-1])
             self.stp = len(self.dt)
             self.modeltime = input_year_temp#[1:] # this offset because use diff above
+            modeltime_full = input_year_temp_full
             # self.modeltime = input_year_temp[0:-1]
             yr_start = self.modeltime[0]
             yr_end = self.modeltime[-1]
             # self.t = np.mean(np.diff(input_year_temp))
             # self.t = np.diff(input_year_temp) # old, v2.2.0 and earlier
             self.t = self.dt/S_PER_YEAR # years per time step; changed in v2.3.0
-            init_time = input_year_temp[0]
+            
 
         elif self.c['timesetup']=='retmip': #VV retmip experiments require to match perfectly their 3h time step
             # might be able to just use 'exact'?
@@ -474,7 +510,9 @@ class FirnDensityNoSpin:
         ### Temperature #####
         # If SEB=True, this is T2m, and will be the temperature of new snow      
         Tsf                 = interpolate.interp1d(input_year_temp,input_temp,int_type,fill_value='extrapolate') # interpolation function
+        Tsf_full            = interpolate.interp1d(input_year_temp_full,input_temp_full,int_type,fill_value='extrapolate') # interpolation function
         self.Ts             = Tsf(self.modeltime) # surface temperature interpolated to model time
+        Ts_full             = Tsf_full(modeltime_full)  
         if self.c['SEB']:
             self.T2m = self.Ts.copy()
         if self.c['SeasonalTcycle']: #impose seasonal temperature cycle of amplitude 'TAmp'
@@ -519,10 +557,18 @@ class FirnDensityNoSpin:
             Nyears = 10 #number of years to average for T_mean
             NN = int(np.mean(S_PER_YEAR/self.dt)*Nyears)
             # NN = int(self.c['stpsPerYear']*Nyears)
-            self.T_mean = pd.Series(self.Ts).rolling(window=NN+1,win_type='hamming').mean().values
+            
+            T_mean_short = pd.Series(self.Ts).rolling(window=NN+1,win_type='hamming').mean().values # OG 26/06/08
+            
+            self.T_mean = pd.Series(Ts_full).rolling(window=NN+1,win_type='hamming').mean().values
+            
+            self.T_mean = self.T_mean[-len(T_mean_short):]
+            
             self.T_mean[np.isnan(self.T_mean)] = self.T_mean[NN]
+            
             self.bdot_av = pd.Series(self.bdot).rolling(window=NN+1,win_type='hamming').mean().values
             self.bdot_av[np.isnan(self.bdot_av)] = self.bdot_av[NN]
+        
         except Exception:
             self.T_mean = np.mean(self.Ts) * np.ones(self.stp)
             self.bdot_av = np.mean(self.bdot) * np.ones(self.stp)
@@ -936,13 +982,22 @@ class FirnDensityNoSpin:
                 self.output_list.append('iso_sig2_{}'.format(isotope)) 
                 MOd['iso_sig2_{}'.format(isotope)] = self.Isotopes[isotope].iso_sig2_z
 
-        self.MOutputs = ModelOutputs(self.c,MOd,TWlen, init_time, len(self.dz))
         ### self.MOutputs is a class instance
+        ### initialize the class, save initial condition at init_time
+        if _stip1:
+            TWlen = TWlen + 1
+        
+        self.MOutputs = ModelOutputs(self.c,MOd,TWlen, init_time, len(self.dz))
+
+        if _stip1:
+            self.MOutputs.updateMO(MOd,init_time,self.WTracker)
+            self.WTracker = self.WTracker + 1
+        
 
         self.na_count = 0
-        self.na_sum = 0
+        self.na_sum   = 0
         self.melt_sum = 0
-        self.acc_sum = 0
+        self.acc_sum  = 0
         self.dsdz_sum = 0
         self.ddz_bdot = 0
         ######################################
@@ -998,6 +1053,9 @@ class FirnDensityNoSpin:
         ####################################
 
         print('modeltime',self.modeltime[0],self.modeltime[-1])
+        print(f'rho init: {self.rho[0:5]}')
+        print(f'rho dtype: {self.rho.dtype}')
+        
         for iii in range(self.stp):
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
@@ -1175,6 +1233,17 @@ class FirnDensityNoSpin:
                 # self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
                 self.forcing_dict['SMELT'][self.start_ind+iii] = self.snowmelt[iii]
+
+            if ((mtime>=1980.0) & (mtime<1980.015)):
+                print('######')
+                print(f'mtime: {mtime}')
+                print(f'TS: {self.Ts[iii]}')
+                print(f'bdot: {self.bdotSec[iii]}')
+                print(f'rho: {self.rho[0:8]}')
+                print(f'Tz: {self.Tz[0:8]}')
+                print(f'bdm: {self.bdot_mean[0:8]}')
+                print(f'drhodt: {drho_dt[0:8]}')
+                print(f'Tmean: {self.T_mean[iii]}')
 
             ############################
             

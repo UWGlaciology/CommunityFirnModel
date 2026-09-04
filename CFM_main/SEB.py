@@ -316,16 +316,17 @@ class SurfaceEnergyBudget:
                 else:
                     Tcalc[kk] = Tnew
                     meltmass[kk] = 0
+
             except:
-                # print(f'r: {r}')
-                # print(f'Tnew:{Tnew}')
-                # print(f'T_0:{Tcalc[kk-10:kk]}')
-                # print(f'TTL: {TTL}')
-                # print(f'Tz[i_GL]:{Tz[i_GL]}')
-                # print(f'Tz[0]:{Tz[0]}')
-                # print(f'G:{G}')
-                # print(f'mtime: {mtime}')
-                # print(f'iii:{iii}')
+                print(f'r: {r}')
+                print(f'Tnew:{Tnew}')
+                print(f'T_0:{Tcalc[kk-10:kk]}')
+                print(f'TTL: {TTL}')
+                print(f'Tz[i_GL]:{Tz[i_GL]}')
+                print(f'Tz[0]:{Tz[0]}')
+                print(f'G:{G}')
+                print(f'mtime: {mtime}')
+                print(f'iii:{iii}')
                 print('error with SEB Tsurf and meltmass calculation (line 328)')
                 traceback.print_exc()
                 sys.exit()
