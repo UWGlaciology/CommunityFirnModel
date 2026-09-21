@@ -60,3 +60,30 @@ P_0         = 1.01325e5
 
 # specific heat of water, J kg^-1 K^-1
 CP_W		= 4180.0                
+
+VON_KARMAN = 0.4       # von Karman constant [-]
+                       # commonly cited range 0.35-0.42; 0.4 is the
+                       # standard rounded value used in most glacier/
+                       # atmospheric boundary layer literature
+
+CP_AIR = 1005.0        # specific heat of dry air at constant pressure [J/kg/K]
+
+R_DRY = 287.05         # specific gas constant for dry air [J/kg/K]
+                       # (R_DRY = R_universal / M_dry_air)
+
+LV_LIQUID = 2.501e6    # latent heat of vaporization, liquid water -> vapor,
+                       # at 0degC [J/kg]
+                       # VERIFY: slightly temperature-dependent; 2.501e6
+                       # is the standard 0degC reference value. If Ts
+                       # varies much above 273.15 in your melt cases,
+                       # consider whether a temperature-dependent form
+                       # is warranted, though the difference is small
+                       # over the relevant range.
+
+LS_SUBLIMATION = 2.834e6  # latent heat of sublimation, ice -> vapor,
+                          # at 0degC [J/kg]
+                          # VERIFY: this is essentially LV_LIQUID + LF_I
+                          # (heat of fusion) - worth checking this is
+                          # consistent with whatever LF_I value you
+                          # already have defined, rather than treating
+                          # these as fully independent constants.

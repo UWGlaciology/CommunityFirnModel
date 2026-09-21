@@ -39,7 +39,7 @@ def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
         elif VW == 'z':
             wn = 'depth'
         elif VW == 'age':
-            Mout_dict[VW] = Mout_dict[VW]/S_PER_YEAR
+            Mout_dict[VW][:,1:] = Mout_dict[VW][:,1:] / S_PER_YEAR
             wn = 'age'
         elif VW == 'climate':
             wn = 'Modelclimate'

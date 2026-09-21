@@ -1,17 +1,47 @@
 #!/usr/bin/env python
 
 '''
-Class for spinning up the model.
+Class for generating an initial firn profile (density, age, temperature)
+via the Herron & Langway analytic solution, given a constant temperature,
+accumulation rate, and surface density.
 
-This file spins up to a steady-state firn column using constant temperature,
-accumulation rate, and surface density. This works well for long model runs
-with big time steps (e.g. for ice-core related questions).
+This class supports two distinct spin-up strategies, reflecting two
+different types of CFM applications:
 
-To spin up using a climate with a bit of variability (like a reference climate
-interval) for e.g. altimetry or melt related runs, this script will essentially
-create an initial condition. In this case, set 'yearSpin' in your .json file
-to some small number (e.g. 1); otherwise you are wasting computing time.
+1. ICE-CORE MODE (original use case)
+   For long model runs (10s of thousands of years) forced by ice-core-
+   derived climate histories at decadal-to-centennial resolution, the
+   climate at the start of the record is generally assumed to be close
+   to steady state. In this mode, FirnDensitySpin IS the spin-up: it
+   initializes the firn column with the HL-analytic profile for the
+   (T, bdot) pair at the start of the climate record, then runs forward
+   at that constant climate ('yearSpin' years, or auto-determined via
+   'AutoSpinUpTime') until the firn column reaches steady state. This
+   steady-state column is then handed off to FirnDensityNoSpin, which
+   runs the actual transient climate history forward from there.
 
+2. RCI-REPEAT MODE (melt/altimetry use case)
+   For short, recent, highly variable climate records (e.g. MERRA-2 or
+   other RCM output covering only a few decades), there is no long
+   steady-climate preamble to spin up on. Instead, a Reference Climate
+   Interval (RCI) -- a representative multi-year window (e.g. 1980-1995)
+   -- is repeated enough times to build an equilibration period, and this
+   repeated block is prepended directly onto the real climate record
+   (see RCMpkl_to_spin.makeSpinFiles()). The combined series is then run
+   as ONE continuous loop inside FirnDensityNoSpin.time_evolve() -- the
+   RCI-repeat equilibration and the "real" run are not separated at the
+   model-execution level.
+
+   In this mode, FirnDensitySpin is NOT doing the equilibration -- it
+   only provides a rough, throwaway initial profile before the RCI-repeat
+   cycling takes over and does the real equilibration work. Set 'yearSpin'
+   to a small number (e.g. 1) in this case; a long spin-up
+   here is redundant and just wastes computing time.
+
+Which mode is active depends entirely on how the climate forcing was
+built upstream (a single steady climate history vs. an RCI-repeat +
+real-record concatenation) -- FirnDensitySpin's own code is identical
+either way; only how it's used differs.
 '''
 
 from diffusion import heatDiff
@@ -35,6 +65,8 @@ import shutil
 import time
 import h5py
 from regrid import *
+from pathlib import Path
+
 try:
     from merge import mergeall
 except Exception:
@@ -108,22 +140,11 @@ class FirnDensitySpin:
         ### create directory to store results. Deletes if it exists already.
         # Vincent says we do not want to remove existing directory (preferential flow?) - 4/24/19
         if os.path.exists(self.c['resultsFolder']):
-            dir_exts = [os.path.splitext(fname)[1] for fname in os.listdir(self.c['resultsFolder'])]
-            dir_unique = list(set(dir_exts))
-            
-            CFM_exts = ['.json','.hdf5']
-            if CFM_exts and all(((elem == ".json") or (elem=='.hdf5')) for elem in dir_unique):
-                
-                rmtree(self.c['resultsFolder'])
-                os.makedirs(self.c['resultsFolder'])
-            else:
-                print('WARNING: THE DIRECTORY YOU ARE USING CONTAINS NON-CFM FILES')
-                print('CFM will delete all files in the results directory with .hdf5 extension')
-                files_in_directory = os.listdir(self.c['resultsFolder'])
-                filtered_files = [file for file in files_in_directory if file.endswith(".hdf5")]
-                for file in filtered_files:
-                    path_to_file = os.path.join(self.c['resultsFolder'], file)
-                    os.remove(path_to_file)
+            _rpath = Path(self.c['resultsFolder'])
+            if list(_rpath.glob("*.hdf5")):
+                print(f'Spin module is removing hdf5 files from {str(_rpath)}')
+            for file_path in _rpath.glob("*.hdf5"):
+                file_path.unlink()
         
         else:
             print('making dir')

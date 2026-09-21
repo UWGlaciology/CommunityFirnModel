@@ -45,7 +45,9 @@ from solver import (
     transient_solve_enthalpy,
     transient_solve_ahc,
     transient_solve_decp,
-    transient_solve_ncz
+    transient_solve_ncz,
+    transient_solve_EN_old  # claude, 26/09/10: needed by enthalpyDiff_old below; was missing, which
+                             # would have raised NameError the moment enthalpyDiff_old tried to call it.
 )
 from constants import *
 import numpy as np
@@ -435,9 +437,16 @@ def enthalpyDiff_old(self, iii):
     Legacy enthalpy diffusion function (used until mid-July 2026).
 
     Superseded by refreezeDiff (which dispatches to transient_solve_enthalpy,
-    transient_solve_ahc, or transient_solve_decp). Retained for
-    testing/comparison purposes only; calls transient_solve_EN_old in
-    solver.py. Not part of the current default CFM time-stepping pipeline.
+    transient_solve_ahc, or transient_solve_decp). Retained to reproduce the
+    pre-mid-July-2026 numerics exactly (matches MC_2609's enthalpyDiff); calls
+    transient_solve_EN_old in solver.py. Not used by default, but IS reachable
+    -- see time_evolve()'s meltwater_solver dispatch in firn_density_nospin.py,
+    select via config key "meltwater_solver": "legacy".
+    # claude, 26/09/10: was previously unreachable from any config option (dead
+    # code) and would have crashed on call (see tot_rho fix above, and the
+    # transient_solve_EN_old import fix at the top of this file); now wired up.
+    # claude, 26/09/11: selection moved from the removed "LWC_heat" key onto
+    # "meltwater_solver", which now takes 'legacy' alongside the current solvers.
 
     Method: Voller and Swaminathan (1991)/Voller, Swaminathan, and Thomas
     (1990) enthalpy formulation. LWC is tracked in volume [m^3].
@@ -459,8 +468,9 @@ def enthalpyDiff_old(self, iii):
     NOTE: sets nt=10 if any LWC>0 else nt=1, intending to control solver
         iteration count -- however, transient_solve_EN_old no longer uses
         this argument (iteration count is controlled by its own max_iter
-        parameter instead). This nt logic is currently inert; see
-        transient_solve_EN_old's docstring for details.
+        parameter instead, which this function passes as 100 to match the
+        hard-coded bound in MC_2609's transient_solve_EN). This nt logic is
+        currently inert; see transient_solve_EN_old's docstring for details.
 
     NOTE: contains several commented-out alternate calculations (e.g., for
         c_vol, K_liq) preserved from earlier development; left as-is since
@@ -469,6 +479,18 @@ def enthalpyDiff_old(self, iii):
     '''
 
     Tstart          = self.Tz.copy()
+    # claude, 26/09/11: nz_P/nz_fv/nt were removed from this function at some point, but
+    # transient_solve_EN_old still requires them positionally, so the call below raised
+    # TypeError. Restored verbatim from MC_2609's enthalpyDiff. nz_fv and nt are inert
+    # (see the NOTEs in this docstring and in transient_solve_EN_old), but they are kept
+    # so this call site stays argument-for-argument identical to MC_2609's.
+    nz_P            = len(self.z) # this is the number of volumes, or can think of as number of firn layers.
+    nz_fv           = nz_P - 2 # this does not actually get used.
+
+    if np.any(self.LWC>0): # this behavior is deprecated; keeping code for now. (6/16/21)
+        nt = 10 # number of iterations for the solver
+    else:
+        nt = 1
 
     # T_old = self.Tz.copy() # initial temperature profile
 
@@ -487,7 +509,11 @@ def enthalpyDiff_old(self, iii):
     vol_tot     = vol_ice + self.LWC    # total volume of ice and liquid in each volume
     mass_liq    = self.LWC * RHO_W_KGM  # mass of liquid water
     rho_liq_eff = mass_liq / self.dz      # effective density of the liquid portion
-    # tot_rho     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
+    tot_rho     = (self.mass + mass_liq) / self.dz # 'total' density of volume (solid plus liquid)
+    # claude, 26/09/10: tot_rho assignment above was commented out (dead code from an
+    # earlier edit) -- c_vol below references tot_rho, so calling this function raised
+    # NameError before ever reaching the solver. Restored to match MC_2609's enthalpyDiff,
+    # where the equivalent line is live (uncommented).
     g_liq_1     = self.LWC / vol_tot     # liquid volume fraction (of the material portion, porosity ignored)
     g_ice_1     = vol_ice / vol_tot     # solid/ice volume fraction 
 
@@ -517,13 +543,20 @@ def enthalpyDiff_old(self, iii):
     K_liq = K_water * (rho_liq_eff/1000)**1.885 # I am assuming that conductivity of water in porous material follows a similar relationship to ice.
     K_eff = g_liq_1*K_liq + g_ice_1*K_firn # effective conductivity
 
+    ICT = 0 #Iteration Count Threshold (deprecated) # claude, 26/09/11: restored, required by the call below
+
     ### Total enthalpy/mass before solver (for testing conservation)
     tot_heat_pre = np.sum(CP_I_kJ*self.mass*self.Tz + T_MELT*CP_W/1000*self.LWC*RHO_W_KGM + LF_I_kJ*self.LWC*RHO_W_KGM)
     tot_mass_pre = np.sum(self.mass + self.LWC*1000)
 
     lwc_old = self.LWC.copy()
 
-    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN_old(z_edges, z_P, self.dt[iii], K_eff, phi_0, phi_s, self.LWC, self.mass, self.dz, iii)
+    # claude, 26/09/11: full argument list restored to match MC_2609's call to
+    # transient_solve_EN; the abbreviated 10-argument version here raised TypeError.
+    # max_iter=100 is passed explicitly because MC_2609's loop bound was hard-coded at
+    # 100 while transient_solve_EN_old defaults to 200 -- they only diverge on a step
+    # that fails to converge, but this keeps the legacy path faithful to the old runs.
+    phi_ret, g_liq, count, iterdiff,g_sol   = transient_solve_EN_old(z_edges, z_P, nt, self.dt[iii], K_eff, phi_0, nz_P, nz_fv, phi_s, tot_rho, c_vol, self.LWC, self.mass, self.dz, ICT, self.rho, iii, max_iter=100)
 
     LWC_ret = g_liq * self.dz
     # self.LWC        = g_liq * vol_tot

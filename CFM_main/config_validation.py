@@ -93,11 +93,24 @@ ALLOWED_VALUES = {
         'refrozen', 'meltoutputs',
     },
     'iso': {'d18O', 'dD', 'NoDiffusion'},
-    'meltwater_solver': {'enthalpy', 'ahc', 'decp', 'ncz'},
+    'meltwater_solver': {'enthalpy', 'ahc', 'decp', 'ncz', 'legacy'},
 }
 
 # Keys that hold lists whose elements are validated against ALLOWED_VALUES.
 LIST_VALUED_KEYS = {'outputs', 'iso'}
+
+
+# Keys the model no longer reads, mapped to the message shown when one is
+# found. These are recognized (so they are not reported as typos) but flagged,
+# because silently ignoring them can change the physics of a run. Handling of
+# the value itself lives at the point of use -- e.g. FirnDensityNoSpin.__init__
+# migrates a lone 'LWC_heat' onto meltwater_solver='legacy'.
+# claude, 26/09/11
+DEPRECATED_KEYS = {
+    'LWC_heat': ("replaced by 'meltwater_solver'; if 'meltwater_solver' is "
+                 "absent the run falls back to the 'legacy' solver to "
+                 "reproduce the old numerics, otherwise 'LWC_heat' is ignored"),
+}
 
 
 # Every configuration key the model recognizes. Used only to warn about
@@ -123,7 +136,7 @@ KNOWN_KEYS = {
     # grain size
     'physGrain', 'calcGrainSize', 'GrGrowPhysics', 'r2s0',
     # heat
-    'heatDiff', 'conductivity', 'LWC_heat', 'LWCheat', 'LWCcorr_subdt',
+    'heatDiff', 'conductivity', 'LWCheat', 'LWCcorr_subdt',
     'correct_therm_prop',
     # surface density
     'variable_srho', 'srho_type', 'rhos0',
@@ -131,7 +144,7 @@ KNOWN_KEYS = {
     'AutoSpinUpTime', 'yearSpin', 'stpsPerYear', 'stpsPerYearSpin',
     'H', 'HbaseSpin', 'D_surf', 'bdot_type', 'iceblock', 'iceblock_rho',
     # outputs / grid
-    'grid_outputs', 'grid_output_res', 'isoDiff', 'iso', 'spacewriteint',
+    'grid_outputs', 'grid_output_res', 'grid_output_max_depth', 'isoDiff', 'iso', 'spacewriteint',
     'outputs', 'output_bits', 'truncate_outputs',
     'doublegrid', 'nodestocombine', 'multnodestocombine', 'grid1bottom',
     'grid2bottom',
@@ -153,7 +166,7 @@ KNOWN_KEYS = {
     'manualT', 'no_densification', 'rad_pen', 'site_pressure',
     'spinUpdate', 'spinUpdateDate', 'DIPhorizon', 'NewSpin',
     # run metadata / site (injected by run scripts)
-    'runID', 'lat_int', 'lon_int', 'lat_val', 'lon_val',
+    'runID', 'lat_int', 'lon_int', 'lat_val', 'lon_val', 'runid', 'x_val', 'y_val', 'runloc', 'quad', 'x_int', 'y_int', 'resultspath'
 }
 
 
@@ -242,11 +255,16 @@ def validate_config(c, config_path=None):
                     "invalid value {!r} for '{}'; allowed values are: {}"
                     .format(value, key, allowed_str))
 
-    # 5. Unknown keys -> warnings only.
+    # 5. Deprecated and unknown keys -> warnings only.
+    # claude, 26/09/11: deprecated keys are checked first so they are not
+    # mislabeled as typos.
     for key in c:
         if _is_helper_key(key):
             continue
-        if key not in KNOWN_KEYS:
+        if key in DEPRECATED_KEYS:
+            warnings.append(
+                "deprecated key '{}': {}".format(key, DEPRECATED_KEYS[key]))
+        elif key not in KNOWN_KEYS:
             warnings.append(
                 "unrecognized key '{}' (possible typo?); it will be ignored"
                 .format(key))

@@ -5,7 +5,6 @@ This is a code applying water flow in firn with single domain approach:
 
 Essentially a simplification of the dual domain flow scheme
 '''
-import matplotlib.pyplot as plt
 import numpy as np
 import math
 import time

@@ -466,18 +466,21 @@ liquid
 
 meltwater_solver
 ----------------
-  If **MELT** is true, which numerical scheme is used to solve heat diffusion with meltwater refreezing (i.e., the coupled temperature / latent-heat problem for wet firn). All four schemes solve the same physics but differ in their numerical formulation and conservation properties:
+  If **MELT** is true, which numerical scheme is used to solve heat diffusion with meltwater refreezing (i.e., the coupled temperature / latent-heat problem for wet firn). All of the schemes solve the same physics but differ in their numerical formulation and conservation properties:
 
-  - ``enthalpy`` -- solves for enthalpy directly (default); reproduces the model's prior refreezing behavior.
+  - ``enthalpy`` -- solves for enthalpy directly (default).
   - ``ahc`` -- apparent-heat-capacity method.
   - ``decp`` -- decoupled (operator-split) scheme.
   - ``ncz`` -- Newton-based scheme (Jordan-style).
+  - ``legacy`` -- the enthalpy solver as it stood before mid-July 2026, retained to reproduce older results. Provided for backward comparison only; use one of the schemes above for new work.
 
-  If the key is omitted, the model defaults to ``enthalpy``. Refreezing is dispatched through ``refreezeDiff`` in ``diffusion.py``, which calls the corresponding ``transient_solve_*`` function in ``solver.py``. Per-time-step solver diagnostics are written to ``diagnostics_<solver>.csv`` at the end of the run. See :doc:`../extras/meltwater_solver` for guidance on which scheme to choose.
+  If the key is omitted, the model defaults to ``enthalpy``. For the four current schemes, refreezing is dispatched through ``refreezeDiff`` in ``diffusion.py``, which calls the corresponding ``transient_solve_*`` function in ``solver.py``; ``legacy`` instead calls ``enthalpyDiff_old`` (``diffusion.py``) and ``transient_solve_EN_old`` (``solver.py``), bypassing ``refreezeDiff``. Per-time-step solver diagnostics are written to ``diagnostics_<solver>.csv`` at the end of the run. See :doc:`../extras/meltwater_solver` for guidance on which scheme to choose.
+
+  This key replaces the former **LWC_heat**, which selected the same thing and has been removed.
 
   :type: ``string``
   :default: ``enthalpy``
-  :options: ``enthalpy``, ``ahc``, ``decp``, ``ncz``
+  :options: ``enthalpy``, ``ahc``, ``decp``, ``ncz``, ``legacy``
 
 merging
 -------
@@ -742,10 +745,14 @@ keep_firnthickness
 
 LWC_heat
 --------
-  **Deprecated.** Formerly selected the method for handling the latent heat of liquid water during heat diffusion. The choice of refreezing scheme is now made with **meltwater_solver** (see above); only the ``enthalpy`` path remains active, and the ``highC`` / ``Teff`` / ``LWCcorr`` branches have been retired. If present in a config it is forced to ``enthalpy`` internally and otherwise ignored. The related internal flags ``LWCheat``, ``LWCcorr_subdt``, and ``correct_therm_prop`` are likewise inactive and kept only for backward compatibility.
+  **Deprecated -- replaced by meltwater_solver.** This key formerly selected the method for handling the latent heat of liquid water during heat diffusion, duplicating the job of **meltwater_solver** (see above). Use **meltwater_solver** instead; the ``highC`` / ``Teff`` / ``LWCcorr`` branches have been retired.
 
-  :type: ``string``
-  :default: ``enthalpy``
+  For backward compatibility, a config that still contains ``LWC_heat`` is handled as follows, with a warning printed either way:
+
+  - ``LWC_heat`` present and **meltwater_solver** absent: the run uses ``meltwater_solver = legacy``. Such a config predates the rename, and therefore also predates the 2026-08 change to the ``enthalpy`` solver, so falling back to ``legacy`` reproduces the numerics the config was written against rather than silently substituting a different scheme. If the ``LWC_heat`` value was one of the retired options, an additional warning notes that ``legacy`` is the old ``enthalpy`` scheme and not a like-for-like replacement.
+  - Both keys present: ``LWC_heat`` is ignored and **meltwater_solver** governs.
+
+  Remove ``LWC_heat`` from your .json to silence the warnings. The related internal flags ``LWCheat``, ``LWCcorr_subdt``, and ``correct_therm_prop`` are likewise inactive and kept only for backward compatibility.
 
 Sublimation
 ~~~~~~~~~~~

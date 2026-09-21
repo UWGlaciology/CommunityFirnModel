@@ -1673,9 +1673,17 @@ def transient_solve_EN_old(z_edges, Z_P, nt, dt, Gamma_P, phi_0, nz_P, nz_fv, ph
     Legacy enthalpy-based refreezing solver (renamed from transient_solve_EN).
 
     Retained specifically for testing/comparison against transient_solve_enthalpy
-    and the other current refreezing solvers; not used in the main CFM pipeline
-    as of mid-July 2026 (see enthalpyDiff_old in diffusion.py for the
-    corresponding legacy call site). Uses Picard iteration with an explicit
+    and the other current refreezing solvers, and to exactly reproduce
+    MC_2609's enthalpyDiff/transient_solve_EN numerics; not used by default,
+    but reachable via config key "meltwater_solver": "legacy" (see
+    enthalpyDiff_old in diffusion.py for the corresponding legacy call site).
+    # claude, 26/09/10: previously unreachable from any config option and
+    # would have crashed on call (enthalpyDiff_old had a NameError on tot_rho,
+    # and wasn't importing this function) -- both fixed in diffusion.py, and
+    # this function is now wired up via firn_density_nospin.py's
+    # meltwater_solver dispatch (26/09/11: was the now-removed "LWC_heat" key).
+
+    Uses Picard iteration with an explicit
     liquid-fraction overshoot correction (0.6 relaxation factor), similar in
     spirit to transient_solve_enthalpy but with a different internal
     bookkeeping approach (tracks g_liq/g_sol volume fractions and H_tot

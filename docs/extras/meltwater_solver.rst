@@ -34,10 +34,9 @@ is a conductivity-coupling artifact rather than a property of the scheme.
    step that injected spurious energy was removed. Runs made before that change
    are **not** bit-reproducible with current CFM, and refreezing totals differ.
    Front-position accuracy is unaffected. If you need to reproduce the old
-   behavior, ``diffusion.py`` retains it as ``enthalpyDiff_old`` (calling
-   ``transient_solve_EN_old``); it is not exposed via ``meltwater_solver`` and
-   must be called directly in place of ``refreezeDiff`` in
-   ``firn_density_nospin.py``.
+   behavior, set ``"meltwater_solver": "legacy"``, which calls the retained
+   ``enthalpyDiff_old`` in ``diffusion.py`` (and ``transient_solve_EN_old`` in
+   ``solver.py``) instead of ``refreezeDiff``.
 
 The solvers
 ============

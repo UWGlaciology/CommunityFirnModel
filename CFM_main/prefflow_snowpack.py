@@ -15,7 +15,6 @@ Few differences with Wever 2016 as:
 
 Density of last layer of the domain should always be >= 830
 '''
-import matplotlib.pyplot as plt
 import numpy as np
 import math
 import time

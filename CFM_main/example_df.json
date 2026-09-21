@@ -82,7 +82,7 @@
 "liquid": "bucket",
 "liquid_options": ["bucket","darcy","resingledomain","prefsnowpack"],
 "meltwater_solver": "enthalpy",
-"meltwater_solver_options": ["enthalpy","ahc","decp","ncz"],
+"meltwater_solver_options": ["enthalpy","ahc","decp","ncz","legacy"],
 "merging": true,
 "merge_min": 1e-9,
 "LWCcorrect": false,
