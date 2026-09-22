@@ -15,8 +15,25 @@ import traceback
 
 import pandas as pd
 
+from SEB_turbulent import (FORCING_KEYS, RoughnessLengths,
+                            PrescribedTurbulentFlux, BulkRichardsonFlux,
+                            MoninObukhovFlux)
+
 usejit = False
 ### working on jit implementation. not working 24/10/22
+
+def _extract_optional(source, key, start_ind):
+    '''
+    Slices source[key][start_ind:] if key is present, else returns
+    None. Used for forcing variables only required by certain
+    SEB_turb_method choices (wind, humidity, pressure, roughness),
+    so their absence doesn't break prescribed-flux mode.
+    '''
+    if key in source:
+        return source[key][start_ind:]
+    return None
+### end _extract_optional ###
+##############################
 
 class SurfaceEnergyBudget:
     '''
@@ -123,6 +140,48 @@ class SurfaceEnergyBudget:
             self.dtRATIO = 1
         # need to account for cold snow falling on warmer surface
 
+        # --- turbulent flux model setup ---
+        # Uses whichever source (SEBfluxes or climateTS) supplied the
+        # other fluxes above, sliced consistently with start_ind /
+        # start_ind_EF. See FORCING_KEYS at top of module for the
+        # variable-name mapping - edit there, not here, to remap.
+        if SEBfluxes is not None:
+            turb_source = SEBfluxes
+            turb_start = start_ind_EF
+        else:
+            turb_source = climateTS
+            turb_start = start_ind
+
+        self.WS  = _extract_optional(turb_source, FORCING_KEYS['wind_speed'], turb_start)
+        self.q_a = _extract_optional(turb_source, FORCING_KEYS['specific_humidity'], turb_start)
+        self.PS  = _extract_optional(turb_source, FORCING_KEYS['surface_pressure'], turb_start)
+        z0m_f = _extract_optional(turb_source, FORCING_KEYS['roughness_m'], turb_start)
+        z0h_f = _extract_optional(turb_source, FORCING_KEYS['roughness_h'], turb_start)
+        z0q_f = _extract_optional(turb_source, FORCING_KEYS['roughness_q'], turb_start)
+
+        self.roughness_model = RoughnessLengths(
+            self.c, z0m_forcing=z0m_f, z0h_forcing=z0h_f, z0q_forcing=z0q_f)
+
+        self.turb_method = self.c.get('SEB_turb_method', 'prescribed')
+
+        if self.turb_method == 'prescribed':
+            self.flux_model = PrescribedTurbulentFlux(self.QH, self.QL)
+
+        elif self.turb_method == 'bulk_richardson':
+            self._check_turb_inputs()
+            self.flux_model = BulkRichardsonFlux(
+                self.c, self.WS, self.T2m, self.q_a, self.PS, self.roughness_model)
+
+        elif self.turb_method == 'monin_obukhov':
+            self._check_turb_inputs()
+            self.flux_model = MoninObukhovFlux(
+                self.c, self.WS, self.T2m, self.q_a, self.PS, self.roughness_model)
+
+        else:
+            raise ValueError(f"Unknown SEB_turb_method: '{self.turb_method}'. "
+                              "Options: 'prescribed', 'bulk_richardson', 'monin_obukhov'.")
+
+
         # self.EP      = np.zeros_like(self.SW_d)
         # self.G       = np.zeros_like(self.SW_d) # For now we are not considering any flux in/out of the upper model node from below
         try:
@@ -138,97 +197,225 @@ class SurfaceEnergyBudget:
         self.emissivity_snow = 0.98
         
         # self.D_sh = 15 # Sensible heat flux coefficient, Born et al. 2019 [W m^-2 K^-1]
+    ### end init ###
+    ################
 
-    def SEB_fqs(self,PhysParams,iii,T_old):
+    def solve_Ts(self, PhysParams, iii, T_old):
         '''
-        Calculate surface energy using fqs solver
-        Positive fluxes are into the surface, negative are out
-        SEBparams: mass, Tz, dt
+        Generic surface temperature / melt solver. Dispatches to the
+        fast analytic quartic solve when the selected turbulent flux
+        model doesn't depend on Ts (prescribed mode - matches the
+        original SEB_fqs), or to Newton-Raphson when it does (bulk-
+        Richardson, Monin-Obukhov).
         '''
+        if self.flux_model.depends_on_Ts:
+            return self._solve_Ts_newton(PhysParams, iii, T_old)
+        else:
+            return self._solve_Ts_quartic(PhysParams, iii, T_old)
+    ### end solve_Ts ###
+    #####################
 
+    def solve_Ts_subdt(self, PhysParams, iii, T_old, mtime):
+        '''
+        Sub-stepped Ts/melt solver, dispatches on turbulent flux
+        model. Currently only the prescribed-flux (quartic) path is
+        implemented for sub-stepping - bulk_richardson/monin_obukhov
+        sub-stepped solve is not yet built (see _solve_Ts_subdt_newton
+        stub). Use SEB_turb_method='prescribed' if sub-daily stepping
+        is required in the meantime.
+        '''
+        if self.flux_model.depends_on_Ts:
+            raise NotImplementedError(
+                "Sub-daily stepping is not yet implemented for "
+                f"SEB_turb_method='{self.turb_method}'. Use "
+                "SEB_turb_method='prescribed', or run without "
+                "sub-daily SEBfluxes for now.")
+        else:
+            return self._solve_Ts_subdt_quartic(PhysParams, iii, T_old, mtime)
+    ### end solve_Ts_subdt ###
+    ###########################
+
+    def _check_turb_inputs(self):
+        '''
+        Raises a clear error at setup time (not mid-run) if
+        SEB_turb_method requires forcing variables that weren't
+        found in climateTS/SEBfluxes. See FORCING_KEYS for the
+        expected variable names.
+        '''
+        missing = []
+        if self.WS is None:
+            missing.append(FORCING_KEYS['wind_speed'])
+        if self.q_a is None:
+            missing.append(FORCING_KEYS['specific_humidity'])
+        if self.PS is None:
+            missing.append(FORCING_KEYS['surface_pressure'])
+        if missing:
+            raise ValueError(
+                f"SEB_turb_method='{self.turb_method}' requires forcing "
+                f"variables not found in the supplied forcing data: {missing}. "
+                "Add these to climateTS/SEBfluxes, or set SEB_turb_method "
+                "to 'prescribed'.")
+    ### end _check_turb_inputs ###
+    ###############################
+
+    def _solve_Ts_quartic(self, PhysParams, iii, T_old):
+        '''
+        Analytic quartic solve, valid only when QH/QL do not depend
+        on Ts (flux_model.depends_on_Ts is False).
+
+        Melt mass accounts for cold content: energy first warms the
+        top layer from TTL to 273.15K before any is available for
+        melt (see _solve_Ts_newton, which already did this via the
+        residual's storage term - this brings the quartic path into
+        physical consistency with it).
+        '''
         Tz   = PhysParams['Tz']
         mass = PhysParams['mass']
-        dt   = PhysParams['dt'] # [s]
-        Tguess = self.T2m[iii]
-        dz  = PhysParams['dz']
-        z = PhysParams['z']
-        mtime = PhysParams['mtime']
+        dt   = PhysParams['dt']
+        z    = PhysParams['z']
 
-        T_rain = np.max((self.T2m[iii],T_MELT))
-        # Qrain_i = 0
+        QH_i, QL_i = self.flux_model.compute(None, iii)
 
-        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt #[kg] of rain at this timestep
-        Qrain_i =  CP_W * rain_mass * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
-        #latent heat for rain falling on top of cold snow should be handled in melt.py
+        T_rain = np.max((self.T2m[iii], T_MELT))
+        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt
+        Qrain_i = CP_W * rain_mass * (T_rain - T_MELT)
 
-        Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
-        # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
+        Q_SW_net = self.SW_d[iii] * (1 - self.ALBEDO[iii])
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        i_GL = np.where(z>=1)[0][0]
+        i_GL = np.where(z >= 1)[0][0]
         z_GL = z[i_GL]
         m_GL = np.cumsum(mass)[i_GL]
-        T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
-        rho_GL = m_GL/z_GL
-        K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
+        T_GL = np.cumsum(mass * Tz)[i_GL] / m_GL
+        rho_GL = m_GL / z_GL
+        K_ice = 9.828 * np.exp(-0.0057 * T_GL)
+        K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
+        G = K_GL * (Tz[i_GL] - Tz[0]) / z_GL
 
-        K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
-        
-        G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
-        # G = 0
+        iTL = np.where(z >= self.TL_thick)[0][0]
 
-        # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        iTL = np.where(z>=self.TL_thick)[0][0]
+        for kk in range(10):
+            m = np.cumsum(mass)[iTL]
+            TTL = np.cumsum(mass * Tz)[iTL] / m
 
-        for kk in range(10): # this loop is to make sure that the toplayer is thick enough        
-            dTL = np.cumsum(dz)[iTL]
-
-            m = np.cumsum(mass)[iTL] #mass of the TL
-            
-            TTL = np.cumsum(mass*Tz)[iTL]/m # mean temperature of top X cm (weighted mean)
-            cold_content_TL = CP_I * m * (T_MELT - TTL) # cold content [J], positive quantity if T<T_melt
-
-            Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
-            # fqs = FQS()
+            Qnet = Q_SW_net + Q_LW_d + QH_i + QL_i + Qrain_i + G
 
             pmat = np.zeros(5)
-
-            a = self.emissivity_snow * self.SBC * dt/(CP_I*m)
-            b = 0
-            c = 0
-            d = 1
-            e = -1 * (Qnet*dt/(CP_I*m)+TTL)
-
-            pmat[0] = a
-            pmat[3] = d
-            pmat[4] = e
+            pmat[0] = self.emissivity_snow * self.SBC * dt / (CP_I * m)
+            pmat[3] = 1
+            pmat[4] = -1 * (Qnet * dt / (CP_I * m) + TTL)
             pmat[np.isnan(pmat)] = 0
 
             r = quartic_roots(pmat)
-            Tsurface = (r[((np.isreal(r)) & (r>0))].real)
-            
-            if Tsurface>=273.15:
+            Tsurface = (r[((np.isreal(r)) & (r > 0))].real)
+
+            if Tsurface >= 273.15:
                 Tsurface = 273.15
-                meltmass = (Qnet - self.SBC*273.15**4) * dt / LF_I #multiply by dt to put in units per time step
-                # do not need to subtract cold content to calculate cold content b/c Q_melt = sum(energies), Q_melt=0 if energy can be balanced, i.e. sum(energies)=0
-                # melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I
-            ### meltmass has units [kg/m2/s]
+                meltmass = ((Qnet - self.emissivity_snow * self.SBC * 273.15**4) * dt
+                            - CP_I * m * (273.15 - TTL)) / LF_I
+                if meltmass < 0:
+                    meltmass = 0
             else:
                 meltmass = 0
 
-            if meltmass<=m: #if the melt mass is greater than the mass of the TL layer, we need a thicker TL because the next layer could be below freezing, and it needs to warm before melting
+            if meltmass <= m:
                 break
             else:
-                iTL = np.where(np.cumsum(mass)>=meltmass)[0][0]
+                iTL = np.where(np.cumsum(mass) >= meltmass)[0][0]
 
         Tz[0:iTL+1] = Tsurface
 
         return Tsurface, Tz, meltmass, self.TSKIN[iii]
-    ############################
-    ### end SEB_fqs
-    ############################
+    ### end _solve_Ts_quartic ###
+    ##############################
 
-    def SEB_fqs_subdt(self,PhysParams,iii,T_old,mtime):
+    def _solve_Ts_newton(self, PhysParams, iii, T_old, max_iter=50, tol=1e-4):
+        '''
+        General nonlinear solve for Ts, used whenever the turbulent
+        flux model depends on Ts (bulk-Richardson, Monin-Obukhov).
+        QH/QL are re-evaluated at each Newton iterate via
+        self.flux_model.compute(Ts, iii).
+
+        Wraps the solve in the same top-layer-thickening loop used by
+        _solve_Ts_quartic: if the resulting meltmass exceeds the mass
+        of the assumed top layer, the top layer is thickened and the
+        full nonlinear solve is redone, since a layer that thin
+        couldn't physically produce that much melt.
+
+        Note: cold content (energy consumed warming the layer to
+        273.15K before melt can occur) is already handled correctly
+        via the storage term inside residual() - no separate
+        correction is needed here, unlike the quartic path.
+        '''
+        Tz   = PhysParams['Tz']
+        mass = PhysParams['mass']
+        dt   = PhysParams['dt']
+        z    = PhysParams['z']
+
+        T_rain = np.max((self.T2m[iii], T_MELT))
+        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt
+        Qrain_i = CP_W * rain_mass * (T_rain - T_MELT)
+
+        Q_SW_net = self.SW_d[iii] * (1 - self.ALBEDO[iii])
+        Q_LW_d = self.emissivity_air * self.LW_d[iii]
+
+        i_GL = np.where(z >= 1)[0][0]
+        z_GL = z[i_GL]
+        m_GL = np.cumsum(mass)[i_GL]
+        T_GL = np.cumsum(mass * Tz)[i_GL] / m_GL
+        rho_GL = m_GL / z_GL
+        K_ice = 9.828 * np.exp(-0.0057 * T_GL)
+        K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
+
+        iTL = np.where(z >= self.TL_thick)[0][0]
+
+        for kk in range(10):
+            m = np.cumsum(mass)[iTL]
+            TTL = np.cumsum(mass * Tz)[iTL] / m
+
+            def residual(Ts, m=m, TTL=TTL):
+                LW_u = self.emissivity_snow * self.SBC * Ts**4
+                G = K_GL * (Tz[i_GL] - Ts) / z_GL
+                QH_i, QL_i = self.flux_model.compute(Ts, iii)
+                Qnet = Q_SW_net + Q_LW_d - LW_u + QH_i + QL_i + Qrain_i + G
+                storage = (CP_I * m / dt) * (Ts - TTL)
+                return Qnet - storage
+
+            def d_residual_dT(Ts, h=1e-3):
+                return (residual(Ts + h) - residual(Ts - h)) / (2 * h)
+
+            Ts = TTL
+            for _ in range(max_iter):
+                F = residual(Ts)
+                dF = d_residual_dT(Ts)
+                if dF == 0:
+                    break
+                Ts_new = Ts - F / dF
+                if np.abs(Ts_new - Ts) < tol:
+                    Ts = Ts_new
+                    break
+                Ts = Ts_new
+
+            if Ts >= 273.15:
+                Ts = 273.15
+                meltmass = residual(273.15) * dt / LF_I
+                if meltmass < 0:
+                    meltmass = 0
+            else:
+                meltmass = 0
+
+            if meltmass <= m:
+                break
+            else:
+                iTL = np.where(np.cumsum(mass) >= meltmass)[0][0]
+
+        Tz[0:iTL+1] = Ts
+
+        return Ts, Tz, meltmass, self.TSKIN[iii]
+        ### end _solve_Ts_newton ###
+        #############################
+    
+    def _solve_Ts_subdt_quartic(self,PhysParams,iii,T_old,mtime):
         '''
         Same as above, but loops to find Ts, melt when SEB fluxes have finer time resolution
         Calculate surface energy using fqs solver
@@ -290,7 +477,7 @@ class SurfaceEnergyBudget:
             else:
                 T_0 = Tcalc[kk-1]
 
-            a = np.array(self.SBC * dt / (CP_I*m))
+            a = np.array(self.emissivity_snow * self.SBC * dt / (CP_I*m))
             b = np.array(0.0)
             c = np.array(0.0)
             d = np.array(1.0)
@@ -310,12 +497,24 @@ class SurfaceEnergyBudget:
 
             try:
                 if Tnew>=273.15:
-                    Tcalc[kk] = 273.15000000000000        
-                    meltmass[kk] = (flux_df1_r[kk] - self.SBC*273.15**4) / LF_I * dt #multiply by dt to put in units per time step
-
+                    Tcalc[kk] = 273.15000000000000
+                    meltmass[kk] = ((flux_df1_r[kk] - self.emissivity_snow * self.SBC*273.15**4) * dt
+                                    - CP_I * m * (273.15 - T_0)) / LF_I
+                    if meltmass[kk] < 0:
+                        meltmass[kk] = 0
                 else:
                     Tcalc[kk] = Tnew.item()
                     meltmass[kk] = 0
+
+            # try:
+            #     if Tnew>=273.15:
+            #         Tcalc[kk] = 273.15000000000000        
+            #         meltmass[kk] = (flux_df1_r[kk] - self.emissivity_snow * self.SBC * 273.15**4) / LF_I * dt #multiply by dt to put in units per time step
+            #     else:
+            #         Tcalc[kk] = Tnew.item()
+            #         meltmass[kk] = 0
+
+
             except:
                 print(f'r: {r}')
                 print(f'Tnew:{Tnew}')
@@ -346,153 +545,245 @@ class SurfaceEnergyBudget:
 
         return Tsurface_out, Tz, meltmass_out, self.TSKIN[iii]
     ############################
-    ### end SEB_fqs_subdt
+    ### end _solve_Ts_subdt_quartic
     ############################
 
-    def SEB_loop(self,PhysParams,iii,T_old):
-        '''
-        This is developement code - do not use for science
 
-        Calculate surface energy using fqs solver
-        Positive fluxes are into the surface, negative are out
-        SEBparams: mass, Tz, dt
-        '''
 
-        Tz   = PhysParams['Tz']
-        mass = PhysParams['mass']
-        dt   = PhysParams['dt'] # [s]
-        Tguess = self.T2m[iii]
-        dz  = PhysParams['dz']
-        z = PhysParams['z']
+    # def SEB_fqs(self,PhysParams,iii,T_old):
+    #     '''
+    #     Calculate surface energy using fqs solver
+    #     Positive fluxes are into the surface, negative are out
+    #     SEBparams: mass, Tz, dt
+    #     '''
 
-        T_rain = np.max((self.T2m[iii],T_MELT))
-        # Qrain_i = 0
+    #     Tz   = PhysParams['Tz']
+    #     mass = PhysParams['mass']
+    #     dt   = PhysParams['dt'] # [s]
+    #     Tguess = self.T2m[iii]
+    #     dz  = PhysParams['dz']
+    #     z = PhysParams['z']
+    #     mtime = PhysParams['mtime']
 
-        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt #[kg] of rain at this timestep
-        Qrain_i =  CP_W * rain_mass * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
-        #latent heat for rain falling on top of cold snow should be handled in melt.py
+    #     T_rain = np.max((self.T2m[iii],T_MELT))
+    #     # Qrain_i = 0
 
-        Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
-        # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
-        Q_LW_d = self.emissivity_air * self.LW_d[iii]
+    #     rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt #[kg] of rain at this timestep
+    #     Qrain_i =  CP_W * rain_mass * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
+    #     #latent heat for rain falling on top of cold snow should be handled in melt.py
 
-        # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        iTL = np.where(z>=self.TL_thick)[0][0] 
-        dTL = z[iTL]
+    #     Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
+    #     # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
+    #     Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        i_GL = np.where(z>=1)[0][0]
-        z_GL = z[i_GL]
-        m_GL = np.cumsum(mass)[i_GL]
-        T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
-        rho_GL = m_GL/z_GL
-        K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
+    #     i_GL = np.where(z>=1)[0][0]
+    #     z_GL = z[i_GL]
+    #     m_GL = np.cumsum(mass)[i_GL]
+    #     T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
+    #     rho_GL = m_GL/z_GL
+    #     K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
 
-        K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
-        G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
+    #     K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
+        
+    #     G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
+    #     # G = 0
 
-        m = np.cumsum(mass)[iTL] #mass of the top layer
-        TTL = np.cumsum(mass*Tz)[iTL]/m # mean temperature of top layer (weighted mean)
-        cold_content_TL = CP_I * m * (T_MELT - TTL) # cold content [J], positive quantity if T<T_melt
+    #     # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+    #     iTL = np.where(z>=self.TL_thick)[0][0]
 
-        Tnew = TTL.copy()
+    #     for kk in range(10): # this loop is to make sure that the toplayer is thick enough        
+    #         dTL = np.cumsum(dz)[iTL]
 
-        Q_sum = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G #sum of all flux terms that are not Temperature dependent
+    #         m = np.cumsum(mass)[iTL] #mass of the TL
+            
+    #         TTL = np.cumsum(mass*Tz)[iTL]/m # mean temperature of top X cm (weighted mean)
+    #         cold_content_TL = CP_I * m * (T_MELT - TTL) # cold content [J], positive quantity if T<T_melt
 
-        def Qnet(Ts,Qsum):
-            Qout = np.abs(-1*self.SBC*Ts**4 + Qsum)
-            return Qout
+    #         Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
+    #         # fqs = FQS()
 
-        sol = optimize.minimize(Qnet,TTL,args=Q_sum,method='Nelder-Mead')
+    #         pmat = np.zeros(5)
 
-        Tsurface = sol.x[0]
+    #         a = self.emissivity_snow * self.SBC * dt/(CP_I*m)
+    #         b = 0
+    #         c = 0
+    #         d = 1
+    #         e = -1 * (Qnet*dt/(CP_I*m)+TTL)
+
+    #         pmat[0] = a
+    #         pmat[3] = d
+    #         pmat[4] = e
+    #         pmat[np.isnan(pmat)] = 0
+
+    #         r = quartic_roots(pmat)
+    #         Tsurface = (r[((np.isreal(r)) & (r>0))].real)
+            
+    #         if Tsurface>=273.15:
+    #             Tsurface = 273.15
+    #             meltmass = (Qnet - self.SBC*273.15**4) * dt / LF_I #multiply by dt to put in units per time step
+    #             # do not need to subtract cold content to calculate cold content b/c Q_melt = sum(energies), Q_melt=0 if energy can be balanced, i.e. sum(energies)=0
+    #             # melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I
+    #         ### meltmass has units [kg/m2/s]
+    #         else:
+    #             meltmass = 0
+
+    #         if meltmass<=m: #if the melt mass is greater than the mass of the TL layer, we need a thicker TL because the next layer could be below freezing, and it needs to warm before melting
+    #             break
+    #         else:
+    #             iTL = np.where(np.cumsum(mass)>=meltmass)[0][0]
+
+    #     Tz[0:iTL+1] = Tsurface
+
+    #     return Tsurface, Tz, meltmass, self.TSKIN[iii]
+    # ############################
+    # ### end SEB_fqs
+    # ############################
+
+
+    # def SEB_loop(self,PhysParams,iii,T_old):
+    #     '''
+    #     This is developement code - do not use for science
+
+    #     Calculate surface energy using fqs solver
+    #     Positive fluxes are into the surface, negative are out
+    #     SEBparams: mass, Tz, dt
+    #     '''
+
+    #     Tz   = PhysParams['Tz']
+    #     mass = PhysParams['mass']
+    #     dt   = PhysParams['dt'] # [s]
+    #     Tguess = self.T2m[iii]
+    #     dz  = PhysParams['dz']
+    #     z = PhysParams['z']
+
+    #     T_rain = np.max((self.T2m[iii],T_MELT))
+    #     # Qrain_i = 0
+
+    #     rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt #[kg] of rain at this timestep
+    #     Qrain_i =  CP_W * rain_mass * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
+    #     #latent heat for rain falling on top of cold snow should be handled in melt.py
+
+    #     Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
+    #     # Q_LW_d = self.SBC * (self.emissivity_air * self.T2m[iii]**4)
+    #     Q_LW_d = self.emissivity_air * self.LW_d[iii]
+
+    #     # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+    #     iTL = np.where(z>=self.TL_thick)[0][0] 
+    #     dTL = z[iTL]
+
+    #     i_GL = np.where(z>=1)[0][0]
+    #     z_GL = z[i_GL]
+    #     m_GL = np.cumsum(mass)[i_GL]
+    #     T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
+    #     rho_GL = m_GL/z_GL
+    #     K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
+
+    #     K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
+    #     G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
+
+    #     m = np.cumsum(mass)[iTL] #mass of the top layer
+    #     TTL = np.cumsum(mass*Tz)[iTL]/m # mean temperature of top layer (weighted mean)
+    #     cold_content_TL = CP_I * m * (T_MELT - TTL) # cold content [J], positive quantity if T<T_melt
+
+    #     Tnew = TTL.copy()
+
+    #     Q_sum = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G #sum of all flux terms that are not Temperature dependent
+
+    #     def Qnet(Ts,Qsum):
+    #         Qout = np.abs(-1*self.SBC*Ts**4 + Qsum)
+    #         return Qout
+
+    #     sol = optimize.minimize(Qnet,TTL,args=Q_sum,method='Nelder-Mead')
+
+    #     Tsurface = sol.x[0]
 
        
-        if Tsurface>=273.15:
-            Tsurface = 273.15
-            meltmass = (Q_sum - self.SBC*273.15**4) * dt / LF_I #*dt #multiply by dt to put in units per day
-            # do not need to subtract cold content to calculate cold content b/c Q_melt = sum(energies), Q_melt=0 if energy can be balanced, i.e. sum(energies)=0
-            # melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I
-        ### meltmass has units [kg/m2/s]
-        else:
-            meltmass = 0
+    #     if Tsurface>=273.15:
+    #         Tsurface = 273.15
+    #         meltmass = (Q_sum - self.SBC*273.15**4) * dt / LF_I #*dt #multiply by dt to put in units per day
+    #         # do not need to subtract cold content to calculate cold content b/c Q_melt = sum(energies), Q_melt=0 if energy can be balanced, i.e. sum(energies)=0
+    #         # melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I
+    #     ### meltmass has units [kg/m2/s]
+    #     else:
+    #         meltmass = 0
 
-        Tz[0:iTL+1] = Tsurface            
+    #     Tz[0:iTL+1] = Tsurface            
 
-        return Tsurface, Tz, meltmass
-    ############################
-    ### end SEB_loop
-    ############################
+    #     return Tsurface, Tz, meltmass
+    # ############################
+    # ### end SEB_loop
+    # ############################
 
-    def SEB(self, PhysParams,iii,T_old):
-        '''
-        Development-level code
+    # def SEB(self, PhysParams,iii,T_old):
+    #     '''
+    #     Development-level code
 
-        Calculate the surface energy budget
-        Positive fluxes are into the surface, negative are out
-        SEBparams: mass, Tz, dt
-        '''
+    #     Calculate the surface energy budget
+    #     Positive fluxes are into the surface, negative are out
+    #     SEBparams: mass, Tz, dt
+    #     '''
 
-        Tz   = PhysParams['Tz']
-        mass = PhysParams['mass']
-        dt   = PhysParams['dt'] # [s]
-        Tguess = self.T2m[iii]
-        dz  = PhysParams['dz']
-        z = PhysParams['z']
+    #     Tz   = PhysParams['Tz']
+    #     mass = PhysParams['mass']
+    #     dt   = PhysParams['dt'] # [s]
+    #     Tguess = self.T2m[iii]
+    #     dz  = PhysParams['dz']
+    #     z = PhysParams['z']
 
-        T_rain = np.max((self.T2m[iii],T_MELT))
-        # Qrain_i = 0
+    #     T_rain = np.max((self.T2m[iii],T_MELT))
+    #     # Qrain_i = 0
 
-        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt #[kg] of rain at this timestep
-        Qrain_i =  CP_W * rain_mass * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
-        #latent heat for rain falling on top of cold snow should be handled in melt.py
+    #     rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt #[kg] of rain at this timestep
+    #     Qrain_i =  CP_W * rain_mass * (T_rain - T_MELT) # Assume rain temperature is air temp, Hock 2005, eq 19
+    #     #latent heat for rain falling on top of cold snow should be handled in melt.py
 
-        Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
-        Q_LW_d = self.emissivity_air * self.LW_d[iii]
+    #     Q_SW_net = self.SW_d[iii] * (1-self.ALBEDO[iii])
+    #     Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
-        # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
-        iTL = np.where(z>=self.TL_thick)[0][0] 
-        dTL = z[iTL]
+    #     # TL_thick = 0.1 # thickness of snow/firn "Top Layer" that energy goes into. Reducing results in higher melt.
+    #     iTL = np.where(z>=self.TL_thick)[0][0] 
+    #     dTL = z[iTL]
 
-        i_GL = np.where(z>=1)[0][0]
-        z_GL = z[i_GL]
-        m_GL = np.cumsum(mass)[i_GL]
-        T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
-        rho_GL = m_GL/z_GL
-        K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
+    #     i_GL = np.where(z>=1)[0][0]
+    #     z_GL = z[i_GL]
+    #     m_GL = np.cumsum(mass)[i_GL]
+    #     T_GL = np.cumsum(mass*Tz)[i_GL]/m_GL
+    #     rho_GL = m_GL/z_GL
+    #     K_ice   = 9.828 * np.exp(-0.0057 * T_GL) #[W/m/K]
 
-        K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
+    #     K_GL  = K_ice * (rho_GL/RHO_I) ** (2 - 0.5 * (rho_GL/RHO_I))
         
-        G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
+    #     G = (K_GL * (Tz[i_GL] - Tz[0])/z_GL) # estimated temperature flux in firn due to temperature gradient
 
-        iTL = np.where(z>=0.1)[0][0]
-        dTL = z[iTL]
+    #     iTL = np.where(z>=0.1)[0][0]
+    #     dTL = z[iTL]
 
-        m = np.cumsum(mass)[iTL] # this was on staging
+    #     m = np.cumsum(mass)[iTL] # this was on staging
 
-        # G=0
+    #     # G=0
  
-        Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
+    #     Qnet = Q_SW_net + Q_LW_d + self.QH[iii] + self.QL[iii] + Qrain_i + G
 
-        a = self.SBC*dt/(CP_I*m)
-        b = 0
-        c = 0
-        d = 1
-        e = -1 * (Qnet*dt/(CP_I*m)+T_old)
-        p = np.poly1d([a,b,c,d,e])
-        r = np.roots(p)
-        Tnew = (r[((np.isreal(r)) & (r>0))].real)[0]
-        if Tnew<273.15:
-            Tsurface = Tnew
-            melt_mass = 0
-        else:
-            Tsurface = 273.15
-            melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I 
+    #     a = self.SBC*dt/(CP_I*m)
+    #     b = 0
+    #     c = 0
+    #     d = 1
+    #     e = -1 * (Qnet*dt/(CP_I*m)+T_old)
+    #     p = np.poly1d([a,b,c,d,e])
+    #     r = np.roots(p)
+    #     Tnew = (r[((np.isreal(r)) & (r>0))].real)[0]
+    #     if Tnew<273.15:
+    #         Tsurface = Tnew
+    #         melt_mass = 0
+    #     else:
+    #         Tsurface = 273.15
+    #         melt_mass = (Qnet - self.SBC*273.15**4) * dt / LF_I 
 
-        Tz[0] = Tsurface
-        if melt_mass<0:
-            melt_mass = 0
+    #     Tz[0] = Tsurface
+    #     if melt_mass<0:
+    #         melt_mass = 0
 
-        return Tsurface, Tz, melt_mass
+    #     return Tsurface, Tz, melt_mass
 
 ### FQS below ###########
 #########################

@@ -235,6 +235,8 @@ class FirnDensityNoSpin:
         if 'SEB' not in self.c:
             self.c['SEB'] = False
 
+        print(f"SEB is {self.c['SEB']}")
+
         try:
             if self.c['manualT']:
                 if self.c['timesetup']!= 'exact':
