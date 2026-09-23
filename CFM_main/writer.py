@@ -273,7 +273,8 @@ def forcing_writer(self, climateTS, SEBfluxes = None):
         f6['main'].create_dataset('sde', data = climateTS['sde'])
         f6['main'].create_dataset('num_reps', data = climateTS['num_reps'])
         main_start_i = np.where(climateTS['time']>=climateTS['sds'])[0][0]
-        seb_start_i = np.where(SEBfluxes['time']>=climateTS['sds'])[0][0]
+        if SEBfluxes is not None:
+            seb_start_i = np.where(SEBfluxes['time']>=climateTS['sds'])[0][0]
     else:
         sds = False
         main_start_i = 0
