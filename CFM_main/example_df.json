@@ -104,6 +104,7 @@
 "DirectRunoff": 0.0,
 "RunoffZuoOerlemans": false,
 "Slope": 0.1,
+"melt_strict": false,
 "SUBLIM": true,
 "keep_firnthickness": true,
 "SEB_TL_thick": 0.05,

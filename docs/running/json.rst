@@ -733,6 +733,13 @@ Slope
   :type: ``float``
   :default: ``0.1``
 
+melt_strict
+-----------
+  The **bucket** and **darcy** schemes check at each step that the water budget closes and that no cold layer holds liquid water. If False, a failed check prints a message and the run continues. If True, a failed check raises ``MeltCheckError`` and the run stops. Use True for ensemble runs, so that a run with a wrong result does not complete. The result of each check from the last scheme call is stored in ``melt_diagnostics`` on the model object.
+
+  :type: ``boolean``
+  :default: ``false``
+
 keep_firnthickness
 ------------------
   Controls grid behavior when melt removes surface layers. If True, the domain thickness is maintained by adding nodes at the base; if False, the original layer thicknesses are kept.
