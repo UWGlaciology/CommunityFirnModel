@@ -830,10 +830,10 @@ class FirnDensityNoSpin:
             self.lwcerror       = 0. #VV
             self.totallwcerror  = 0. #
             #VV update (23/03/2021)
-            self.refreeze   = np.array([0.]) #total liquid water refreezing at each time step [m we]
-            self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
-            self.meltvol    = np.array([0.]) #total melt volume
-            self.rainvol    = np.array([0.]) #total rain volume
+            self.refreeze   = 0. #total liquid water refreezing at each time step [m we]
+            self.runoff     = 0. #total liquid water runoff at each time step [m we]
+            self.meltvol    = 0. #total melt volume
+            self.rainvol    = 0. #total rain volume
             # self.subLWCvol  = np.array([0.]) #volume of liquid evaporated/removed during sublimation routine
             self.subLWCvol  = 0. #volume of liquid evaporated/removed during sublimation routine
 
