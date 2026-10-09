@@ -46,7 +46,8 @@ def resingledomain(self,iii):
     melt_mass_a         = melt_mass + melt_boxes_LWC_mass #total liq water from melted boxes(due to melting + LWC at previous time step) [kg]
     melt_vol_a          = melt_mass_a / RHO_W_KGM #total liq water from melted boxes(due to melting + LWC at previous time step) [m]
     # I think, melt_vol_a is the total liquid water input for this time step of the CFM
-    pm_plwc = self.PLWC_mem[ind1]/self.dz[ind1] * pm_dz 
+    pm_plwc = self.PLWC_mem[ind1]/self.dz[ind1] * pm_dz
+    dh_melt = -1 * (np.sum(self.dz[0:ind1]) + (self.dz[ind1]-pm_dz)) # thickness of melted boxes [m], negative
 
     ## Melted boxes are accomodated by just adding more (new) boxes at the bottom of the column
     ## Beware of this if you are not modeling to firn-ice transition depth.
@@ -679,7 +680,7 @@ def resingledomain(self,iii):
     self.rho,self.dz,self.Tz,self.mass,self.LWC,self.PLWC_mem,self.r2 = lengthendom(self,rhoC,dzC,TzC,massC,lwcC,Plwc_memC,r2C)
     self.refrozen = np.append(refrozenC,np.zeros(len(self.dz)-len(refrozenC))) # in deep layers not involved in flow routine, no refreezing occured
 
-    return self.rho,self.age,self.dz,self.Tz,self.z,self.mass,self.dzn,self.LWC,self.PLWC_mem,self.r2,self.refrozen,totrunoff
+    return self.rho,self.age,self.dz,self.Tz,self.z,self.mass,self.dzn,self.LWC,self.PLWC_mem,self.r2,self.refrozen,totrunoff,dh_melt
     
     
     

@@ -30,3 +30,12 @@ def test_darcy_completes(short_config):
     run = short_config(years=2, liquid='darcy', melt_strict=True)
     run.run()
     assert run.results_path.exists()
+
+
+@pytest.mark.conservation
+def test_darcy_with_early_output_completes(short_config):
+    # The first steps are dry. With output from the first step, update_dH
+    # reads self.dh_melt at a dry step. See UWGlaciology/CommunityFirnModel#21.
+    run = short_config(years=2, liquid='darcy', melt_strict=True, TWriteStart=0.0)
+    run.run()
+    assert run.results_path.exists()
