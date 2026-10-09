@@ -160,7 +160,7 @@ def flux_newtonraphson(gc,LWCav,glwcacm,th_i,th_s,lwc,dz,avG,nvG,mvG,eps_cvg):
 
         else: #Newton-Raphson to improve current guess of glw
             #Computation for derivative d(f_eq)/d(glw[j1])
-            dfdg = dfdg_derivative(th_s,th_i,gth_e,avG,nvG,mvG,dz)
+            dfdg = dfdg_derivative(th_s,th_i,gth_e,avG,nvG,mvG,dz).item() #2-node inputs give a size-1 array; .item() keeps gc (the flux guess) a scalar
             deltaglw = -1*fprev0/dfdg #step in glw guess
             gc = gprev0+deltaglw #adjust glw guess
             gth_e = thetae_update(gc,th_i,th_s,lwc,dz)

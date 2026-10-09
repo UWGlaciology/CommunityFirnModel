@@ -33,9 +33,6 @@ def test_bucket_closes_water_budget_on_synthetic_column(synthetic_column):
 
 
 @pytest.mark.scheme
-@pytest.mark.xfail(raises=ValueError, strict=True,
-                   reason='darcy_funcs.flux_newtonraphson returns a size-1 array; '
-                          'NumPy >= 2.5 does not assign it to an array element')
 def test_darcyscheme_runs_on_synthetic_column(synthetic_column):
     column = synthetic_column(n=60, rho_profile=lambda z: 350.0 + 40.0 * z,
                               T_profile=265.0, melt=0.02, config={'melt_strict': True})
