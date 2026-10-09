@@ -39,3 +39,16 @@ def test_darcy_with_early_output_completes(short_config):
     run = short_config(years=2, liquid='darcy', melt_strict=True, TWriteStart=0.0)
     run.run()
     assert run.results_path.exists()
+
+
+@pytest.mark.conservation
+@pytest.mark.parametrize('liquid', ['prefsnowpack', 'resingledomain'])
+@pytest.mark.parametrize('TWriteStart', [None, 0.0], ids=['output_1980', 'output_first_step'])
+def test_snowpack_scheme_completes(short_config, liquid, TWriteStart):
+    # The run starts at model year 1434 and has dry and wet steps before and
+    # after 1980. Before 1980 a wet step uses bucket, and after it the scheme
+    # itself. With TWriteStart 0, update_dH reads dh_melt from the first step.
+    config_overrides = {} if TWriteStart is None else {'TWriteStart': TWriteStart}
+    run = short_config(years=2, liquid=liquid, **config_overrides)
+    run.run()
+    assert run.results_path.exists()

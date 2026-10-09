@@ -133,7 +133,7 @@ def prefflow(self,iii):
     zstep_iplus1    = np.append(np.delete(zstep,0),dz[-1]/2) # zstep vector staggered 1 level lower
     
     ### Time parameters ###
-    dtCFM           = self.dt #duratin of timesteps in CFM, constant value, [s]
+    dtCFM           = self.dt[iii] #duration of this CFM time step [s]
     Mdeltat         = 300. #duration of timesteps for this script, choose an arbitrary starting value (<= tstep) [s]
     Mdeltat_new     = 300. #further, we adjust deltat_new and then assign this value to deltat, start with deltat_new == deltat [s]
     deltat_max      = 1*tstep #maximum time step allowed
