@@ -703,9 +703,9 @@ def transient_solve_enthalpy(z_edges, Z_P, dt, Gamma_P, T_old_C, th_liquid_old, 
             th_liquid: updated liquid mass per total volume [kg/m3]
             count: number of Picard iterations used
             claw_mushy: liquid mass clamped back (spurious growth in already-mushy
-                layers) this step [kg/m2]
+                layers) on the last Picard iteration [kg/m2]
             claw_dry: liquid mass clamped back (spurious creation in previously-dry
-                layers) this step [kg/m2]
+                layers) on the last Picard iteration [kg/m2]
             energy_resid: interior-cell energy conservation residual [J/m2]
 
     Reference(s): Voller and Swaminathan (1991), eqs. 31-32;
@@ -741,9 +741,6 @@ def transient_solve_enthalpy(z_edges, Z_P, dt, Gamma_P, T_old_C, th_liquid_old, 
     dHdT = np.empty_like(T_old_C, dtype=float)
 
     count = 0
-    # --- clamp backstops with tally ---
-    claw_mushy = 0.0
-    claw_dry   = 0.0
     
     change_history = []
     converged = True
@@ -801,14 +798,12 @@ def transient_solve_enthalpy(z_edges, Z_P, dt, Gamma_P, T_old_C, th_liquid_old, 
         ### diffusion cannot ADD liquid to a 0C layer; cap at the pre-iteration value
         grew = (th_liquid_new > th_liquid_old) & (th_liquid_old > 0.0)
         excess = np.where(grew, th_liquid_new - th_liquid_old, 0.0)
-        claw_mushy += np.sum(excess * dZ)          # kg/m2 removed this step
         th_liquid_new -= excess
         th_solid_new  += excess
         T_cons[grew]   = 0.0
 
         dry_grew = (th_liquid_new > 0.0) & (th_liquid_old == 0.0)
         excess_d = np.where(dry_grew, th_liquid_new, 0.0)   # all of it is spurious
-        claw_dry += np.sum(excess_d * dZ)          # kg/m2 removed this step
         th_liquid_new -= excess_d
         th_solid_new  += excess_d
         T_cons[dry_grew] = 0.0
@@ -848,6 +843,13 @@ def transient_solve_enthalpy(z_edges, Z_P, dt, Gamma_P, T_old_C, th_liquid_old, 
 
         # optional: dump the whole history for manual inspection
         # print(f"  change_history: {change_history_arr}")
+
+    # --- clamp tally (diagnostic only) ---
+    # Only the clamp on the last iteration remains in the returned state. An
+    # earlier clamp changes only the start values of the next iteration, and b
+    # always uses Hhat_old. excess and excess_d are from the last iteration.
+    claw_mushy = np.sum(excess * dZ)     # kg/m2 moved to ice by the last iteration
+    claw_dry   = np.sum(excess_d * dZ)
 
     # --- interior-cell energy residual (same diagnostic as AHC) ---
     energy_resid = _energy_residual(T, th_solid, th_liquid, T_old_C,
