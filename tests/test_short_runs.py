@@ -21,3 +21,12 @@ def test_melt_without_sublimation_completes(short_config):
     run = short_config(years=2, MELT=True, SUBLIM=False, melt_strict=True)
     run.run()
     assert run.results_path.exists()
+
+
+@pytest.mark.conservation
+def test_darcy_completes(short_config):
+    # The run starts before model year 1980. Before 1980 the darcy branch uses
+    # bucket for a wet step, and after it darcyscheme, so the run covers both.
+    run = short_config(years=2, liquid='darcy', melt_strict=True)
+    run.run()
+    assert run.results_path.exists()
