@@ -1391,19 +1391,27 @@ class FirnDensityNoSpin:
                     if self.modeltime[iii] >= 1980: # Apply dualperm from a certain date
                         if ((self.snowmeltSec[iii]>0.) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.)): #i.e. there is water
                             self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.Trunoff, self.dh_melt = prefflow(self,iii)
+                            self.refreeze = np.sum(self.refrozen) #[m w.e.]
+                            self.runoff   = self.Trunoff #[m w.e.]
+                            self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
+                            self.rainvol = self.rainSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                         else: #Dry firn column and no input of meltwater                            
                             self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dh_melt    = 0. # no melt
+                            self.refreeze, self.runoff, self.meltvol, self.rainvol = 0.,0.,0.,0.
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     elif self.modeltime[iii] < 1980: # Apply bVV until a certain date
                         if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.) or (self.rainSec[iii] > 0.)): #i.e. there is water
                             self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff, self.dh_melt = bucket(self,iii)
+                            self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
+                            self.rainvol = self.rainSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                         else:
                             #Dry firn column and no input of meltwater
                             self.Trunoff     = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dh_melt    = 0. # no melt
+                            self.refreeze, self.runoff, self.meltvol, self.rainvol = 0.,0.,0.,0.
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                 ### end prefsnowpack ##################
 
@@ -1412,20 +1420,28 @@ class FirnDensityNoSpin:
                     if self.modeltime[iii] >= 1980: # Apply dualperm from a certain date
                         if ((self.snowmeltSec[iii]>0.) or (np.any(self.LWC > 0.)) or (self.rainSec[iii] > 0.)): #i.e. there is water
                             self.rho, self.age, self.dz, self.Tz, self.z, self.mass, self.dzn, self.LWC, self.PLWC_mem, self.r2, self.refrozen, self.Trunoff, self.dh_melt = resingledomain(self,iii)
+                            self.refreeze = np.sum(self.refrozen) #[m w.e.]
+                            self.runoff   = self.Trunoff #[m w.e.]
+                            self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
+                            self.rainvol = self.rainSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                         else:
                             #Dry firn column and no input of meltwater
                             self.Trunoff    = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dh_melt    = 0. # no melt
+                            self.refreeze, self.runoff, self.meltvol, self.rainvol = 0.,0.,0.,0.
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                     elif self.modeltime[iii] < 1980: # Apply bVV until a certain date
                         if (self.snowmeltSec[iii]>0) or (np.any(self.LWC > 0.) or (self.rainSec[iii] > 0.)): #i.e. there is water
                             self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, self.dzn, self.LWC, meltgridtrack, self.refreeze, self.runoff, self.dh_melt = bucket(self,iii)
+                            self.meltvol = self.snowmeltSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
+                            self.rainvol = self.rainSec[iii]*S_PER_YEAR*0.917 #[m w.e.]
                         else:
                             #Dry firn column and no input of meltwater
                             self.Trunoff    = np.array([0.]) #VV no runoff
                             self.refrozen   = np.zeros_like(self.dz) #VV no refreezing
                             self.dh_melt    = 0. # no melt
+                            self.refreeze, self.runoff, self.meltvol, self.rainvol = 0.,0.,0.,0.
                             self.dzn        = self.dz[0:self.compboxes] # Not sure this is necessary
                 ### end prefsnowpack ##################
 
