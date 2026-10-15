@@ -800,7 +800,7 @@ def bucket(self, iii):
             ### the accumulated meltwater W); here we only apply the loss term
             ### to the currently mobile LWC over one model timestep.
             rfZO           = np.zeros(nnd)
-            rfZO[indsrfZO] = self.dt[iii] * LWC_rfZO[indsrfZO] / tstar  # [m]
+            rfZO[indsrfZO] = min(self.dt[iii] / tstar, 1.) * LWC_rfZO[indsrfZO]  # [m]; a step longer than tstar removes only the excess (fraction capped at 1)
 
             self.LWC  = self.LWC - rfZO
             runofftot = runofftot + np.sum(rfZO)
@@ -833,7 +833,7 @@ def bucket(self, iii):
     refr_cap_from_cc_new  = (cold_content_new / LF_I) / RHO_W_KGM       # refreeze capacity from cold content [m we]
     refr_cap_new          = np.minimum(refr_cap_from_cc_new, phivol_av) # total refreeze capacity [m we]
 
-    freeze      = np.minimum(self.LWC, refr_cap_new) # refreezing per layer, this pass [m we]
+    freeze      = np.maximum(0., np.minimum(self.LWC, refr_cap_new)) # refreezing per layer, this pass [m we]; never negative
     self.mass   = self.mass + RHO_W_KGM * freeze
     self.LWC    = self.LWC - freeze
     self.rho    = self.mass / self.dz

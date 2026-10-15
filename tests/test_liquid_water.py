@@ -254,14 +254,20 @@ def test_bucket_runoff_matches_zuo_oerlemans(synthetic_column, coleou_lesaffre, 
 
 
 @pytest.mark.unit
-@pytest.mark.xfail(strict=True, reason='Zuo-Oerlemans runoff is explicit; it overshoots when dt > tau')
 def test_bucket_runoff_does_not_overshoot_when_the_step_is_longer_than_tau(synthetic_column):
-    # Slope 0.1 gives tau = 1.5 d. A 30-day step removes about 20 times the excess
-    # water. The LWC then becomes negative, the refreeze that follows is negative,
-    # and the density becomes negative. The water budget check does not see this.
+    # Slope 0.1 gives tau = 1.5 d. With an explicit update, a 30-day step removed
+    # about 20 times the excess water. The LWC became negative, the refreeze that
+    # followed was negative, and the density became negative. The water budget
+    # check did not see this. A step longer than tau now removes the excess only.
     rho = _column_with_lenses(500.0)
-    column = _bucket_column(synthetic_column, rho, dt=30 * DAY, Ponding=True, RunoffZuoOerlemans=True, Slope=0.1)
-    irreducible = _irreducible_water(column.rho, column.dz, True, rho_impermeable=830.0)
-    assert column.melt_diagnostics['refrozen'] >= 0.0
-    assert np.all(column.rho > 0.0)
-    assert np.all(column.LWC >= irreducible * (1 - 1e-9))
+    common = dict(dt=30 * DAY, Ponding=True, Slope=0.1)
+    ponded = _bucket_column(synthetic_column, rho, RunoffZuoOerlemans=False, **common)
+    drained = _bucket_column(synthetic_column, rho, RunoffZuoOerlemans=True, **common)
+    irreducible = _irreducible_water(drained.rho, drained.dz, True, rho_impermeable=830.0)
+    excess = np.maximum(ponded.LWC - irreducible, 0.0)
+    assert drained.melt_diagnostics['refrozen'] >= 0.0
+    np.testing.assert_array_equal(drained.rho, ponded.rho)
+    np.testing.assert_allclose(drained.LWC, np.minimum(ponded.LWC, irreducible), rtol=1e-9, atol=1e-15)
+    assert drained.melt_diagnostics['runoff'] - ponded.melt_diagnostics['runoff'] == pytest.approx(
+        excess.sum(), rel=1e-9)
+    assert all(check['ok'] for check in drained.melt_diagnostics['checks'].values())
