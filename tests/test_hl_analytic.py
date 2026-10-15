@@ -133,10 +133,9 @@ def test_profile_matches_herron_langway(T, A_ice):
 
 
 @pytest.mark.unit
-@pytest.mark.xfail(strict=True, raises=IndexError,
-                   reason='hl_analytic selects zone 1 with h < h0_55 and zone 2 with h > h0_55, '
-                          'so a node at exactly h0_55 is dropped from the profile')
 def test_node_on_the_zone_boundary_is_kept():
+    # hl_analytic selected zone 1 with h < h0_55 and zone 2 with h > h0_55,
+    # so a node at exactly h0_55 was dropped and the age loop raised IndexError.
     rhos0, T, A_ice = 350.0, 242.0, 0.24
     h_critical = _depth_of(RHO_CRITICAL, rhos0 / 1000.0, T, A_ice)
     h = np.array([0.0, h_critical, h_critical + 1.0])

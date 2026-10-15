@@ -53,7 +53,7 @@ def hl_analytic(rhos0, h, THL, AHL):
         t0 = 1 / (k0 * A) * np.log((RHO_I_MGM - rhos) / (RHO_I_MGM - rho_h0))
 
     Z1 = np.exp(RHO_I_MGM * k1 * (h - h0_55) / np.sqrt(A) + np.log(RHO_1_MGM / (RHO_I_MGM - RHO_1_MGM)))
-    Z = np.concatenate((Z0[h < h0_55], Z1[h > h0_55]))
+    Z = np.concatenate((Z0[h <= h0_55], Z1[h > h0_55]))
     rho_h = (RHO_I_MGM * Z) / (1 + Z)
     tp = np.ones(hSize)
     for j in range(hSize):
@@ -64,7 +64,7 @@ def hl_analytic(rhos0, h, THL, AHL):
             tp[j] = tp[jMax]
 
     # Zone 1 and Zone 2 repsectively
-    age = np.concatenate((t0[h < h0_55], tp[h > h0_55])) * S_PER_YEAR
+    age = np.concatenate((t0[h <= h0_55], tp[h > h0_55])) * S_PER_YEAR
     rho = rho_h * 1000
 
     return age, rho
