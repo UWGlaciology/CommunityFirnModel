@@ -185,7 +185,6 @@ def test_bisection_flux_is_within_the_available_water_and_pore_space():
 
 
 @pytest.mark.unit
-@pytest.mark.xfail(strict=True, reason='Newton-Raphson steps are not limited to [0, upper bound]')
 def test_newton_raphson_flux_is_within_the_available_water_and_pore_space():
     for guess, args, upper_bound in _random_two_node_states(seed=2, count=1500):
         flux = flux_newtonraphson(guess, *args)

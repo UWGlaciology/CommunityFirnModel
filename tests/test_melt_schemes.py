@@ -2,6 +2,7 @@
 Single calls of the meltwater schemes on a synthetic column.
 '''
 
+import numpy as np
 import pytest
 
 import melt
@@ -67,3 +68,12 @@ def test_darcy_flux_solvers_get_the_two_interface_nodes(darcy_wetting_front):
     # at the interface, not the full column.
     _, calls = darcy_wetting_front
     assert {call['n_nodes'] for call in calls} == {2}
+
+
+@pytest.mark.scheme
+def test_darcy_fluxes_are_within_the_available_water_and_pore_space(darcy_wetting_front):
+    column, calls = darcy_wetting_front
+    for call in calls:
+        assert 0.0 <= call['flux'] <= call['upper_bound'] * (1 + 1e-12), call
+    saturated_water = (917.0 - column.rho) / 917.0 * 0.917 * column.dz
+    assert np.all(column.LWC <= saturated_water)

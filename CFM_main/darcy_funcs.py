@@ -410,6 +410,7 @@ def flux_newtonraphson(gc, LWCav, glwcacm, th_i, th_s, lwc, dz, avG, nvG, mvG, e
     gth_e = thetae_update(gc, th_i, th_s, lwc, dz)
     ghd   = phead_vG(avG, nvG, mvG, gth_e)
     f_eq  = ghd[0] - ghd[1] - dltz   # Hirashima et al. (2010), Eq. 20, evaluated at this interface
+    gmax  = min(LWCav[0], glwcacm[1])  # upper bound of the flux (limited by the available LWC and the accommodation space)
 
     while (not cvg_nr) and (nrit < nritmax):
         gprev0 = np.copy(gc)     # flux guess at the previous iteration
@@ -437,8 +438,8 @@ def flux_newtonraphson(gc, LWCav, glwcacm, th_i, th_s, lwc, dz, avG, nvG, mvG, e
             ghd   = phead_vG(avG, nvG, mvG, gth_e)
             f_eq  = ghd[0] - ghd[1] - dltz
 
-            if abs(f_eq) > abs(fprev0) or abs(dfdg) > 1e6:
-                # Newton-Raphson diverged or the step size risks instability: fall back to bisection
+            if abs(f_eq) > abs(fprev0) or abs(dfdg) > 1e6 or gc < 0 or gc > gmax:
+                # Newton-Raphson diverged, the step size risks instability, or the flux left its bounds: fall back to bisection
                 gc = flux_bisection(gprev0, LWCav, glwcacm, th_i, th_s, lwc, dz, avG, nvG, mvG, eps_cvg)
                 cvg_nr = True
 
