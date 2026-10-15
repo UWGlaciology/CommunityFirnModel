@@ -1311,12 +1311,12 @@ def darcyscheme(self,iii):
 
             if abs(f_eq) > 1.:
                 # Guess is far from equilibrium: use the more robust bisection method
-                glw[j1] = flux_bisection(glw[j1], LWCav, glwcacm, theta_i[inds11], theta_s[inds11],
+                glw[j1] = flux_bisection(glw[j1], LWCav[inds11], glwcacm[inds11], theta_i[inds11], theta_s[inds11],
                                           glwc[inds11], self.dz[inds11], avG[inds11], nvG[inds11],
                                           mvG[inds11], eps_cvg)
             else:
                 # Guess is close to equilibrium: use the faster-converging Newton-Raphson method
-                glw[j1] = flux_newtonraphson(glw[j1], LWCav, glwcacm, theta_i[inds11], theta_s[inds11],
+                glw[j1] = flux_newtonraphson(glw[j1], LWCav[inds11], glwcacm[inds11], theta_i[inds11], theta_s[inds11],
                                               glwc[inds11], self.dz[inds11], avG[inds11], nvG[inds11],
                                               mvG[inds11], eps_cvg)
 

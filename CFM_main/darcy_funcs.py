@@ -299,11 +299,13 @@ def flux_bisection(gc, LWCav, glwcacm, th_i, th_s, lwc, dz, avG, nvG, mvG, eps_c
     ----------
     gc : float
         Initial guess for the flux across the interface [m].
-    LWCav : ndarray
-        LWC available for flow, full column [m] (only LWCav[0], the upper
-        node, is used to bound the guess).
-    glwcacm : ndarray
-        Remaining accommodation space, full column [m] (only glwcacm[1],
+    LWCav : ndarray, shape (2,)
+        LWC available for flow at the two nodes [m] (only LWCav[0], the upper
+        node, is used to bound the guess). Pass the values at the interface
+        nodes, not the full column: the full column would bound the flux by
+        the top of the column.
+    glwcacm : ndarray, shape (2,)
+        Remaining accommodation space at the two nodes [m] (only glwcacm[1],
         the lower node, is used to bound the guess).
     th_i, th_s, lwc, dz : ndarray, shape (2,)
         Irreducible/saturated volumetric water content, current LWC, and
@@ -383,9 +385,10 @@ def flux_newtonraphson(gc, LWCav, glwcacm, th_i, th_s, lwc, dz, avG, nvG, mvG, e
     ----------
     gc : float
         Initial guess for the flux across the interface [m].
-    LWCav, glwcacm : ndarray
-        Full-column available LWC and remaining accommodation space [m]
-        (passed through to `flux_bisection` if a fallback is triggered).
+    LWCav, glwcacm : ndarray, shape (2,)
+        Available LWC and remaining accommodation space [m] at the two nodes
+        (as in `flux_bisection`; used to bound the flux, and passed through
+        to `flux_bisection` if a fallback is triggered).
     th_i, th_s, lwc, dz : ndarray, shape (2,)
         Irreducible/saturated volumetric water content, current LWC, and
         thickness at the two nodes.
