@@ -78,6 +78,8 @@ A scheme test calls one meltwater scheme once, on a synthetic column (see `Fixtu
 
    * - File
      - Contents
+   * - ``test_melt_schemes.py``
+     - ``bucket`` and ``darcyscheme``: the melted thickness ``dh_melt`` agrees with the melt mass divided by the density.
    * - ``test_fixtures.py``
      - ``bucket`` closes its water budget on a synthetic column and passes all its checks in strict mode. ``darcyscheme`` runs on a synthetic column and passes its checks.
 
@@ -93,7 +95,7 @@ A conservation test runs the model (spin-up and ``time_evolve()``) for two years
    * - File
      - Contents
    * - ``test_short_runs.py``
-     - The model completes a run with **MELT** true, with **SUBLIM** true and with **SUBLIM** false.
+     - The model completes a run with each of these configurations: **MELT** true with **SUBLIM** true and with **SUBLIM** false; **darcy** with output from 1980 and from the first step.
    * - ``test_fixtures.py``
      - A short run with **melt_strict** true completes.
 
