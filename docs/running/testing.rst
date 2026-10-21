@@ -56,12 +56,16 @@ Unit tests (``unit``)
 
 A unit test calls one function with a small, specified input. Where a published equation or an analytic solution exists, the test compares the result with it.
 
+In ``test_hl_analytic.py``, the test file calculates the reference values from the published equations, with literal constants. This test file does not call the CFM function under test to get the reference, and it does not import ``constants.py``. Thus an error in the code cannot also be in the reference. A change to the code that changes a result makes the test fail, so a change to the physics must also change the test. This makes an accidental change less likely.
+
 .. list-table::
    :header-rows: 1
    :widths: 30 70
 
    * - File
      - Contents
+   * - ``test_hl_analytic.py``
+     - ``hl_analytic`` (the spin-up profile) against the Herron and Langway (1980) density and age equations, in zone 1 and zone 2. A node on the boundary between the two zones stays in the profile.
    * - ``test_enthalpy_solver.py``
      - The ``enthalpy`` solver with liquid water in a layer below 0 °C. The solver refreezes this water with its latent heat.
    * - ``test_melt_diagnostics.py``
@@ -141,3 +145,7 @@ The GitHub Actions workflow ``.github/workflows/tests.yml`` runs the test suite 
 - **Full tests**: ``python -m pytest -m conservation``.
 
 To run the workflow manually, use **Run workflow** in the **Actions** tab of the repository on GitHub.
+
+**References**
+
+*Herron, M. M., and Langway, C. C. (1980), Firn densification: an empirical model, J. Glaciol., 25(93), 373–385, doi:10.3189/S0022143000015239.*
