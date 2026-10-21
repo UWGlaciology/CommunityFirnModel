@@ -62,6 +62,8 @@ A unit test calls one function with a small, specified input. Where a published 
 
    * - File
      - Contents
+   * - ``test_enthalpy_solver.py``
+     - The ``enthalpy`` solver with liquid water in a layer below 0 °C. The solver refreezes this water with its latent heat.
    * - ``test_melt_diagnostics.py``
      - The record of a failed meltwater check, with and without **melt_strict** (see :doc:`../extras/melt_checks`).
    * - ``test_fixtures.py``

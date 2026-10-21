@@ -122,5 +122,12 @@ This benchmark is pure water, where liquid content *is* a single-valued function
 
 Full implementation details, caveats, and references for each solver are documented in the ``transient_solve_*`` function docstrings in ``solver.py``.
 
+.. _solver-diagnostics:
+
+Solver diagnostics
+==================
+
+The ``enthalpy`` solver moves spurious liquid water back to ice (the overshoot clamp). It reports the clamped mass from the last Picard iteration only, because only that iteration changes the returned state. If the clamped mass in a step is more than 0.05 kg m-2, ``refreezeDiff`` prints a message.
+
 Reference:
 Tubini, N., Gruber, S., and Rigon, R. (2021). A method for solving heat transfer with phase change in ice or soil that allows for large time steps while guaranteeing energy conservation. *The Cryosphere*, 15, 2541-2568. https://doi.org/10.5194/tc-15-2541-2021
