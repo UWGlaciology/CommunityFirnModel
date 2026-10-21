@@ -16,6 +16,9 @@ General update protocol:
 2) Example run with df input:
     a) set "input_type": "dataframe" and "resultsFolder": "CFMoutput_example/df" in example.json
     b) run python main.py example.json -n (make sure to do -n!)
+3) Test suite:
+    a) from the repository root, run python -m pytest
+    b) GitHub Actions also runs the suite on each push to main and each pull request. See tests/README.md and the "Testing the CFM" page of the documentation.
 
 Then, switch to main branch and merge from staging: 
 git checkout main

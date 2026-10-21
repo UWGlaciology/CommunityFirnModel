@@ -461,6 +461,8 @@ liquid
 ------
   If **MELT** is true, which percolation scheme to use. ``bucket`` is the standard single-bucket scheme (``bucketVV`` / ``percolation_bucket`` are accepted aliases for the Verjans variant); ``darcy`` solves flow with Darcy's law; ``prefsnowpack`` and ``resingledomain`` are the preferential-flow and single-domain Richards-equation snowpack schemes (in development).
 
+  The ``bucket`` and ``darcy`` schemes check the water budget at each step (see **melt_strict**).
+
   :type: ``string``
   :options: ``bucket``, ``darcy``, ``resingledomain``, ``prefsnowpack``
 
@@ -735,7 +737,7 @@ Slope
 
 melt_strict
 -----------
-  The **bucket** and **darcy** schemes check at each step that the water budget closes and that no cold layer holds liquid water. If False, a failed check prints a message and the run continues. If True, a failed check raises ``MeltCheckError`` and the run stops. Use True for ensemble runs, so that a run with a wrong result does not complete. The result of each check from the last scheme call is stored in ``melt_diagnostics`` on the model object.
+  The **bucket** and **darcy** schemes check at each step that the water budget closes and that no cold layer holds liquid water. If False, a failed check prints a message and the run continues. If True, a failed check raises ``MeltCheckError`` and the run stops. Use True for ensemble runs, so that a run with a wrong result does not complete. The result of each check from the last scheme call is stored in ``melt_diagnostics`` on the model object. See :doc:`../extras/melt_checks` for the list of checks.
 
   :type: ``boolean``
   :default: ``false``

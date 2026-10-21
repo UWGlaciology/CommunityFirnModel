@@ -18,3 +18,4 @@ If the results folder (specified in config.json) already exists and contains the
     json.rst
     inputs.rst
     outputs.rst
+    testing.rst
