@@ -56,7 +56,7 @@ Unit tests (``unit``)
 
 A unit test calls one function with a small, specified input. Where a published equation or an analytic solution exists, the test compares the result with it.
 
-In ``test_hl_analytic.py``, the test file calculates the reference values from the published equations, with literal constants. This test file does not call the CFM function under test to get the reference, and it does not import ``constants.py``. Thus an error in the code cannot also be in the reference. A change to the code that changes a result makes the test fail, so a change to the physics must also change the test. This makes an accidental change less likely.
+In ``test_hl_analytic.py`` and ``test_liquid_water.py``, the test file calculates the reference values from the published equations, with literal constants. These tests do not call the CFM function under test to get the reference, and they do not import ``constants.py``. Thus an error in the code cannot also be in the reference. A change to the code that changes a result makes the test fail, so a change to the physics must also change the test. This makes an accidental change less likely.
 
 .. list-table::
    :header-rows: 1
@@ -66,6 +66,8 @@ In ``test_hl_analytic.py``, the test file calculates the reference values from t
      - Contents
    * - ``test_hl_analytic.py``
      - ``hl_analytic`` (the spin-up profile) against the Herron and Langway (1980) density and age equations, in zone 1 and zone 2. A node on the boundary between the two zones stays in the profile.
+   * - ``test_liquid_water.py``
+     - The liquid-water functions of the **bucket** and **darcy** schemes against the equations in Verjans et al. (2019): water-holding capacity (Coléou and Lesaffre, 1998), saturated hydraulic conductivity (Calonne et al., 2012), van Genuchten parameters (Yamaguchi et al., 2012), Mualem relative conductivity, and Zuo and Oerlemans (1996) runoff. The bisection flux solver stays within the available water and pore space. The same test for the Newton-Raphson flux solver is an expected failure.
    * - ``test_enthalpy_solver.py``
      - The ``enthalpy`` solver with liquid water in a layer below 0 °C. The solver refreezes this water with its latent heat.
    * - ``test_melt_diagnostics.py``
@@ -148,4 +150,14 @@ To run the workflow manually, use **Run workflow** in the **Actions** tab of the
 
 **References**
 
+*Calonne, N., Geindreau, C., Flin, F., Morin, S., Lesaffre, B., Rolland du Roscoat, S., and Charrier, P. (2012), 3-D image-based numerical computations of snow permeability: links to specific surface area, density, and microstructural anisotropy, The Cryosphere, 6, 939–951, doi:10.5194/tc-6-939-2012.*
+
+*Coléou, C., and Lesaffre, B. (1998), Irreducible water saturation in snow: experimental results in a cold laboratory, Ann. Glaciol., 26, 64–68, doi:10.3189/1998AoG26-1-64-68.*
+
 *Herron, M. M., and Langway, C. C. (1980), Firn densification: an empirical model, J. Glaciol., 25(93), 373–385, doi:10.3189/S0022143000015239.*
+
+*Verjans, V., Leeson, A. A., Stevens, C. M., MacFerrin, M., Noël, B., and van den Broeke, M. R. (2019), Development of physically based liquid water schemes for Greenland firn-densification models, The Cryosphere, 13, 1819–1842, doi:10.5194/tc-13-1819-2019.*
+
+*Yamaguchi, S., Watanabe, K., Katsushima, T., Sato, A., and Kumakura, T. (2012), Dependence of the water retention curve of snow on snow characteristics, Ann. Glaciol., 53(61), 6–12, doi:10.3189/2012AoG61A001.*
+
+*Zuo, Z., and Oerlemans, J. (1996), Modelling albedo and specific balance of the Greenland ice sheet: calculations for the Søndre Strømfjord transect, J. Glaciol., 42(141), 305–317, doi:10.3189/S0022143000004160.*
