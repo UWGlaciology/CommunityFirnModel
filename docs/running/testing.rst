@@ -67,7 +67,7 @@ In ``test_hl_analytic.py`` and ``test_liquid_water.py``, the test file calculate
    * - ``test_hl_analytic.py``
      - ``hl_analytic`` (the spin-up profile) against the Herron and Langway (1980) density and age equations, in zone 1 and zone 2. A node on the boundary between the two zones stays in the profile.
    * - ``test_liquid_water.py``
-     - The liquid-water functions of the **bucket** and **darcy** schemes against the equations in Verjans et al. (2019): water-holding capacity (Coléou and Lesaffre, 1998), saturated hydraulic conductivity (Calonne et al., 2012), van Genuchten parameters (Yamaguchi et al., 2012), Mualem relative conductivity, and Zuo and Oerlemans (1996) runoff. The bisection flux solver stays within the available water and pore space. The same test for the Newton-Raphson flux solver is an expected failure.
+     - The liquid-water functions of the **bucket** and **darcy** schemes against the equations in Verjans et al. (2019): water-holding capacity (Coléou and Lesaffre, 1998), saturated hydraulic conductivity (Calonne et al., 2012), van Genuchten parameters (Yamaguchi et al., 2012), Mualem relative conductivity, and Zuo and Oerlemans (1996) runoff. The Darcy flux solvers stay within the available water and pore space.
    * - ``test_enthalpy_solver.py``
      - The ``enthalpy`` solver with liquid water in a layer below 0 °C. The solver refreezes this water with its latent heat.
    * - ``test_melt_diagnostics.py``
@@ -87,7 +87,7 @@ A scheme test calls one meltwater scheme once, on a synthetic column (see `Fixtu
    * - File
      - Contents
    * - ``test_melt_schemes.py``
-     - ``bucket`` and ``darcyscheme``: the melted thickness ``dh_melt`` agrees with the melt mass divided by the density.
+     - ``bucket`` and ``darcyscheme``: the melted thickness ``dh_melt`` agrees with the melt mass divided by the density. ``darcyscheme`` gives the two interface nodes to the flux solvers, keeps each flux within the available water and pore space, and uses bisection when the first guess is far from equilibrium.
    * - ``test_fixtures.py``
      - ``bucket`` closes its water budget on a synthetic column and passes all its checks in strict mode. ``darcyscheme`` runs on a synthetic column and passes its checks.
 
