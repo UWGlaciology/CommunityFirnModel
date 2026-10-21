@@ -96,6 +96,8 @@ A conservation test runs the model (spin-up and ``time_evolve()``) for two years
      - Contents
    * - ``test_short_runs.py``
      - The model completes a run with each of these configurations: **MELT** true with **SUBLIM** true and with **SUBLIM** false; **darcy**, **prefsnowpack** and **resingledomain**, each with output from 1980 and from the first step.
+   * - ``test_water_budget.py``
+     - The water budget for each of the four **liquid** schemes, with the DYE-2 forcing. Melt plus rain over the run agrees with refreezing plus runoff plus the liquid water in the column at the end.
    * - ``test_fixtures.py``
      - A short run with **melt_strict** true completes.
 

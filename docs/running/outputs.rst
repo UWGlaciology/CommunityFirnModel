@@ -53,6 +53,8 @@ refreeze: two columns: decimal time, total liquid water refreezing at that time 
 
 runoff: two columns: decimal time, total liquid water runoff at that time step [m w.e.]
 
+All four **liquid** schemes (``bucket``, ``darcy``, ``prefsnowpack``, ``resingledomain``) write meltvol, refreeze and runoff.
+
 **References**
 *Goujon, C., Barnola, J.-M., and Ritz, C. (2003), Modeling the densification of polar firn including heat diffusion: Application to close-off characteristics and gas isotopic fractionation for Antarctica and Greenland sites, J. Geophys. Res., 108, 4792, doi:10.1029/2002JD003319, D24.*
 

@@ -461,7 +461,7 @@ liquid
 ------
   If **MELT** is true, which percolation scheme to use. ``bucket`` is the standard single-bucket scheme (``bucketVV`` / ``percolation_bucket`` are accepted aliases for the Verjans variant); ``darcy`` solves flow with Darcy's law; ``prefsnowpack`` and ``resingledomain`` are the preferential-flow and single-domain Richards-equation snowpack schemes (in development).
 
-  The ``bucket`` and ``darcy`` schemes check the water budget at each step (see **melt_strict**).
+  All four schemes give the step totals of melt, rain, refreezing and runoff, so the **meltvol**, **refreeze** and **runoff** outputs and the end-of-run water budget are available for each scheme. The ``bucket`` and ``darcy`` schemes also check the water budget at each step (see **melt_strict**).
 
   :type: ``string``
   :options: ``bucket``, ``darcy``, ``resingledomain``, ``prefsnowpack``
