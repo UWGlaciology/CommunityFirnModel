@@ -726,7 +726,7 @@ class FirnDensityNoSpin:
             self.runoff     = np.array([0.]) #total liquid water runoff at each time step [m we]
             self.meltvol    = np.array([0.]) #total melt volume
             self.rainvol    = np.array([0.]) #total rain volume
-            self.subLWCvol  = np.array([0.]) #volume of liquid evaporated/removed during sublimation routine
+            self.subLWCvol  = 0.0 #volume of liquid evaporated/removed during sublimation routine
 
         ### Strain modules
         self.c = check_strain_settings(self)

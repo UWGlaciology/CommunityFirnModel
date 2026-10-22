@@ -15,8 +15,6 @@ def test_melt_with_sublimation_completes(short_config):
 
 
 @pytest.mark.conservation
-@pytest.mark.xfail(strict=True, raises=ValueError,
-                   reason='subLWCvol starts as a 1-element array. See UWGlaciology/CommunityFirnModel#19.')
 def test_melt_without_sublimation_completes(short_config):
     # SUBLIM false skips the sublimation block, so subLWCvol keeps the value
     # that __init__ gives it. See UWGlaciology/CommunityFirnModel#19.
