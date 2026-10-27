@@ -1276,6 +1276,7 @@ class FirnDensityNoSpin:
             ### Strain modules
             if self.c['strain_softening']:
                 drho_dt, self.viscosity = strain_softening(self, drho_dt, iii)
+            mass_pre_strain = self.mass # layer mass before the horizontal-divergence rescaling (that rescaling makes a new array)
             if self.c['horizontal_divergence']:
                 self.mass = horizontal_divergence(self,iii)
 
@@ -1291,16 +1292,19 @@ class FirnDensityNoSpin:
             self.dz_old     = np.copy(self.dz) # model volume thicknesses before the compaction
             self.sdz_old    = np.sum(self.dz) # old total column thickness (s for sum)
             self.z_old      = np.copy(self.z)
-            self.dz         = self.mass / self.rho * self.dx # new dz after compaction
+            self.dz         = self.mass / self.rho * self.dx # new dz after compaction (and horizontal strain)
+            dz_dens         = mass_pre_strain / self.rho * self.dx # thickness with the densification only, without the horizontal-divergence rescaling
             self.z          = self.dz.cumsum(axis = 0)
             # znew = np.copy(self.z) 
             self.z          = np.concatenate(([0], self.z[:-1]))
-            self.compaction = self.dz_old - self.dz   # vertical compaction only
+            self.compaction = self.dz_old - dz_dens   # thinning of each layer by densification only (horizontal strain is separate)
 
             sdz_new = np.sum(self.dz)
             dsdz = sdz_new - self.sdz_old
             self.dsdz_sum = self.dsdz_sum + dsdz
-            self.dsdz_step = dsdz        # densification(+strain)-only thickness change this step
+            self.dsdz_step = dsdz        # densification + horizontal-strain thickness change this step
+            self.dsdz_strain = sdz_new - np.sum(dz_dens) # the horizontal-strain part of it
+            self.dsdz_comp = self.dsdz_step - self.dsdz_strain # the densification part of it (negative when the column gets thinner)
             self.rho_bot = self.rho[-1]  # density of the layer that will exit the bottom
 
             ### Surface energy balance #####
@@ -1872,9 +1876,11 @@ class FirnDensityNoSpin:
     def update_dH(self,iii):
         '''
         updates the surface elevation change.
-        dsdz_step: thickness change from densification (and horizontal strain) only,
+        dsdz_step: thickness change from densification and horizontal strain only,
         on a consistent grid -- excludes melt removal and bottom padding, which are
         handled by dh_melt and are not surface elevation change, respectively.
+        It is split into dsdz_comp (densification; the compaction of the column) and
+        dsdz_strain (horizontal strain).
         '''
         surf_terms  = self.dsdz_step + self.dh_acc + self.dh_melt
 
@@ -1889,7 +1895,7 @@ class FirnDensityNoSpin:
         self.dHAllcorr.append(self.dHcorr)
         self.dHtotcorr = np.sum(self.dHAllcorr)
 
-        self.comp_firn = self.dsdz_step # compaction of just the firn this time step
+        self.comp_firn = self.dsdz_comp # change of thickness of the firn column by densification alone (negative when it gets thinner), this time step
 
         return self.dH, self.dHtot, self.comp_firn, self.dHcorr, self.dHtotcorr
 
