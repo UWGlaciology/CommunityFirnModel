@@ -727,7 +727,8 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
             if ID not in massIDs:
                 SEBfluxes[ID] = np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values)).astype('float32')
             else:
-                SEBfluxes[ID] = ((np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear / 917).astype('float32')
+                # mass per SEB step -> rate [m ie/yr]: needs the number of SEB steps per year (the SEB fields are finer than the model step)
+                SEBfluxes[ID] = ((np.concatenate((np.tile(df_CLIM_seb[ID][msk_seb].values, len(sub)),df_CLIM_seb[ID].values))) * stepsperyear_seb / 917).astype('float32')
 
     return CD, stepsperyear, depth_S1, depth_S2, desired_depth, SEBfluxes
 

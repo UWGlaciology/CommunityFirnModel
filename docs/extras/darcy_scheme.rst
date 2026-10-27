@@ -257,13 +257,9 @@ bucket scheme, see :doc:`bucket_scheme`) are also read by this scheme.
      - Density cap used only for Darcy flow calculations, giving ice
        lenses residual permeability. Must exceed **RhoImp_darcy**.
    * - **eps_cvg_darcy**
-     - Intended as the convergence tolerance for the equilibrium-head
-       solve. **Currently inert**: ``darcyscheme()`` reads it from the
-       config but then unconditionally overwrites it with the hardcoded
-       value ``0.1e-3`` before it is used, so setting this key in your
-       .json has no effect. Not a results change relative to pre-3.3.0
-       behavior, which also hardcoded it -- just a currently-dead
-       configuration hook.
+     - Convergence tolerance for the equilibrium-head solve (default
+       ``0.1e-3``). It was read but overwritten by the hardcoded value in
+       earlier versions; it now takes effect.
    * - **runoff_method_darcy**
      - Selects which lateral-runoff parameterization to use (only
        relevant if **lat_runoff_darcy** is true): the Zuo & Oerlemans
@@ -459,9 +455,6 @@ Known limitations & caveats
   Given the many sub-steps typically run per outer time step, this may be
   prone to frequent false-positive warnings from accumulated
   floating-point error; this has not yet been revisited in practice.
-
-- **``eps_cvg_darcy`` is inert** -- see the Configuration Options table
-  above.
 
 - **Gravitational constant**: ``hydrconducsat_Calonne`` sources gravity
   from ``constants.py`` (``GRAVITY = 9.8``) rather than the literal

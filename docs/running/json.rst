@@ -287,6 +287,14 @@ grid_output_res
 ---------------
   If grid_output is ``True``, this is the spacing of the grid nodes in meters.
 
+grid_output_max_depth
+---------------------
+  If **grid_outputs** is ``True``, the depth of the bottom of the output grid. If it is not given, it is the depth of the model domain at the start of the run. A smaller value is used as given (a message is printed). If the domain gets deeper than this during the run, the gridded outputs are cut off at this depth (a warning is printed once).
+
+  :type: ``float``
+  :default: depth of the model domain at the start of the run
+  :units: :math:`\textrm{m}`
+
   :type: ``float``
   :default: ``0.1``
 
@@ -931,10 +939,10 @@ rholim_dcy
 
 eps_cvg_darcy
 -------------
-  Intended as the convergence tolerance for the equilibrium-head solve. Currently inert: the value read from this key is unconditionally overwritten internally, so setting it in your .json has no effect.
+  Convergence tolerance for the equilibrium-head solve of the flux between two nodes (bisection and Newton-Raphson).
 
   :type: ``float``
-  :default: ``0.1e-3`` (fixed; not currently configurable)
+  :default: ``0.1e-3``
   :units: :math:`\textrm{m}`
 
 runoff_method_darcy

@@ -35,10 +35,12 @@ class ModelOutputs:
 
         if self.MOgrid:
             self.grid_res = self.c['grid_output_res']
-            if 'grid_output_max_depth' not in self.c:
-                print('grid_output_max_depth not in .json. Defaulting to 200 m.')
-                self.c['grid_output_max_depth'] = 200.0
-            self.max_grid_len = int(np.ceil(self.c['grid_output_max_depth'] / self.grid_res))
+            if 'grid_output_max_depth' not in self.c: # the model sets it from the initial domain; this is for other callers
+                self.c['grid_output_max_depth'] = np.ceil(MOd['z'][-1])
+                print(f"grid_output_max_depth not in .json. Defaulting to the depth of the model domain, {self.c['grid_output_max_depth']} m.")
+            self._truncation_reported = False
+            # grid points from the surface down to grid_output_max_depth, both included
+            self.max_grid_len = int(np.floor(self.c['grid_output_max_depth'] / self.grid_res + 1e-9)) + 1
 
         for varname in self.output_list:
             if varname == 'Dcon':
@@ -87,7 +89,10 @@ class ModelOutputs:
             grid_out_i = MOd['z'][0] + np.arange(n_pts) * self.grid_res
             n = len(grid_out_i)
             if n > self.max_grid_len:
-                # print(f'Warning: domain depth exceeds grid_output_max_depth; truncating {varname}.')
+                if not self._truncation_reported:
+                    print(f"Warning: the model domain ({MOd['z'][-1]:.1f} m) is deeper than grid_output_max_depth "
+                          f"({self.c['grid_output_max_depth']} m); the gridded outputs are cut off at that depth.")
+                    self._truncation_reported = True
                 grid_out_i = grid_out_i[:self.max_grid_len]
                 n = self.max_grid_len
 

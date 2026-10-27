@@ -204,10 +204,13 @@ class FirnDensityNoSpin:
         self.gridLen    = np.size(self.z)
         self.dx         = np.ones(self.gridLen)
 
+        ### Depth of the gridded outputs (grid_outputs): the user's value, or by default the depth of the
+        ### model domain at the start of the run. Deeper than that the gridded outputs are cut off.
         if 'grid_output_max_depth' not in self.c:
             self.c['grid_output_max_depth'] = np.ceil(self.z[-1])
-        else:
-            self.c['grid_output_max_depth'] = max(np.ceil(self.z[-1]), self.c['grid_output_max_depth'])
+        elif self.c['grid_output_max_depth'] < np.ceil(self.z[-1]):
+            print(f"grid_output_max_depth ({self.c['grid_output_max_depth']} m) is shallower than the model domain "
+                  f"({np.ceil(self.z[-1])} m): the gridded outputs stop at {self.c['grid_output_max_depth']} m.")
 
         ### Feature to update the spin file to not have to repeat a long spin up
         ### restart_offset:

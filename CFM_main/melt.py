@@ -896,6 +896,27 @@ def bucket(self, iii):
 ##################
 
 ##########################
+_DARCY_DEFAULTS = {
+    'dtmin_darcy': 60, 'dtmax_darcy': 3600, 'dtsub_darcy': 60., 'RhoImp_darcy': 873., 'ThickImp_darcy': 0.5,
+    'lat_runoff_darcy': True, 'slope_proxy_darcy': 0.02, 'rholim_dcy': 910., 'eps_cvg_darcy': 0.1e-3,
+    'runoff_method_darcy': 'Darcy', 'ColeouLesaffre': True, 'IrrVal': 0.02,
+}  # the values the scheme used before these options were configurable
+_darcy_missing_reported = set()
+
+def _darcy_option(config, key):
+    """
+    Value of one option of the Darcy scheme: the .json value, or the default in `_DARCY_DEFAULTS`
+    if the key is missing (reported once per run for each key, so the others are not affected).
+    """
+    if key in config:
+        return config[key]
+    if key not in _darcy_missing_reported:
+        _darcy_missing_reported.add(key)
+        print(f'"{key}" is not in the .json; the Darcy scheme uses the default {_DARCY_DEFAULTS[key]}. See example.json.')
+    return _DARCY_DEFAULTS[key]
+### end _darcy_option ###
+#########################
+
 def darcyscheme(self,iii):
     '''
     Darcy-flow percolation scheme for meltwater routing through firn.
@@ -1037,34 +1058,20 @@ def darcyscheme(self,iii):
     dtsub    = 60                # [s] duration of Darcy time steps, adjusted iteratively
 
     ### USER CHOICES ###
-    try:
-        dtmin           = self.c['dtmin_darcy']         # [s] minimal time step for the Darcy routine
-        dtmax           = self.c['dtmax_darcy']         # [s] maximal time step for the Darcy routine
-        dtsub           = self.c['dtsub_darcy']         # [s] starting time step for the Darcy routine
-        RhoImp          = self.c['RhoImp_darcy']        # density from which a layer is impermeable [kg m-3]
-        ThickImp        = self.c['ThickImp_darcy']      # minimum ice-lens thickness for impermeability [m]
-        lat_runoff      = self.c['lat_runoff_darcy']    # compute lateral runoff above impermeable layers [True/False]
-        slope_proxy     = self.c['slope_proxy_darcy']   # proxy for the slope [dimensionless]
-        rholim_dcy      = self.c['rholim_dcy']          # max density used in Darcy calcs to allow some permeability [kg m-3]
-        eps_cvg         = self.c['eps_cvg_darcy']       # convergence criterion for equilibrium head [m]
-        runoff_method   = self.c['runoff_method_darcy'] # 'ZuoOerlemans' or 'Darcy'
-        ColeouLesaffre  = self.c['ColeouLesaffre']       # reuses the same flag as bucket()
-        IrrVal          = self.c['IrrVal'] if not ColeouLesaffre else 0.
-    except KeyError:
-        print('You should add the new Darcy-scheme variables to your .json. '
-              'See melt.py and example.json. Using defaults.')
-        dtmin           = 60
-        dtmax           = 3600
-        dtsub           = 60.
-        RhoImp          = 873.
-        ThickImp        = 0.5
-        lat_runoff      = True
-        slope_proxy     = 0.02
-        rholim_dcy      = 910.
-        eps_cvg         = 0.1e-3
-        runoff_method   = 'Darcy'
-        ColeouLesaffre  = True
-        IrrVal          = 0.02
+    ### Each option is read on its own: one that is missing from the .json takes its default
+    ### (with a message, once per run) and does not change the others.
+    dtmin           = _darcy_option(self.c, 'dtmin_darcy')          # [s] minimal time step for the Darcy routine
+    dtmax           = _darcy_option(self.c, 'dtmax_darcy')          # [s] maximal time step for the Darcy routine
+    dtsub           = _darcy_option(self.c, 'dtsub_darcy')          # [s] starting time step for the Darcy routine
+    RhoImp          = _darcy_option(self.c, 'RhoImp_darcy')         # density from which a layer is impermeable [kg m-3]
+    ThickImp        = _darcy_option(self.c, 'ThickImp_darcy')       # minimum ice-lens thickness for impermeability [m]
+    lat_runoff      = _darcy_option(self.c, 'lat_runoff_darcy')     # compute lateral runoff above impermeable layers [True/False]
+    slope_proxy     = _darcy_option(self.c, 'slope_proxy_darcy')    # proxy for the slope [dimensionless]
+    rholim_dcy      = _darcy_option(self.c, 'rholim_dcy')           # max density used in Darcy calcs to allow some permeability [kg m-3]
+    eps_cvg         = _darcy_option(self.c, 'eps_cvg_darcy')        # convergence criterion for equilibrium head [m]
+    runoff_method   = _darcy_option(self.c, 'runoff_method_darcy')  # 'ZuoOerlemans' or 'Darcy'
+    ColeouLesaffre  = _darcy_option(self.c, 'ColeouLesaffre')       # reuses the same flag as bucket()
+    IrrVal          = _darcy_option(self.c, 'IrrVal') if not ColeouLesaffre else 0.
     ### END USER CHOICES ###
 
     ### Surface fluxes ###
@@ -1075,8 +1082,6 @@ def darcyscheme(self,iii):
     except (AttributeError, IndexError):
         rain_vol_tot = 0.
     rainflux_vol = rain_vol_tot / timetot   # rain flux throughout the Darcy routine [m we s-1]
-
-    eps_cvg  = 0.1e-3 #convergence criterion for equilibrium head when solving for qlim of Hirashima et al. (2010) [m]
 
     ### Firn variables ###
     ncv            = len(self.z)         # number of nodes (number of control volumes)

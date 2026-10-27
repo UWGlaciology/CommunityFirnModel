@@ -253,6 +253,22 @@ class SurfaceEnergyBudget:
     ### end _check_turb_inputs ###
     ###############################
 
+    def _rain_heat(self, rain_rate, T_air):
+        '''
+        Heat carried to the surface by rain [W m-2], assuming the rain has the
+        air temperature and cools to the melting point (Hock 2005, Eq. 19):
+        Q_R = CP_W * (rain flux [kg m-2 s-1]) * (T_rain - T_MELT). Zero if the
+        air is at or below the melting point.
+
+        :param rain_rate: rain [m ice eq. per year] (as in climateTS and SEBfluxes)
+        :param T_air: air temperature [K]
+        :return: heat flux into the surface [W m-2]
+        '''
+        T_rain = np.max((T_air, T_MELT))
+        return CP_W * (rain_rate * RHO_I / S_PER_YEAR) * (T_rain - T_MELT)
+    ### end _rain_heat ###
+    #######################
+
     def _solve_Ts_quartic(self, PhysParams, iii, T_old):
         '''
         Analytic quartic solve, valid only when QH/QL do not depend
@@ -271,9 +287,7 @@ class SurfaceEnergyBudget:
 
         QH_i, QL_i = self.flux_model.compute(None, iii)
 
-        T_rain = np.max((self.T2m[iii], T_MELT))
-        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt
-        Qrain_i = CP_W * rain_mass * (T_rain - T_MELT)
+        Qrain_i = self._rain_heat(self.RAIN[iii], self.T2m[iii]) # [W m-2]
 
         Q_SW_net = self.SW_d[iii] * (1 - self.ALBEDO[iii])
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
@@ -347,9 +361,7 @@ class SurfaceEnergyBudget:
         dt   = PhysParams['dt']
         z    = PhysParams['z']
 
-        T_rain = np.max((self.T2m[iii], T_MELT))
-        rain_mass = self.RAIN[iii] * RHO_I / S_PER_YEAR * dt
-        Qrain_i = CP_W * rain_mass * (T_rain - T_MELT)
+        Qrain_i = self._rain_heat(self.RAIN[iii], self.T2m[iii]) # [W m-2]
 
         Q_SW_net = self.SW_d[iii] * (1 - self.ALBEDO[iii])
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
@@ -424,7 +436,7 @@ class SurfaceEnergyBudget:
         TTL). Sub-step melt is summed. As in _solve_Ts_subdt_quartic: the
         returned surface temperature is the mean over sub-steps (273.15 K if
         any melt occurred), and the firn top-layer temperature is set to it.
-        Rain heat (Qrain) is not included, as in the quartic sub-step solver.
+        The heat of the rain of each sub-step is included, as in the other solvers.
 
         The top-layer-thickening loop of _solve_Ts_newton is kept: if melt over
         the model step exceeds the top-layer mass, the layer is thickened and
@@ -459,12 +471,13 @@ class SurfaceEnergyBudget:
                 isub = i0 + jj
                 Q_SW_net = self.SW_d[isub] * (1 - self.ALBEDO[isub])
                 Q_LW_d   = self.emissivity_air * self.LW_d[isub]
+                Qrain_i  = self._rain_heat(self.RAIN[isub], self.T2m[isub]) # [W m-2]
 
-                def residual(Ts, T_0=T_0, isub=isub, m=m):
+                def residual(Ts, T_0=T_0, isub=isub, m=m, Qrain_i=Qrain_i):
                     LW_u = self.emissivity_snow * self.SBC * Ts**4
                     G = K_GL * (Tz[i_GL] - Ts) / z_GL
                     QH_i, QL_i = self.flux_model.compute(Ts, isub)
-                    Qnet = Q_SW_net + Q_LW_d - LW_u + QH_i + QL_i + G
+                    Qnet = Q_SW_net + Q_LW_d - LW_u + QH_i + QL_i + Qrain_i + G
                     return Qnet - (CP_I * m / dt) * (Ts - T_0)
 
                 Ts = T_0
@@ -539,7 +552,8 @@ class SurfaceEnergyBudget:
         iiisub = (iii)*self.dtRATIO
         
         flux_df1 = self.df_CLIM.iloc[iiisub:iiisub+self.dtRATIO]
-        flux_df1_r = flux_df1.flux.values + G
+        Qrain_sub = np.array([self._rain_heat(r_, T_) for r_, T_ in zip(flux_df1.RAIN.values, flux_df1.T2m.values)]) # heat of rain in each sub-step [W m-2]
+        flux_df1_r = flux_df1.flux.values + G + Qrain_sub
 
         Tcalc = np.zeros_like(flux_df1_r)
         meltmass = np.zeros_like(flux_df1_r)
