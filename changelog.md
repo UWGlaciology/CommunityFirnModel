@@ -45,7 +45,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 
 - *Issues* 
 	- If data is not written at each time step, dH that is saved/written to file does not represent the change since the last write. 
-	- The dH output does not sum to zero when the model reaches or approaches steady state.
+	- The corrected dH (DIP columns 5 and 6) sums to zero when the model is in steady state (within about half a percent of the accumulation); the uncorrected dH (columns 2 and 3) keeps a constant drift when the bottom of the domain is lighter than ice, so use the corrected fields in that case.
 	- The siteClimate_from_RCM.py file is a mess; if you want to use it the best thing to do is to get in touch with me (maxstev@umd.edu) and I can help you get it running for your needs.
 
 
@@ -84,6 +84,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 - *ModelOutputs.py* **Gridded outputs (`grid_outputs: true`).** `depth` is now a 2-D array (one row per write, as the grid is rebuilt each step) instead of a single 1-D axis; rows are padded with trailing NaN (use `nanmax`, `nanmean`, etc.), with one extra valid value at depth in typical cases.
 - *firn_density_nospin.py* **Restart runs** have one duplicated row (the first two rows share `init_time`); scripts assuming a unique first row or `n_rows == TWlen+1` need updating.
 - **Checkpoint (spin) files** written by 4.0.0 are not interchangeable with older ones: restarting from a pre-regrid spin file reproduces the old depth offset.
+- *ModelOutputs.py, firn_density_nospin.py* **`compaction`, `refrozen`, `DIP` column 4.** The `compaction` output and `DIP` column 4 are now the thickness change by densification alone (horizontal strain is no longer in them); the `refrozen` output now contains the refreezing of each layer for the `bucket` and `darcy` schemes (it was all zeros); and with `grid_outputs: true` the amounts per node (`compaction`, `LWC`, `refrozen`, `PLWC_mem`) are regridded conserving their sum, so their values differ from 3.2.0 (see *Fixed*). `DIP` column 4 is documented as minus the sum of `compaction`.
 
 ### New
 - *tests/ (new), pytest.ini, .github/workflows/tests.yml, requirements.txt, docs/running/testing.rst, docs/extras/melt_checks.rst* (Alan Hughes) A pytest suite: fast unit and single-scheme tests on a synthetic firn column, and short model runs that check mass and energy budgets. `psutil` (imported by the model) and `pytest` are added to the requirements.
@@ -128,6 +129,9 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 - Vapor transport (`vapor.py`) is experimental and not included. It needs its coupling changed to a mass source, open porosity, an Earth-air diffusivity check, and surface exchange before use.
 - The Darcy scheme is only used after the year 1980; before that melt is routed with the bucket scheme (a hardcoded switch in `firn_density_nospin.py`).
 - `DIPhorizon` is not handled correctly on restarts (documented in the code).
+- With `grid_outputs: true`, the maximum depth of the output grid has two different defaults (`ModelOutputs.py` says 200 m, `firn_density_nospin.py` uses the depth of the initial domain, and raises a smaller user value to it); deeper columns than the output grid are cut off without a warning.
+- The ten `*_darcy` keys are read together: a missing or misspelled one makes all ten fall back to their defaults. `eps_cvg_darcy` is read but overwritten (it has no effect).
+- The sub-daily SEB solvers (`prescribed` with sub-steps, `bulk_richardson`, `monin_obukhov`) do not include the heat of rain.
 - `SEB.py` option 3 still converts mass fluxes with `* stepsperyear / 917`, while the other forcing paths use `flux_to_rate` (identical for evenly spaced steps).
 - Louis (1979) stability-function coefficients and several other coefficients in `SEB_turbulent.py` are unverified (`VERIFY` comments).
 
