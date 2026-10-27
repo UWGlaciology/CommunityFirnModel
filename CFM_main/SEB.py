@@ -253,6 +253,42 @@ class SurfaceEnergyBudget:
     ### end _check_turb_inputs ###
     ###############################
 
+    def _thicken_top_layer(self, mass, iTL, melt_for):
+        '''
+        Index of the last node of the top layer that takes the surface energy.
+
+        The top layer starts as the first TL_thick of the column (node iTL). If the melt it would
+        produce is more than its own mass, a layer that thin could not supply it, so the layer is
+        made thicker: the answer is the first node whose layer is at least as heavy as the melt it
+        produces. A thicker layer has more cold content (and heat capacity), so its melt only gets
+        smaller while its mass only gets larger: melt - mass changes sign once, and the first node
+        where it does is found by bisection (at most a few evaluations of melt_for, and none if the
+        first layer is already thick enough). This replaces an iteration that could swing between
+        two layers and stop after 10 rounds without a consistent layer.
+
+        :param mass: mass of each node [kg m-2]
+        :param iTL: index of the last node of the first guess of the top layer
+        :param melt_for: function of the index of the last node of the top layer that returns the
+            melt [kg m-2] over the step for that layer
+        :return: index of the last node of the top layer
+        '''
+        cum_mass = np.cumsum(mass)
+        if melt_for(iTL) <= cum_mass[iTL]:
+            return iTL
+        last = len(mass) - 1
+        if melt_for(last) > cum_mass[last]:
+            return last   # more melt than the mass of the whole column: use all of it
+        lo, hi = iTL, last   # melt_for(lo) > cum_mass[lo] and melt_for(hi) <= cum_mass[hi]
+        while hi - lo > 1:
+            mid = (lo + hi) // 2
+            if melt_for(mid) <= cum_mass[mid]:
+                hi = mid
+            else:
+                lo = mid
+        return hi
+    ### end _thicken_top_layer ###
+    ##############################
+
     def _rain_heat(self, rain_rate, T_air):
         '''
         Heat carried to the surface by rain [W m-2], assuming the rain has the
@@ -301,13 +337,14 @@ class SurfaceEnergyBudget:
         K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
         G = K_GL * (Tz[i_GL] - Tz[0]) / z_GL
 
-        iTL = np.where(z >= self.TL_thick)[0][0]
+        Qnet = Q_SW_net + Q_LW_d + QH_i + QL_i + Qrain_i + G
+        cum_mass = np.cumsum(mass)
+        cum_mass_T = np.cumsum(mass * Tz)
 
-        for kk in range(10):
-            m = np.cumsum(mass)[iTL]
-            TTL = np.cumsum(mass * Tz)[iTL] / m
-
-            Qnet = Q_SW_net + Q_LW_d + QH_i + QL_i + Qrain_i + G
+        def top_layer(iTL):
+            """Surface temperature and melt if the top layer ends at node iTL."""
+            m = cum_mass[iTL]
+            TTL = cum_mass_T[iTL] / m
 
             pmat = np.zeros(5)
             pmat[0] = self.emissivity_snow * self.SBC * dt / (CP_I * m)
@@ -326,11 +363,11 @@ class SurfaceEnergyBudget:
                     meltmass = 0
             else:
                 meltmass = 0
+            return Tsurface, meltmass
 
-            if meltmass <= m:
-                break
-            else:
-                iTL = np.where(np.cumsum(mass) >= meltmass)[0][0]
+        iTL = np.where(z >= self.TL_thick)[0][0]
+        iTL = self._thicken_top_layer(mass, iTL, lambda i: top_layer(i)[1])
+        Tsurface, meltmass = top_layer(iTL)
 
         Tz[0:iTL+1] = Tsurface
 
@@ -345,11 +382,10 @@ class SurfaceEnergyBudget:
         QH/QL are re-evaluated at each Newton iterate via
         self.flux_model.compute(Ts, iii).
 
-        Wraps the solve in the same top-layer-thickening loop used by
-        _solve_Ts_quartic: if the resulting meltmass exceeds the mass
-        of the assumed top layer, the top layer is thickened and the
-        full nonlinear solve is redone, since a layer that thin
-        couldn't physically produce that much melt.
+        If the resulting meltmass exceeds the mass of the assumed top
+        layer, the top layer is thickened (see _thicken_top_layer) and the
+        full nonlinear solve is redone, since a layer that thin couldn't
+        physically produce that much melt.
 
         Note: cold content (energy consumed warming the layer to
         273.15K before melt can occur) is already handled correctly
@@ -374,13 +410,15 @@ class SurfaceEnergyBudget:
         K_ice = 9.828 * np.exp(-0.0057 * T_GL)
         K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
 
-        iTL = np.where(z >= self.TL_thick)[0][0]
+        cum_mass = np.cumsum(mass)
+        cum_mass_T = np.cumsum(mass * Tz)
 
-        for kk in range(10):
-            m = np.cumsum(mass)[iTL]
-            TTL = np.cumsum(mass * Tz)[iTL] / m
+        def top_layer(iTL):
+            """Surface temperature and melt if the top layer ends at node iTL."""
+            m = cum_mass[iTL]
+            TTL = cum_mass_T[iTL] / m
 
-            def residual(Ts, m=m, TTL=TTL):
+            def residual(Ts):
                 LW_u = self.emissivity_snow * self.SBC * Ts**4
                 G = K_GL * (Tz[i_GL] - Ts) / z_GL
                 QH_i, QL_i = self.flux_model.compute(Ts, iii)
@@ -410,11 +448,11 @@ class SurfaceEnergyBudget:
                     meltmass = 0
             else:
                 meltmass = 0
+            return Ts, meltmass
 
-            if meltmass <= m:
-                break
-            else:
-                iTL = np.where(np.cumsum(mass) >= meltmass)[0][0]
+        iTL = np.where(z >= self.TL_thick)[0][0]
+        iTL = self._thicken_top_layer(mass, iTL, lambda i: top_layer(i)[1])
+        Ts, meltmass = top_layer(iTL)
 
         Tz[0:iTL+1] = Ts
 
@@ -438,10 +476,10 @@ class SurfaceEnergyBudget:
         any melt occurred), and the firn top-layer temperature is set to it.
         The heat of the rain of each sub-step is included, as in the other solvers.
 
-        The top-layer-thickening loop of _solve_Ts_newton is kept: if melt over
-        the model step exceeds the top-layer mass, the layer is thickened and
-        the sub-step solve is repeated (a layer that thin cannot supply that
-        melt; the quartic sub-step solver does not do this).
+        As in _solve_Ts_newton, if the melt over the model step exceeds the
+        top-layer mass, the layer is thickened (see _thicken_top_layer) and the
+        sub-step solve is repeated (a layer that thin cannot supply that melt;
+        the quartic sub-step solver does not do this).
         '''
         Tz   = PhysParams['Tz']
         mass = PhysParams['mass']
@@ -456,12 +494,14 @@ class SurfaceEnergyBudget:
         K_ice = 9.828 * np.exp(-0.0057 * T_GL)
         K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
 
-        iTL = np.where(z >= self.TL_thick)[0][0]
         i0  = iii * self.dtRATIO
+        cum_mass = np.cumsum(mass)
+        cum_mass_T = np.cumsum(mass * Tz)
 
-        for kk in range(10):
-            m = np.cumsum(mass)[iTL]
-            TTL = np.cumsum(mass * Tz)[iTL] / m
+        def top_layer(iTL):
+            """Surface temperature in each sub-step and the melt in each, if the top layer ends at node iTL."""
+            m = cum_mass[iTL]
+            TTL = cum_mass_T[iTL] / m
 
             Tcalc    = np.zeros(self.dtRATIO)
             meltmass = np.zeros(self.dtRATIO)
@@ -473,7 +513,7 @@ class SurfaceEnergyBudget:
                 Q_LW_d   = self.emissivity_air * self.LW_d[isub]
                 Qrain_i  = self._rain_heat(self.RAIN[isub], self.T2m[isub]) # [W m-2]
 
-                def residual(Ts, T_0=T_0, isub=isub, m=m, Qrain_i=Qrain_i):
+                def residual(Ts, T_0=T_0, isub=isub):
                     LW_u = self.emissivity_snow * self.SBC * Ts**4
                     G = K_GL * (Tz[i_GL] - Ts) / z_GL
                     QH_i, QL_i = self.flux_model.compute(Ts, isub)
@@ -499,12 +539,12 @@ class SurfaceEnergyBudget:
                 else:
                     Tcalc[jj] = Ts
                 T_0 = Tcalc[jj]
+            return Tcalc, meltmass
 
-            meltmass_out = np.sum(meltmass)
-            if meltmass_out <= m:
-                break
-            else:
-                iTL = np.where(np.cumsum(mass) >= meltmass_out)[0][0]
+        iTL = np.where(z >= self.TL_thick)[0][0]
+        iTL = self._thicken_top_layer(mass, iTL, lambda i: np.sum(top_layer(i)[1]))
+        Tcalc, meltmass = top_layer(iTL)
+        meltmass_out = np.sum(meltmass)
 
         Tsurface_out = np.mean(Tcalc)
         if meltmass_out > 0:
