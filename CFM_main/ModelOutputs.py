@@ -92,7 +92,7 @@ class ModelOutputs:
 
             if varname == 'z':
                 row[:n] = grid_out_i
-            elif varname == 'LWC':
+            elif varname in ('LWC', 'refrozen'):  # amounts per layer: regrid conserving the total
                 row[:n] = self.RGfun(MOd['z'], MOd[varname], grid_out_i)
             else:
                 Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind=intkind, fill_value='extrapolate')

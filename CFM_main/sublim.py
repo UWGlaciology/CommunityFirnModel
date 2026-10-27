@@ -76,6 +76,7 @@ def sublim(self,iii):
     
     self.Dcon       = np.concatenate((self.Dcon[ind1:-1] , self.Dcon[-1]*np.ones(num_boxes_sublim)))
     self.compaction = np.concatenate((self.compaction[ind1:-1], np.zeros(num_boxes_sublim)))
+    self.refrozen   = np.concatenate((self.refrozen[ind1:-1], np.zeros(num_boxes_sublim)))
     self.dzn        = np.concatenate((np.zeros(num_boxes_sublim), self.dz[1:])) #this is not quite right because is assumes compaction for the pm box is zero.
     self.dzn        = self.dzn[0:self.compboxes]
     self.Tz         = np.concatenate((self.Tz[ind1:-1] , self.Tz[-1]*np.ones(num_boxes_sublim)))

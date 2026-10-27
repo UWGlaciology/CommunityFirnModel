@@ -357,6 +357,9 @@ def bucket(self, iii):
         (rho, age, dz, Tz, r2, z, mass, dzn, LWC, meltgridtrack,
          refrozentot, runofftot, dh_melt) — all updated in place on
          `self` and also returned explicitly for the caller to reassign.
+
+    Also sets `self.refrozen`, the refreezing in each layer during this call
+    [m we] (the model output 'refrozen'); it sums to `refrozentot`.
     """
     debug = self.c.get('debug_bucket', False)
 
@@ -656,6 +659,7 @@ def bucket(self, iii):
     ### as capacity permits. refr_cap already reflects both the energy budget
     ### (cold content) and the physical pore-space limit (Section 2).
     freeze      = np.minimum(LWC_redist, refr_cap)  # refreezing per layer [m we]
+    refrozen_layer = freeze.copy()                  # per-layer refreezing this step, both passes [m we]; becomes self.refrozen
     self.mass   = self.mass + RHO_W_KGM * freeze    # update mass [kg]
     self.LWC    = LWC_redist - freeze        # update LWC [m], remaining unfrozen water
     self.rho    = self.mass / self.dz               # update density [kg m-3]
@@ -843,6 +847,7 @@ def bucket(self, iii):
     cold_content_new[(cold_content_new < 0) & (cold_content_new > -1e-9)] = 0 # clean numerical noise
 
     refrozentot         = refrozentot + np.sum(freeze) # running total across both refreeze passes
+    refrozen_layer      = refrozen_layer + freeze
     
     deltaT              = cold_content_new / (CP_I * self.mass)
     self.Tz[freeze > 0] = T_MELT - deltaT[freeze > 0] # running total across both refreeze passes  
@@ -880,6 +885,8 @@ def bucket(self, iii):
         print(f'Mass conservation error (bucket, check 2) at step {iii}\n'
               f'    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
     _record_check(self, 'budget_2', abs(liqmcfinal - liqmcinit) <= 1e-5, residual=liqmcfinal - liqmcinit, threshold=1e-5)
+
+    self.refrozen = refrozen_layer   # per-layer refreezing this step [m we] (output 'refrozen'); sums to refrozentot
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
         self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
@@ -1008,7 +1015,10 @@ def darcyscheme(self,iii):
     tuple
         (rho, age, dz, Tz, r2, z, mass, dzn, LWC, meltgridtrack, refr_tot,
          runofftot, dh_melt) -- all updated in place on `self` and also
-         returned explicitly for the caller to reassign. dh_melt is the
+         returned explicitly for the caller to reassign. Also sets
+         `self.refrozen`, the refreezing in each layer during this call
+         [m we] (the model output 'refrozen'; refreezing in layers that are
+         melted away later in the same call is not included). dh_melt is the
          (<= 0) thickness removed from the top of the column by melt [m],
          the same quantity bucket() returns; update_dH needs it.
 
@@ -1078,6 +1088,7 @@ def darcyscheme(self,iii):
     runofftot      = 0.                  # total runoff over the entire Darcy routine
     dh_melt        = 0.                  # surface lowering from melt removal over the routine [m] (<= 0), as in bucket()
     refr_tot       = 0.                  # total refreezing over the entire Darcy routine
+    refr_layer     = np.zeros(ncv)       # per-layer refreezing over the routine [m we] (follows the grid when melt removes nodes)
     dltz           = np.append(self.dz[0:-1]/2+self.dz[1:]/2,self.dz[-1]/2) # distance between centres of nodes
 
     if self.doublegrid: #if we have doublegrid: need to adjust gridtrack
@@ -1118,6 +1129,8 @@ def darcyscheme(self,iii):
             self.mass = self.dz * self.rho
             self.age  = np.append(self.age[ind1:-1], self.age[-1] * np.ones(n_mlt))
             self.LWC  = np.concatenate(([pm_lwc], self.LWC[ind1 + 1:-1], self.LWC[-1] * np.ones(n_mlt)))
+            self.compaction = np.concatenate((self.compaction[ind1:-1], np.zeros(n_mlt)))
+            refr_layer = np.concatenate((refr_layer[ind1:-1], np.zeros(n_mlt)))
             self.Tz   = np.append(self.Tz[ind1:-1], self.Tz[-1] * np.ones(n_mlt))
             cp_i      = 152.5 + 7.122 * self.Tz                # specific heat of ice [J kg-1 K-1] (Cuffey & Paterson 2010, Eq. 9.1)
             self.r2   = np.append(self.r2[ind1:-1], self.r2[-1] * np.ones(n_mlt))
@@ -1402,6 +1415,7 @@ def darcyscheme(self,iii):
         cp_i         = 152.5 + 7.122 * self.Tz                          # specific heat of ice [J kg-1 K-1] (Cuffey & Paterson 2010, Eq. 9.1)
 
         refr_tot = refr_tot + np.sum(refr) / RHO_W_KGM                  # accumulate total refreezing [m we]
+        refr_layer = refr_layer + refr / RHO_W_KGM                      # and per layer [m we]
 
         timer = timer + dtsub   # advance the sub-step timer
 
@@ -1452,6 +1466,8 @@ def darcyscheme(self,iii):
     if time.time() - ticdarcy >= 10:
         print(f'{iii} CFM time: {self.modeltime[iii]}')
         print(f'Darcy scheme run time: {np.around(time.time() - ticdarcy, 2)}')
+
+    self.refrozen = refr_layer   # per-layer refreezing this step [m we] (output 'refrozen')
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
         self.dzn, self.LWC, meltgridtrack, refr_tot, runofftot, dh_melt

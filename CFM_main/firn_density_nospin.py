@@ -1178,6 +1178,7 @@ class FirnDensityNoSpin:
             mtime = self.modeltime[iii]
             zbot_old = self.z[-1]
             self.dh_melt = 0.0   # reset; only bucket() sets it
+            self.refrozen = np.zeros_like(self.dz)   # refreezing in each layer during this step [m we]; the melt scheme and the refreezing diffusion add to it
             
             # lwc_startofloop = self.LWC.copy()
             # mass_startofloop = self.mass.copy()
@@ -1553,6 +1554,7 @@ class FirnDensityNoSpin:
                 if self.doublegrid:
                     self.gridtrack = np.concatenate(([1],self.gridtrack[:-1]))
                 self.LWC        = np.concatenate(([0], self.LWC[:-1]))
+                self.refrozen   = np.concatenate(([0], self.refrozen[:-1]))
 
             else: # no accumulation during this time step
                 bd_flag = 'no accumulation'
@@ -1628,6 +1630,7 @@ class FirnDensityNoSpin:
 
             elif np.any(self.LWC>0.): # enthalpy diffusion if water in column
                 LWC0e = sum(self.LWC).copy()
+                LWC_pre_en = self.LWC.copy() # per-layer LWC before the refreezing diffusion, to get refreezing per layer
                 tot_mass_pre_en = np.sum(self.mass) + np.sum(self.LWC*1000)
                 sol_mass_pre_en = np.sum(self.mass)
                 liq_mass_pre_en = np.sum(self.LWC*1000)
@@ -1657,6 +1660,7 @@ class FirnDensityNoSpin:
 
                 en_refreeze = LWC0e-sum(self.LWC) # volume of liquid refrozen in enthalpy scheme
                 self.refreeze = self.refreeze + en_refreeze
+                self.refrozen = self.refrozen + (LWC_pre_en - self.LWC) # per layer [m we], sums to en_refreeze
                 
 
             self.T50     = np.mean(self.Tz[self.z<50]) # Temperature at 50 

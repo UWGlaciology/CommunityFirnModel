@@ -22,6 +22,8 @@ isotopes: (per mil) water isotope values, corresponds to ‘depth’
 
 LWC: (m3) volume of liquid present in that node, corresponds to ‘depth’
 
+refrozen: (m w.e.) liquid water that refroze in that node during the time step (not accumulated over time), corresponds to ‘depth’. For each time step the nodes add up to the total in ‘refreeze’; with the ``darcy`` scheme, water that refroze in a surface node and was melted again later in the same step is not included. It includes the refreezing in the melt scheme and in the heat diffusion that follows it. With gridded outputs the amounts are regridded so that the total is conserved.
+
 compaction: (m) Total compaction of each node since the previous time step; corresponds to ‘depth’. To get compaction rate you need to divide by the time-step size. To get compaction over an interval you need to sum numerous boxes.
 
 dcon: (advanced use) Dcon is a layer-tracking routine; to use it you need to dig into the code a bit and program it how you want, but for example you could set it up so that each model node that has liquid water gets a 1 and all others get a zero. Corresponds to depth vector/matrix.
