@@ -69,7 +69,7 @@ def _irreducible_water(rho, dz, coleou_lesaffre, rho_impermeable, irr_val=0.02):
 @pytest.mark.parametrize('r', GRAIN_RADII)
 def test_saturated_conductivity_matches_calonne(r):
     rho = np.array(DENSITIES)
-    g, mu = 9.81, 0.001792  # Verjans et al. round g to 9.8 m s-2; the code uses 9.81
+    g, mu = 9.8, 0.001792  # Verjans et al. use g = 9.8 m s-2, as does the code (constants.GRAVITY since CFM 4.0; 3.2.0 used 9.81)
     expected = 3.0 * r ** 2 * g * RHO_WATER / mu * np.exp(-0.013 * rho)
     np.testing.assert_allclose(hydrconducsat_Calonne(r, rho), expected, rtol=1e-12)
 

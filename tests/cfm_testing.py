@@ -53,7 +53,7 @@ class SyntheticColumn:
     Per node (top node = surface):
         rho [kg m-3], Tz [K], dz [m], z [m, top edge of node], mass [kg m-2],
         LWC [m w.e.], age [s], r2 [m2], bdot_mean [m ie yr-1], Dcon, dzn,
-        mass_sum [kg m-2]
+        mass_sum [kg m-2], compaction [m]
     Per time step:
         dt [s], snowmeltSec and rainSec [m ie per step / S_PER_YEAR],
         modeltime [decimal year]
@@ -62,7 +62,7 @@ class SyntheticColumn:
     '''
 
     STATE_ATTRIBUTES = ('rho', 'Tz', 'dz', 'z', 'mass', 'LWC', 'age', 'r2',
-                        'bdot_mean', 'Dcon', 'dzn', 'mass_sum', 'dt', 'snowmeltSec',
+                        'bdot_mean', 'Dcon', 'dzn', 'mass_sum', 'compaction', 'dt', 'snowmeltSec',
                         'rainSec', 'modeltime', 'c', 'compboxes', 'doublegrid',
                         'gridtrack')
 
@@ -92,6 +92,7 @@ class SyntheticColumn:
         self.age = np.arange(n) * dt
         self.bdot_mean = np.full(n, 0.3)
         self.Dcon = np.flipud(np.arange(-n, 0))
+        self.compaction = np.zeros(n)
 
         self.compboxes = n
         self.dzn = self.dz[0:self.compboxes]
