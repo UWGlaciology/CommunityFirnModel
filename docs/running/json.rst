@@ -278,7 +278,7 @@ bdot_type
 
 grid_outputs
 ------------
-  Whether or not to put the outputs on a regular grid (i.e. evenly spaced vs. the internal variable grid)
+  Whether or not to put the outputs on a regular grid (i.e. evenly spaced vs. the internal variable grid). Variables that are a value of each node (density, temperature, age) are interpolated; variables that are an amount in each node (``LWC``, ``PLWC_mem``, ``refrozen``, ``compaction``) are regridded so that the sum over the grid cells is the sum over the nodes.
 
   :type: ``boolean``
   :default: ``True``

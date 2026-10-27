@@ -9,6 +9,9 @@ from constants import *
 import os
 import sys
 
+### Outputs that are an amount per layer (regridded so that their total is conserved)
+EXTENSIVE_OUTPUTS = ('LWC', 'refrozen', 'compaction', 'PLWC_mem')
+
 class ModelOutputs:
     '''
     Class to handle making the model output files
@@ -92,8 +95,8 @@ class ModelOutputs:
 
             if varname == 'z':
                 row[:n] = grid_out_i
-            elif varname in ('LWC', 'refrozen'):  # amounts per layer: regrid conserving the total
-                row[:n] = self.RGfun(MOd['z'], MOd[varname], grid_out_i)
+            elif varname in EXTENSIVE_OUTPUTS:  # amounts per layer: regrid conserving the total
+                row[:n] = self.RGfun(MOd['z'], MOd[varname], grid_out_i, to_bottom=(n_pts <= self.max_grid_len))
             else:
                 Ifun = interpolate.interp1d(MOd['z'], MOd[varname], kind=intkind, fill_value='extrapolate')
                 row[:n] = Ifun(grid_out_i)
@@ -123,15 +126,36 @@ class ModelOutputs:
         #####################
                     
 
-    def RGfun(self, z, var, grid):
+    def RGfun(self, z, var, grid, to_bottom=True):
         '''
-        Function to regrid the variables that can not be linearly interpolated
-        e.g. LWC needs to conserve mass. 
-        '''
+        Regrid an amount per layer (not a value that can be interpolated), e.g. LWC
+        [m w.e.] or the compaction [m] of each layer, to the output grid, keeping the
+        total: the sum of the grid cells between two depths is the amount in that
+        depth range, and the sum of all cells is the sum over the layers.
 
-        varC = np.cumsum(var)
-        newVar = np.interp(grid, z, varC)
-        return np.diff(newVar,append = newVar[-1])
+        The cumulative amount is interpolated linearly between the layer edges, so a
+        layer's amount is spread evenly over its own thickness (nodes with depth z are
+        the tops of the layers; the last layer is taken to be as thick as the one above).
+
+        :param z: depth of the top of each layer [m]
+        :param var: amount in each layer
+        :param grid: depth of the top of each output cell [m], evenly spaced
+        :param to_bottom: if True, the last cell also gets whatever lies below it (the
+            output grid ends inside the last layer); if False the grid was truncated, and
+            the last cell ends one cell spacing below its top
+        :return: amount in each output cell
+        '''
+        edges = np.append(z, z[-1] + (z[-1] - z[-2]))   # layer tops and the bottom of the last layer
+        cumulative = np.concatenate(([0.], np.cumsum(var)))
+        if len(grid) > 1:
+            spacing = grid[1] - grid[0]
+        else:
+            spacing = edges[-1] - grid[0]
+        cell_edges = np.append(grid, grid[-1] + spacing)
+        newC = np.interp(cell_edges, edges, cumulative)
+        if to_bottom:
+            newC[-1] = cumulative[-1]
+        return np.diff(newC)
 
 
 
