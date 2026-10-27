@@ -46,7 +46,7 @@ Configuration
 -------------
 Firn air is switched on with ``"FirnAir": true`` in the main CFM .json file; the
 file named by ``"AirConfigName"`` (default ``AirConfig.json``) holds the keys
-read here (stored as ``self.cg``):
+read here (stored as ``self.cg``)::
 
     gaschoice            list of gas names; each must be implemented in ``gasses()``
     gravity              'on' / 'off': gravitational fractionation
@@ -80,24 +80,26 @@ density relation (Martinerie et al.).
 
 References
 ----------
-Adolph, A. C., Albert, M. R. (2014). Gas diffusivity and permeability through the
-    firn column at Summit, Greenland. The Cryosphere, 8, 319-328.
-Battle et al. (``Battle`` diffusivity; the code does not record the full citation).
-Blunier, T., Schwander, J. (2000). Gas enclosure in ice: age difference and
-    fractionation (lock-in density, ``LIDRho = rho_co - 14``).
-Buizert, C. PhD thesis, University of Copenhagen (the ``Christo`` options;
-    ``gasses`` relative diffusivities and the CO2 free-air diffusivity, App. A3).
-Cuffey, K. M., Paterson, W. S. B. (2010). The Physics of Glaciers (``Severinghaus``).
-Freitag, J. et al. (2002) (``Freitag`` diffusivity, Eq. 15, and the Darcy permeability).
-Goujon, C., Barnola, J.-M., Ritz, C. (2003). J. Geophys. Res., 108(B7), 2366
-    (closed-porosity relation, Eqs. 9-10).
-Grachev, A. M., Severinghaus, J. P. (2003). Thermal diffusion factors (``omega``
-    for d15N2 and d40Ar).
-Kawamura, K. et al. (2006). Surface eddy diffusivity of the convective zone.
-Martinerie, P. et al. Mean close-off density as a function of temperature.
-Patankar, S. V. (1980). Numerical Heat Transfer and Fluid Flow.
-Schwander, J. (1988). Gas diffusion in firn (``Schwander`` diffusivity).
-Witrant, E. et al. (2012). Atmos. Chem. Phys., 12, 11465-11483 (``Witrant``).
+
+* Adolph, A. C., Albert, M. R. (2014). Gas diffusivity and permeability through the
+  firn column at Summit, Greenland. The Cryosphere, 8, 319-328.
+* Battle et al. (``Battle`` diffusivity; the code does not record the full citation).
+* Blunier, T., Schwander, J. (2000). Gas enclosure in ice: age difference and
+  fractionation (lock-in density, ``LIDRho = rho_co - 14``).
+* Buizert, C. PhD thesis, University of Copenhagen (the ``Christo`` options;
+  ``gasses`` relative diffusivities and the CO2 free-air diffusivity, App. A3).
+* Cuffey, K. M., Paterson, W. S. B. (2010). The Physics of Glaciers (``Severinghaus``).
+* Freitag, J. et al. (2002) (``Freitag`` diffusivity, Eq. 15, and the Darcy permeability).
+* Goujon, C., Barnola, J.-M., Ritz, C. (2003). J. Geophys. Res., 108(B7), 2366
+  (closed-porosity relation, Eqs. 9-10).
+* Grachev, A. M., Severinghaus, J. P. (2003). Thermal diffusion factors (``omega``
+  for d15N2 and d40Ar).
+* Kawamura, K. et al. (2006). Surface eddy diffusivity of the convective zone.
+* Martinerie, P. et al. Mean close-off density as a function of temperature.
+* Patankar, S. V. (1980). Numerical Heat Transfer and Fluid Flow.
+* Schwander, J. (1988). Gas diffusion in firn (``Schwander`` diffusivity).
+* Witrant, E. et al. (2012). Atmos. Chem. Phys., 12, 11465-11483 (``Witrant``).
+
 '''
 
 
@@ -239,7 +241,7 @@ class FirnAir:
         Molecular diffusivity of the gas in firn comes from the parameterization
         chosen with ``Diffu_param``. Each is a function of the free-air
         diffusivity ``d_0`` and ``gam_x`` (gas relative to CO2), temperature,
-        and porosity (and, for 'Witrant', the accumulation rate):
+        and porosity (and, for 'Witrant', the accumulation rate)::
 
             'Severinghaus'  Cuffey and Paterson relation, depends on density, T, p_a
             'Schwander'     Schwander (1988), Eq. 2, depends on total porosity
@@ -267,6 +269,7 @@ class FirnAir:
 
         Uses ``self.z_co``, ``self.LID``, and (for 'Witrant') ``self.bdot_t``,
         which ``firn_air_diffusion`` sets immediately beforehand.
+
         :return diffu: molecular diffusivity profile (unit: m^2/s, type: array)
         :return d_eddy: eddy diffusivity profile (unit: m^2/s, type: array)
         '''
@@ -462,6 +465,7 @@ class FirnAir:
         The gas-age tracker ages every non-zero entry by one time step, shifts
         the profile with the firn, and sets the lock-in node and any
         unassigned node below the lock-in depth to 15 yr (placeholder).
+
         :param AirParams: per-step model state; each key is set as an instance
             attribute. Keys: 'Tz' (K), 'rho' (kg/m^3), 'dt' (s), 'z' (m),
             'rhos0' (kg/m^3; unused here), 'dz_old' and 'dz' (m; thickness
