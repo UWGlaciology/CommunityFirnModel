@@ -157,7 +157,7 @@ KNOWN_KEYS = {
     # melt / liquid water
     'liquid', 'merging', 'merge_min', 'LWCcorrect', 'ColeouLesaffre',
     'IrrVal', 'RhoImp', 'ThickImp', 'DownToIce', 'Ponding', 'DirectRunoff',
-    'RunoffZuoOerlemans', 'Slope', 'keep_firnthickness', 'meltwater_solver', 'meltwater_solver_options',
+    'RunoffZuoOerlemans', 'Slope', 'melt_strict', 'keep_firnthickness', 'meltwater_solver', 'meltwater_solver_options',
     'debug_bucket',
     # darcy
     'dtmin_darcy', 'dtmax_darcy', 'dtsub_darcy', 'RhoImp_darcy', 'ThickImp_darcy',

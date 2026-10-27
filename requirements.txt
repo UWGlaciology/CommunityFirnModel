@@ -5,3 +5,5 @@ scipy>=1.0.0
 pandas
 xarray
 netCDF4
+pytest==9.1.1
+psutil

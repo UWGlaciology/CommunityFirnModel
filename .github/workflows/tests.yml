@@ -1,0 +1,42 @@
+name: tests
+
+# Two jobs run in parallel on each push to main and each pull request:
+#   fast: the quick tests (unit, scheme).
+#   full: the slower tests that run the model (conservation).
+# To run them again by hand, use "Run workflow" in the Actions tab.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  fast:
+    name: Fast tests (unit, scheme)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: python -m pytest -v --tb=short -m "unit or scheme"
+
+  full:
+    name: Full tests (conservation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests
+        run: python -m pytest -v --tb=short -m conservation

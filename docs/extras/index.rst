@@ -11,3 +11,4 @@ Here is some extra information you might use when running the CFM.
     meltwater_solver.rst
     bucket_scheme.rst
     darcy_scheme.rst
+    melt_checks.rst

@@ -37,6 +37,31 @@ Two percolation schemes are provided:
   for full details.
 '''
 
+class MeltCheckError(RuntimeError):
+    '''Raised in strict mode (config key melt_strict) when a water-budget or
+    cold-layer check in a meltwater scheme fails.'''
+    pass
+
+def _start_diagnostics(self, scheme, iii):
+    '''
+    Reset self.melt_diagnostics at the start of a scheme call.
+    self.melt_diagnostics holds the diagnostics of the last call only: the totals of
+    the water budget and one entry in 'checks' for each check.
+    '''
+    self.melt_diagnostics = {'scheme': scheme, 'step': iii, 'checks': {}}
+
+def _record_check(self, name, ok, **values):
+    '''
+    Store the result of one check in self.melt_diagnostics['checks'][name].
+    If the check failed and self.c['melt_strict'] is True, raise MeltCheckError
+    so that the run stops instead of continuing with a wrong result.
+    '''
+    entry = {'ok': bool(ok)}
+    entry.update({k: np.asarray(v).item() for k, v in values.items()}) # numpy scalar -> Python int or float
+    self.melt_diagnostics['checks'][name] = entry
+    if (not ok) and self.c.get('melt_strict', False):
+        raise MeltCheckError(f"{self.melt_diagnostics['scheme']}: check '{name}' failed at step {self.melt_diagnostics['step']}: {entry}")
+
 #############
 def _debug_report(debug, label, value):
     """
@@ -366,6 +391,8 @@ def bucket(self, iii):
         keep_firnthickness  = False
     ### END USER CHOICES ###
 
+    _start_diagnostics(self, 'bucket', iii)
+
     ### Determine mass of melted firn ###
     melt_volume_IE = self.snowmeltSec[iii] * S_PER_YEAR     # [m ie]
     melt_volume_WE = melt_volume_IE * RHO_I_MGM             # [m we]
@@ -409,6 +436,7 @@ def bucket(self, iii):
         pass  # no rain input provided
 
     liqmcinit = pm_lwc + np.sum(self.LWC[i_surf_new + 1:]) + liq_input_vol  # mass conservation check
+    self.melt_diagnostics['water_in'] = liqmcinit  # [m we]
 
     ### Regridding ###
     if melt_mass > 0:
@@ -655,11 +683,13 @@ def bucket(self, iii):
     ### and (b) any genuine leftover LWC in a cold layer, which indicates a bug
     ### upstream and is reported for debugging.
     coldlayers = np.where(self.Tz < T_MELT)[0]
-    
+    cold_lwc_removed = 0.  # LWC removed from cold layers by the zeroing below [m we]
     if np.all(self.LWC[coldlayers] < 1e-9):
         # Residual LWC is negligible (floating-point noise) -- safe to zero out
+        cold_lwc_removed = np.sum(self.LWC[coldlayers])
         self.LWC[coldlayers] = 0.
-    if np.any(self.LWC[coldlayers] > 0.):
+    n_wet_cold_layers = np.sum(self.LWC[coldlayers] > 0.)
+    if n_wet_cold_layers > 0:
         # Genuine problem: some cold layer still holds non-negligible LWC
         # after refreezing. This should not happen -- flag loudly regardless
         # of the debug flag, since it indicates a mass/energy conservation bug.
@@ -672,6 +702,7 @@ def bucket(self, iii):
         print(f'Layer T: {self.Tz[xx]}')
         print(f'Layer rho: {self.rho[xx]}')
         print('#############')
+    _record_check(self, 'cold_1', n_wet_cold_layers == 0, n_wet_cold_layers=n_wet_cold_layers, cold_lwc_removed=cold_lwc_removed)
 
     ### Direct runoff of a fraction of blocked LWC (user choice) ###
     ### DirectRunoff represents water assumed to escape laterally immediately,
@@ -785,6 +816,7 @@ def bucket(self, iii):
     if abs(liqmcfinal - liqmcinit) > 1e-3:
         print(f'Mass conservation error (bucket, check 1) at step {iii}\n'
               f'    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
+    _record_check(self, 'budget_1', abs(liqmcfinal - liqmcinit) <= 1e-3, residual=liqmcfinal - liqmcinit, threshold=1e-3)
 
     ### Refreezing (pass 2) ###
     ### Ponding, direct runoff, and lateral runoff (Sections 6-7) can move LWC
@@ -821,17 +853,19 @@ def bucket(self, iii):
     ### out silently; genuine leftover LWC indicates a conservation bug and is
     ### reported regardless of the debug flag.
     coldlayers = np.where(self.Tz < T_MELT)[0]
-
+    cold_lwc_removed = 0.  # LWC removed from cold layers by the zeroing below [m we]
     if np.all(self.LWC[coldlayers] < 1e-9):
+        cold_lwc_removed = np.sum(self.LWC[coldlayers])
         self.LWC[coldlayers] = 0.
-
-    if np.any(self.LWC[coldlayers] > 0.):
+    n_wet_cold_layers = np.sum(self.LWC[coldlayers] > 0.)
+    if n_wet_cold_layers > 0:
         print('Problem: water content in a cold layer (bucket, post-refreeze #2)')
         xx = np.where((self.LWC > 0) & (self.Tz < T_MELT))[0]
         print(f'Layer depths: {self.z[xx]}')
         print(f'Layer LWC: {self.LWC[xx]}')
         print(f'Layer T: {self.Tz[xx]}')
         print(f'Layer rho: {self.rho[xx]}')
+    _record_check(self, 'cold_2', n_wet_cold_layers == 0, n_wet_cold_layers=n_wet_cold_layers, cold_lwc_removed=cold_lwc_removed)
 
     self.rho[self.rho > RHO_I] = RHO_I  # clip numerical overshoot above ice density
 
@@ -839,9 +873,13 @@ def bucket(self, iii):
     ### Final check, using a tighter tolerance than check 1 since this is after
     ### all redistribution, ponding, and refreezing passes are complete.
     liqmcfinal = np.sum(self.LWC) + refrozentot + runofftot
+    self.melt_diagnostics['lwc_end']  = np.sum(self.LWC)  # [m we]
+    self.melt_diagnostics['refrozen'] = refrozentot       # [m we]
+    self.melt_diagnostics['runoff']   = runofftot         # [m we]
     if abs(liqmcfinal - liqmcinit) > 1e-5:
         print(f'Mass conservation error (bucket, check 2) at step {iii}\n'
               f'    Init: {liqmcinit} m\n    Final: {liqmcfinal} m')
+    _record_check(self, 'budget_2', abs(liqmcfinal - liqmcinit) <= 1e-5, residual=liqmcfinal - liqmcinit, threshold=1e-5)
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
         self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
@@ -984,6 +1022,7 @@ def darcyscheme(self,iii):
     '''
 
     ticdarcy = time.time()
+    _start_diagnostics(self, 'darcy', iii)
     timetot  = self.dt[iii]      # total duration to be covered by the Darcy routine
     dtsub    = 60                # [s] duration of Darcy time steps, adjusted iteratively
 
@@ -1390,16 +1429,25 @@ def darcyscheme(self,iii):
     )
     if abs(water_balance_residual) > 1e-12:
         print('Liquid water loss/gain, amount:', water_balance_residual)
+    self.melt_diagnostics['water_in'] = melt_mass_tot / RHO_W_KGM + np.sum(initial_lwc) + rain_vol_tot  # [m we]
+    self.melt_diagnostics['lwc_end']  = np.sum(self.LWC)  # [m we]
+    self.melt_diagnostics['refrozen'] = refr_tot          # [m we]
+    self.melt_diagnostics['runoff']   = runofftot         # [m we]
+    _record_check(self, 'budget', abs(water_balance_residual) <= 1e-12, residual=water_balance_residual, threshold=1e-12)
 
     if np.any(self.Tz > T_MELT):
         print('Max Tz:', np.max(self.Tz))
 
     ### Check cold layers are dry ###
     coldlayers = np.where(self.Tz < T_MELT)[0]
+    cold_lwc_removed = 0.  # LWC removed from cold layers by the zeroing below [m we]
     if np.all(self.LWC[coldlayers] < 1e-9):
+        cold_lwc_removed = np.sum(self.LWC[coldlayers])
         self.LWC[coldlayers] = 0.
-    if np.any(self.LWC[coldlayers] > 0.):
+    n_wet_cold_layers = np.sum(self.LWC[coldlayers] > 0.)
+    if n_wet_cold_layers > 0:
         print('Problem: water content in a cold layer')
+    _record_check(self, 'cold', n_wet_cold_layers == 0, n_wet_cold_layers=n_wet_cold_layers, cold_lwc_removed=cold_lwc_removed)
 
     if time.time() - ticdarcy >= 10:
         print(f'{iii} CFM time: {self.modeltime[iii]}')

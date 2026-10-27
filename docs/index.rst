@@ -21,7 +21,10 @@ Python 3.6+,
 `numpy <http://www.numpy.org>`_, 
 `scipy <http://www.scipy.org>`_, 
 `h5py <https://www.h5py.org>`_,
-`pandas <https://pandas.pydata.org>`_
+`pandas <https://pandas.pydata.org>`_,
+`psutil <https://github.com/giampaolo/psutil>`_
+
+The test suite also needs `pytest <https://pytest.org>`_ (see :doc:`running/testing`). The file ``requirements.txt`` in the root folder of the repository lists all of these packages.
 
 The CFM should run on Windows, Linux, and OSX platforms. Additionally, plotting CFM results using Python requires the `matplotlib <http://matplotlib.org>`_ package. Installing Python 3 and the necessary packages is most easily done using a packaged Python distribution such as Anaconda. Explicit instructions on a scientific Python installation are beyond the scope of this document, but tutorials can be readily found online.
 
