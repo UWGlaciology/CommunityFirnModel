@@ -32,7 +32,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-3.2.0
+4.0.0
 
 ## Full Documentation
 
@@ -54,8 +54,66 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Goujon physics work, but could possibly be implemented more elegantly (it would be nice to avoid globals)
 	- Not exactly in progress, but at some point adding a log file that gets saved in the results folder would be a good idea.
 	- I am working on adding additional physics to simulate near-surface snow compaction ("stage zero compaction")
-	- I am working on adding turbulent flux calculations to the SEB module
+	- Vapor-phase transport (vapor.py) is in development and is not part of the release
 
+## [4.0.0] 2026-10-27
+### Notes
+- **This is a major release: results from 3.2.0 are not reproducible with 4.0.0, and some output formats changed.** The changes that alter results for existing configurations (no opt-in) are collected under *Changes that alter results*; the output-format changes under *Output format changes*. Read both before comparing with older runs or running old post-processing scripts.
+- Headline additions: turbulent (humidity- and wind-based) surface energy fluxes in the SEB module; an optional `eps_zz` interface for densification models; flexible horizontal-strain inputs; a rework of the meltwater percolation code (bucket and Darcy schemes); restart/checkpoint fixes; firn-air fixes and documentation.
+- Vapor-phase transport (`vapor.py`) is **not** part of this release (still experimental; kept out on purpose). `SEB.py` is still beta.
+- Several crash bugs found while preparing the release (Darcy, `manualT`, firn air) are fixed. The firn-air crash (`NameError`) was present in 3.2.0, and the Darcy flux-solver failure under NumPy >= 2.4 is in code that is unchanged from 3.2.0 (not tested there).
+- `release_checks/` contains small differential/unit tests used for this release (impermeable-layer detection vs 3.2.0, `manualT` T_mean, turbulent fluxes, the `eps_zz` interface, strain inputs). Run them from `CFM_main`.
+
+### Changes that alter results (not opt-in)
+- *melt.py* **Darcy irreducible water content.** The Darcy scheme previously used a fixed 0.02 (volumetric) irreducible water content and ignored the `ColeouLesaffre`/`IrrVal` keys. It now uses the same `_irreducible_lwc` helper as the bucket scheme, so with the default `ColeouLesaffre: true` the Darcy scheme retains more water in low-density firn (volumetric value 0.043 at 300 kg/m3, 0.037 at 400 (+83%), 0.027 at 600, about unchanged near 800). Less water moves downward and less runs off. There is no switch to restore the old fixed value.
+- *melt.py, darcy_funcs.py* **Darcy bug fixes.** Two operator-precedence errors in the flux solver are fixed (the test for choosing the initial flux guess, and `abs(f_eq > 1.)` which sent strongly negative residuals to Newton-Raphson instead of bisection), which changes which root-finder and initial guess is used per interface; gravity is `GRAVITY` (9.8) instead of the literal 9.81 (hydraulic conductivity -0.1%); and a lens exactly `ThickImp` thick is now impermeable (`>=` instead of `>`, matching the bucket scheme).
+- *SEB.py* **Surface energy balance.** The melt energy now includes the cold content of the top layer (energy needed to warm it to 273.15 K), applies the snow emissivity (0.98) to outgoing longwave radiation in the melt energy (it was already applied in the surface-temperature equation), and cannot be negative. The emissivity is also in the quartic coefficient of the sub-time-step solver, so the surface temperature itself shifts slightly. The first change reduces melt and the second increases it; the net effect depends on climate and configuration. No key restores the old numbers.
+- *firn_density_nospin.py* **Restart runs.** `T_mean` and `bdot_av` are computed correctly after a restart (the rolling mean could silently fall back to a flat mean because of a read-only array, and both quantities shared one `try`); the checkpoint is written after regridding (it was before, giving a persistent ~0.9 m depth offset); the restart time step and start time use the true prior interval; `Modelclimate` row 0 is read at `start_ind-1`; `spinUpdateDate` is always defined; the gridded-output grid is rebuilt each time step.
+- *firn_density_nospin.py* **`iceout` and `dH`.** `iceout` (ice flow out of the column bottom) is now the time-weighted mean mass flux into the column (accumulation, sublimation, and rain when melt is on) over the reference period, i.e. the spin-up repeat portion in repeated-climate-input mode (the whole run otherwise), instead of the mean over the whole run. The surface-elevation change `dH` is built from the densification-only thickness change (`dsdz_step`) plus accumulation and melt terms, and `dHcorr` converts `iceout` to thickness with the density of the layer actually leaving the domain. A runoff diagnostic (mean runoff over the reference period and a mass-consistent `iceout`) is printed at the end of a run. The `compaction` output is now computed every step and carried through melt and sublimation.
+- *RCMpkl_to_spin.py* **Forcing preparation.** Mass fluxes are converted to rates with the true step lengths (`flux_to_rate`); the repeated-climate spin-up block is taken from `spin_date_st` to `spin_date_end` (with a warning if `spin_date_st` differs from the start of the record) rather than from the start of the record; `num_reps` is at least 1; `forcing_data_start` is passed to the model. The SEB top-layer mass used when the melt is calculated in this file (`calc_melt`) is `400*0.05` (was `400*0.08`).
+- *firn_density_spin.py* The spin-up results folder is no longer deleted when it holds only .json/.hdf5 files; only `*.hdf5` files are removed.
+
+### Output format changes
+- *writer.py* **`age` column 0.** The decimal-year timestamp in column 0 of the `age` output was being divided by seconds per year (`1980.35` was written as ~`6e-5`). It is now a real decimal year; data columns are unchanged. Scripts that read `age[:,0]` as time, or re-multiplied it, must be updated.
+- *ModelOutputs.py* **Gridded outputs (`grid_outputs: true`).** `depth` is now a 2-D array (one row per write, as the grid is rebuilt each step) instead of a single 1-D axis; rows are padded with trailing NaN (use `nanmax`, `nanmean`, etc.), with one extra valid value at depth in typical cases.
+- *firn_density_nospin.py* **Restart runs** have one duplicated row (the first two rows share `init_time`); scripts assuming a unique first row or `n_rows == TWlen+1` need updating.
+- **Checkpoint (spin) files** written by 4.0.0 are not interchangeable with older ones: restarting from a pre-regrid spin file reproduces the old depth offset.
+
+### New
+- *SEB_turbulent.py (new file), SEB.py* **Turbulent fluxes in the SEB module.** New `SEB_turb_method`: `prescribed` (default; QH/QL from the forcing, the previous behavior), `bulk_richardson`, and `monin_obukhov`, which compute the sensible and latent heat fluxes from wind speed, humidity, pressure and the surface temperature (Newton-Raphson solve). Both work with sub-daily SEB forcing (for example 4-hourly with a daily model step). New keys: `SEB_roughness_mode` (`fixed` or `parameterized`, Andreas 1987), `SEB_z0m`, `SEB_z0h`, `SEB_z0q`, `SEB_z_ref_wind`, `SEB_z_ref_T`, `SEB_z_ref_q`. New forcing variables `WS`, `QV2m`, `PS` (and optionally `z0m`, `z0h`, `z0q`); `RCMpkl_to_spin.makeSpinFiles` now resamples them. Tested at DYE-2 with MERRA-2: with `parameterized` roughness and `SEB_z0m = 1e-3` both schemes reproduce MERRA-2's own sensible and latent fluxes to ~5%; MERRA-2's roughness values used as fixed values give about twice its fluxes. Computing the fluxes from the model surface temperature gave ~16% less melt than prescribed MERRA-2 fluxes at DYE-2 (1980-1999). The stability functions and several coefficients are marked `VERIFY` in the code; treat the new schemes as beta.
+- *physics.py, firn_density_nospin.py, firn_density_spin.py* **Optional `eps_zz` return form for densification models** (`get_drho_dt`). A model may return `RD['eps_zz']` (vertical compaction rate, s^-1, positive = compaction) instead of `RD['drho_dt']`; the density rate is then `rho * (eps_zz - (eps_xx + eps_yy))`. Existing models are untouched and give bit-identical results. `strain_softening` cannot be combined with such a model (error). See GitHub issue #18.
+- *strain.py, RCMpkl_to_spin.py, firn_density_nospin.py, firn_density_spin.py* **Flexible horizontal-strain inputs.** Strain rates can now come from the `strain_rates` argument (number, list, or dictionary), from strain columns/keys in the climate input (`eps_divergence`, or `eps_1`/`eps_2`, or `eps_xx`/`eps_yy`/`eps_xy`), from the new .json key `strain_rate_const`, or from the csv as before (the csv reads exactly as before). The strain components are kept and passed to densification models as `self.eps_xx`, `self.eps_yy`, `self.eps_xy`. The spin-up strain arrays have one value per spin-up step (they had the grid length). A strain rate of 0.0 is now honored.
+- *physics.py* Added the `ArthernWingham1998` densification model (Arthern and Wingham 1998, four-mechanism pressure-sintering). **Experimental and not yet validated** against the paper's figures; it prints a caution when used.
+- *solver.py, diffusion.py, firn_density_nospin.py, config_validation.py* `meltwater_solver` gains a fifth value, `legacy`, which reproduces the pre-July-2026 refreezing numerics. The older `LWC_heat` key is retired: it is reported as deprecated and, if present without `meltwater_solver`, forces `legacy` (a warning is printed). Three crashes on the previously unreachable legacy path were repaired in `diffusion.py`.
+- *config_validation.py, example.json, example_csv.json, example_df.json, docs/running/json.rst* 19 configuration keys that the code already read are now registered, documented and in the examples: ten Darcy keys (`dtmin_darcy`, `dtmax_darcy`, `dtsub_darcy`, `RhoImp_darcy`, `ThickImp_darcy`, `lat_runoff_darcy`, `slope_proxy_darcy`, `rholim_dcy`, `eps_cvg_darcy`, `runoff_method_darcy`), the eight SEB keys above, and `debug_bucket`. Also new: `strain_rate_const`. Note `eps_cvg_darcy` is currently inert (the code overwrites it).
+- *docs/extras/bucket_scheme.rst, darcy_scheme.rst (new)* Descriptions of the two percolation schemes (formulation, configuration, helper functions, known limitations).
+- *firn_air.py, docs/running/json.rst* Module, class and method documentation for the firn-air module, and a "Firn air" section of the JSON reference for the `AirConfig.json` keys.
+
+### Changed
+- *melt.py, darcy_funcs.py, prefflow_snowpack.py, re_snowpack.py* Percolation code rework: docstrings throughout, named constants instead of literals, shared helpers (`_available_pore_space`, `_irreducible_lwc`, `_find_impermeable_layers`). The `bucket()` and `darcyscheme()` functions no longer set the attribute `self.mass_sum`, and both now return `dh_melt` (the thickness removed by melt) as their last value. Unused matplotlib imports removed.
+- *SEB.py* **API change:** `SEB_fqs` is now `solve_Ts` and `SEB_fqs_subdt` is now `solve_Ts_subdt`. In-repo callers are updated; external scripts that call the old names will raise `AttributeError`. `SEB_turbulent.py` is now a required module.
+- *strain.py* Using the deprecated `strain` or `InputFileNamedudx` keys now prints a deprecation warning; if both the old and new key are present, the new one is used.
+- *docs/extras/index.rst, docs/running/json.rst* New pages and keys documented; `SEB_turb_method` documentation includes the required forcing and roughness guidance.
+
+### Fixed
+- *firn_density_nospin.py* `manualT: true` raised `NameError` (the full-record temperature arrays were never defined on that path) - fixed without changing `T_mean`.
+- *melt.py* `liquid: "darcy"` raised `NameError` (a renamed helper); darcy runs crashed with a tuple-unpacking error against `bucket()`; and with NumPy >= 2.4 the Darcy flux solver raised `ValueError` (a 1-element array assigned into a scalar slot).
+- *melt.py* The bucket scheme could raise `IndexError` when the column base was below `RhoImp` (the bottom node is again always treated as impermeable, as in 3.2.0). Whether that is physically right for domains that do not reach ice density is an open question.
+- *solver.py* Firn-air runs (`FirnAir: true`) raised `NameError: f_u` in `transient_solve_TR` (broken since the shared `_fv_geometry` refactor in 3.2.0).
+- *firn_air.py* Selecting the `CFC11` gas raised `UnboundLocalError`; an unrecognized gas now raises a `ValueError` listing the available gases.
+- *SEB_turbulent.py* The Andreas (1987) scalar roughness lengths had the sign of the exponent reversed (affected `SEB_roughness_mode: "parameterized"`).
+- *RCMpkl_to_spin.py* Adding wind, humidity or pressure columns to the forcing dataframe raised a bare `KeyError`; `flux_df1[kk]` integer indexing fixed with `iloc`; the `'weighted'` temperature averaging option referenced an undefined dataframe.
+- *sublim.py, melt.py* `compaction` is kept consistent with the column when layers are removed by sublimation or melt.
+
+### Removed
+- The retired `LWC_heat` key (see above) and the dead commented-out densification-model dictionary in `firn_density_nospin.py`.
+
+### Known issues / not in this release
+- Vapor transport (`vapor.py`) is experimental and not included. It needs its coupling changed to a mass source, open porosity, an Earth-air diffusivity check, and surface exchange before use.
+- The Darcy scheme is only used after the year 1980; before that melt is routed with the bucket scheme (a hardcoded switch in `firn_density_nospin.py`).
+- `DIPhorizon` is not handled correctly on restarts (documented in the code).
+- `SEB.py` option 3 still converts mass fluxes with `* stepsperyear / 917`, while the other forcing paths use `flux_to_rate` (identical for evenly spaced steps).
+- Louis (1979) stability-function coefficients and several other coefficients in `SEB_turbulent.py` are unverified (`VERIFY` comments).
 
 ## [3.2.0] 2026-08-25
 ### Notes
