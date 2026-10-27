@@ -217,19 +217,14 @@ class SurfaceEnergyBudget:
 
     def solve_Ts_subdt(self, PhysParams, iii, T_old, mtime):
         '''
-        Sub-stepped Ts/melt solver, dispatches on turbulent flux
-        model. Currently only the prescribed-flux (quartic) path is
-        implemented for sub-stepping - bulk_richardson/monin_obukhov
-        sub-stepped solve is not yet built (see _solve_Ts_subdt_newton
-        stub). Use SEB_turb_method='prescribed' if sub-daily stepping
-        is required in the meantime.
+        Sub-stepped Ts/melt solver (SEB fluxes finer than the model time
+        step, i.e. dtRATIO sub-steps per model step), dispatches on the
+        turbulent flux model: the analytic quartic path when the fluxes do
+        not depend on Ts (prescribed), the Newton-Raphson path otherwise
+        (bulk_richardson, monin_obukhov).
         '''
         if self.flux_model.depends_on_Ts:
-            raise NotImplementedError(
-                "Sub-daily stepping is not yet implemented for "
-                f"SEB_turb_method='{self.turb_method}'. Use "
-                "SEB_turb_method='prescribed', or run without "
-                "sub-daily SEBfluxes for now.")
+            return self._solve_Ts_subdt_newton(PhysParams, iii, T_old, mtime)
         else:
             return self._solve_Ts_subdt_quartic(PhysParams, iii, T_old, mtime)
     ### end solve_Ts_subdt ###
@@ -415,6 +410,99 @@ class SurfaceEnergyBudget:
         ### end _solve_Ts_newton ###
         #############################
     
+    def _solve_Ts_subdt_newton(self, PhysParams, iii, T_old, mtime, max_iter=50, tol=1e-4):
+        '''
+        Sub-stepped Newton-Raphson solve for Ts and melt, used when the
+        turbulent flux model depends on Ts and the SEB forcing is finer than
+        the model time step (e.g. 4-hourly fluxes with a daily model step).
+
+        The model step is divided into dtRATIO sub-steps. In each, Ts is the
+        root of the same residual used by _solve_Ts_newton, evaluated with that
+        sub-step's forcing (index iii*dtRATIO + kk into the SEBfluxes-sliced
+        arrays), and the top layer's temperature carries from one sub-step to
+        the next (the first starts from the mean temperature of the top layer,
+        TTL). Sub-step melt is summed. As in _solve_Ts_subdt_quartic: the
+        returned surface temperature is the mean over sub-steps (273.15 K if
+        any melt occurred), and the firn top-layer temperature is set to it.
+        Rain heat (Qrain) is not included, as in the quartic sub-step solver.
+
+        The top-layer-thickening loop of _solve_Ts_newton is kept: if melt over
+        the model step exceeds the top-layer mass, the layer is thickened and
+        the sub-step solve is repeated (a layer that thin cannot supply that
+        melt; the quartic sub-step solver does not do this).
+        '''
+        Tz   = PhysParams['Tz']
+        mass = PhysParams['mass']
+        dt   = PhysParams['dt'] / self.dtRATIO  # sub-step length [s]
+        z    = PhysParams['z']
+
+        i_GL = np.where(z >= 1)[0][0]
+        z_GL = z[i_GL]
+        m_GL = np.cumsum(mass)[i_GL]
+        T_GL = np.cumsum(mass * Tz)[i_GL] / m_GL
+        rho_GL = m_GL / z_GL
+        K_ice = 9.828 * np.exp(-0.0057 * T_GL)
+        K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
+
+        iTL = np.where(z >= self.TL_thick)[0][0]
+        i0  = iii * self.dtRATIO
+
+        for kk in range(10):
+            m = np.cumsum(mass)[iTL]
+            TTL = np.cumsum(mass * Tz)[iTL] / m
+
+            Tcalc    = np.zeros(self.dtRATIO)
+            meltmass = np.zeros(self.dtRATIO)
+            T_0 = TTL
+
+            for jj in range(self.dtRATIO):
+                isub = i0 + jj
+                Q_SW_net = self.SW_d[isub] * (1 - self.ALBEDO[isub])
+                Q_LW_d   = self.emissivity_air * self.LW_d[isub]
+
+                def residual(Ts, T_0=T_0, isub=isub, m=m):
+                    LW_u = self.emissivity_snow * self.SBC * Ts**4
+                    G = K_GL * (Tz[i_GL] - Ts) / z_GL
+                    QH_i, QL_i = self.flux_model.compute(Ts, isub)
+                    Qnet = Q_SW_net + Q_LW_d - LW_u + QH_i + QL_i + G
+                    return Qnet - (CP_I * m / dt) * (Ts - T_0)
+
+                Ts = T_0
+                for _ in range(max_iter):
+                    F  = residual(Ts)
+                    h  = 1e-3
+                    dF = (residual(Ts + h) - residual(Ts - h)) / (2 * h)
+                    if dF == 0:
+                        break
+                    Ts_new = Ts - F / dF
+                    if np.abs(Ts_new - Ts) < tol:
+                        Ts = Ts_new
+                        break
+                    Ts = Ts_new
+
+                if Ts >= 273.15:
+                    Tcalc[jj] = 273.15
+                    meltmass[jj] = max(residual(273.15) * dt / LF_I, 0.)
+                else:
+                    Tcalc[jj] = Ts
+                T_0 = Tcalc[jj]
+
+            meltmass_out = np.sum(meltmass)
+            if meltmass_out <= m:
+                break
+            else:
+                iTL = np.where(np.cumsum(mass) >= meltmass_out)[0][0]
+
+        Tsurface_out = np.mean(Tcalc)
+        if meltmass_out > 0:
+            Tsurface_out = 273.15
+
+        Tz[0:iTL+1] = Tsurface_out
+
+        return Tsurface_out, Tz, meltmass_out, self.TSKIN[iii]
+    ### end _solve_Ts_subdt_newton ###
+    ##################################
+
     def _solve_Ts_subdt_quartic(self,PhysParams,iii,T_old,mtime):
         '''
         Same as above, but loops to find Ts, melt when SEB fluxes have finer time resolution

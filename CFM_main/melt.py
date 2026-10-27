@@ -163,7 +163,8 @@ def _irreducible_lwc(rho, phivol_av, RhoImp, rho_i=RHO_I,
 ### end _irreducible_lwc ###
 ############################
 
-def _find_impermeable_layers(rho, dz, RhoImp, ThickImp=0., DownToIce=False):
+def _find_impermeable_layers(rho, dz, RhoImp, ThickImp=0., DownToIce=False,
+                             force_bottom_impermeable=False):
     """
     Identify impermeable layers (and top-of-lens indices) for percolation
     schemes.
@@ -181,7 +182,17 @@ def _find_impermeable_layers(rho, dz, RhoImp, ThickImp=0., DownToIce=False):
     - DownToIce=False, ThickImp==0: every layer with rho >= RhoImp is
       impermeable, treated as one lens per contiguous run.
 
-    The last layer in the domain is always forced impermeable.
+    If no layer qualifies as impermeable under any mode, the last layer in the
+    domain is forced impermeable so the percolation schemes still have a
+    terminating barrier.
+
+    Whether the last layer is *additionally* forced impermeable when other
+    layers do qualify differs between the two schemes, and is controlled by
+    `force_bottom_impermeable`. See that parameter's description -- bucket()
+    passes True, darcyscheme() leaves it False. (claude, 26/09/15: this
+    difference is inherited from the pre-3.3 code, where the two schemes had
+    separate inline implementations; it is preserved deliberately rather than
+    unified, so neither scheme's results change.)
 
     Parameters
     ----------
@@ -196,6 +207,15 @@ def _find_impermeable_layers(rho, dz, RhoImp, ThickImp=0., DownToIce=False):
         DownToIce is True). Default 0.
     DownToIce : bool, optional
         See above. Default False.
+    force_bottom_impermeable : bool, optional
+        If True, the bottom layer (index len(rho)-1) is added to `imp` even
+        when other layers already qualify as impermeable. This reproduces the
+        bucket scheme's pre-3.3 behavior, where the bottom node was appended
+        unconditionally; it guarantees the invariant that `imp` always
+        contains the bottom node, which the storage-capacity scan in bucket()
+        relies on (see the unguarded `imp[np.where(imp >= j_scan)[0][0]]`
+        lookups). The darcy scheme never did this, so it passes False.
+        Default False.
 
     Returns
     -------
@@ -239,6 +259,9 @@ def _find_impermeable_layers(rho, dz, RhoImp, ThickImp=0., DownToIce=False):
 
     imp     = imp.astype(int)
     imptop  = imptop.astype(int)
+
+    if force_bottom_impermeable and imp.size > 0:
+        imp = np.append(imp, nnd - 1)
 
     if imp.size == 0:
         imp     = np.array([nnd - 1])
@@ -394,6 +417,7 @@ def bucket(self, iii):
             self.bdot_mean  = np.concatenate((self.bdot_mean[i_surf_new:-1], self.bdot_mean[-1] * np.ones(n_melted)))
             self.age        = np.concatenate((self.age[i_surf_new:-1], self.age[-1] * np.ones(n_melted)))
             self.Dcon       = np.concatenate((self.Dcon[i_surf_new:-1], self.Dcon[-1] * np.ones(n_melted)))
+            self.compaction = np.concatenate((self.compaction[i_surf_new:-1], np.zeros(n_melted)))
             self.dzn        = np.concatenate((np.zeros(n_melted), self.dz[1:]))[0:self.compboxes]
             if self.r2 is not None:
                 self.r2     = np.concatenate((self.r2[i_surf_new:-1], self.r2[-1] * np.ones(n_melted)))
@@ -456,8 +480,11 @@ def bucket(self, iii):
     stcap       = refr_cap_supp + retcap_supp          # total storage capacity for additional LWC [m]
 
     ### Ice lens algorithm: find impermeable layers ###
+    # force_bottom_impermeable=True reproduces the pre-3.3 bucket behavior of
+    # appending the bottom node to imp unconditionally (claude, 26/09/15).
     imp, _ = _find_impermeable_layers(self.rho, self.dz, RhoImp,
-                                      ThickImp=ThickImp, DownToIce=DownToIce)
+                                      ThickImp=ThickImp, DownToIce=DownToIce,
+                                      force_bottom_impermeable=True)
 
     stcap[imp] = 0.                 # zero storage capacity for impermeable layers
     stcap_cum  = np.cumsum(stcap)   # cumulative storage capacity
@@ -942,8 +969,10 @@ def darcyscheme(self,iii):
     -------
     tuple
         (rho, age, dz, Tz, r2, z, mass, dzn, LWC, meltgridtrack, refr_tot,
-         runofftot) -- all updated in place on `self` and also returned
-         explicitly for the caller to reassign.
+         runofftot, dh_melt) -- all updated in place on `self` and also
+         returned explicitly for the caller to reassign. dh_melt is the
+         (<= 0) thickness removed from the top of the column by melt [m],
+         the same quantity bucket() returns; update_dH needs it.
 
     Notes
     -----
@@ -1008,6 +1037,7 @@ def darcyscheme(self,iii):
     cp_i           = 152.5+7.122*self.Tz # specific heat of ice [J kg-1 K-1] Cuffey and Paterson 2010 (9.1)
     rg             = np.sqrt(self.r2)    # grain radius [m]
     runofftot      = 0.                  # total runoff over the entire Darcy routine
+    dh_melt        = 0.                  # surface lowering from melt removal over the routine [m] (<= 0), as in bucket()
     refr_tot       = 0.                  # total refreezing over the entire Darcy routine
     dltz           = np.append(self.dz[0:-1]/2+self.dz[1:]/2,self.dz[-1]/2) # distance between centres of nodes
 
@@ -1032,6 +1062,7 @@ def darcyscheme(self,iii):
             ind1          = np.where(mass_sum >= meltstep_mass)[0][0]  # bottom-most node affected by melt
             pm_mass       = mass_sum[ind1] - meltstep_mass     # mass of partially melted node
             pm_dz         = pm_mass / self.rho[ind1]           # thickness of partially melted node
+            dh_melt      -= np.sum(self.dz[0:ind1 + 1]) - pm_dz  # thickness removed from the top this sub-step
             pm_lwc        = self.LWC[ind1] / self.dz[ind1] * pm_dz  # LWC of partially melted node
             lwc_p         = np.sum(self.LWC[0:ind1 + 1]) - pm_lwc  # LWC of melted firn contributing to percolation
             n_mlt         = ind1 + 1                           # number of nodes melted, including the partial node
@@ -1072,7 +1103,7 @@ def darcyscheme(self,iii):
             # Only re-run the (relatively expensive) lens-detection scan when the
             # density profile has changed since the last sub-step, or on the
             # first sub-step. Otherwise, reuse imp/imptop from the previous sub-step.
-            imp, imptop = _find_impermeable_nodes(self.rho, self.dz, RhoImp, ThickImp=ThickImp, DownToIce=False)
+            imp, imptop = _find_impermeable_layers(self.rho, self.dz, RhoImp, ThickImp=ThickImp, DownToIce=False)
 
         rho_lens0 = np.copy(self.rho)  # rho snapshot used to detect lens-distribution changes at the next sub-step
 
@@ -1375,7 +1406,7 @@ def darcyscheme(self,iii):
         print(f'Darcy scheme run time: {np.around(time.time() - ticdarcy, 2)}')
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
-        self.dzn, self.LWC, meltgridtrack, refr_tot, runofftot
+        self.dzn, self.LWC, meltgridtrack, refr_tot, runofftot, dh_melt
 
 #######################
 ### end darcyscheme ###

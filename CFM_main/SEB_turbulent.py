@@ -80,8 +80,11 @@ def andreas_roughness(z0m, ustar, nu=1.461e-5):
     ln_z0h_z0m = b0h + b1h*lnRe + b2h*lnRe**2
     ln_z0q_z0m = b0q + b1q*lnRe + b2q*lnRe**2
 
-    z0h = z0m * np.exp(-ln_z0h_z0m)
-    z0q = z0m * np.exp(-ln_z0q_z0m)
+    # Andreas (1987): ln(z_s/z0) = b0 + b1*ln(Re*) + b2*ln(Re*)^2. The
+    # smooth-flow ratio z_s/z0 is > 1 (exp(1.25) ~ 3.5 for T) and falls
+    # below 1 for rough flow (Re* >~ 2), so the sign here is positive.
+    z0h = z0m * np.exp(ln_z0h_z0m)
+    z0q = z0m * np.exp(ln_z0q_z0m)
 
     return z0h, z0q
 ### end andreas_roughness ###

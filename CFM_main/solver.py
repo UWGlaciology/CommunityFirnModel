@@ -421,6 +421,12 @@ def transient_solve_TR(z_edges, Z_P, dt, Gamma_P, phi_0, nz_P, phi_s, c_vol, air
     if airdict!=None:
         Gamma_Po    = Gamma_P * airdict['por_op'] #This is the diffusivity times the open porosity.
 
+        # Face-interpolation weights (as in _fv_geometry, which does not return them).
+        # Needed because the gas path re-computes Gamma_u/Gamma_d with the open-porosity-
+        # weighted diffusivity. Missing since the _fv_geometry refactor (NameError on f_u).
+        f_u         = 1 - (Z_P - z_edges[:-1]) / deltaZ_u
+        f_d         = 1 - (z_edges[1:] - Z_P) / deltaZ_d
+
         Gamma_U     = np.append(Gamma_Po[0], Gamma_Po[0: -1] )
         Gamma_D     = np.append(Gamma_Po[1:], Gamma_Po[-1])
         Gamma_u     =  1 / ((1 - f_u) / Gamma_Po + f_u / Gamma_U) #Patankar Eq. 4.11

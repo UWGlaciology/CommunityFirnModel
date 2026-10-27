@@ -117,7 +117,7 @@ class FirnDensitySpin:
 
     '''
 
-    def __init__(self, config, climateTS = None):
+    def __init__(self, config, climateTS = None, strain_rates=None):
         '''
 
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, and temperature of the model run
@@ -429,7 +429,7 @@ class FirnDensitySpin:
         self.c = check_strain_settings(self)
         # Load strain rate input
         if self.c['horizontal_divergence'] or self.c['strain_softening']:
-            self.eps_eff_hor_2, self.eps_divergence, self.c = load_strain(self, spin=True)
+            self.eps_eff_hor_2, self.eps_divergence, self.c = load_strain(self, spin=True, strain_rates=strain_rates, climateTS=climateTS)
             
         ### initial grain growth (if specified in config file)
         if self.c['physGrain']:
@@ -576,8 +576,10 @@ class FirnDensitySpin:
             # }
 
             # RD      = physicsd[self.c['physRho']]()
+            eps_xx, eps_yy, eps_xy = horizontal_strain_rates(self, iii)
+            PhysParams.update(eps_xx=eps_xx, eps_yy=eps_yy, eps_xy=eps_xy)
             RD = getattr(FirnPhysics(PhysParams),self.c['physRho'])()
-            drho_dt = RD['drho_dt']
+            drho_dt = get_drho_dt(RD, self.rho, eps_xx, eps_yy, self.c['strain_softening'])  # 'drho_dt' or 'eps_zz' form, see physics.get_drho_dt
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
             self.viscosity = RD['viscosity']

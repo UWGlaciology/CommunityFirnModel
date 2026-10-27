@@ -314,7 +314,7 @@ spacewriteint
 
 horizontal_divergence
 ---------------------
-  Whether to include the effect of horizontal divergence (from dynamic ice-sheet/glacier flow) on the firn. When True, the mass in each layer is rescaled at each time step according to the horizontal strain rate, which thins (divergence) or thickens (convergence) the column. The strain-rate forcing is supplied via **InputFileNameStrain**.
+  Whether to include the effect of horizontal divergence (from dynamic ice-sheet/glacier flow) on the firn. When True, the mass in each layer is rescaled at each time step according to the horizontal strain rate, which thins (divergence) or thickens (convergence) the column. The strain-rate forcing can be supplied in several ways; see **InputFileNameStrain** and **strain_rate_const**.
 
   (Replaces the older ``strain`` key, which is still accepted and automatically converted.)
 
@@ -323,7 +323,7 @@ horizontal_divergence
 
 strain_softening
 ----------------
-  Whether to include strain softening in the stage-2 (power-law creep) densification regime. When True, densification rates are scaled by the effective horizontal strain rate. Requires a strain-rate forcing via **InputFileNameStrain**.
+  Whether to include strain softening in the stage-2 (power-law creep) densification regime. When True, densification rates are scaled by the effective horizontal strain rate. Requires a strain-rate forcing (see **InputFileNameStrain**); not available with single-valued (divergence-only) strain input.
 
   :type: ``boolean``
   :default: ``False``
@@ -616,10 +616,28 @@ InputFileNamerho
 
 InputFileNameStrain
 -------------------
-  Horizontal strain-rate forcing, used when **horizontal_divergence** or **strain_softening** is True. The file may contain one column (divergence), two columns (the two principal strain rates), or three columns (:math:`\dot\epsilon_{xx}`, :math:`\dot\epsilon_{yy}`, :math:`\dot\epsilon_{xy}`). Replaces the deprecated ``InputFileNamedudx`` (still accepted and auto-converted).
+  Horizontal strain-rate forcing, used when **horizontal_divergence** or **strain_softening** is True. The file has the time (decimal years) in the first row, followed by one row (divergence), two rows (the two principal strain rates), or three rows (:math:`\dot\epsilon_{xx}`, :math:`\dot\epsilon_{yy}`, :math:`\dot\epsilon_{xy}`), in :math:`\textrm{yr}^{-1}`. Replaces the deprecated ``InputFileNamedudx`` (still accepted and auto-converted).
+
+  The csv file is used only if no other strain source is found. In order of priority the sources are:
+
+  1. the ``strain_rates`` argument to ``FirnDensityNoSpin``: a number (constant divergence), a list of 2 or 3 numbers (constant principal rates, or :math:`\dot\epsilon_{xx}`, :math:`\dot\epsilon_{yy}`, :math:`\dot\epsilon_{xy}`), or a dictionary with ``time`` plus either ``eps`` (1-D divergence, or 2xN / 3xN components) or named arrays;
+  2. strain keys in ``climateTS`` (the same format as the other climate forcing, on the same time axis): ``eps_divergence``, or ``eps_1`` and ``eps_2``, or ``eps_xx``, ``eps_yy`` and ``eps_xy``. When the forcing comes from a dataframe, these can simply be columns of the dataframe passed to ``makeSpinFiles`` (resampled by their mean);
+  3. **strain_rate_const**;
+  4. this csv file.
 
   :type: ``string``
   :Example: ``example_STRAIN.csv``
+
+strain_rate_const
+-----------------
+  A constant horizontal strain rate, used when **horizontal_divergence** or **strain_softening** is True and no strain forcing is passed in directly or in ``climateTS``. Units are :math:`\textrm{yr}^{-1}`, extension positive. Like the csv file, it can be a single number, a list of two numbers, or a list of three numbers:
+
+  * one number: the quantity :math:`-(\dot\epsilon_{xx}+\dot\epsilon_{yy})` (named ``eps_divergence`` in the code), applied directly to the layer mass each time step, so a **positive** value thickens the column (horizontal convergence) and a **negative** value thins it (horizontal divergence). Strain softening is switched off for this single-valued form;
+  * two numbers: the principal horizontal strain rates :math:`\dot\epsilon_{1}`, :math:`\dot\epsilon_{2}`;
+  * three numbers: :math:`\dot\epsilon_{xx}`, :math:`\dot\epsilon_{yy}`, :math:`\dot\epsilon_{xy}`.
+
+  :type: ``float`` or ``list of floats``
+  :Example: ``-1.0e-4`` or ``[1.0e-4, 2.0e-4, 0.0]``
 
 ManualTFilename
 ---------------
@@ -658,6 +676,82 @@ albedo_factor
 
   :type: ``float``
   :default: ``1``
+
+SEB_turb_method
+----------------
+  Which parameterization computes the turbulent (sensible + latent) heat fluxes within the SEB module. ``prescribed`` takes QH/QL directly from the climate forcing (the original, non-iterative behavior); ``bulk_richardson`` and ``monin_obukhov`` instead compute them from wind speed, humidity, and surface pressure, iterating with the surface temperature. An unrecognized value raises an error. Only used when **SEB** is True.
+
+  ``bulk_richardson`` and ``monin_obukhov`` require three extra forcing variables, which must be supplied alongside the other SEB forcing (as columns of the forcing dataframe passed to ``makeSpinFiles``, or as keys of ``climateTS``/``SEBfluxes``). The model stops at startup with a message naming any that are missing:
+
+  * ``WS`` -- wind speed at height **SEB_z_ref_wind** (m/s)
+  * ``QV2m`` -- specific humidity at height **SEB_z_ref_q** (kg/kg); the air temperature is the forcing ``T2m``, at **SEB_z_ref_T**
+  * ``PS`` -- surface pressure (Pa)
+
+  Time-varying roughness lengths can optionally be supplied as ``z0m``, ``z0h``, and ``z0q`` (m); these take priority over the **SEB_z0m**/**SEB_z0h**/**SEB_z0q** keys. With MERRA-2 forcing, ``WS`` is the 2-m wind speed, ``sqrt(U2M**2 + V2M**2)``, which matches the default 2-m reference heights.
+
+  Both Ts-dependent schemes work with SEB forcing that is finer than the model time step (for example 4-hourly fluxes with a daily model step): the surface temperature is solved for each sub-step by Newton's method and the melt is summed. They are slower than ``prescribed`` (``monin_obukhov`` roughly 2.5 times slower in tests). Because the fluxes respond to the modeled surface temperature they give different melt than ``prescribed``: at DYE-2 (1980-1999, MERRA-2) about 16% less.
+
+  :type: ``string``
+  :default: ``prescribed``
+  :options: ``prescribed``, ``bulk_richardson``, ``monin_obukhov``
+
+SEB_roughness_mode
+-------------------
+  How the aerodynamic roughness lengths (**SEB_z0m**, **SEB_z0h**, **SEB_z0q**) are determined when not supplied directly by the forcing data. ``fixed`` uses the configured/default values; ``parameterized`` derives z0h and z0q from z0m and the friction velocity via the Andreas (1987) relation. Inert when **SEB_turb_method** is ``prescribed``.
+
+  The turbulent fluxes are sensitive to this choice. In tests at DYE-2 against MERRA-2's own diagnosed sensible and latent heat fluxes (2-m inputs), ``parameterized`` with **SEB_z0m** = ``1.0e-3`` reproduced them to within about 5% (regression slope 1.04-1.07), as did ``fixed`` with **SEB_z0m** = ``1.0e-3`` and **SEB_z0h** = **SEB_z0q** = ``1.0e-5``. Using MERRA-2's own roughness values (``Z0M`` = 5e-3, ``Z0H`` = 1e-3) as fixed values gave about twice MERRA-2's fluxes. The default (``fixed``, z0h = z0q = z0m = 1e-3) is therefore likely to overestimate turbulent exchange over a stable ice-sheet surface; consider ``parameterized``.
+
+  :type: ``string``
+  :default: ``fixed``
+  :options: ``fixed``, ``parameterized``
+
+SEB_z0m
+-------
+  Momentum roughness length, used as a fallback when not supplied by the forcing data. Inert when **SEB_turb_method** is ``prescribed``.
+
+  :type: ``float``
+  :default: ``1.0e-3``
+  :units: :math:`\textrm{m}`
+
+SEB_z0h
+-------
+  Roughness length for heat, used as a fallback when not supplied by the forcing data. Inert when **SEB_turb_method** is ``prescribed``.
+
+  :type: ``float``
+  :default: value of **SEB_z0m**
+  :units: :math:`\textrm{m}`
+
+SEB_z0q
+-------
+  Roughness length for humidity, used as a fallback when not supplied by the forcing data. Inert when **SEB_turb_method** is ``prescribed``.
+
+  :type: ``float``
+  :default: value of **SEB_z0m**
+  :units: :math:`\textrm{m}`
+
+SEB_z_ref_wind
+--------------
+  Measurement height of the wind-speed forcing above the surface. Inert when **SEB_turb_method** is ``prescribed``.
+
+  :type: ``float``
+  :default: ``2.0``
+  :units: :math:`\textrm{m}`
+
+SEB_z_ref_T
+-----------
+  Measurement height of the air-temperature forcing above the surface. Inert when **SEB_turb_method** is ``prescribed``.
+
+  :type: ``float``
+  :default: ``2.0``
+  :units: :math:`\textrm{m}`
+
+SEB_z_ref_q
+-----------
+  Measurement height of the humidity forcing above the surface. Inert when **SEB_turb_method** is ``prescribed``.
+
+  :type: ``float``
+  :default: ``2.0``
+  :units: :math:`\textrm{m}`
 
 Melt, liquid water, and runoff
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -754,6 +848,94 @@ LWC_heat
 
   Remove ``LWC_heat`` from your .json to silence the warnings. The related internal flags ``LWCheat``, ``LWCcorr_subdt``, and ``correct_therm_prop`` are likewise inactive and kept only for backward compatibility.
 
+debug_bucket
+------------
+  If True, prints extra diagnostic output from the bucket percolation scheme at each time step. Only used when **liquid** is ``bucket``.
+
+  :type: ``boolean``
+  :default: ``false``
+
+These keys configure the Darcy percolation scheme (**liquid** = ``darcy``). **ColeouLesaffre** and **IrrVal** (above) are also read by this scheme.
+
+dtmin_darcy
+-----------
+  Minimum internal time step the Darcy routine's adaptive sub-stepping may shrink to.
+
+  :type: ``float``
+  :default: ``60``
+  :units: :math:`\textrm{s}`
+
+dtmax_darcy
+-----------
+  Maximum internal time step the Darcy routine's adaptive sub-stepping may grow to.
+
+  :type: ``float``
+  :default: ``3600``
+  :units: :math:`\textrm{s}`
+
+dtsub_darcy
+-----------
+  Starting internal time step for the Darcy routine, before adaptive sub-stepping adjusts it.
+
+  :type: ``float``
+  :default: ``60``
+  :units: :math:`\textrm{s}`
+
+RhoImp_darcy
+------------
+  Density at or above which a layer is treated as an impermeable ice lens, for the Darcy scheme. Analogous to **RhoImp**, but set independently -- the Darcy scheme does not read **RhoImp**.
+
+  :type: ``float``
+  :default: ``873``
+  :units: :math:`\textrm{kg m}^{-3}`
+
+ThickImp_darcy
+--------------
+  Minimum thickness for an ice lens (density :math:`\geq` **RhoImp_darcy**) to be treated as impermeable, for the Darcy scheme. Analogous to **ThickImp**.
+
+  :type: ``float``
+  :default: ``0.5``
+  :units: :math:`\textrm{m}`
+
+lat_runoff_darcy
+----------------
+  Whether to compute lateral runoff for water that accumulates above an impermeable barrier with no further downward path.
+
+  :type: ``boolean``
+  :default: ``true``
+
+slope_proxy_darcy
+------------------
+  Surface slope used as the hydraulic gradient driving lateral runoff when **lat_runoff_darcy** is True.
+
+  :type: ``float``
+  :default: ``0.02``
+  :units: :math:`\textrm{m/m}`
+
+rholim_dcy
+----------
+  Density cap applied when computing Darcy flow: node density is capped at this value so that lenses near ice density retain some residual permeability rather than being treated as fully solid. Must be greater than **RhoImp_darcy**; the model exits if it is not.
+
+  :type: ``float``
+  :default: ``910``
+  :units: :math:`\textrm{kg m}^{-3}`
+
+eps_cvg_darcy
+-------------
+  Intended as the convergence tolerance for the equilibrium-head solve. Currently inert: the value read from this key is unconditionally overwritten internally, so setting it in your .json has no effect.
+
+  :type: ``float``
+  :default: ``0.1e-3`` (fixed; not currently configurable)
+  :units: :math:`\textrm{m}`
+
+runoff_method_darcy
+--------------------
+  Parameterization used for lateral runoff in the Darcy scheme. An unrecognized value causes the model to exit.
+
+  :type: ``string``
+  :default: ``Darcy``
+  :options: ``ZuoOerlemans``, ``Darcy``
+
 Sublimation
 ~~~~~~~~~~~
 
@@ -825,6 +1007,87 @@ iceblock_rho
   :type: ``float``
   :default: ``917``
   :units: :math:`\textrm{kg m}^{-3}`
+
+Firn air
+~~~~~~~~
+
+The firn air module is turned on with **FirnAir** (above) and configured by a second .json file, named by **AirConfigName** (``AirConfig.json`` is an example). The keys below are read from that file, not from the main configuration file. Unlike the main file, there are no defaults: a missing key raises a ``KeyError``. Other entries in ``AirConfig.json`` (``StepsPerYear``, ``z_resolution``, ``UserData``, and the ``*_options`` arrays) are not read by the model. For a description of the physics, see the docstring at the top of ``firn_air.py``.
+
+gaschoice
+---------
+  List of gases to model; one firn air instance is run per gas. ``d15N2`` and ``d40Ar`` are isotope ratios and use a constant surface value of 1, so they evolve only through fractionation. Every other gas needs a surface history file named ``<gas>.csv`` in **InputFileFolder**. A gas that is not implemented in ``firn_air.py`` (function ``gasses``) stops the model with an error listing the available gases.
+
+  :type: ``list of strings``
+  :Options: ``CO2``, ``CH4``, ``d15N2``, ``d40Ar``, ``SF6``, ``C14``, ``C13``, ``CFC11``, ``CFC12``, ``C13_CFC12``, ``CC14``, ``CFC113``, ``CFC115``, ``R134a``, ``CH3CCl3``, ``HCFC22``, ``C13_CH4``, ``FOG``
+
+gravity
+-------
+  Whether to include gravitational fractionation.
+
+  :type: ``string``
+  :Options: ``on``, ``off``
+
+thermal
+-------
+  Whether to include thermal fractionation. Requires **gravity** to be ``on``; ``thermal: on`` with ``gravity: off`` stops the model.
+
+  :type: ``string``
+  :Options: ``on``, ``off``
+
+runtype
+-------
+  ``transient`` runs the gas model alongside the transient firn model. ``steady`` uses **steady_T** and **steady_bdot** for the close-off density, the diffusivity temperature, and the accumulation rate, and the model automatically switches to the ``HLdynamic`` densification physics with instantaneous accumulation.
+
+  :type: ``string``
+  :Options: ``transient``, ``steady``
+
+steady_T
+--------
+  Temperature used in a ``steady`` run. Required in the file, but only used when **runtype** is ``steady``.
+
+  :type: ``float``
+  :units: K
+
+steady_bdot
+-----------
+  Accumulation rate used in a ``steady`` run. Required in the file, but only used when **runtype** is ``steady``.
+
+  :type: ``float``
+  :units: :math:`\textrm{m ice eq. yr}^{-1}`
+
+Diffu_param
+-----------
+  Parameterization for the effective diffusivity of the gas in firn.
+
+  :type: ``string``
+  :Options: ``Severinghaus``, ``Schwander``, ``Freitag``, ``Adolph``, ``Witrant``, ``Battle``. (A seventh option, ``Christo``, reads a data file from a hardcoded path and is not usable without editing ``firn_air.py``.)
+
+lockin
+------
+  If true, a lock-in zone is included: between the lock-in depth and the close-off depth the diffusion is carried by an eddy diffusivity set equal to the molecular value at the lock-in depth, and the molecular diffusivity below the lock-in depth is set to essentially zero. If false, diffusivity is cut off at the close-off density and there is no lock-in zone.
+
+  :type: ``boolean``
+
+ConvectiveZoneDepth
+-------------------
+  E-folding depth of the near-surface eddy diffusivity (convective zone), which has a surface value of :math:`2.4\times10^{-5}\textrm{ m}^2\textrm{ s}^{-1}` (Kawamura et al., 2006).
+
+  :type: ``float``
+  :units: m
+
+advection_type
+--------------
+  How the air velocity relative to the firn is calculated. ``zero`` neglects advection; ``Darcy`` computes it from the air-pressure gradient caused by changes in open pore volume with a Darcy-law permeability; ``Christo`` uses the closed-porosity formulation from Buizert's thesis.
+
+  :type: ``string``
+  :Options: ``zero``, ``Darcy``, ``Christo``
+
+outputs
+-------
+  Firn air fields written to the results file, in addition to the concentration of each gas in **gaschoice** (written under the gas name). ``gasses`` is the concentration profiles, ``air_advection_rate`` is written as ``w_air`` and ``firn_advection_rate`` as ``w_firn``.
+
+  :type: ``list of strings``
+  :Options: ``gasses``, ``diffusivity``, ``air_advection_rate``, ``firn_advection_rate``, ``gas_age``
 
 Outputs and run metadata
 ~~~~~~~~~~~~~~~~~~~~~~~~~

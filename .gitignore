@@ -38,3 +38,6 @@ docs/_templates
 
 .ipynb_checkpoints/
 .vscode/
+
+# CFM solver diagnostics log (written to the working directory by the refreezing solvers)
+diagnostics_enthalpy.csv

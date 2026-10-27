@@ -149,7 +149,7 @@ KNOWN_KEYS = {
     'doublegrid', 'nodestocombine', 'multnodestocombine', 'grid1bottom',
     'grid2bottom',
     # strain / divergence
-    'strain', 'horizontal_divergence', 'strain_softening', 'residual_strain',
+    'strain', 'horizontal_divergence', 'strain_softening', 'residual_strain', 'strain_rate_const',
     'tuning_bias_correction', 'InputFileNamedudx',
     # climate
     'spinup_climate_type', 'manual_climate', 'deepT', 'bdot_long',
@@ -158,8 +158,15 @@ KNOWN_KEYS = {
     'liquid', 'merging', 'merge_min', 'LWCcorrect', 'ColeouLesaffre',
     'IrrVal', 'RhoImp', 'ThickImp', 'DownToIce', 'Ponding', 'DirectRunoff',
     'RunoffZuoOerlemans', 'Slope', 'keep_firnthickness', 'meltwater_solver', 'meltwater_solver_options',
+    'debug_bucket',
+    # darcy
+    'dtmin_darcy', 'dtmax_darcy', 'dtsub_darcy', 'RhoImp_darcy', 'ThickImp_darcy',
+    'lat_runoff_darcy', 'slope_proxy_darcy', 'rholim_dcy', 'eps_cvg_darcy',
+    'runoff_method_darcy',
     # SEB
     'SEB', 'SEB_TL_thick', 'albedo_factor',
+    'SEB_turb_method', 'SEB_roughness_mode', 'SEB_z0m', 'SEB_z0h', 'SEB_z0q',
+    'SEB_z_ref_wind', 'SEB_z_ref_T', 'SEB_z_ref_q',
     # stage zero snow
     'stage_zero', 'snow_model', 's_zero_rho',
     # misc / measurement

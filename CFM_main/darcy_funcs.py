@@ -424,7 +424,9 @@ def flux_newtonraphson(gc, LWCav, glwcacm, th_i, th_s, lwc, dz, avG, nvG, mvG, e
             cvg_nr = True
         else:
             # Newton-Raphson step
-            dfdg = dfdg_derivative(th_s, th_i, gth_e, avG, nvG, mvG, dz)
+            # dfdg_derivative returns a 1-element array here (2 nodes -> 1 interface). Reduce to a
+            # scalar so gc stays a float: assigning a size-1 array into glw[j1] raises under NumPy >= 2.4.
+            dfdg = dfdg_derivative(th_s, th_i, gth_e, avG, nvG, mvG, dz).item()
             deltaglw = -1 * fprev0 / dfdg
             gc = gprev0 + deltaglw
 

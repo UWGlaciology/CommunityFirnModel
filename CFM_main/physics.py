@@ -16,6 +16,56 @@ from scipy import interpolate
 import sys
 import numpy.polynomial.polynomial as poly
 
+def get_drho_dt(RD, rho, eps_xx=0.0, eps_yy=0.0, strain_softening=False):
+    '''
+    Densification rate (drho/dt) from the dictionary returned by a FirnPhysics model.
+
+    A densification model reports its result in ONE of two forms:
+
+    RD['drho_dt'] : legacy form (all models written before CFM 4.0). Density change
+        from vertical (overburden) compaction in a 1-D column, i.e. horizontal strain
+        rates are implicitly zero. Used as is. [kg m^-3 s^-1], positive = densification.
+
+    RD['eps_zz'] : vertical compaction rate of a model whose constitutive law already
+        depends on the horizontal strain rates (e.g. Gagliardini and Meyssonnier, 1997).
+        [s^-1], POSITIVE = COMPACTION (the opposite of the usual extension-positive
+        tensor convention, so that it matches the sign of drho_dt). Mass conservation
+        then gives the density rate
+
+            drho_dt = rho * (eps_zz - (eps_xx + eps_yy))
+
+        where eps_xx and eps_yy are the horizontal strain rates [s^-1] in the
+        extension-positive convention used in strain.py (eps_divergence =
+        -(eps_xx + eps_yy)). This is dρ/dt = -ρ(ε_xx + ε_yy + ε_zz) with ε_zz = -eps_zz.
+        Incompressible flow (eps_zz = eps_xx + eps_yy) therefore gives drho_dt = 0.
+
+    The layer-thickness effect of horizontal divergence (strain.horizontal_divergence,
+    which rescales mass) is separate and unchanged: it thins layers at constant density.
+    Models that use the horizontal strain rates in their constitutive law (the 'eps_zz'
+    form) must not also be run with strain softening (it would count that effect twice);
+    this raises a ValueError.
+
+    :param RD: return dictionary of a FirnPhysics model
+    :param rho: density profile [kg m^-3]
+    :param eps_xx, eps_yy: horizontal strain rates [s^-1], extension positive
+    :param strain_softening: whether the strain_softening option is on
+    :return drho_dt: densification rate [kg m^-3 s^-1]
+    '''
+    has_drho, has_eps = ('drho_dt' in RD), ('eps_zz' in RD)
+    if has_drho and has_eps:
+        raise ValueError("A densification model must return either 'drho_dt' or 'eps_zz', not both.")
+    if has_drho:
+        return RD['drho_dt']
+    if has_eps:
+        if strain_softening:
+            raise ValueError("strain_softening cannot be combined with a densification model that returns "
+                             "'eps_zz' (its constitutive law already includes the horizontal strain rates). "
+                             "Set strain_softening to false.")
+        return rho * (RD['eps_zz'] - (eps_xx + eps_yy))
+    raise KeyError("The densification model returned neither 'drho_dt' nor 'eps_zz'.")
+### end get_drho_dt ###
+#######################
+
 class FirnPhysics:
 
     '''
@@ -32,7 +82,7 @@ class FirnPhysics:
     :param rho:
     :param sigma:
 
-    :return drho_dt:
+    :return drho_dt: (or eps_zz; see get_drho_dt for the two accepted return forms)
     :return viscosity:
 
     '''
@@ -1392,6 +1442,158 @@ class FirnPhysics:
         self.RD['viscosity'] = viscosity
 
         return self.RD
+
+
+    def ArthernWingham1998(self):
+        '''
+        Arthern, R. J. and Wingham, D. J.: The natural fluctuations of firn
+        densification and their effect on the geodetic determination of ice
+        sheet mass balance, Climatic Change, 40, 605-624, 1998.
+
+        Mechanistic (pressure-sintering) densification model. Densification is
+        the sum of four micromechanical strain-rate mechanisms:
+
+            - grain-boundary sliding (GBS), stage I only      [Alley, 1987]
+            - dislocation creep (DC), stages II & III          [Wilkinson & Ashby, 1975]
+            - boundary diffusion (BD), stages II & III         [Coble, 1970]
+            - lattice diffusion (LD), stages II & III          [Coble, 1970]
+
+        Stage boundaries (relative density D = rho/RHO_I)::
+
+            Stage I:    rho <= RHO_1  (550 kg/m3)
+            Stage II:   RHO_1 < rho <= RHO_C  (834 kg/m3)
+            Stage III:  rho > RHO_C
+
+        AW98 define -(1/rho)(Drho/Dt) = f(p,rho,T), so here::
+
+            drho_dt = -rho * f_total
+
+        with f_total < 0 for all mechanisms (i.e. compaction).
+
+        "p" in AW98 is the absolute overburden pressure of a parcel: surface/
+        atmospheric pressure p0 (~0.1 MPa) plus the weight of firn accumulated
+        above it since deposition. That means (p - p0) is exactly this model's
+        self.sigma (stress from accumulated overburden weight, no atmospheric
+        term -- see how sigma is used in Goujon2003/Barnola1991). Above the
+        close-off density RHO_C, AW98 subtract a Boyle's-law back-pressure from
+        trapped bubble gas, which is handled the same way Goujon2003/Barnola1991
+        handle their sigma_b close-off correction.
+
+        NOTE on the DC (dislocation creep) term, Eq. A2: the stage-II numerator
+        is raised to the power 2 (not n), while the denominator bracket is
+        raised to n. Stage III uses (1 - rho/rho_ice) to the first power, with
+        both numerator and denominator brackets raised to n. This asymmetry is
+        as given explicitly in the source paper's appendix, confirmed against
+        the original equation image -- it is not a typo in this implementation.
+        '''
+
+        if self.iii == 0:
+            print('CAUTION: ArthernWingham1998 physics are experimental.')
+            print('GBS, BD, and LD terms are transcribed with high confidence;')
+            print('verify the dislocation-creep (DC) term against the original')
+            print('paper if using this for production runs.')
+
+        ### Constants, Table A-I of Arthern and Wingham (1998) ###
+        D_BDC0  = 3.0e-2      # pre-exponential, boundary diffusion, m^2/s
+        D_LDC0  = 3.0e-2      # pre-exponential, lattice diffusion, m^2/s
+        B_DC    = 3.22e-11    # pre-exponential, dislocation creep, (N m^-2)^-n s^-1
+        E_BDC   = 44.1e3      # activation energy, boundary diffusion, J/mol
+        E_LDC   = 66.2e3      # activation energy, lattice diffusion, J/mol
+        E_DC    = 74.5e3      # activation energy, dislocation creep, J/mol
+        delta_b = 9.0e-10     # grain boundary width, m
+        h_gbs   = 4.0e-6      # amplitude of grain boundary obstructions, m
+        mu_gbs  = 0.7         # ratio of neck radius to grain radius
+        kB      = 1.381e-23   # Boltzmann constant, J/K
+        Omega   = 3.27e-29    # volume per H2O molecule, m^3
+        r_grain = 5.0e-4      # grain radius, m (AW98 use a fixed value, not evolved)
+        RHO_C   = 834.0       # density at pore close-off, kg/m^3
+        n_dc    = 3.0         # power-law creep exponent (standard value for ice,
+                            # matches Barnola1991/Goujon2003 convention here)
+        p0      = 1.0e5       # surface/atmospheric pressure, Pa (AW98 used 0.1 MPa)
+
+        self.rho[self.rho > RHO_I] = RHO_I  # guard against overshoot, cf. Barnola1991
+
+        ### Use evolving grain size if physGrain is on, else AW98's fixed radius. ###
+        if self.physGrain:
+            r = np.sqrt(self.r2)
+        else:
+            r = r_grain * np.ones(self.gridLen)
+
+        T   = self.Tz
+        rho = self.rho
+        D   = rho / RHO_I
+
+        ### Temperature-dependent diffusivities/creep coefficient ###
+        D_BDC = D_BDC0 * np.exp(-E_BDC / (R * T))
+        D_LDC = D_LDC0 * np.exp(-E_LDC / (R * T))
+        A_DC  = B_DC   * np.exp(-E_DC  / (R * T))
+
+        ### Effective driving pressure (p - p0), stages I & II. ###
+        ### self.sigma is the accumulated-weight overburden stress, which
+        ### equals (p - p0) in AW98's notation (see docstring).
+        p_minus_p0 = self.sigma
+
+        ### Stage III driving pressure, with Boyle's-law back-pressure from ###
+        ### trapped bubbles (parallel to Goujon2003/Barnola1991's sigma_b).  ###
+        ratio          = (rho * (RHO_I - RHO_C)) / (RHO_C * (RHO_I - rho))
+        p_minus_p0_III = self.sigma + p0 * (1.0 - ratio)
+
+        f_GBS = np.zeros(self.gridLen)
+        f_DC  = np.zeros(self.gridLen)
+        f_BD  = np.zeros(self.gridLen)
+        f_LD  = np.zeros(self.gridLen)
+
+        ### Stage I: rho <= RHO_1 ###
+        s1 = (rho <= RHO_1)
+        f_GBS[s1] = (-16.0 * D_BDC[s1] * Omega * delta_b * RHO_I**3
+                    / (15.0 * kB * T[s1] * h_gbs**2 * r[s1] * mu_gbs**2 * rho[s1]**3)
+                    * (1.0 - 5.0 * rho[s1] / (3.0 * RHO_I))
+                    * p_minus_p0[s1])
+        ### AW98 use the stage-II forms of DC/BD/LD in stage I too, for a smooth
+        ### transition (GBS dominates stage I, so the choice is not critical).
+        f_DC[s1] = (-2.0 * A_DC[s1] * (1.0 - D[s1])
+                    * ((2.0 / n_dc) * p_minus_p0[s1])**2
+                    / (1.0 - (1.0 - D[s1])**(1.0 / n_dc))**n_dc)
+        f_BD[s1] = (-37.0 * delta_b * D_BDC[s1] * Omega * RHO_I * p_minus_p0[s1]
+                    / (2.0 * kB * T[s1] * r[s1]**3 * rho[s1]))
+        f_LD[s1] = (-10.0 * D_LDC[s1] * Omega * RHO_I * p_minus_p0[s1]
+                    / (3.0 * kB * T[s1] * r[s1]**2 * rho[s1]))
+
+        ### Stage II: RHO_1 < rho <= RHO_C ###
+        s2 = ((rho > RHO_1) & (rho <= RHO_C))
+        f_DC[s2] = (-2.0 * A_DC[s2] * (1.0 - D[s2])
+                    * ((2.0 / n_dc) * p_minus_p0[s2])**2
+                    / (1.0 - (1.0 - D[s2])**(1.0 / n_dc))**n_dc)
+        f_BD[s2] = (-37.0 * delta_b * D_BDC[s2] * Omega * RHO_I * p_minus_p0[s2]
+                    / (2.0 * kB * T[s2] * r[s2]**3 * rho[s2]))
+        f_LD[s2] = (-10.0 * D_LDC[s2] * Omega * RHO_I * p_minus_p0[s2]
+                    / (3.0 * kB * T[s2] * r[s2]**2 * rho[s2]))
+
+        ### Stage III: rho > RHO_C ###
+        s3 = (rho > RHO_C)
+        f_DC[s3] = (-3.0 * A_DC[s3] * (1.0 - D[s3])
+                    * ((3.0 / (2.0 * n_dc)) * p_minus_p0_III[s3])**n_dc
+                    / (2.0 * (1.0 - (1.0 - D[s3])**(1.0 / n_dc))**n_dc))
+        f_BD[s3] = (-37.0 * delta_b * D_BDC[s3] * Omega / (2.0 * kB * T[s3] * r[s3]**3)
+                    * (RHO_I / rho[s3]) * p_minus_p0_III[s3])
+        f_LD[s3] = (-3.0 * D_LDC[s3] * Omega * RHO_I / (rho[s3] * kB * T[s3] * r[s3]**2)
+                    * (RHO_I / rho[s3]) * p_minus_p0_III[s3]
+                    / ((RHO_I / (RHO_I - rho[s3]))**(1.0 / 3.0) - 1.0))
+
+        f_total = f_GBS + f_DC + f_BD + f_LD
+
+        drho_dt = -1.0 * self.rho * f_total
+        drho_dt[self.rho >= RHO_I] = 0.0
+
+        viscosity = np.zeros(self.gridLen)
+        viscosity[self.rho < RHO_I] = (self.rho[self.rho < RHO_I]
+                                        / (2.0 * self.sigma[self.rho < RHO_I])) / drho_dt[self.rho < RHO_I]
+
+        self.RD['drho_dt']   = drho_dt
+        self.RD['viscosity'] = viscosity
+        return self.RD
+        ### end ArthernWingham1998 ###
+        #####################
     
     def Yamazaki1993(self):
 
