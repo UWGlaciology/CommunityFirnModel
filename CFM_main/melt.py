@@ -59,6 +59,9 @@ def bucket(self,iii):
         DirectRunoff       = 0.0    # (applicable if Ponding==True) fraction of excess LWC not considered for ponding but running off directly [between 0 and 1]
         RunoffZuoOerlemans = False  # (applicable if Ponding==True) computing lateral runoff following Zuo and Oerlemans (1996) Eqs.(21,22) [True/False]
         Slope              = 0.1     # (used only if RunoffZuoOerlemans==True) slope value used in Zuo and Oerlemans (1996) Eq.(22) [/]
+    # read with defaults (outside the try above) so configs without these keys are unaffected
+    LeakyLenses     = self.c.get('LeakyLenses', False)    # ice lenses partially permeable: each node with rho>=RhoImp passes exp(-dz/LensDecayLength) of the water reaching it [True/False]
+    LensDecayLength = self.c.get('LensDecayLength', 0.1)  # (used only if LeakyLenses==True and DownToIce==False) e-folding ice thickness of lens transmission [m]
     ### END USER CHOICES ###
     ########################
 
@@ -247,7 +250,7 @@ def bucket(self,iii):
             imp = np.arange(0,nnd,1).astype(int) # all nodes are impermeable
     
     elif DownToIce==False:
-        if ThickImp > 0:
+        if ThickImp > 0 and not LeakyLenses: # with LeakyLenses every dense node is a barrier here; leaky_lens_routing passes water through below
             lens0 = np.array([ii for ii in range(1,nnd) if (self.rho[ii]>=RhoImp and self.rho[ii-1]<RhoImp)]) # top index of each ice lens
             lens1 = np.array([ii for ii in range(0,nnd-1) if (self.rho[ii]>=RhoImp and self.rho[ii+1]<RhoImp)]) # bottom index of each ice lens
             
@@ -390,6 +393,12 @@ def bucket(self,iii):
             LWCblockedC3 = False
                 
     storagetot = storageinp+storage1    # total storage in each node
+
+    ### Partially permeable ice lenses: pass part of the blocked LWC through the lenses ###
+    if LeakyLenses and not DownToIce and np.any(LWCblocked > 0):
+        storage2, LWCblocked = leaky_lens_routing(LWCblocked, stcap1-storage1, self.rho>=RhoImp, self.dz, LensDecayLength)
+        storagetot = storagetot + storage2
+
     LWC1       = LWC1+storagetot        # redistributed LWC
 
     # refr_cap0       = (cold_content / LF_I) / RHO_W_KGM               # refreezing capacity due to cold content [m we]
