@@ -59,6 +59,9 @@ def bucket(self,iii):
         DirectRunoff       = 0.0    # (applicable if Ponding==True) fraction of excess LWC not considered for ponding but running off directly [between 0 and 1]
         RunoffZuoOerlemans = False  # (applicable if Ponding==True) computing lateral runoff following Zuo and Oerlemans (1996) Eqs.(21,22) [True/False]
         Slope              = 0.1     # (used only if RunoffZuoOerlemans==True) slope value used in Zuo and Oerlemans (1996) Eq.(22) [/]
+    # read with defaults (outside the try above) so configs without these keys are unaffected
+    LeakyLenses     = self.c.get('LeakyLenses', False)    # ice lenses partially permeable: each node with rho>=RhoImp passes exp(-dz/LensDecayLength) of the water reaching it [True/False]
+    LensDecayLength = self.c.get('LensDecayLength', 0.1)  # (used only if LeakyLenses==True and DownToIce==False) e-folding ice thickness of lens transmission [m]
     ### END USER CHOICES ###
     ########################
 
@@ -247,7 +250,7 @@ def bucket(self,iii):
             imp = np.arange(0,nnd,1).astype(int) # all nodes are impermeable
     
     elif DownToIce==False:
-        if ThickImp > 0:
+        if ThickImp > 0 and not LeakyLenses: # with LeakyLenses every dense node is a barrier here; leaky_lens_routing passes water through below
             lens0 = np.array([ii for ii in range(1,nnd) if (self.rho[ii]>=RhoImp and self.rho[ii-1]<RhoImp)]) # top index of each ice lens
             lens1 = np.array([ii for ii in range(0,nnd-1) if (self.rho[ii]>=RhoImp and self.rho[ii+1]<RhoImp)]) # bottom index of each ice lens
             
@@ -390,6 +393,12 @@ def bucket(self,iii):
             LWCblockedC3 = False
                 
     storagetot = storageinp+storage1    # total storage in each node
+
+    ### Partially permeable ice lenses: pass part of the blocked LWC through the lenses ###
+    if LeakyLenses and not DownToIce and np.any(LWCblocked > 0):
+        storage2, LWCblocked = leaky_lens_routing(LWCblocked, stcap1-storage1, self.rho>=RhoImp, self.dz, LensDecayLength)
+        storagetot = storagetot + storage2
+
     LWC1       = LWC1+storagetot        # redistributed LWC
 
     # refr_cap0       = (cold_content / LF_I) / RHO_W_KGM               # refreezing capacity due to cold content [m we]
@@ -579,6 +588,69 @@ def bucket(self,iii):
 
     return self.rho, self.age, self.dz, self.Tz, self.r2, self.z, self.mass, \
             self.dzn, self.LWC, meltgridtrack, refrozentot, runofftot, dh_melt
+
+#############
+
+def leaky_lens_routing(LWCblocked, stcap, dense, dz, decay_length):
+    '''
+    Route water that is blocked by ice lenses through partially permeable
+    lenses (used by bucket when LeakyLenses is True).
+
+    Each dense node (density >= RhoImp) transmits a fraction
+    exp(-dz/decay_length) of the water reaching it, so a run of dense nodes
+    with total thickness D transmits exp(-D/decay_length) regardless of how
+    many nodes it consists of. Transmitted water fills the remaining storage
+    capacity of the permeable nodes below, from the top down, until it reaches
+    the next dense run, where the same split applies. Water that is not
+    transmitted stays blocked in the permeable node directly above the dense
+    run (or the surface node if the run starts there). The bottom node always
+    blocks, so what reaches it stays in the node above it.
+
+    decay_length -> 0 blocks all water at the first dense node, as ThickImp = 0
+    does; a large decay_length lets water pass all lenses.
+
+    :param LWCblocked: water blocked above an impermeable barrier, per node [m we]
+    :param stcap: remaining storage capacity for additional liquid water, per node [m we]
+    :param dense: boolean array, True for nodes with density >= RhoImp
+    :param dz: node thickness [m]
+    :param decay_length: e-folding ice thickness of the transmission [m]
+
+    :return storage: water added to the storage of each node [m we]
+    :return blocked: water still blocked, per node [m we]
+    '''
+    nnd     = len(dz)
+    storage = np.zeros(nnd)
+    blocked = np.zeros(nnd)
+    if decay_length > 0:
+        transmission = np.where(dense, np.exp(-dz / decay_length), 1.0) # fraction passed on by each node
+    else:
+        transmission = np.where(dense, 0.0, 1.0)
+
+    released = np.nonzero(LWCblocked > 0)[0]
+    if len(released) == 0:
+        return storage, blocked
+    last_release = released[-1]
+
+    carry = 0.0                 # water moving down through the column [m we]
+    above = max(released[0]-1, 0) # permeable node above the current dense run
+    blocked[-1] = LWCblocked[-1] # the bottom node is a barrier itself (as in bucket)
+    for kk in range(released[0], nnd-1):
+        if dense[kk]:
+            carry           += LWCblocked[kk] # excess water inside the lens
+            passed           = carry * transmission[kk]
+            blocked[above]  += carry - passed
+            carry            = passed
+        else:
+            store        = min(carry, stcap[kk])
+            storage[kk] += store
+            carry       -= store
+            carry       += LWCblocked[kk] # water blocked here is already at the barrier below
+            above        = kk
+        if carry <= 0 and kk >= last_release:
+            break
+    blocked[above] += carry # the bottom of the domain blocks what is left
+
+    return storage, blocked
 
 #############
 

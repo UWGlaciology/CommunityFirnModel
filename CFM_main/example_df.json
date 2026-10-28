@@ -100,6 +100,8 @@
 "RhoImp": 830,
 "DownToIce": false,
 "ThickImp": 0.1,
+"LeakyLenses": false,
+"LensDecayLength": 0.1,
 "Ponding": false,
 "DirectRunoff": 0.0,
 "RunoffZuoOerlemans": false,

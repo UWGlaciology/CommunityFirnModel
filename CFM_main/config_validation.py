@@ -143,7 +143,7 @@ KNOWN_KEYS = {
     'manual_iceout', 'iceout', 'QMorris', 'MQ', 'THist',
     # melt / liquid water
     'liquid', 'merging', 'merge_min', 'LWCcorrect', 'ColeouLesaffre',
-    'IrrVal', 'RhoImp', 'ThickImp', 'DownToIce', 'Ponding', 'DirectRunoff',
+    'IrrVal', 'RhoImp', 'ThickImp', 'LeakyLenses', 'LensDecayLength', 'DownToIce', 'Ponding', 'DirectRunoff',
     'RunoffZuoOerlemans', 'Slope', 'keep_firnthickness', 'meltwater_solver', 'meltwater_solver_options',
     # SEB
     'SEB', 'SEB_TL_thick', 'albedo_factor',

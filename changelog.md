@@ -57,6 +57,12 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- I am working on adding turbulent flux calculations to the SEB module
 
 
+## [Unreleased]
+### New
+- *melt.py, config_validation.py, example.json, example_df.json, example_csv.json, run_CFM_example_notebook.ipynb, docs/running/json.rst* Added optional partially permeable ice lenses for the bucket scheme, selected with the new "LeakyLenses" key (default false, which leaves existing configurations unchanged). Each layer with density >= RhoImp passes on a fraction exp(-dz/LensDecayLength) of the water reaching it, replacing the ThickImp threshold. The routing is done by a new function, `leaky_lens_routing`, in melt.py.
+- *tests/ (new folder)* Added a minimal pytest setup and tests for the leaky ice lenses. Run with `python -m pytest tests` from the repository root.
+
+
 ## [3.2.0] 2026-08-25
 ### Notes
 - This release focuses on ease of use (examples, documentation, config validation) and on the meltwater-refreezing solver, which now offers several interchangeable schemes.
