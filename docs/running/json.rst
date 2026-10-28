@@ -692,7 +692,22 @@ RhoImp
 
 ThickImp
 --------
-  Minimum thickness for an ice lens (density :math:`\geq` **RhoImp**) to be treated as impermeable. Set to 0 to make every ice layer impermeable. Used only when **DownToIce** is False.
+  Minimum thickness for an ice lens (density :math:`\geq` **RhoImp**) to be treated as impermeable. Set to 0 to make every ice layer impermeable. Used only when **DownToIce** is False and **LeakyLenses** is False.
+
+  :type: ``float``
+  :default: ``0.1``
+  :units: :math:`\textrm{m}`
+
+LeakyLenses
+-----------
+  If True, ice lenses are partially permeable instead of either blocking or not blocking depending on **ThickImp**. Each layer with density :math:`\geq` **RhoImp** passes on a fraction :math:`\exp(-\Delta z/L)` of the water reaching it, where :math:`\Delta z` is the layer thickness and :math:`L` is **LensDecayLength**, so a lens of total thickness :math:`D` passes :math:`\exp(-D/L)` however many layers it consists of. Water that is not passed on is blocked and handled by **Ponding**/**DirectRunoff** as usual. **ThickImp** is not used. Used only when **DownToIce** is False. A similar parameterization (percolation efficiency decreasing exponentially with ice layer thickness) is used in FirnPerc (van de Berg, EGU General Assembly 2026, EGU26-7173).
+
+  :type: ``boolean``
+  :default: ``false``
+
+LensDecayLength
+---------------
+  E-folding ice thickness of the water transmission through ice lenses when **LeakyLenses** is True. Small values approach **ThickImp** = 0 (every ice layer blocks); large values approach **DownToIce** = True (lenses do not block).
 
   :type: ``float``
   :default: ``0.1``
