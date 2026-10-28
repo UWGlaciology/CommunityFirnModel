@@ -109,6 +109,39 @@ A conservation test runs the model (spin-up and ``time_evolve()``) for two years
    * - ``test_fixtures.py``
      - A short run with **melt_strict** true completes.
 
+Tests for the 4.0.0 changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+These files test the changes made for 4.0.0. Each file contains tests of the ``unit``, ``scheme`` and ``conservation`` groups.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - File
+     - Contents
+   * - ``test_seb_top_layer.py``
+     - The thinnest-consistent-layer search of the surface energy balance (``_thicken_top_layer``) against a brute-force scan, and the choice of top layer in the quartic and Newton solvers.
+   * - ``test_seb_rain_heat.py``
+     - The heat of rain in the surface energy balance (units of W m\ :sup:`-2`, sub-daily forcing).
+   * - ``test_darcy_options.py``
+     - The per-key defaults of the **darcy** options and the one-time warning for missing keys.
+   * - ``test_grid_output_depth.py``
+     - The rule for **grid_output_max_depth** and the message when it is shallower than the domain.
+   * - ``test_model_outputs.py``, ``test_refrozen_output.py``
+     - Regridding of extensive outputs (``LWC``, ``refrozen``, ``compaction``) with conservation of the total, and the ``refrozen`` output of each scheme.
+   * - ``test_csv_sublimation.py``
+     - Sublimation from the negative values of the accumulation forcing with csv input.
+   * - ``test_compaction_and_strain.py``
+     - The ``eps_zz`` interface, the strain inputs, and the separation of densification from horizontal strain in the compaction output.
+   * - ``test_elevation_change.py``
+     - The elevation change (dH) of a run in equilibrium.
+
+Known failure
+~~~~~~~~~~~~~
+
+The **prefsnowpack** case of ``test_water_budget.py`` is marked ``xfail``. In the two-year DYE-2 test the scheme reports about 3% more refreezing plus runoff than melt plus rain, and the cause has not been found. The test reports an unexpected pass (``XPASS``) when this is fixed. See the known issues in the changelog.
+
 Fixtures for new tests
 ----------------------
 
