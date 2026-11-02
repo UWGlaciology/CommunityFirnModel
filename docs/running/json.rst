@@ -4,16 +4,56 @@
 The configuration file (.json, .toml)
 *************************************
 
-The CFM uses a configuration file to configure individual model runs. The file can be in JSON or in TOML format (see below); the format is chosen from the file extension (``.toml`` is read as TOML, anything else as JSON), and the rest of this page applies to both. The key names and values are the same in both formats.
+The CFM uses a configuration file to configure individual model runs. The file can be written in **TOML** (``.toml``) or in **JSON** (``.json``). The format is chosen from the file extension: a file that ends in ``.toml`` is read as TOML and any other file is read as JSON, so configuration files from earlier versions of the CFM work unchanged. The two formats hold the same keys with the same values, and they are used in the same way: you give the name of the file to ``main.py``, or to ``FirnDensityNoSpin`` in your own script (see :doc:`running`), and the name/value pairs are read by the model and incorporated into the model run. The file can be edited in any text editor.
 
-TOML files (``CFM_main/example.toml``) allow comments, which start with ``#`` and can be on their own line or after a value. ``example.toml`` is a copy of ``example.json`` in which every key has a comment, and the lists of allowed options (the ``..._options`` entries in the .json files) are comments. In TOML strings are in double quotes, booleans are ``true``/``false``, and a value cannot be null. TOML is read with the Python standard library (``tomllib``, Python 3.11 and later). The scripts that write a config file for a run (for example ``run_CFM_example.py``) write JSON.
+TOML is the better choice for files that you write by hand, because it **allows comments**, which JSON does not. A comment can record why a value was chosen (a reference for a parameter, for example), or hold an alternative value next to the active one. ``main.py`` copies the configuration file into the results folder, so the comments are stored with the results of the run.
 
-JSON (JavaScript Object Notation) is a data-interchange file format. It consists of a number of names, each associated with a value. Values can be strings, Booleans, integers, floats, or arrays. Comments are not allowed in JSON, but can be added by considering the comment as a name/value pair (or use the TOML format). For the CFM, it provides a file format that is both easy to read and easy to alter in order to specify parameters for a particular model run. The configuration file is passed to the CFM, and the name/value pairs are read by the model and incorporated into the model run. The file format is editable in any text editor, and the name/value pairs are given by name: value, and different name/value pairs are separated by commas.
+File formats
+~~~~~~~~~~~~
 
-The specific names that are in the configuration .json file for the CFM are as follows. If any of the name/value pairs are missing, the model will generally return a message that that that name/value pair is missing and will use a default instead. For some name/value pairs the model run will fail. Note that in the .json file true/false are lowercase, but in the .py files they are True/False (first letter capitalized). The model automatically converts this. :math:`\rho_{s}` is the surface.
+The same settings in the two formats:
 
-.json keys
-~~~~~~~~~~
+.. code-block:: toml
+
+    # densification physics
+    physRho = "KuipersMunneke2015"
+    MELT = true                 # include meltwater percolation and refreezing
+    liquid = "bucket"
+    RhoImp = 830                # kg m-3: density treated as ice
+    outputs = ["density", "depth", "temperature"]
+
+.. code-block:: json
+
+    {
+    "physRho": "KuipersMunneke2015",
+    "MELT": true,
+    "liquid": "bucket",
+    "RhoImp": 830,
+    "outputs": ["density", "depth", "temperature"]
+    }
+
+The differences that matter for a CFM configuration are:
+
+* **Comments.** In TOML a comment starts with ``#`` and runs to the end of the line; it can be on its own line or after a value. JSON has no comments. (A workaround used to be to add a name/value pair that holds the comment; the model ignores it, but the configuration check reports it as an unrecognized key.)
+* **Syntax.** TOML has one ``key = value`` pair on each line, with no braces and no commas. JSON is one object in braces, with ``"key": value`` pairs separated by commas.
+* **Strings** are in double quotes in both formats. **Booleans** are lower case in both (``true`` and ``false``; the model converts them to Python's ``True`` and ``False``). Lists are in square brackets, with commas, in both.
+* **Null.** TOML has no null value, so a key cannot be set to ``null``. None of the example configurations use it.
+* **Repeated keys** are an error in TOML, and a mistake in the syntax stops the model at the start with a message that gives the line. In JSON a repeated key silently takes the last value.
+
+The example configurations are ``example.json``, ``example_df.json`` and ``example_csv.json`` (the last two set up the dataframe and the csv examples; see :doc:`running`), and ``example.toml``. ``example.toml`` has the same keys and values as ``example.json``, and a comment on every key that gives its units, what it does, and which other key it depends on. The lists of allowed values for a key (the ``..._options`` entries in the JSON files, which the model does not read) are comments in the TOML file, in the line that starts with ``# options:``. A test makes sure that the two files stay the same, so you can use either as a template. To use a different template with ``run_CFM_example.py`` or your own script, change the name of the file that is loaded.
+
+TOML files are read with ``tomllib`` of the Python standard library, which needs Python 3.11 or later. The scripts that write a configuration for a run (``run_CFM_example.py`` and ``firnbatch_generic.py``) write JSON. To check a configuration file for mistakes (missing required keys, invalid values, and keys that the model does not recognize) without running the model, use
+
+.. code-block:: bash
+
+	>>> python config_validation.py example.toml
+
+The model also does this check every time that it starts. The configuration of the firn-air module (**AirConfigName**) can also be in either format.
+
+The keys
+~~~~~~~~
+
+The specific names that are in the configuration file for the CFM are as follows. If any of the name/value pairs are missing, the model will generally return a message that that name/value pair is missing and will use a default instead. For some name/value pairs the model run will fail. Note that in the configuration file true/false are lowercase, but in the .py files they are True/False (first letter capitalized). The model automatically converts this. :math:`\rho_{s}` is the surface.
 
 InputFileFolder
 ---------------
@@ -106,7 +146,7 @@ FirnAir
 
 AirConfigName
 -------------
-  Name of the .json configuration files that contains the parameters for the firn air module.
+  Name of the configuration file (.json or .toml) that contains the parameters for the firn air module.
 
   :type: ``string``
   :default: ``AirConfig.json``
@@ -897,7 +937,7 @@ LWC_heat
   - ``LWC_heat`` present and **meltwater_solver** absent: the run uses ``meltwater_solver = legacy``. Such a config predates the rename, and therefore also predates the 2026-08 change to the ``enthalpy`` solver, so falling back to ``legacy`` reproduces the numerics the config was written against rather than silently substituting a different scheme. If the ``LWC_heat`` value was one of the retired options, an additional warning notes that ``legacy`` is the old ``enthalpy`` scheme and not a like-for-like replacement.
   - Both keys present: ``LWC_heat`` is ignored and **meltwater_solver** governs.
 
-  Remove ``LWC_heat`` from your .json to silence the warnings. The related internal flags ``LWCheat``, ``LWCcorr_subdt``, and ``correct_therm_prop`` are likewise inactive and kept only for backward compatibility.
+  Remove ``LWC_heat`` from your configuration file to silence the warnings. The related internal flags ``LWCheat``, ``LWCcorr_subdt``, and ``correct_therm_prop`` are likewise inactive and kept only for backward compatibility.
 
 debug_bucket
 ------------
@@ -1062,7 +1102,7 @@ iceblock_rho
 Firn air
 ~~~~~~~~
 
-The firn air module is turned on with **FirnAir** (above) and configured by a second .json file, named by **AirConfigName** (``AirConfig.json`` is an example). The keys below are read from that file, not from the main configuration file. Unlike the main file, there are no defaults: a missing key raises a ``KeyError``. Other entries in ``AirConfig.json`` (``StepsPerYear``, ``z_resolution``, ``UserData``, and the ``*_options`` arrays) are not read by the model. For a description of the physics, see the docstring at the top of ``firn_air.py``.
+The firn air module is turned on with **FirnAir** (above) and configured by a second configuration file (.json or .toml), named by **AirConfigName** (``AirConfig.json`` is an example). The keys below are read from that file, not from the main configuration file. Unlike the main file, there are no defaults: a missing key raises a ``KeyError``. Other entries in ``AirConfig.json`` (``StepsPerYear``, ``z_resolution``, ``UserData``, and the ``*_options`` arrays) are not read by the model. For a description of the physics, see the docstring at the top of ``firn_air.py``.
 
 gaschoice
 ---------

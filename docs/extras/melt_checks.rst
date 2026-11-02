@@ -42,7 +42,7 @@ Before each cold-layer check, the scheme removes round-off liquid water from col
 The result of a failed check
 ============================
 
-The **melt_strict** key in the .json configuration (see :doc:`../running/json`) sets what occurs when a check fails:
+The **melt_strict** key in the configuration file (see :doc:`../running/json`) sets what occurs when a check fails:
 
 - **melt_strict** false (default). The scheme prints a message and the run continues.
 - **melt_strict** true. The scheme raises ``melt.MeltCheckError`` and the run stops. The message gives the scheme, the check, the time step, and the recorded values, for example::
