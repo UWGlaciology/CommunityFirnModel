@@ -60,6 +60,10 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Vapor-phase transport (vapor.py) is in development and is not part of the release
 
 ## [4.1.0] Unreleased
+### New
+- *melt.py, config_validation.py, example.json, example_df.json, example_csv.json, run_CFM_example_notebook.ipynb, docs/running/json.rst* **Partially permeable ice lenses for the bucket scheme (issue #24, pull request #25, contributed by Aslak Grinsted).** New keys `LeakyLenses` (default false, which leaves existing configurations bit-identical) and `LensDecayLength` (default 0.1 m). With `LeakyLenses` true, each layer with density >= `RhoImp` passes on a fraction exp(-dz/`LensDecayLength`) of the water reaching it, so a lens of total thickness D transmits exp(-D/`LensDecayLength`) however many layers it has; the blocked remainder goes to the usual `Ponding`/`DirectRunoff` handling. It replaces the `ThickImp` threshold (not used when on) and has no effect (and the config validator warns) if `DownToIce` is true or `liquid` is not `bucket`. The routing is the new function `leaky_lens_routing`; the pull request was written against the pre-4.0 `melt.py` and was ported by hand to the reworked bucket scheme.
+- *tests/* Tests for the leaky lenses: unit tests of `leaky_lens_routing` and short DYE-2 runs (identity with the option off and with a vanishing decay length, effect on runoff and refreezing, water budget with and without ponding).
+
 ### Bug fixes
 - *firn_density_nospin.py* **Surface temperature clamped to the melting point when `MELT` is true (issue #23).** The input temperature was already limited to 273.15 K, but the `SeasonalTcycle` offset is added afterwards and could push `Ts` back above it. `Ts` (used for the new-snow temperature, the surface node on steps without accumulation, and the heat-diffusion boundary) is now limited to `T_MELT` after the seasonal cycle when `MELT` is true. Not applied with `manualT`; SEB runs set `Ts` in the SEB module. Only affects runs with `MELT` true and a seasonal cycle that exceeds 0 C.
 

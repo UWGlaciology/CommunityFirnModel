@@ -156,7 +156,7 @@ KNOWN_KEYS = {
     'manual_iceout', 'iceout', 'QMorris', 'MQ', 'THist',
     # melt / liquid water
     'liquid', 'merging', 'merge_min', 'LWCcorrect', 'ColeouLesaffre',
-    'IrrVal', 'RhoImp', 'ThickImp', 'DownToIce', 'Ponding', 'DirectRunoff',
+    'IrrVal', 'RhoImp', 'ThickImp', 'LeakyLenses', 'LensDecayLength', 'DownToIce', 'Ponding', 'DirectRunoff',
     'RunoffZuoOerlemans', 'Slope', 'melt_strict', 'keep_firnthickness', 'meltwater_solver', 'meltwater_solver_options',
     'debug_bucket',
     # darcy
@@ -275,6 +275,16 @@ def validate_config(c, config_path=None):
             warnings.append(
                 "unrecognized key '{}' (possible typo?); it will be ignored"
                 .format(key))
+
+    # 6. Options that have no effect with the selected settings -> warnings only.
+    if c.get('LeakyLenses', False):
+        if c.get('MELT', False) and c.get('liquid', 'bucket') != 'bucket':
+            warnings.append(
+                "'LeakyLenses' is only used by the bucket scheme; it has no effect "
+                "with liquid = {!r}".format(c['liquid']))
+        elif c.get('DownToIce', False):
+            warnings.append(
+                "'LeakyLenses' is ignored when 'DownToIce' is true")
 
     src = " in {}".format(config_path) if config_path else ""
 
