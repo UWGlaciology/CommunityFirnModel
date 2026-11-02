@@ -548,14 +548,14 @@ output_bits
 
 spinUpdate
 ----------
-  Specify if you want to update the spin file at some date.
+  If True, the model saves its state (a snapshot) in the spin file every 100 years of model time and at **spinUpdateDate**. A run can then be restarted from a snapshot (set **NewSpin** to False and **spinUpdate** to True, and put the time of the snapshot in **spinUpdateDate**), either to recover a run that stopped, or to extend a run with more forcing without repeating the spin-up. See :ref:`the spin-up page <spinupdate-section>`.
 
   :type: ``boolean``
   :default: ``false``
 
 spinUpdateDate
 --------------
-  Specify the date at which to update the spin file. should correspond to the start of your reference climate interval.
+  The date of the last snapshot that is saved in the spin file, which should be the end of the spin-up, i.e. the first date of the record, which is the start of your reference climate interval. When restarting a run (**spinUpdate** True and **NewSpin** False) it is the date of the snapshot to restart from: the snapshot closest to it is used. See :ref:`the spin-up page <spinupdate-section>`.
 
   :type: ``float``
   :default: ``1980.0``

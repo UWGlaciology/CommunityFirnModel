@@ -108,6 +108,39 @@ Things to know
 * The totals that are printed at the end of the run (melt, rain, refreezing, runoff) are for the real record only, not the repeats.
 * ``main.py`` with ``"input_type": "dataframe"`` uses the default RCI, 1980-1995 (``spin_date_st=1980.0, spin_date_end=1995.0``), and the depth of the domain (``H`` - ``HbaseSpin``) in place of the Herron and Langway depth. They are not read from the configuration file. To use another RCI, call ``makeSpinFiles`` in your own script (see :doc:`running`).
 
+.. _spinupdate-section:
+
+Saving the spin-up and restarting a run (``spinUpdate``)
+--------------------------------------------------------
+
+The reference-climate-interval spin-up can be long (in the DYE-2 example, 240 of the 285 model years). With ``"spinUpdate": true`` the model saves its state while it runs, so that a run does not have to start again from the beginning. It was added in version 3.0.0. The state (density, temperature, age, depth, the mean accumulation rate, and the liquid water content and the grain size if they are modeled) is saved as a **snapshot** in the spin file (**spinFileName**, usually ``CFMspin.hdf5``, in **resultsFolder**). The snapshots are written:
+
+* at the first time step after each 100 years of model time (for example at 1900, 2000, and so on; the interval is fixed in the code), counting from the start of the run, and
+* at the time given by **spinUpdateDate**, which should be the end of the spin-up: the first date of the real record, which is the start of the reference climate interval (for example ``1980.0``). The snapshot is made at the first time step at or after this date.
+
+The first snapshot in the file is the initial profile that ``FirnDensitySpin`` made. All of the snapshots are kept, each as a new column of the arrays in the spin file, so the file grows with the length of the run. The first row of each array holds the model time of the snapshot, so you can list the snapshots that are available with
+
+.. code-block:: python
+
+    import h5py
+    with h5py.File('CFMoutput_example/CFMresults_66.5_-46.25_GSFC2020/CFMspin.hdf5', 'r') as f:
+        print(f['densitySpin'][0, :])   # model times of the snapshots; the first is the initial profile
+
+To restart from a snapshot, run the model again with the same configuration and forcing, with **spinUpdate** true, **NewSpin** false (do not use ``-n`` with ``main.py``), and **spinUpdateDate** set to the time of the snapshot that you want to restart from. The model uses the snapshot closest to **spinUpdateDate** and continues from the next time step, with the forcing from that date on. A restarted run does not write new snapshots. Its results file (``CFMresults.hdf5`` in **resultsFolder**) holds the restarted run only and replaces the earlier one, so rename or copy the earlier results if you want to keep them; the first row of the output is repeated (see the changelog for version 4.0.0). In a script it is
+
+.. code-block:: python
+
+    # config.json has "spinUpdate": true and "spinUpdateDate": 1900.0
+    firn = FirnDensityNoSpin('config.json', climateTS=climateTS, NewSpin=False, SEBfluxes=SEBfluxes)
+    firn.time_evolve()
+
+This gives two uses:
+
+* **Recovering a run that stopped** before it finished, for example because it ran out of time on a cluster. Restart it from the last snapshot that it wrote before it stopped.
+* **Extending a run with more forcing without repeating the spin-up.** Do a first run, with **spinUpdate** true, so that it writes the snapshot at the end of the spin-up (**spinUpdateDate** = the first date of the record). When more climate data are available, restart from that snapshot with the longer forcing. The model starts at the end of the spin-up and runs through the whole, longer record. Only the forcing after the snapshot is used, but ``makeSpinFiles`` estimates the number of repeats from the means of the whole record, so give ``num_reps`` explicitly to keep the time axis (and so the times of the snapshots) the same.
+
+The snapshots belong to the configuration that made them (the physics, the grid, the time step), so a restart should use the same configuration. Spin files written by older versions are not interchangeable with those of 4.0.0 and later, because the snapshot is now written after the regridding step.
+
 Steady-state spin-up
 --------------------
 
