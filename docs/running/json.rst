@@ -1,10 +1,14 @@
 .. _json-page:
 
-**************************************
-The .json-formatted configuration file
-**************************************
+*************************************
+The configuration file (.json, .toml)
+*************************************
 
-The CFM uses a .json-formatted file to configure individual model runs. JSON (JavaScript Object Notation) is a data-interchange file format. It consists of a number of names, each associated with a value. Values can be strings, Booleans, integers, floats, or arrays. Comments are not allowed, but can be added by considering the comment as a name/value pair. For the CFM, it provides a file format that is both easy to read and easy to alter in order to specify parameters for a particular model run. The configuration file is passed to the CFM, and the name/value pairs are read by the model and incorporated into the model run. The file format is editable in any text editor, and the name/value pairs are given by name: value, and different name/value pairs are separated by commas.
+The CFM uses a configuration file to configure individual model runs. The file can be in JSON or in TOML format (see below); the format is chosen from the file extension (``.toml`` is read as TOML, anything else as JSON), and the rest of this page applies to both. The key names and values are the same in both formats.
+
+TOML files (``CFM_main/example.toml``) allow comments, which start with ``#`` and can be on their own line or after a value. ``example.toml`` is a copy of ``example.json`` in which every key has a comment, and the lists of allowed options (the ``..._options`` entries in the .json files) are comments. In TOML strings are in double quotes, booleans are ``true``/``false``, and a value cannot be null. TOML is read with the Python standard library (``tomllib``, Python 3.11 and later). The scripts that write a config file for a run (for example ``run_CFM_example.py``) write JSON.
+
+JSON (JavaScript Object Notation) is a data-interchange file format. It consists of a number of names, each associated with a value. Values can be strings, Booleans, integers, floats, or arrays. Comments are not allowed in JSON, but can be added by considering the comment as a name/value pair (or use the TOML format). For the CFM, it provides a file format that is both easy to read and easy to alter in order to specify parameters for a particular model run. The configuration file is passed to the CFM, and the name/value pairs are read by the model and incorporated into the model run. The file format is editable in any text editor, and the name/value pairs are given by name: value, and different name/value pairs are separated by commas.
 
 The specific names that are in the configuration .json file for the CFM are as follows. If any of the name/value pairs are missing, the model will generally return a message that that that name/value pair is missing and will use a default instead. For some name/value pairs the model run will fail. Note that in the .json file true/false are lowercase, but in the .py files they are True/False (first letter capitalized). The model automatically converts this. :math:`\rho_{s}` is the surface.
 
@@ -456,7 +460,7 @@ QMorris
 
   :type: ``float``
   :default: ``110.0e3``
-  :units: :math:`\textrm{kJ mol}^{-1}`
+  :units: :math:`\textrm{J mol}^{-1}`
 
 timesetup
 ---------

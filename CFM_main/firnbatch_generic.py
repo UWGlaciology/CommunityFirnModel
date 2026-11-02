@@ -131,11 +131,7 @@ def run_CFM(LLpair, json_base, timeres = '1D', Tinterp = 'mean', MELT= True, run
         os.makedirs('json/')
 
     connm='json/example_{}_{}_{}_{}_{}.json'.format(lat_int,lon_int,timeres,Tinterp,dwriter)
-    shutil.copyfile(json_base, connm)
-
-    jsonFile = open(connm, "r")
-    data = json.load(jsonFile)
-    jsonFile.close()
+    data = load_config(json_base)
 
     ### Configure these as much as you would like.
     re = 'CFMresults/example_{}_{}_{}_{}_{}'.format(lat_int,lon_int,timeres,Tinterp,dwriter)

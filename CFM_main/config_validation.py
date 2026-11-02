@@ -29,7 +29,6 @@ This module uses only the standard library so it can be imported anywhere
 without creating circular imports.
 '''
 
-import json
 import sys
 
 
@@ -306,8 +305,8 @@ if __name__ == '__main__':
         print("usage: python config_validation.py <config.json>")
         sys.exit(2)
     path = sys.argv[1]
-    with open(path, "r") as _f:
-        _c = json.loads(_f.read())
+    from config_loader import load_config
+    _c = load_config(path)
     try:
         validate_config(_c, config_path=path)
     except ConfigValidationError as err:

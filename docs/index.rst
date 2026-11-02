@@ -17,7 +17,7 @@ The CFM is one dimensional and uses a Lagrangian (material-following) grid. The 
 Requirements
 ------------
 
-Python 3.6+, 
+Python 3.11+, 
 `numpy <http://www.numpy.org>`_, 
 `scipy <http://www.scipy.org>`_, 
 `h5py <https://www.h5py.org>`_,

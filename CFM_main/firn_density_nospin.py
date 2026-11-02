@@ -11,6 +11,7 @@ Distributed under terms of the MIT license.
 
 from diffusion import *
 import solver
+from config_loader import load_config
 from reader import read_input
 from reader import read_init
 from writer import write_spin_hdf5
@@ -100,14 +101,12 @@ class FirnDensityNoSpin:
     def __init__(self, configName, climateTS = None, NewSpin = False, SEBfluxes=None, strain_rates=None):
         '''
         Sets up the initial spatial grid, time grid, accumulation rate, age, density, mass, stress, temperature, and diffusivity of the model run
-        :param configName: name of json config file containing model configurations
+        :param configName: name of the config file (.json, or .toml) containing model configurations
         
         '''
         ### load in json config file and parses the user inputs to a dictionary
         
-        with open(configName, "r") as f:
-            jsonString      = f.read()
-            self.c          = json.loads(jsonString)
+        self.c = load_config(configName)
 
         validate_config(self.c, config_path=configName)
 
@@ -934,9 +933,7 @@ class FirnDensityNoSpin:
         '''
         if self.c['FirnAir']:
             print('Firn air initialized')
-            with open(self.c['AirConfigName'], "r") as f:
-                jsonString    = f.read()
-                self.cg       = json.loads(jsonString)
+            self.cg           = load_config(self.c['AirConfigName'])
             self.FA           = {} # dictionary holding each instance of the firn-air class
             # self.gas_out    = {} # outputs for each gas in the simulation
             self.Gz           = {} # Depth profile of each gas

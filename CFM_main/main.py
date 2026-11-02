@@ -22,6 +22,7 @@ import os
 from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
+from config_loader import load_config
 import shutil
 import RCMpkl_to_spin as RCM
 
@@ -39,13 +40,11 @@ if __name__ == '__main__':
         configName = os.path.join(os.path.dirname(__file__), sys.argv[1])
         print(configName)
     else:
-        print('No .json configuration file specified. Exiting.')
+        print('No configuration file (.json or .toml) specified. Exiting.')
         sys.exit()
         # configName = os.path.join(os.path.dirname(__file__), 'generic.json')
 
-    with open(configName, "r") as f:
-        jsonString = f.read()
-        c = json.loads(jsonString)
+    c = load_config(configName)
 
     tic=time.time()
 

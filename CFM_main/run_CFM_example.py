@@ -85,6 +85,7 @@ zarr_path = Path('/Path/To/zarr')
 sys.path.append(str(cfm_path))
 
 from firn_density_nospin import FirnDensityNoSpin
+from config_loader import load_config
 import RCMpkl_to_spin as RCM
 
 ##########
@@ -243,9 +244,7 @@ class M2_CFM():
 
         config_in = 'example_df.json' # This is an example .json with defaults loaded in it.
 
-        with open(config_in, "r") as f:
-            jsonString      = f.read()
-            c          = json.loads(jsonString) 
+        c = load_config(config_in)
 
         c['physRho'] = 'GSFC2020'
         c['runID'] = runid

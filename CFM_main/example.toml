@@ -1,0 +1,226 @@
+# CFM configuration file (TOML). Comments start with #.
+# Use it exactly like the .json files: python main.py example.toml
+# Booleans are lower case (true / false); strings are in "double quotes".
+# Keys that list their options in a comment accept only those values.
+
+######################################################################
+# Input and output files
+######################################################################
+
+InputFileFolder = "CFMinput_example"   # folder with the input files (relative to main.py or absolute; "" = same folder)
+InputFileNameTemp = "example_TSKIN.csv"  # surface (skin) temperature forcing [K]
+InputFileNamebdot = "example_BDOT.csv"  # accumulation / surface mass balance forcing
+InputFileNameIso = "example_ISOTOPE.csv"  # surface water-isotope forcing (needed if isoDiff)
+InputFileNamerho = "example_RHOS.csv"  # surface-density forcing (needed if variable_srho with srho_type = "userinput")
+InputFileNamemelt = "example_SMELT.csv"  # surface-melt forcing (needed if MELT and not SEB)
+InputFileNameStrain = "example_STRAIN.csv"  # horizontal strain-rate forcing (needed if horizontal_divergence or strain_softening)
+InputFileNameSublim = "example_SUBLIM.csv"  # sublimation / deposition forcing (needed if SUBLIM)
+InputFileNameRain = "example_RAIN.csv"  # rain forcing (needed if RAIN)
+resultsFolder = "CFMoutput_example/csv"  # folder the results are saved in
+resultsFileName = "CFMresults.hdf5"    # results file (.hdf5)
+spinFileName = "CFMspin.hdf5"          # spin-up file (.hdf5)
+initfirnFile = "example_firndata.csv"  # measured initial firn profile (used if initprofile)
+initprofile = false                    # initialize the run from initfirnFile
+# forcing format: csv files, or a pandas dataframe stored in a pickle
+# options: csv, dataframe
+input_type = "csv"
+DFfile = "CFM_example_input_df.pkl"    # pickle with the climate dataframe (input_type = "dataframe")
+DFresample = "1ME"                     # model time step as a pandas offset, e.g. "1ME" = monthly, "1d" = daily (input_type = "dataframe")
+NewSpin = false                        # do a new spin up even if the spin file exists
+
+######################################################################
+# Physics: densification, grain size, heat
+######################################################################
+
+# densification physics
+# options: HLdynamic, HLSigfus, Li2004, Li2011, Helsen2008, Arthern2010S, Arthern2010T, Li2015, Simonsen2013, Goujon2003, Barnola1991, Morris2014, KuipersMunneke2015, Brils2022, Veldhuijsen2023, Breant2017, GSFC2020, Crocus, Ligtenberg2011
+physRho = "KuipersMunneke2015"
+MELT = true                            # meltwater percolation and refreezing
+RAIN = true                            # rain adds liquid water at the surface (with MELT)
+ReehCorrectedT = false                 # warm the spin-up temperature for latent heat of refreezing, Reeh (1991, 2008) (with MELT)
+SUBLIM = true                          # include sublimation / deposition
+physGrain = true                       # track grain-size evolution
+calcGrainSize = false                  # parameterize the surface grain size at each step (false: use r2s0)
+# grain-growth equation
+# options: Arthern, Katsushima
+GrGrowPhysics = "Arthern"
+heatDiff = true                        # heat diffusion
+# thermal conductivity parameterization
+# options: Schwander, Yen_fixed, Yen_var, Anderson, Yen_b, Sturm, VanDusen, Schwerdtfeger, Riche, Jiawen, mix, Calonne2011, Calonne2019
+conductivity = "Calonne2019"
+manualT = false                        # use measured temperatures (e.g. a thermistor string) instead of heat diffusion
+no_densification = false               # switch densification off (e.g. temperature diffusion in a lab core)
+rad_pen = false                        # radiation penetration module
+
+######################################################################
+# Surface conditions
+######################################################################
+
+variable_srho = false                  # vary the surface density through time
+# how the surface density varies (with variable_srho)
+# options: userinput, param, noise, Brils22
+srho_type = "userinput"
+rhos0 = 350.0                          # surface density [kg m-3] (constant, or the mean if srho_type = "noise")
+r2s0 = 1e-08                           # surface grain radius squared [m2] (if calcGrainSize is false)
+D_surf = 1.0                           # value of the generic layer tracker (Dcon) given to new surface layers
+SeasonalTcycle = false                 # add a seasonal temperature cycle on top of the forcing
+SeasonalThemi = "north"                # hemisphere, for the timing of summer and winter (with SeasonalTcycle)
+coreless = true                        # coreless-winter shape of the cycle (southern hemisphere)
+TAmp = 10.0                            # amplitude of the seasonal cycle [K]
+site_pressure = 1013.25                # site pressure [mbar]; affects isotope diffusion
+
+######################################################################
+# Time stepping and domain
+######################################################################
+
+# time steps: "exact" = from the input file times, "interp" = uniform dt, "retmip" = RETMIP specialty
+# options: exact, interp, retmip
+timesetup = "exact"
+# interpolation of the input to model times
+# options: nearest, linear
+int_type = "nearest"
+stpsPerYear = 12.0                     # time steps per year (with timesetup = "interp")
+AutoSpinUpTime = false                 # choose the spin-up length automatically (long enough to refresh the column)
+yearSpin = 1                           # spin-up length [yr] (used if AutoSpinUpTime is false)
+H = 3000                               # ice thickness [m]; the firn surface is H above the bed
+HbaseSpin = 2880.0                     # elevation of the bottom of the model domain above the bed [m]; domain depth = H - HbaseSpin
+doublegrid = true                      # fine grid near the surface, coarser grid at depth
+nodestocombine = 3                     # nodes combined at the fine/coarse boundary (doublegrid)
+multnodestocombine = 12                # nodes combined at the coarse/very coarse boundary (doublegrid)
+grid1bottom = 5.0                      # depth at which the fine grid ends [m] (doublegrid)
+grid2bottom = 15.0                     # depth at which the coarse grid ends [m] (doublegrid)
+merging = true                         # merge a layer that becomes too thin with a neighbor
+merge_min = 1e-09                      # layer thickness below which merging occurs [m]
+keep_firnthickness = false             # when melt removes surface layers, add nodes at the base to keep the thickness (false: keep layer thicknesses)
+
+######################################################################
+# Spin-up climate
+######################################################################
+
+# climate for the spin up: first input value, or the mean of the input
+# options: mean, initial
+spinup_climate_type = "mean"
+manual_climate = false                 # specify the long-term climate by hand (deepT, bdot_long)
+deepT = 255.88                         # long-term site temperature [K] (manual_climate)
+bdot_long = 0.49073                    # long-term accumulation rate [m ice eq. yr-1] (manual_climate)
+manual_iceout = false                  # specify the ice flux out of the bottom of the firn (thinning from ice flow)
+iceout = 0.23                          # ice flux out of the bottom [m ice eq. yr-1] (manual_iceout)
+# accumulation rate used by the densification physics
+# options: instant, mean, stress
+bdot_type = "mean"
+bdm_sublim = true                      # include sublimation in the mean accumulation rate used for the spin up
+spinUpdate = false                     # update the spin file at spinUpdateDate
+spinUpdateDate = 1980.0                # date of the spin-file update (spinUpdate)
+iceblock = false                       # start from a uniform density (iceblock_rho) instead of the Herron-Langway spin-up
+iceblock_rho = 917.0                   # initial uniform density [kg m-3] (iceblock)
+QMorris = 110000.0                     # activation energy for Morris and Wingham (2014) densification [J mol-1]
+
+######################################################################
+# Strain and ice flow
+######################################################################
+
+horizontal_divergence = false          # include the effect of horizontal divergence
+strain_softening = false               # include strain softening in stage-2 (power-law) densification
+tuning_bias_correction = false         # correct for strain softening already captured in the tuned Herron-Langway model
+residual_strain = 0.0002               # strain rates with a magnitude below this are set to zero [yr-1]
+
+######################################################################
+# Water isotopes
+######################################################################
+
+isoDiff = true                         # water-isotope diffusion
+# isotopes to model; "NoDiffusion" advects without diffusing (uses d18O)
+# options: d18O, dD, NoDiffusion
+iso = ["d18O", "dD"]
+
+######################################################################
+# Firn air
+######################################################################
+
+FirnAir = false                        # run the firn air module
+AirConfigName = "AirConfig.json"       # config file with the firn air parameters
+
+######################################################################
+# Outputs
+######################################################################
+
+# fields written to the results file
+# options: density, depth, temperature, age, Dcon, bdot_mean, climate, compaction, grainsize, temp_Hx, isotopes, BCO, DIPc, DIP, LWC, gasses, PLWC_mem, viscosity, runoff, refrozen
+outputs = ["density", "depth", "temperature", "age", "DIP", "LWC", "meltoutputs", "climate"]
+TWriteInt = 1                          # write every n-th time step (1 = every step)
+TWriteStart = 1980.0                   # model time at which saving starts (must match the forcing times)
+output_bits = "float32"                # precision of the outputs
+grid_outputs = true                    # also write outputs on a regular depth grid
+grid_output_res = 0.25                 # spacing of that grid [m]
+truncate_outputs = false               # write only every 5th node of the large fields (density, temperature, LWC, age)
+DIPhorizon = 100.0                     # depth horizon for depth-integrated porosity (DIP) and firn air content [m]
+spacewriteint = 1                      # DEPRECATED, not read by the model
+
+######################################################################
+# Meltwater: bucket scheme (liquid = "bucket")
+######################################################################
+
+# percolation scheme (with MELT)
+# options: bucket, darcy, resingledomain, prefsnowpack
+liquid = "bucket"
+# solver for heat diffusion with refreezing meltwater (with MELT)
+# options: enthalpy, ahc, decp, ncz, legacy
+meltwater_solver = "enthalpy"
+LWCcorrect = false                     # not read by the current code (kept so that old configs validate)
+ColeouLesaffre = true                  # irreducible water content from Coleou and Lesaffre (1998); false: use IrrVal
+IrrVal = 0.02                          # irreducible water content as a fraction of the pore space (ColeouLesaffre = false)
+RhoImp = 830                           # density at or above which a layer is an ice lens [kg m-3]
+DownToIce = false                      # water bypasses all lenses down to the depth where density reaches RhoImp
+ThickImp = 0.1                         # minimum thickness for a lens to block water [m] (not used with LeakyLenses)
+LeakyLenses = false                    # partially permeable lenses: a layer at RhoImp passes exp(-dz / LensDecayLength) of the water (bucket only)
+LensDecayLength = 0.1                  # e-folding ice thickness of the transmission through lenses [m] (LeakyLenses)
+Ponding = false                        # blocked water ponds above the barrier instead of running off
+DirectRunoff = 0.0                     # fraction of blocked water that runs off at once (Ponding)
+RunoffZuoOerlemans = false             # lateral runoff of ponded water after Zuo and Oerlemans (1996) (Ponding)
+Slope = 0.1                            # surface slope for that parameterization (RunoffZuoOerlemans)
+melt_strict = false                    # stop the run if the water-budget check fails (true; false: print a message)
+debug_bucket = false                   # print diagnostics from the bucket scheme at each step
+
+######################################################################
+# Meltwater: Darcy scheme (liquid = "darcy")
+######################################################################
+
+dtmin_darcy = 60                       # smallest internal time step [s]
+dtmax_darcy = 3600                     # largest internal time step [s]
+dtsub_darcy = 60.0                     # initial internal time step [s]
+RhoImp_darcy = 873.0                   # density at or above which a layer is an ice lens [kg m-3]
+ThickImp_darcy = 0.5                   # minimum thickness for a lens to block water [m]
+lat_runoff_darcy = true                # lateral runoff of water that cannot percolate further
+slope_proxy_darcy = 0.02               # surface slope used as the lateral hydraulic gradient (lat_runoff_darcy)
+rholim_dcy = 910.0                     # density cap in the flow calculation, so lenses keep some permeability [kg m-3]
+eps_cvg_darcy = 0.0001                 # convergence tolerance of the flux solve between two nodes
+# lateral runoff parameterization
+# options: ZuoOerlemans, Darcy
+runoff_method_darcy = "Darcy"
+
+######################################################################
+# Surface energy balance (SEB)
+######################################################################
+
+SEB_TL_thick = 0.05                    # thickness of the top layer over which the surface fluxes are integrated [m]
+albedo_factor = 1                      # scaling applied to the input albedo
+# turbulent heat fluxes: from the forcing (QH, QL) or computed from wind and humidity
+# options: prescribed, bulk_richardson, monin_obukhov
+SEB_turb_method = "prescribed"
+# roughness lengths: fixed or parameterized (when not in the forcing)
+# options: fixed, parameterized
+SEB_roughness_mode = "fixed"
+SEB_z0m = 0.001                        # roughness length for momentum [m]
+SEB_z0h = 0.001                        # roughness length for heat [m]
+SEB_z0q = 0.001                        # roughness length for humidity [m]
+SEB_z_ref_wind = 2.0                   # height of the wind forcing [m]
+SEB_z_ref_T = 2.0                      # height of the air-temperature forcing [m]
+SEB_z_ref_q = 2.0                      # height of the humidity forcing [m]
+
+######################################################################
+# Stage-zero (snow) densification, in development
+######################################################################
+
+stage_zero = false                     # separate densification regime for near-surface snow
+snow_model = "Yamazaki1993"            # stage-zero parameterization
+s_zero_rho = 200                       # transition density between stage zero and firn densification [kg m-3]
