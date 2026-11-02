@@ -54,3 +54,29 @@ def test_breant2017_is_close_to_goujon2003():
     for rho0 in (600.0, 700.0, 800.0, 880.0):
         i = np.argmin(np.abs(RHO - rho0))
         assert 0.3 < breant[i] / goujon[i] < 3.0, rho0
+
+
+def viscosity_check(name, **over):
+    '''Return (viscosity, expected) for the nodes below ice density, with expected from
+    (1/rho) drho/dt = sigma / (2 eta), i.e. eta = rho sigma / (2 drho/dt).'''
+    RD = getattr(FirnPhysics(params(**over)), name)()
+    d = RD['drho_dt']
+    ok = (RHO < 917.0) & (d != 0)
+    assert ok.sum() > 100
+    return RD['viscosity'][ok], (RHO * SIGMA / (2 * d))[ok]
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize('name', sorted(ALLOWED_VALUES['physRho']))
+def test_viscosity_is_newtonian(name):
+    # The viscosity output is that of a Newtonian viscous fluid with the model's densification rate.
+    v, expected = viscosity_check(name)
+    np.testing.assert_allclose(v, expected, rtol=1e-10)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize('name', ['HLdynamic', 'Li2004', 'Li2011', 'Helsen2008', 'Arthern2010S',
+                                  'Ligtenberg2011', 'Simonsen2013', 'KuipersMunneke2015', 'Brils2022'])
+def test_viscosity_is_newtonian_with_instant_accumulation(name):
+    v, expected = viscosity_check(name, bdot_type='instant')
+    np.testing.assert_allclose(v, expected, rtol=1e-10)

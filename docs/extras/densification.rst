@@ -25,7 +25,7 @@ of the firn column (density, temperature, overburden stress, mean accumulation r
 the densification rate, in kg m\ :sup:`-3` s\ :sup:`-1`, and a viscosity. The viscosity (the output ``viscosity``) is that of a
 Newtonian viscous fluid with the same densification rate, :math:`(1/\rho)\,d\rho/dt = \sigma / (2\eta)`, i.e.
 :math:`\eta = \rho\,\sigma / (2\,d\rho/dt)`, with :math:`\sigma` the overburden stress. It is a diagnostic: it is not used
-to calculate the densification. The density is then advanced with an explicit scheme,
+to calculate the densification. (Before version 4.1.0 most models returned this value divided by :math:`\sigma^2`.) The density is then advanced with an explicit scheme,
 
 .. math::
 
@@ -240,7 +240,7 @@ later models, so HL is less sensitive to temperature variations within a year.
     :math:`a_2 = 1400`, :math:`a_3 = 6\times10^{-15}` (their Table 1), and a fixed relative transition density
     :math:`D_0 = 0.56`. According to Bréant et al. (2017) the equivalent activation energy stays between 54 and
     61 kJ mol\ :sup:`-1`, close to the 60 of Goujon et al. (2003), so only moderate changes in the behavior are expected. The
-    viscosity output is not calculated (it is ``None``). **Before version 4.1.0 the third term of Eq. 7 was coded with** :math:`a_1`
+    **Before version 4.1.0 the third term of Eq. 7 was coded with** :math:`a_1`
     **instead of** :math:`a_3`, **which made the densification rate about 10**\ :sup:`10` **times too large; results made with this option
     in earlier versions are not valid.**
 
@@ -431,10 +431,6 @@ Things to know about the current implementation:
 * ``Veldhuijsen2023`` uses the coefficients of ``KuipersMunneke2015`` (see above).
 * ``Li2015`` with ``bdot_type`` ``instant`` stops with an error (a variable is used before it is defined).
   ``GSFC2020`` stops with ``instant``, and ``Arthern2010T`` needs **physGrain**.
-* **Viscosity output.** Only ``HLdynamic`` (with ``bdot_type`` ``mean``) and ``Crocus`` calculate the viscosity as
-  :math:`\rho\sigma/(2\,d\rho/dt)`. All the other models calculate :math:`\rho / (2\sigma\,d\rho/dt)`, which is the viscosity
-  divided by :math:`\sigma^2`. This affects only the ``viscosity`` output, not the densification. ``Breant2017`` does not
-  calculate it.
 
 Adding a model
 ==============
