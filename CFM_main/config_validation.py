@@ -222,6 +222,10 @@ def validate_config(c, config_path=None):
     ConfigValidationError (once, listing every problem found) if any required
     key is missing, a conditional requirement is unmet, or an option value is
     invalid. Returns None when the configuration is valid.
+
+    One setting is corrected in place: if 'SEB' is true and 'MELT' is false,
+    'MELT' is set to true (with a warning), because the surface energy balance
+    computes melt.
     '''
     errors = []
     warnings = []
@@ -276,6 +280,14 @@ def validate_config(c, config_path=None):
                 .format(key))
 
     # 6. Options that have no effect with the selected settings -> warnings only.
+    # The surface energy balance computes melt, which would be discarded with MELT false:
+    # MELT is switched on (in the dictionary, so the model uses it too).
+    if c.get('SEB', False) and not c.get('MELT', False):
+        c['MELT'] = True
+        warnings.append(
+            "'SEB' is true but 'MELT' is false: the surface energy balance computes melt, "
+            "which would be discarded. Switching 'MELT' to true.")
+
     if c.get('LeakyLenses', False):
         if c.get('MELT', False) and c.get('liquid', 'bucket') != 'bucket':
             warnings.append(

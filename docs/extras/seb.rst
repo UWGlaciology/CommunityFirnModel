@@ -35,8 +35,8 @@ fluxes in 4.0.0; see the changelog). **It is still in beta** (see "Status and li
 Setting it up
 =============
 
-* ``"SEB": true`` in the configuration file, with **MELT** true (the module is meant for runs with melt; the model does
-  not check this). The SEB is only available with the forcing as a
+* ``"SEB": true`` in the configuration file, with **MELT** true. (If **MELT** is false, the model prints a warning
+  and sets it to true, because the SEB computes melt.) The SEB is only available with the forcing as a
   dataframe or as the dictionary ``climateTS`` (see :doc:`../running/inputs`), not with csv files, and only with
   ``"timesetup": "exact"``; the model stops with a message otherwise. **InputFileNamemelt** is not needed (the melt is
   computed), and a ``SMELT`` column in the dataframe is dropped.
@@ -56,8 +56,6 @@ Setting it up
 * The SEB is run through the whole series, including the repeated reference climate interval of the spin-up (see
   :doc:`../running/spinup`). The spin-up therefore includes the melt and refreezing of the reference climate.
 
-.. NOTE: Max agreed that there is no use case for SEB without MELT. The configuration check does not enforce it
-   (nothing in config_validation.py ties SEB to MELT); I suggested making it an error.
 
 The energy balance
 ==================

@@ -125,7 +125,7 @@ physRho
 
 MELT
 ----
-  Whether or not to include meltwater percolation physics in the model run.
+  Whether or not to include meltwater percolation physics in the model run. If **SEB** is true, **MELT** is set to true (with a warning), because the surface energy balance computes melt.
 
   :type: ``boolean``
   :default: ``False``
