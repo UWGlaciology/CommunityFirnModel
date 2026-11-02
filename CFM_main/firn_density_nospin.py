@@ -586,6 +586,11 @@ class FirnDensityNoSpin:
                 print('You have turned on the SeasonalTcycle, but you do not have')
                 print('the hemisphere selected. Exiting. (set to south or north')
                 sys.exit()
+        if self.MELT and not self.c['manualT']:
+            # Surface temperature cannot exceed the melting point (issue #23). The input is clamped
+            # above, but the seasonal cycle can push it back over; Ts sets the new-snow temperature,
+            # the no-accumulation surface node, and the heat-diffusion boundary.
+            self.Ts = np.minimum(self.Ts, T_MELT)
 
         if 'conductivity' not in self.c:
             self.c['conductivity'] = 'Calonne2019'

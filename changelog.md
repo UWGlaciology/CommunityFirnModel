@@ -59,6 +59,10 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- I am working on adding additional physics to simulate near-surface snow compaction ("stage zero compaction")
 	- Vapor-phase transport (vapor.py) is in development and is not part of the release
 
+## [4.1.0] Unreleased
+### Bug fixes
+- *firn_density_nospin.py* **Surface temperature clamped to the melting point when `MELT` is true (issue #23).** The input temperature was already limited to 273.15 K, but the `SeasonalTcycle` offset is added afterwards and could push `Ts` back above it. `Ts` (used for the new-snow temperature, the surface node on steps without accumulation, and the heat-diffusion boundary) is now limited to `T_MELT` after the seasonal cycle when `MELT` is true. Not applied with `manualT`; SEB runs set `Ts` in the SEB module. Only affects runs with `MELT` true and a seasonal cycle that exceeds 0 C.
+
 ## [4.0.0] 2026-10-27
 ### Notes
 - **This is a major release: results from 3.2.0 are not reproducible with 4.0.0, and some output formats changed.** The changes that alter results for existing configurations (no opt-in) are collected under *Changes that alter results*; the output-format changes under *Output format changes*. Read both before comparing with older runs or running old post-processing scripts.
