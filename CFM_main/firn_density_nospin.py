@@ -1342,6 +1342,22 @@ class FirnDensityNoSpin:
             if self.THist:
                 self.Hx = RD['Hx']
 
+            ### Bare-ice melt enhancement (optional) ####
+            ### If the SMELT forcing is from degree-day model, the melt is likely computed with a snow 
+            ### degree-day factor. If the surface node is dense enough to be bare ice (rho > IceMeltRho), 
+            ### this options scales the melt by IceMeltFactor (= ice DDF / snow DDF) so that ice melts 
+            ### faster than snow. Both factors are optional config keys;
+            ### defaults (IceMeltFactor=1) leave the model unchanged.
+            ### rho[0] is the surface node left by the previous time step (accumulation is added later in
+            ### the loop), so a layer of fresh snow on top of ice does not trigger the scaling.
+            ### Not used with SEB, where the albedo (and so the melt of bare ice) is an input.
+            if self.MELT and not self.c['SEB'] and self.c.get('IceMeltFactor', 1.0) != 1.0:
+                if self.rho[0] > self.c.get('IceMeltRho', 800.):
+                    self.snowmelt[iii]    = self.snowmelt[iii] * self.c['IceMeltFactor']
+                    self.snowmeltSec[iii] = self.snowmeltSec[iii] * self.c['IceMeltFactor']
+                    self.forcing_dict['SMELT'][self.start_ind+iii] = self.snowmelt[iii]
+            ######################
+
             ######################
             ### MELT #############
             if self.MELT:

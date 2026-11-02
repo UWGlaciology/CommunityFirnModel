@@ -157,7 +157,7 @@ KNOWN_KEYS = {
     'liquid', 'merging', 'merge_min', 'LWCcorrect', 'ColeouLesaffre',
     'IrrVal', 'RhoImp', 'ThickImp', 'LeakyLenses', 'LensDecayLength', 'DownToIce', 'Ponding', 'DirectRunoff',
     'RunoffZuoOerlemans', 'Slope', 'melt_strict', 'keep_firnthickness', 'meltwater_solver', 'meltwater_solver_options',
-    'debug_bucket',
+    'debug_bucket', 'IceMeltFactor', 'IceMeltRho',
     # darcy
     'dtmin_darcy', 'dtmax_darcy', 'dtsub_darcy', 'RhoImp_darcy', 'ThickImp_darcy',
     'lat_runoff_darcy', 'slope_proxy_darcy', 'rholim_dcy', 'eps_cvg_darcy',
@@ -284,6 +284,14 @@ def validate_config(c, config_path=None):
         elif c.get('DownToIce', False):
             warnings.append(
                 "'LeakyLenses' is ignored when 'DownToIce' is true")
+
+    if c.get('IceMeltFactor', 1.0) != 1.0:
+        if not c.get('MELT', False):
+            warnings.append("'IceMeltFactor' has no effect when 'MELT' is false")
+        elif c.get('SEB', False):
+            warnings.append(
+                "'IceMeltFactor' is not used when 'SEB' is true (the surface energy balance "
+                "uses the albedo)")
 
     src = " in {}".format(config_path) if config_path else ""
 

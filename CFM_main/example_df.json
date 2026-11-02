@@ -106,6 +106,8 @@
 "DirectRunoff": 0.0,
 "RunoffZuoOerlemans": false,
 "Slope": 0.1,
+"IceMeltFactor": 1.0,
+"IceMeltRho": 800.0,
 "melt_strict": false,
 "debug_bucket": false,
 "dtmin_darcy": 60,

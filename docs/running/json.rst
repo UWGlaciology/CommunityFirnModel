@@ -866,6 +866,21 @@ melt_strict
   :type: ``boolean``
   :default: ``false``
 
+IceMeltFactor
+-------------
+  Factor by which the melt forcing is multiplied at time steps when the surface is bare ice. Melt forcing computed with a degree-day model usually uses a snow degree-day factor, but bare ice has a lower albedo than snow and melts faster; set this to the ratio of the ice and snow degree-day factors (for example 1.27) to correct for it. The surface counts as bare ice when the density of the top model node is greater than **IceMeltRho**. The node is the surface left by the previous time step, so a layer of fresh snow on top of ice (which makes the top node low density) turns the enhancement off. The scaled melt is what the percolation scheme uses and what is written to the ``climate`` output and to the forcing record. The default of 1 leaves the melt unchanged. Not used when **SEB** is True (the surface energy balance uses the albedo, so darker ice is already accounted for), or when **MELT** is False. Applies to the transient run only, not to the spin-up (initial condition) calculation.
+
+  :type: ``float``
+  :default: ``1``
+
+IceMeltRho
+----------
+  Density of the top model node above which the surface is treated as bare ice for **IceMeltFactor**. Used only when **IceMeltFactor** is not 1.
+
+  :type: ``float``
+  :default: ``800``
+  :units: :math:`\textrm{kg m}^{-3}`
+
 keep_firnthickness
 ------------------
   Controls grid behavior when melt removes surface layers. If True, the domain thickness is maintained by adding nodes at the base; if False, the original layer thicknesses are kept.

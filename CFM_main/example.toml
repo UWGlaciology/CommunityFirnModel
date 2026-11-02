@@ -157,15 +157,22 @@ DIPhorizon = 100.0                     # depth horizon for depth-integrated poro
 spacewriteint = 1                      # DEPRECATED, not read by the model
 
 ######################################################################
+# Meltwater: all schemes (with MELT)
+######################################################################
+
+# percolation scheme
+# options: bucket, darcy, resingledomain, prefsnowpack
+liquid = "bucket"
+# solver for heat diffusion with refreezing meltwater
+# options: enthalpy, ahc, decp, ncz, legacy
+meltwater_solver = "enthalpy"
+IceMeltFactor = 1.0                    # melt multiplier when the surface is bare ice (ice / snow degree-day factor, e.g. 1.27); 1 = off; not used with SEB
+IceMeltRho = 800.0                     # top-node density above which the surface counts as bare ice [kg m-3] (IceMeltFactor)
+
+######################################################################
 # Meltwater: bucket scheme (liquid = "bucket")
 ######################################################################
 
-# percolation scheme (with MELT)
-# options: bucket, darcy, resingledomain, prefsnowpack
-liquid = "bucket"
-# solver for heat diffusion with refreezing meltwater (with MELT)
-# options: enthalpy, ahc, decp, ncz, legacy
-meltwater_solver = "enthalpy"
 LWCcorrect = false                     # not read by the current code (kept so that old configs validate)
 ColeouLesaffre = true                  # irreducible water content from Coleou and Lesaffre (1998); false: use IrrVal
 IrrVal = 0.02                          # irreducible water content as a fraction of the pore space (ColeouLesaffre = false)
