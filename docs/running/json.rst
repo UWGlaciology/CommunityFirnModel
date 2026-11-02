@@ -118,10 +118,10 @@ DFfile
 
 physRho
 -------
-  The firn-densification physics to use for the model run.
+  The firn-densification physics to use for the model run. Each option, with its reference, equation, and what to know about it, is described on the :ref:`densification models page <densification-page>`.
 
   :type: ``string``
-  :Options: ``HLdynamic``, ``HLSigfus``, ``Li2004``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Simonsen2013``, ``Goujon2003``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Brils2022``, ``Veldhuijsen2023``, ``GSFC2020``, ``Crocus``, ``Ligtenberg2011``
+  :Options: ``HLdynamic``, ``HLSigfus``, ``Li2004``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Simonsen2013``, ``Goujon2003``, ``Breant2017``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Brils2022``, ``Veldhuijsen2023``, ``GSFC2020``, ``Crocus``, ``Ligtenberg2011``
 
 MELT
 ----
