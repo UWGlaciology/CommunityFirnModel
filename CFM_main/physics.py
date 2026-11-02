@@ -1056,7 +1056,7 @@ class FirnPhysics:
         Q1 = 110000
         Q2 = 75000
         Q3 = 1500
-        A = A0 * (a1*np.exp(-Q1/(R*self.Tz)) + a2*np.exp(-Q2/(R*self.Tz)) + a1*np.exp(-Q3/(R*self.Tz)))
+        A = A0 * (a1*np.exp(-Q1/(R*self.Tz)) + a2*np.exp(-Q2/(R*self.Tz)) + a3*np.exp(-Q3/(R*self.Tz))) # Eq. 7 of Breant et al. (2017); the third term used a1 instead of a3 before 4.1.0
 
         ccc         = 15.5 # no units given, equation A7, given as c
         Z0g         = 110.2 * D0 ** 3.-148.594 * D0 ** 2.+87.6166 * D0-17. # from Anais' code           
