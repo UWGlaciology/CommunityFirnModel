@@ -181,7 +181,12 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
      spin_date_st: float
          decimal date of the start of the reference climate interval (RCI)
      spin_date_end: float
-         decimal date of the end of the RCI
+         decimal date of the START of the last year of the RCI, i.e. the RCI is
+         [spin_date_st, spin_date_end + 1). E.g. spin_date_st=1965.0, spin_date_end=1995.0
+         uses 1965-01-01 through 1995-12-31 (31 years). The RCI is repeated back in time
+         (num_reps times) ahead of the real record to spin up the firn. spin_date_st should
+         equal the first date of the input record (a warning is printed otherwise) and sit
+         on a year boundary.
 
     Returns
     -------

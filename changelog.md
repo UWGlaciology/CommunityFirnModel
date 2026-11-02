@@ -67,6 +67,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 - *tests/* Tests for the leaky lenses: unit tests of `leaky_lens_routing` and short DYE-2 runs (identity with the option off and with a vanishing decay length, effect on runoff and refreezing, water budget with and without ponding).
 
 ### Bug fixes
+- *RCMpkl_to_spin.py* Clarified the docstring of `makeSpinFiles`: `spin_date_end` is the start of the last year of the reference climate interval, so `spin_date_st=1965.0, spin_date_end=1995.0` uses 1965-01-01 to 1995-12-31 (31 years). No code change.
 - *docs/running/json.rst* The units of `QMorris` are J mol-1 (the docs said kJ mol-1; the default is 110.0e3).
 - *firn_density_nospin.py* **Surface temperature clamped to the melting point when `MELT` is true (issue #23).** The input temperature was already limited to 273.15 K, but the `SeasonalTcycle` offset is added afterwards and could push `Ts` back above it. `Ts` (used for the new-snow temperature, the surface node on steps without accumulation, and the heat-diffusion boundary) is now limited to `T_MELT` after the seasonal cycle when `MELT` is true. Not applied with `manualT`; SEB runs set `Ts` in the SEB module. Only affects runs with `MELT` true and a seasonal cycle that exceeds 0 C.
 
