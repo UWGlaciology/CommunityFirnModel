@@ -7,6 +7,7 @@ Here is some extra information you might use when running the CFM.
     :maxdepth: 2
 
     densification.rst
+    seb.rst
     doublegrid.rst
     MWfix.rst
     meltwater_solver.rst

@@ -711,7 +711,7 @@ Surface energy balance (SEB)
 
 SEB
 ---
-  Whether to run the surface-energy-balance module, which computes surface temperature and melt from energy fluxes rather than using a prescribed melt forcing. When True, melt is calculated internally within the time-stepping loop and **InputFileNamemelt** is not needed.
+  Whether to run the surface-energy-balance module, which computes surface temperature and melt from energy fluxes rather than using a prescribed melt forcing. When True, melt is calculated internally within the time-stepping loop and **InputFileNamemelt** is not needed. See the :ref:`surface energy balance page <seb-page>` for how it works, the required forcing, and its limitations.
 
   :type: ``boolean``
   :default: ``false``
