@@ -105,7 +105,7 @@ Summary
    * - ``Breant2017``
      - Bréant et al. (2017)
      - stress
-     - Goujon model with three activation energies and a fixed transition density; deglaciation. See the warning in "Limitations".
+     - Goujon model with three activation energies and a fixed transition density; deglaciation. Results made with versions before 4.1.0 are not valid.
    * - ``Li2004``
      - Li and Zwally (2004)
      - :math:`\bar{\dot b}`
@@ -237,18 +237,12 @@ later models, so HL is less sensitive to temperature variations within a year.
         A = A_0 \left( a_1 e^{-Q_1/RT} + a_2 e^{-Q_2/RT} + a_3 e^{-Q_3/RT} \right) ,
 
     with :math:`Q_1 = 110`, :math:`Q_2 = 75`, :math:`Q_3 = 1.5` kJ mol\ :sup:`-1` and
-    :math:`a_2 = 1400`, :math:`a_3 = 6\times10^{-15}` (their Table 1), and a fixed relative transition density
+    :math:`a_1 = 1.05\times10^{9}`, :math:`a_2 = 1400`, :math:`a_3 = 6\times10^{-15}` (their Table 1), and a fixed relative transition density
     :math:`D_0 = 0.56`. According to Bréant et al. (2017) the equivalent activation energy stays between 54 and
     61 kJ mol\ :sup:`-1`, close to the 60 of Goujon et al. (2003), so only moderate changes in the behavior are expected. The
     **Before version 4.1.0 the third term of Eq. 7 was coded with** :math:`a_1`
     **instead of** :math:`a_3`, **which made the densification rate about 10**\ :sup:`10` **times too large; results made with this option
     in earlier versions are not valid.**
-
-.. VERIFY (Breant2017): the code has a1 = 1.05912848e-02, whereas the Table 1 text I could extract gives a1 = 1.05e9 (the
-   exponent sign may have been lost in the extraction). With the typo fixed the choice changes the rate by only about 2%
-   at -30 C (0.76 x Goujon with the code's a1, 0.78 x with 1.05e9), so I left the constant alone. Please confirm
-   which is intended. Also, with the Table 1 values I get an equivalent activation energy of 58-78 kJ/mol for 228-268 K,
-   not the 54-61 kJ/mol that the paper states; I could not resolve that from the text (the equations may be images).
 
 Li and Zwally family
 ~~~~~~~~~~~~~~~~~~~~

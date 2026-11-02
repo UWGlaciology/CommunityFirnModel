@@ -1050,7 +1050,7 @@ class FirnPhysics:
 
         # A           = 7.89e3 * np.exp(-Qgj/(R * self.Tz)) * 1.0e-3 # A given in MPa^-3 s^-1, Goujon uses bar as pressure unit. Eq. A5 in Goujon
         A0 = 7.89e3 * 1.0e-3 #[bar^-3 s^-1]
-        a1 = 1.05912848e-02
+        a1 = 1.05e9 # Table 1 of Breant et al. (2017); this was 1.05912848e-02 before 4.1.0
         a2 = 1400
         a3 = 6.0e-15
         Q1 = 110000
