@@ -39,6 +39,14 @@ This file configures a CFM run and then runs it.
 where LAT,LON are your latitude and longitude, e.g. "66.5,-46.25" or "72.5,-38.75"
 (include the quote marks when invoking the above call)
 
+- SIGN CONVENTIONS of the forcing (see "Sign conventions of the forcing" in the documentation):
+    - the surface energy fluxes QH and QL must be positive INTO the snow. MERRA-2 HFLUX and EFLUX
+      are positive UPWARD, so MERRA2_zarr_to_dataframe multiplies them by -1. (ERA5 sensible and
+      latent heat fluxes are positive downward and need no change.) If you make your own dataframe
+      from MERRA-2 and forget this, the model prints a warning when it sets up the SEB.
+    - SUBLIM is negative for sublimation (mass loss). MERRA-2 EVAP is positive upward (see the
+      multiplication by -1 of climateTS['SUBLIM'] below).
+
 - Forcing data:
     - this example file uses a pickled dataframe with climate data (MERRA-2) for DYE-2 to force the CFM
     - these climate data come from a zarr store with MERRA-2 climate data
@@ -142,6 +150,7 @@ def MERRA2_zarr_to_dataframe(lat_int,lon_int, zarr_path=None):
             
     df_out = pd.concat(df_dict.values())
 
+    ### MERRA-2 HFLUX and EFLUX are positive UPWARD. The CFM wants QH and QL positive INTO the snow.
     df_out['QL'] = -1 * df_out['QL']
     df_out['QH'] = -1 * df_out['QH']
 

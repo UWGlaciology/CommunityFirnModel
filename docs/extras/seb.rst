@@ -154,12 +154,16 @@ The turbulent fluxes
     The fluxes are taken from the forcing (``QH`` and ``QL``, for example from MERRA-2). They do not respond to the
     surface temperature that the CFM calculates. This was the only choice before version 4.0.0.
 
-    ``QH`` and ``QL`` must be positive towards the surface (into the snow), like all the other fluxes. Forcing products
-    differ in their sign convention: MERRA-2 fluxes are positive upward, so they must be multiplied by -1 (the
-    example script does this when it makes the dataframe), while ERA5 fluxes have the opposite sign to MERRA-2 and
-    are positive towards the surface. Check the convention of your forcing. (If you give ``climateTS`` to the model
-    without ``SEBfluxes``, the module changes the sign of ``QH`` and ``QL`` itself, because it then assumes upward-positive,
-    MERRA-2 like fluxes; this is a known inconsistency, see the changelog.)
+    ``QH`` and ``QL`` must be positive towards the surface (into the snow), like all the other fluxes, **in every
+    way of giving the forcing to the model** (before version 4.1.0 the module multiplied them by -1 if ``climateTS``
+    was given without ``SEBfluxes``; it no longer does). Forcing products differ in their sign convention: MERRA-2
+    fluxes are positive upward, so they must be multiplied by -1 (the example scripts do this when they make the dataframe),
+    while ERA5 fluxes have the opposite sign to MERRA-2 and are positive towards the surface. The table in
+    :ref:`sign-conventions` lists the conventions of the variables of both products.
+
+    The module checks the sign of ``QH`` (only with this method), and prints a warning if it looks positive upward, for
+    example when the multiplication by -1 was forgotten. The check is described in :ref:`sign-conventions`; it is a safety net
+    and does not replace knowing the convention of your forcing.
 
 ``bulk_richardson``
     A bulk-aerodynamic calculation from the wind speed :math:`U`, the air temperature, the humidity and the

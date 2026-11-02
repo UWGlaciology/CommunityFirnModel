@@ -168,6 +168,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     CFM takes units of m ice eq./year, so this script returns units in that 
     format.
 
+    SIGN CONVENTIONS (the dataframe must already follow them; nothing here changes the sign):
+    energy fluxes QH and QL (surface energy balance) are positive INTO the snow, and SUBLIM is
+    negative for sublimation (mass loss). MERRA-2 HFLUX, EFLUX (-> QH, QL) and EVAP (-> SUBLIM)
+    are positive upward, so multiply them by -1; ERA5 sensible and latent heat fluxes are
+    positive downward and can be used as they are. SEB.py warns if QH looks positive upward.
+    See "Sign conventions of the forcing" in the documentation (Inputs for the CFM).
+
     Parameters
     ----------
 

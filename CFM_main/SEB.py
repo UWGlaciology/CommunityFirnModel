@@ -35,6 +35,51 @@ def _extract_optional(source, key, start_ind):
 ### end _extract_optional ###
 ##############################
 
+def flux_sign_check(QH, T2m, TSKIN, time=None, min_years=1.0, r_tol=0.05):
+    '''
+    Heuristic check of the sign convention of the sensible heat flux in the forcing.
+
+    The CFM expects QH positive INTO the snow. Physically, the sensible heat flux is driven by
+    the difference between the air and the surface temperature, so with that convention QH is
+    positively correlated with T2m - TSKIN, and over an ice sheet it is on average positive (the
+    surface is heated by the air). Both are negative if QH is positive upward (as in MERRA-2).
+
+    Tested on the MERRA-2 daily example forcing for DYE-2 and Summit, Greenland: r = +0.35 and
+    +0.32 and mean QH = +19 and +14 W m-2 over the 46 years, and the same with the opposite sign
+    when the fluxes are multiplied by -1. For single years and for 6-month blocks both had the right
+    sign in every block, but not for 3-month blocks and not in winter alone (the correlation is
+    negative in December-February), so records shorter than min_years are not judged.
+    The test has not been tried with other products or sites (Antarctica, station data).
+
+    :param QH: sensible heat flux of the forcing [W m-2]
+    :param T2m: 2-m air temperature [K]
+    :param TSKIN: skin temperature [K]
+    :param time: decimal dates of the values [yr] (to check the length of the record)
+    :param min_years: shortest record that is judged [yr]
+    :param r_tol: the correlation has to be below -r_tol to count as negative
+    :return: dict with 'looks_upward' (True only when the correlation and the mean are both
+        clearly negative), 'r', 'mean' and 'judged' (False if the record is too short or constant)
+    '''
+    out = {'looks_upward': False, 'r': np.nan, 'mean': np.nan, 'judged': False}
+    QH = np.asarray(QH, dtype=float)
+    dT = np.asarray(T2m, dtype=float) - np.asarray(TSKIN, dtype=float)
+    ok = np.isfinite(QH) & np.isfinite(dT)
+    if ok.sum() < 100:
+        return out
+    if time is not None:
+        t = np.asarray(time, dtype=float)[ok]
+        if (t.max() - t.min()) < min_years:
+            return out
+    if np.std(QH[ok]) == 0 or np.std(dT[ok]) == 0:
+        return out
+    out['r'] = float(np.corrcoef(dT[ok], QH[ok])[0, 1])
+    out['mean'] = float(np.mean(QH[ok]))
+    out['judged'] = True
+    out['looks_upward'] = bool((out['r'] < -r_tol) and (out['mean'] < 0))
+    return out
+### end flux_sign_check ###
+###########################
+
 class SurfaceEnergyBudget:
     '''
     Class to handle surface energy balance in the CFM
@@ -42,6 +87,13 @@ class SurfaceEnergyBudget:
     The energy balance equation:
 
     E_net = SW_d + SW_u + LW_d + LW_u + G + QH + QL + EP
+
+    SIGN CONVENTION: all fluxes are positive INTO the snow (towards the surface). In
+    particular QH and QL (the turbulent fluxes in the forcing, used when SEB_turb_method
+    is 'prescribed') must be positive into the snow. MERRA-2 HFLUX and EFLUX are positive
+    UPWARD and must be multiplied by -1; ERA5 sensible and latent heat fluxes are positive
+    downward (into the snow) and can be used as they are. See flux_sign_check, which warns
+    when QH looks positive upward.
 
     Parameters
     ------------
@@ -95,7 +147,7 @@ class SurfaceEnergyBudget:
                 print('"albedo_factor" not defined in .json. Using 1')
             self.T2m     = SEBfluxes['T2m'][start_ind_EF:]
             self.TSKIN   = SEBfluxes['TSKIN'][start_ind_EF:]
-            self.QH      = SEBfluxes['QH'][start_ind_EF:] # Assumes that positive fluxes are into the snow, negative into sky
+            self.QH      = SEBfluxes['QH'][start_ind_EF:] # Positive fluxes are into the snow, negative into the sky
             self.QL      = SEBfluxes['QL'][start_ind_EF:]
             self.RAIN    = SEBfluxes['RAIN'][start_ind_EF:] # [m i.e./year]
             if 'LW_u' in SEBfluxes:
@@ -131,8 +183,8 @@ class SurfaceEnergyBudget:
             elif 'EVAP' in climateTS.keys():
                 self.EVAP    = climateTS['EVAP'][start_ind:]
                 self.SUBLIM    = np.zeros_like(self.EVAP)
-            self.QH      = -1*climateTS['QH'][start_ind:] #MERRA fluxes are upward positive, so multiply by -1
-            self.QL      = -1*climateTS['QL'][start_ind:]
+            self.QH      = climateTS['QH'][start_ind:] # positive into the snow, as for SEBfluxes (before 4.1.0 these were multiplied by -1 here)
+            self.QL      = climateTS['QL'][start_ind:]
             self.RAIN    = climateTS['RAIN'][start_ind:] # [m i.e./year]
             if 'LW_u' in climateTS:
                 self.LW_u_input = True
@@ -195,6 +247,18 @@ class SurfaceEnergyBudget:
         self.SBC = 5.67e-8 # Stefan-Boltzmann constant [W K^-4 m^-2
         self.emissivity_air = 1
         self.emissivity_snow = 0.98
+
+        if self.turb_method == 'prescribed': # the forcing QH and QL are only used in this case
+            check = flux_sign_check(self.QH, self.T2m, self.TSKIN, self.time_in)
+            if check['looks_upward']:
+                print('\n' + '*'*78)
+                print('WARNING (SEB): the sensible heat flux QH of the forcing looks like it is positive UPWARD')
+                print(f"  (correlation of QH with T2m - TSKIN: r = {check['r']:+.2f}; mean QH = {check['mean']:+.1f} W m-2).")
+                print('  The CFM expects QH and QL to be positive INTO the snow. MERRA-2 HFLUX and EFLUX are')
+                print('  positive upward and must be multiplied by -1 when the forcing dataframe is made;')
+                print('  ERA5 fluxes are positive downward and can be used as they are. If your fluxes')
+                print('  already follow the CFM convention, ignore this message.')
+                print('*'*78 + '\n')
         
         # self.D_sh = 15 # Sensible heat flux coefficient, Born et al. 2019 [W m^-2 K^-1]
     ### end init ###

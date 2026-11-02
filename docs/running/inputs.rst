@@ -57,7 +57,7 @@ A few details that are easy to get wrong:
 
 * The **mass fluxes are in mass per time step of the dataframe**: if the dataframe is hourly, the accumulation is in kg m\ :sup:`-2` per hour (the mass of snow that fell in that hour), not a rate. ``makeSpinFiles`` converts them to the unit that the model uses, **m ice equivalent per year**, after it has resampled them.
 * **Sign of sublimation:** the model expects sublimation to be negative (a mass loss from the surface) and deposition to be positive. Some reanalyses use the opposite sign: MERRA-2 evaporation is positive for sublimation, so ``run_CFM_example.py`` multiplies the ``SUBLIM`` forcing by -1.
-* **Sign of the turbulent fluxes:** ``QH`` and ``QL`` are positive when they heat the surface. MERRA-2 fluxes are positive upward, so the example script multiplies them by -1 when it makes the dataframe.
+* **Sign of the turbulent fluxes:** ``QH`` and ``QL`` are positive when they heat the surface (**into the snow**). MERRA-2 fluxes are positive upward, so they must be multiplied by -1 when the dataframe is made, and the example scripts do this. See "Sign conventions of the forcing" below; the model also warns if ``QH`` looks like it has the wrong sign.
 * If **SEB** is true, **every column of the dataframe must be one of the names above**. A column with another name stops ``makeSpinFiles`` with a ``KeyError``. (Without the surface energy balance, columns that are not used are dropped.)
 * Some older MERRA-2 column names are converted by ``makeSpinFiles`` when the surface energy balance is not used: ``TS`` and ``EVAP`` are renamed ``TSKIN`` and ``SUBLIM``, ``BDOT`` is taken from ``PRECSNO`` and ``RAIN`` is ``PRECTOT`` - ``PRECSNO``. The pickle ``CFM_example_input_df.pkl``, which ``example_df.json`` and ``main.py`` use, has these names.
 * The dataframe must cover the period you want to model, and the spin-up reference climate interval must be inside it. Its first date should be the start of a year (see :doc:`spinup`).
@@ -65,6 +65,55 @@ A few details that are easy to get wrong:
 The example dataframes in the folder ``CFMinput_example`` (``CFM_example_66.5_-46.25.pkl`` for DYE-2 and ``CFM_example_72.5_-38.75.pkl`` for Summit, both in Greenland) are daily MERRA-2 data from 1980 and have the columns ``T2m``, ``TSKIN``, ``SUBLIM``, ``QH``, ``QL``, ``SW_d``, ``LW_d``, ``RAIN``, ``BDOT``, ``ALBEDO`` and ``SMELT``. They are a template for your own dataframe. The comments at the top of ``run_CFM_example.py`` describe how they were made. The files ``CFM_example_<lat>_<lon>.csv`` in the same folder hold the same dataframes as text.
 
 The configuration keys that go with it are **input_type**, **InputFileFolder**, **DFfile** (the name of the pickle, when using ``main.py``) and **DFresample**.
+
+.. _sign-conventions:
+
+Sign conventions of the forcing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Forcing products do not agree on the sign of the surface fluxes, and the CFM does not know which product your
+dataframe comes from, so **the signs have to be right when the dataframe is made**. The CFM convention is that the
+energy fluxes are positive **into the snow** (towards the surface) and that mass fluxes out of the snow are negative:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 14 22 32 32
+
+   * - CFM column
+     - CFM convention
+     - MERRA-2
+     - ERA5
+   * - ``QH``, ``QL`` (sensible and latent heat flux)
+     - positive **into the snow**; negative when the surface loses heat to the air
+     - ``HFLUX``, ``EFLUX``: positive **upward**. **Multiply by -1.**
+     - ``sshf``, ``slhf``: positive **downward** (towards the surface). Use as they are.
+   * - ``SUBLIM`` (sublimation, deposition)
+     - **negative = sublimation** (mass loss), positive = deposition
+     - ``EVAP``: positive = evaporation or sublimation (upward). **Multiply by -1.**
+     - ``e``: negative = evaporation (ECMWF defines processes from the surface to the atmosphere as negative). Use as it is.
+   * - ``SW_d``, ``LW_d``
+     - downwelling radiation, positive
+     - ``SWGDN``, ``LWGAB``: positive downward. Use as they are.
+     - ``ssrd``, ``strd``: positive downward. Use as they are.
+
+Other products (regional climate models, station data) have their own conventions; read the documentation of
+yours. In every case the question is the same: is the flux positive when it carries energy (or mass) towards the
+surface?
+
+.. VERIFY (ERA5): ECMWF's documentation page that I could fetch states the sign of evaporation (negative; Guideline 15 of the
+   ERA5 data documentation) but not the heat fluxes. The statement that sshf and slhf are positive downward is the ECMWF
+   convention for fluxes and agrees with Max's statement that ERA5 and MERRA-2 have opposite signs. Please check the exact
+   wording in the ECMWF parameter database before publishing. I did not check the radiation parameters of ERA5 in detail
+   (ssrd and strd are "downwards" by name).
+
+**A check for the sensible heat flux.** When the surface energy balance uses prescribed fluxes
+(**SEB_turb_method** ``prescribed``), the model checks the sign of ``QH`` and prints a warning if it looks positive
+upward. The check uses the physics: with the CFM convention, ``QH`` is positively correlated with the difference between the
+air and the skin temperature (``T2m - TSKIN``), and over an ice sheet it is positive on average. If the correlation and the
+mean are both clearly negative, the fluxes were probably not multiplied by -1. The check needs at least a year of
+data, because in winter the correlation can have the opposite sign even for correct data; it was tested with the MERRA-2
+example forcing for DYE-2 and Summit (it is not known how it behaves for other products or for Antarctica), it checks ``QH`` only, and it only
+warns: a flux with the wrong sign that passes the check, or a ``QL`` with a different sign than ``QH``, is not caught.
 
 The ``climateTS`` dictionary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

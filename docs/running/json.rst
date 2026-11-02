@@ -711,7 +711,7 @@ Surface energy balance (SEB)
 
 SEB
 ---
-  Whether to run the surface-energy-balance module, which computes surface temperature and melt from energy fluxes rather than using a prescribed melt forcing. When True, melt is calculated internally within the time-stepping loop and **InputFileNamemelt** is not needed. See the :ref:`surface energy balance page <seb-page>` for how it works, the required forcing, and its limitations.
+  Whether to run the surface-energy-balance module, which computes surface temperature and melt from energy fluxes rather than using a prescribed melt forcing. When True, melt is calculated internally within the time-stepping loop and **InputFileNamemelt** is not needed. See the :ref:`surface energy balance page <seb-page>` for how it works, the required forcing, and its limitations. The turbulent fluxes ``QH`` and ``QL`` of the forcing must be positive **into the snow** (MERRA-2 fluxes must be multiplied by -1; see :ref:`sign-conventions`).
 
   :type: ``boolean``
   :default: ``false``
