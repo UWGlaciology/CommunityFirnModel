@@ -1,21 +1,18 @@
 Running the CFM
 ===============
 
-The CFM is mostly easily run from the command line, though it can alternatively be run from an integrated development environment (IDE) such as Spyder (included with the Anaconda Python distribution). To run the model, the user must set up a .json-formatted configuration file that specifies the settings for a particular model run. Here, we generically use example.json as the name of that configuration file.
+A CFM run needs two things: a configuration file, which sets the physics and the model settings (see :doc:`json`), and the climate forcing, which is usually a dataframe (see :doc:`inputs`). Before the period of interest the model is spun up (see :doc:`spinup`). The model is a Python class that you can start in three ways, described on the next page:
 
-The model is run by calling main.py and specifying the name of the configuration file:
-
-.. code-block:: bash
-
-	>>> python main.py config.json -n
-
-If the results folder (specified in config.json) already exists and contains the results of a spin-up run (the spin-up file name is typically CFMspin.hdf5), the model will not run the spin-up routine again. If the user wishes to include the spin-up run, he/she should add the –n at the end of the above command to force the spin-up to run; if he/she wished to omit the spin up run, the –n should be omitted.
+1. ``run_CFM_example.py`` or the notebook ``run_CFM_example_notebook.ipynb`` (recommended). They read the forcing, set up the spin-up, configure the model and run it, all in one place.
+2. Your own script, which does the same with your forcing and your settings.
+3. ``main.py`` with a configuration file. This is the original way to run the CFM and is being deprecated.
 
 .. toctree::
     :maxdepth: 2
 
     running.rst
-    json.rst
+    spinup.rst
     inputs.rst
+    json.rst
     outputs.rst
     testing.rst

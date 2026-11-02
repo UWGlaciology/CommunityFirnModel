@@ -42,7 +42,7 @@ Both work out of the box with the example forcing files included in the reposito
 
 >>> python run_CFM_example.py "66.5,-46.25"
 
-for the DYE-2 example, or `"72.5,-38.75"` for the Summit example. Instructions and configuration options are documented inside the files themselves.
+for the DYE-2 example, or `"72.5,-38.75"` for the Summit example. Instructions and configuration options are documented inside the files themselves. The documentation also describes how to run the CFM ("Ways to run the CFM"), how the model is spun up ("Model spin-up", including the reference climate interval that is repeated ahead of the record), and the format of the forcing data ("Inputs for the CFM").
 
 ### Legacy: command line via main.py
 

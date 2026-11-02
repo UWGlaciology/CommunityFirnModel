@@ -17,7 +17,7 @@ The specific names that are in the configuration .json file for the CFM are as f
 
 InputFileFolder
 ---------------
-  Directory where the input csv files are located (usually a subdirectory of the directory that contains main.py, but user can specify an absolute paths as well.) Use '' if the input files are in the same directory as main.py.
+  Directory where the input files are located: the csv files (**input_type** ``csv``) or the pickle of the climate dataframe (**input_type** ``dataframe``). It is usually a subdirectory of the directory that contains main.py, but the user can specify an absolute path as well. Use '' if the input files are in the same directory as main.py. Not used when the forcing is passed to the model directly (see :doc:`inputs`).
       
   :type: ``string``
   :example: ``inputdata``
@@ -54,7 +54,7 @@ initprofile
 input_type
 ----------
   (New in version 1.1.0)
-  Specify what type of inputs you want to use - .csv (historic behavior) or pandas dataframe that is stored in a pickle.
+  Specify what type of inputs you want to use - .csv (historic behavior) or pandas dataframe that is stored in a pickle. Read by ``main.py``. A script that passes the forcing to the model directly (as ``run_CFM_example.py`` does) does not use it. See :doc:`inputs`.
   
   :type: ``string``
   :default: ``csv``
@@ -63,7 +63,7 @@ input_type
 DFresample
 ----------
   (New in version 1.1.0)
-  Specify the resolution you want for your model run, which will be the resample interval for the dataframe (this only has functionality when input_type is ``dataframe``)
+  Specify the resolution you want for your model run, which will be the resample interval for the dataframe (this only has functionality when input_type is ``dataframe``, or when you pass it to ``makeSpinFiles`` in your own script)
   See https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timedelta.html
 
   :type: ``pandas Timedelta (string)``
@@ -71,7 +71,7 @@ DFresample
 
 DFfile
 ------
-  The filename of the pickle containing the climate dataframe.
+  The filename of the pickle containing the climate dataframe (relative to **InputFileFolder**). Read by ``main.py`` when **input_type** is ``dataframe``. See :doc:`inputs` for the format of the dataframe.
 
   :type: ``string``
   :example: ``example.pkl``
@@ -120,7 +120,7 @@ TWriteInt
 
 TWriteStart
 -----------
-  The time at which to start saving model results. The time is model time, so must correspond to the time in the input forcing files.
+  The time at which to start saving model results. The time is model time, so must correspond to the time in the input forcing. With a reference-climate-interval spin-up the model time starts before the first date of the record (see :doc:`spinup`); set ``TWriteStart`` to the first date of the record to leave the spin-up repeats out of the output.
 
   :type: ``float``
   :Example: If your model run is from 1958 to 2018, but you only want outputs from 2000 onwards, 'TWriteStart' should be 2000.
@@ -235,7 +235,7 @@ AutoSpinUpTime
 
 yearSpin
 --------
-  How many years to spin up for. Only used when **AutoSpinUpTime** is False; if **AutoSpinUpTime** is True, the spin-up length is calculated automatically and this value is ignored. The spin up should be long enough to refresh the entire firn column at least once (i.e. long enough for a parcel deposited at the surface to advect to the bottom of the domain).
+  How many years to spin up for. Only used when **AutoSpinUpTime** is False; if **AutoSpinUpTime** is True, the spin-up length is calculated automatically and this value is ignored. For the steady-state spin-up, the spin up should be long enough to refresh the entire firn column at least once (i.e. long enough for a parcel deposited at the surface to advect to the bottom of the domain). With a reference-climate-interval spin-up the repeats of the interval do this, and ``yearSpin`` only sets the length of the first guess for the initial profile, so a small value (for example 1) is enough. See :doc:`spinup`.
 
   :type: ``float``
   :units: years
@@ -414,14 +414,14 @@ grid2bottom
 
 spinup_climate_type
 -------------------
-  What climate to use for the spin up. 'initial' uses the very first value in the input .csv files and 'mean' uses the mean of the values in those files.
+  What climate to use for the steady-state spin up (see :doc:`spinup`). 'initial' uses the very first value of the temperature and accumulation forcing and 'mean' uses the mean of the values. With a reference-climate-interval spin-up the forcing starts with the repeated interval, so 'mean' is a mean over the whole forcing, and the result is only the first guess for the initial profile.
 
   :type: ``string``
   :options: ``initial``, ``mean``
 
 manual_climate
 --------------
-  Manually specify the background climate (long-term means). This is useful if you are doing a very short model run, in which the input csv files may not be representative of the long-term climate.
+  Manually specify the background climate (long-term means). This is useful if you are doing a very short model run, in which the input forcing may not be representative of the long-term climate.
 
   :type: ``boolean``
   :default: ``false``
@@ -569,7 +569,7 @@ DIPhorizon
 
 NewSpin
 -------
-  Whether or not to perform a new spin up (if the spin file exists already.)
+  Whether or not to make a new initial profile with ``FirnDensitySpin`` (if the spin file exists already; if there is none, a new one is always made). If False and a spin file exists in **resultsFolder**, the model starts from it. ``main.py`` sets it to True with the option ``-n``. See :doc:`spinup`.
 
   :type: ``boolean``
   :default: ``false``
