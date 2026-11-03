@@ -1218,20 +1218,35 @@ lat_int / lon_int
   :type: ``float``
   :units: degrees
 
+Deprecated, inactive and bookkeeping keys
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The configuration checker (``config_validation.py``) accepts the following keys without a warning about "unrecognized key". Most of them do nothing in the current code; they are listed so that you know that you can remove them.
 
+strain
+------
+  **Deprecated.** The former name of **horizontal_divergence**. A configuration that still has it is converted, and a deprecation message is printed. If both keys are present, **horizontal_divergence** is used.
 
+InputFileNamedudx
+-----------------
+  **Deprecated.** The former name of **InputFileNameStrain**; it is converted, with a deprecation message. If both are present, **InputFileNameStrain** is used.
 
+LWCheat / LWCcorr_subdt / correct_therm_prop
+--------------------------------------------
+  Inactive. Flags from before the introduction of **meltwater_solver** (see **LWC_heat** above). ``LWCheat`` is set by the model itself (``enthalpy``) and is not read from the configuration file. Remove them.
 
+LWCcorrect / meltwater_solver_options
+-------------------------------------
+  Accepted by the checker but not read by the current code. Choose the treatment of liquid water in the heat equation with **meltwater_solver**.
 
+MQ
+--
+  Activation energy, in kJ mol\ :sup:`-1` (default 60), of the experimental ``MaxSP`` densification function in ``physics.py``. Only the original spin-up script (``firn_density_spin.py``) passes it to the physics; the main model (``firn_density_nospin.py``) does not, so ``MaxSP`` cannot be used for a main run and the key has no effect there. (The activation energy of the Morris and Wingham, 2014, model is **QMorris**.)
 
+runid
+-----
+  A lower-case duplicate of **runID**. The model does not read it; use **runID**.
 
-
-
-
-
-
-
-
-
-
+x_val / y_val / x_int / y_int / quad / runloc / resultspath
+-----------------------------------------------------------
+  Site and run bookkeeping that run scripts can add to the configuration (grid-cell coordinates and indices, a quadrant or tile label, where the run was made, and the path of the results). The model does not read them; they are accepted so that the checker does not report them as typos, and they stay in the configuration copy that is saved with the results, which is useful for keeping track of runs.

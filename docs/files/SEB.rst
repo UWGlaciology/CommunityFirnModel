@@ -1,0 +1,5 @@
+SEB
+===
+
+.. automodule:: SEB
+	:members:

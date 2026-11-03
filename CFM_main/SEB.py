@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+'''
+SEB.py
+======
+
+The surface energy balance (SEB) module. It calculates the surface temperature and the melt
+of a thin lumped top layer from the radiation and turbulent fluxes of the climate forcing
+(or turbulent fluxes calculated from wind, humidity and pressure: see SEB_turbulent.py),
+including rain heat and the ground heat flux, and returns the melt that forces the
+percolation schemes. Energy fluxes are positive into the snow; see the class
+SurfaceEnergyBudget and the page "Surface energy balance" of the documentation.
+'''
 
 import numpy as np 
 # import scipy.interpolate as interpolate

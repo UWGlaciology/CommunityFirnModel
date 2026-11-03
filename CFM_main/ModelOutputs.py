@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 '''
-Code for isotope diffusion.
+ModelOutputs.py
+===============
+
+The class ModelOutputs holds the arrays that the model writes at the times set by TWriteInt and
+TWriteStart (optionally interpolated onto a regular depth grid) and updates them during the run;
+writer.py writes them to the results file. See the page "CFM outputs" of the documentation.
 '''
 import numpy as np 
 import json

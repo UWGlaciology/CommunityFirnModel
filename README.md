@@ -25,7 +25,7 @@ Documentation is still (always) a work in progress, and in the past few years I 
 
 ## Installation
 
-The CFM is coded in python. To use the software, you need to clone the repository to your computer.
+The CFM is coded in python (3.11 or newer). To use the software, you clone the repository to your computer, install the packages in `requirements.txt` (`pip install -r requirements.txt`), and run the scripts from the `CFM_main` folder; there is nothing else to install. The documentation has an [installation and quick-start page](https://communityfirnmodel.readthedocs.io/en/latest/running/quickstart.html).
 
 ## Running the CFM
 

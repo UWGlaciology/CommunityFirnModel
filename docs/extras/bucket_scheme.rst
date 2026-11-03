@@ -70,7 +70,8 @@ order:
    impermeable barriers to percolation, based on a density threshold
    (**RhoImp**) and, optionally, a minimum lens thickness (**ThickImp**) or
    a "bypass shallow lenses" mode (**DownToIce**). The domain's bottom node
-   is always treated as impermeable.
+   is always treated as impermeable. With **LeakyLenses** the lenses are not
+   all-or-nothing barriers: see step 5b below.
 
 4. **Distribution of surface liquid input** -- melt and rain input at the
    surface is distributed downward into available storage capacity, node by
@@ -82,6 +83,18 @@ order:
    node beyond its irreducible retention value ("excess" LWC) is passed
    downward into any remaining storage capacity, or blocked above the
    nearest impermeable barrier if none is found.
+
+   *5b. Leaky lenses (optional).* If **LeakyLenses** is true, the water that
+   is blocked above a dense node is then passed through the lens in part
+   (``leaky_lens_routing()``): each node with density of at least **RhoImp**
+   transmits the fraction :math:`\exp(-\Delta z/L)` of the water that reaches
+   it, where :math:`\Delta z` is its thickness and :math:`L` is
+   **LensDecayLength**. A lens of total thickness :math:`D` therefore passes
+   :math:`\exp(-D/L)` of the water however many nodes it has. The transmitted
+   water fills the remaining storage capacity of the permeable nodes below,
+   from the top down, until the next lens, where the same split is applied;
+   the part that is not transmitted stays blocked above the lens and is
+   handled by step 7 (**Ponding**, **DirectRunoff**) as usual.
 
 6. **Refreezing (pass 1)** -- excess/redistributed LWC refreezes according
    to each node's refreezing capacity; mass, density, LWC, and temperature
@@ -140,6 +153,18 @@ for types and defaults.
        **RhoImp** is impermeable regardless of lens thickness. The
        bottom-most lens in the domain is always impermeable regardless of
        this setting.
+   * - **LeakyLenses**
+     - If true, ice lenses are partially permeable: each node with density
+       of at least **RhoImp** passes on the fraction
+       exp(-dz/**LensDecayLength**) of the water that reaches it (see step
+       5b). **ThickImp** is not used. Only used by the bucket scheme and
+       when **DownToIce** is false (a validator warning is given for the
+       other schemes). Default false. Contributed by Aslak Grinsted.
+   * - **LensDecayLength**
+     - E-folding ice thickness of the transmission through lenses when
+       **LeakyLenses** is true, in m (default 0.1). Small values approach
+       **ThickImp** = 0 (every dense layer blocks); large values approach
+       **DownToIce** = true.
    * - **Ponding**
      - If true, LWC blocked by an impermeable barrier can pond in available
        pore space above the barrier. If false, all blocked LWC runs off.
@@ -164,6 +189,21 @@ for types and defaults.
      - If true, enables verbose diagnostic printouts of intermediate
        LWC/runoff bookkeeping values throughout the function (see
        ``_debug_report`` below).
+
+Melt of bare ice (**IceMeltFactor**)
+====================================
+
+This is not part of ``bucket()``, but it changes the melt that goes into it
+(and into the other schemes). A melt forcing from a degree-day model usually
+uses the degree-day factor of snow, while bare ice melts faster because its
+albedo is lower. If **IceMeltFactor** is not 1, the melt forcing is multiplied
+by it at the time steps when the density of the top model node is greater than
+**IceMeltRho** (default 800 kg m\ :sup:`-3`). The top node is the surface that
+the previous time step left, so a layer of fresh snow on top of ice turns the
+enhancement off. It is not used when **SEB** is true (the surface energy
+balance uses the albedo), when **MELT** is false, or in the spin-up. The scaled
+melt is what the percolation scheme uses and what is written to the ``climate``
+output and the forcing record. See :doc:`../running/json` for the details.
 
 Helper functions
 =================
@@ -341,6 +381,19 @@ Known limitations & caveats
   drainage. This is an open physics question, not resolved here, and
   interacts with **Ponding**: water could pond on a sub-ice-density
   "impermeable" bottom layer.
+
+``leaky_lens_routing(LWCblocked, stcap, dense, dz, decay_length)``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Routes the water that is blocked above ice lenses through partially
+permeable lenses (step 5b, used when **LeakyLenses** is true). It returns the
+water added to the storage of each node and the water that is still blocked.
+The bottom node always blocks, so water that reaches it stays in the node above
+it. A decay length of 0 blocks all the water at the first dense node (as
+**ThickImp** = 0 does). A parameterization with a percolation efficiency that
+decreases exponentially with the ice-layer thickness is also used in FirnPerc
+(van de Berg, EGU General Assembly 2026, EGU26-7173). Contributed by Aslak
+Grinsted (pull request #25).
 
 References
 ==========
