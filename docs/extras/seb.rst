@@ -234,11 +234,17 @@ Status and limitations
   for version 4.0.0).
 * The albedo is an input (``ALBEDO``); the model does not calculate it, so the effect of melt or of the accumulation of
   new snow on the albedo is only in the forcing. For this reason **IceMeltFactor** is not used with the SEB.
-* **Sublimation and the latent heat flux are not coupled.** Sublimation and deposition are taken from the forcing
-  (``SUBLIM``) in all methods; they are not derived from :math:`Q_L`. With prescribed fluxes from one product (for example
-  ``QL`` and the evaporation of MERRA-2) the two are consistent. With ``bulk_richardson`` or ``monin_obukhov``, :math:`Q_L` is
-  calculated from the surface temperature of the CFM, but ``SUBLIM`` is still the product's, so the latent heat flux
-  and the mass flux are no longer consistent. This is a known issue.
+* **Sublimation and the latent heat flux.** With prescribed fluxes, sublimation and deposition are taken from the forcing
+  (``SUBLIM``), and the forcing ``QL`` is used in the energy balance; with one product (for example ``QL`` and the evaporation
+  of MERRA-2) the two are consistent, which the model checks (see :ref:`sign-conventions`). With ``bulk_richardson`` or
+  ``monin_obukhov``, :math:`Q_L` is calculated from the surface temperature of the CFM, and so is the mass that goes with
+  it: at every time step the SEB returns :math:`Q_L/L\,\Delta t` (kg m\ :sup:`-2`), with :math:`L` the same latent heat as in
+  the flux (sublimation below the melting point, vaporization at it; sub-daily forcing is summed over the sub-steps, each with
+  its own surface temperature). A negative value is sublimation and is removed from the surface like any sublimation; a
+  positive value is deposition and is added to the accumulation. The forcing ``SUBLIM`` is then only the first estimate used
+  for ``iceout`` and the grid set-up (use zero or leave it out if you have no estimate, but note that ``iceout`` is then too
+  high by the mean sublimation, which the end-of-run mass-consistent ``iceout`` diagnostic reports). The ``climate`` output
+  shows the sublimation that was used. **SUBLIM** has to be true for this; the configuration checker warns otherwise.
 * Rain heat assumes that the surface is at the melting point (see above), and the rain has no effect on the albedo.
 * ``SEB_fqs`` and ``SEB_fqs_subdt`` were renamed ``solve_Ts`` and ``solve_Ts_subdt`` in version 4.0.0.
 

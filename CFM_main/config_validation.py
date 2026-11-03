@@ -305,6 +305,13 @@ def validate_config(c, config_path=None):
                 "'IceMeltFactor' is not used when 'SEB' is true (the surface energy balance "
                 "uses the albedo)")
 
+    if (c.get('SEB', False) and c.get('SEB_turb_method', 'prescribed') in ('bulk_richardson', 'monin_obukhov')
+            and not c.get('SUBLIM', True)):
+        warnings.append(
+            "'SUBLIM' is false but 'SEB_turb_method' is '{}': the latent heat flux is part of the energy "
+            "balance, but the sublimation or deposition that goes with it is not applied to the firn. "
+            "Set 'SUBLIM' to true.".format(c['SEB_turb_method']))
+
     src = " in {}".format(config_path) if config_path else ""
 
     for w in warnings:

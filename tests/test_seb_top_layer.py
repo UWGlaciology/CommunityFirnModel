@@ -65,7 +65,7 @@ def test_solver_uses_the_thinnest_consistent_layer(method, SW):
     seb = _seb(SW, method=method, cls=Probe)
     column = _column(268.0)
     solve = seb._solve_Ts_quartic if method == 'prescribed' else seb._solve_Ts_newton
-    _, Tz, melt, _ = solve(column, 0, 268.0)
+    _, Tz, melt, _, _ = solve(column, 0, 268.0)
     chosen = seb.chosen
     assert chosen > seb.first                                  # these forcings melt more than the first layer holds
     assert seb.melt_for(chosen) <= seb.cum_mass[chosen]

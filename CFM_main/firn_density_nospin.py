@@ -605,12 +605,19 @@ class FirnDensityNoSpin:
         if self.c['SUBLIM']:
             susf            = interpolate.interp1d(input_year_sublim,input_sublim,int_type,fill_value='extrapolate') # interpolation function
             self.sublim     = susf(self.modeltime) # [m ice eq per year]            
-            if np.any(self.sublim>0):
+            ### With a turbulent-flux SEB (bulk_richardson, monin_obukhov) the sublimation is calculated from the latent heat
+            ### flux of the SEB at every time step (see the SEB call in the time loop), so that the mass flux and QL are
+            ### consistent. The forcing SUBLIM (if there is one; else zero) is then only the a priori estimate for iceout
+            ### and the like, and positive values (deposition) stay in self.sublim (they are in the iceout flux balance)
+            ### instead of being moved into bdot here, because the SEB value replaces them.
+            self.sublim_from_SEB = bool(self.c.get('SEB', False) and self.c.get('SEB_turb_method', 'prescribed') in ('bulk_richardson', 'monin_obukhov'))
+            if np.any(self.sublim>0) and not self.sublim_from_SEB:
                 ipSUB = np.where(self.sublim>0)[0]
                 self.bdot[ipSUB] = self.bdot[ipSUB] + self.sublim[ipSUB]
                 self.sublim[ipSUB] = 0
             self.sublimSec  = self.sublim / S_PER_YEAR / (S_PER_YEAR/self.dt) # sublimation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
         else:
+            self.sublim_from_SEB = False
             self.sublim       = -9999 * np.ones_like(self.bdot)
         self.bdotSec    = self.bdot / S_PER_YEAR / (S_PER_YEAR/self.dt) # accumulation at each time step (meters i.e. per second). gets multiplied by S_PER_YEAR later. (sort of hacky, I know)
 
@@ -1322,9 +1329,9 @@ class FirnDensityNoSpin:
                     T_old = self.Ts[iii-1]
 
                 if self.SEBfluxes is not None: # Use the sub time step functionality
-                    self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.solve_Ts_subdt(PhysParams,iii,T_old,mtime)
+                    self.Ts[iii], self.Tz, melt_mass, M2TS, sublim_mass = self.SEB.solve_Ts_subdt(PhysParams,iii,T_old,mtime)
                 else: # SEB time step is the same as main model.
-                    self.Ts[iii], self.Tz, melt_mass, M2TS = self.SEB.solve_Ts(PhysParams,iii,T_old)
+                    self.Ts[iii], self.Tz, melt_mass, M2TS, sublim_mass = self.SEB.solve_Ts(PhysParams,iii,T_old)
 
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 ### SEB gives us mass of melt flux, at this time step. the following makes it consistent with other surface mass fluxes
@@ -1336,6 +1343,17 @@ class FirnDensityNoSpin:
                 # self.snowmelt[iii] = self.snowmeltSec[iii] * S_PER_YEAR * (S_PER_YEAR/self.dt[iii])
                 # self.snowmeltSec    = self.snowmelt / S_PER_YEAR / (S_PER_YEAR/self.dt) # melt for each time step (meters i.e. per second)
                 self.forcing_dict['SMELT'][self.start_ind+iii] = self.snowmelt[iii]
+
+                ### Sublimation/deposition from the latent heat flux of the SEB (turbulent-flux methods only; with prescribed
+                ### fluxes sublim_mass is None and the SUBLIM forcing is used). sublim_mass is in kg m-2 per time step,
+                ### positive for deposition. It is converted like the melt. Deposition becomes accumulation, as for the forcing.
+                if self.sublim_from_SEB and sublim_mass is not None:
+                    self.sublim[iii] = sublim_mass / RHO_I / self.dt[iii] * S_PER_YEAR # m i.e. per year
+                    if self.sublim[iii] > 0:
+                        self.bdot[iii] = self.bdot[iii] + self.sublim[iii]
+                        self.bdotSec[iii] = self.bdot[iii] / S_PER_YEAR / (S_PER_YEAR/self.dt[iii])
+                        self.sublim[iii] = 0.0
+                    self.sublimSec[iii] = self.sublim[iii] / S_PER_YEAR / (S_PER_YEAR/self.dt[iii])
 
             ############################
             

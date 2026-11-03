@@ -32,3 +32,15 @@ def test_other_seb_melt_combinations_are_left_alone(capsys, seb, melt):
     validate_config(c)
     assert c['MELT'] is melt
     assert "Switching 'MELT'" not in capsys.readouterr().out
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize('method, sublim, warns', [
+    ('bulk_richardson', False, True), ('monin_obukhov', False, True),
+    ('bulk_richardson', True, False), ('prescribed', False, False)])
+def test_seb_turbulent_flux_with_sublimation_off_warns(capsys, method, sublim, warns):
+    # the latent heat flux is in the energy balance, but without SUBLIM the sublimation that goes with it is not applied
+    c = example_config()
+    c.update(SEB=True, MELT=True, SEB_turb_method=method, SUBLIM=sublim)
+    validate_config(c)
+    assert ("'SUBLIM' is false but 'SEB_turb_method'" in capsys.readouterr().out) is warns

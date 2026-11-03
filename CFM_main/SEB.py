@@ -28,7 +28,7 @@ import pandas as pd
 
 from SEB_turbulent import (FORCING_KEYS, RoughnessLengths,
                             PrescribedTurbulentFlux, BulkRichardsonFlux,
-                            MoninObukhovFlux)
+                            MoninObukhovFlux, latent_heat_turbulent)
 
 usejit = False
 ### working on jit implementation. not working 24/10/22
@@ -275,6 +275,21 @@ class SurfaceEnergyBudget:
     ### end init ###
     ################
 
+    def _latent_mass(self, Ts, isub, dt):
+        '''
+        Mass exchange at the surface that goes with the latent heat flux QL of the turbulent flux
+        model at surface temperature Ts: QL / L, with the latent heat L that the flux model uses
+        (latent_heat_turbulent: sublimation below the melting point, vaporization at it), so that
+        the energy and the mass flux are consistent.
+
+        :param Ts: surface temperature [K]
+        :param isub: index into the SEB forcing arrays
+        :param dt: duration [s]
+        :return: mass per unit area [kg m-2]; positive = deposition (gain), negative = sublimation (loss)
+        '''
+        _, QL = self.flux_model.compute(Ts, isub)
+        return QL / latent_heat_turbulent(Ts) * dt
+
     def solve_Ts(self, PhysParams, iii, T_old):
         '''
         Generic surface temperature / melt solver. Dispatches to the
@@ -282,6 +297,12 @@ class SurfaceEnergyBudget:
         model doesn't depend on Ts (prescribed mode - matches the
         original SEB_fqs), or to Newton-Raphson when it does (bulk-
         Richardson, Monin-Obukhov).
+
+        Returns (Ts, Tz, melt_mass, TSKIN, sublim_mass): the surface temperature [K], the
+        temperature profile, the melt [kg m-2 per model step], the skin temperature of the
+        forcing, and the deposition (+) or sublimation (-) [kg m-2 per model step] that goes with
+        the latent heat flux (QL / L, see _latent_mass). sublim_mass is None with prescribed
+        fluxes: there the sublimation is the SUBLIM forcing of the product.
         '''
         if self.flux_model.depends_on_Ts:
             return self._solve_Ts_newton(PhysParams, iii, T_old)
@@ -296,7 +317,8 @@ class SurfaceEnergyBudget:
         step, i.e. dtRATIO sub-steps per model step), dispatches on the
         turbulent flux model: the analytic quartic path when the fluxes do
         not depend on Ts (prescribed), the Newton-Raphson path otherwise
-        (bulk_richardson, monin_obukhov).
+        (bulk_richardson, monin_obukhov). Returns the same five values as solve_Ts,
+        summed over the sub-steps.
         '''
         if self.flux_model.depends_on_Ts:
             return self._solve_Ts_subdt_newton(PhysParams, iii, T_old, mtime)
@@ -446,7 +468,7 @@ class SurfaceEnergyBudget:
 
         Tz[0:iTL+1] = Tsurface
 
-        return Tsurface, Tz, meltmass, self.TSKIN[iii]
+        return Tsurface, Tz, meltmass, self.TSKIN[iii], None # None: sublimation is not calculated with prescribed fluxes
     ### end _solve_Ts_quartic ###
     ##############################
 
@@ -531,7 +553,9 @@ class SurfaceEnergyBudget:
 
         Tz[0:iTL+1] = Ts
 
-        return Ts, Tz, meltmass, self.TSKIN[iii]
+        sublim_mass = self._latent_mass(Ts, iii, dt) # deposition (+) or sublimation (-) that goes with QL
+
+        return Ts, Tz, meltmass, self.TSKIN[iii], sublim_mass
         ### end _solve_Ts_newton ###
         #############################
     
@@ -627,7 +651,10 @@ class SurfaceEnergyBudget:
 
         Tz[0:iTL+1] = Tsurface_out
 
-        return Tsurface_out, Tz, meltmass_out, self.TSKIN[iii]
+        # deposition (+) or sublimation (-) that goes with QL, from each sub-step's own Ts
+        sublim_mass = np.sum([self._latent_mass(Tcalc[jj], i0 + jj, dt) for jj in range(self.dtRATIO)])
+
+        return Tsurface_out, Tz, meltmass_out, self.TSKIN[iii], sublim_mass
     ### end _solve_Ts_subdt_newton ###
     ##################################
 
@@ -760,7 +787,7 @@ class SurfaceEnergyBudget:
 
         Tz[0:iTL+1] = Tsurface_out
 
-        return Tsurface_out, Tz, meltmass_out, self.TSKIN[iii]
+        return Tsurface_out, Tz, meltmass_out, self.TSKIN[iii], None # None: sublimation is not calculated with prescribed fluxes
     ############################
     ### end _solve_Ts_subdt_quartic
     ############################

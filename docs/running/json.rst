@@ -1032,7 +1032,7 @@ Sublimation
 
 SUBLIM
 ------
-  Whether to include sublimation/deposition. When False, negative values in the accumulation forcing (interpreted as sublimation) are set to zero.
+  Whether to include sublimation/deposition. When False, negative values in the accumulation forcing (interpreted as sublimation) are set to zero. With **SEB** true and **SEB_turb_method** ``bulk_richardson`` or ``monin_obukhov``, the sublimation is not taken from the forcing but calculated from the latent heat flux of the surface energy balance (the forcing ``SUBLIM`` is then only a first estimate for **iceout**), so it has to be true in that case.
 
   :type: ``boolean``
   :default: ``true``

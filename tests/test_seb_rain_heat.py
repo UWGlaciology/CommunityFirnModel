@@ -64,7 +64,7 @@ def test_daily_melt_from_rain_is_the_rain_heat_over_the_latent_heat(method):
     for rain in (0.0, _rate(rain_kg, DAY)):
         seb = _seb(rain)
         solve = seb._solve_Ts_quartic if method == 'quartic' else seb._solve_Ts_newton
-        _, _, melt, _ = solve(_column(), 0, 270.0)
+        _, _, melt, _, _ = solve(_column(), 0, 270.0)
         melts.append(float(np.squeeze(melt)))
     expected = CP_W * (rain_kg / DAY) * (278.0 - T_MELT) * DAY / LF_I
     assert melts[1] - melts[0] == pytest.approx(expected, rel=1e-6)
@@ -81,7 +81,7 @@ def test_sub_daily_melt_from_rain_is_the_rain_heat_over_the_latent_heat(method):
         seb = _seb(rain, dtratio=6)
         if method == 'newton':
             seb.flux_model.depends_on_Ts = True
-        _, _, melt, _ = seb.solve_Ts_subdt(_column(), 0, 270.0, 0.0)
+        _, _, melt, _, _ = seb.solve_Ts_subdt(_column(), 0, 270.0, 0.0)
         melts.append(float(np.squeeze(melt)))
     expected = CP_W * (rain_kg / DAY) * (278.0 - T_MELT) * DAY / LF_I
     assert melts[1] - melts[0] == pytest.approx(expected, rel=1e-6)

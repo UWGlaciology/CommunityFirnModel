@@ -72,12 +72,12 @@ class FixedFlux(TurbulentFluxModel):
 for QH0, QL0, T0 in ((-13, -10, 250.), (-12, -10, 250.), (80, 20, 272.5), (150, 30, 272.9)):
     sa = seb('prescribed', T2m=T0, QH=QH0, QL=QL0); sb = seb('prescribed', T2m=T0, QH=QH0, QL=QL0)
     sb.flux_model = FixedFlux(QH0, QL0)
-    Ta, _, Ma, _ = sa.solve_Ts(phys(T0), 0, T0); Tb, _, Mb, _ = sb.solve_Ts(phys(T0), 0, T0)
+    Ta, _, Ma, _, _ = sa.solve_Ts(phys(T0), 0, T0); Tb, _, Mb, _, _ = sb.solve_Ts(phys(T0), 0, T0)
     check(f'newton==quartic QH={QH0}', abs(float(np.squeeze(Ta))-float(np.squeeze(Tb))) < 5e-2 and abs(float(np.squeeze(Ma))-float(np.squeeze(Mb))) <= 0.02*abs(float(np.squeeze(Ma))), (float(np.squeeze(Ta)), float(np.squeeze(Tb)), float(np.squeeze(Ma)), float(np.squeeze(Mb))))
 # 8. full solves with real models produce physical Ts, finite melt
 for S in ('bulk_richardson', 'monin_obukhov'):
     for T0, WS in ((235., 3.), (255., 8.), (271., 1.), (272.5, 6.)):
-        s = seb(S, T2m=T0, WS=WS); Ts, Tz, melt, _ = s.solve_Ts(phys(T0), 0, T0)
+        s = seb(S, T2m=T0, WS=WS); Ts, Tz, melt, _, _ = s.solve_Ts(phys(T0), 0, T0)
         ok = np.isfinite(float(Ts)) and 150 < float(Ts) <= 273.15 and np.isfinite(float(melt)) and float(melt) >= 0
         check(f'{S} solve_Ts T2m={T0} WS={WS}', ok, (float(Ts), float(melt)))
 
@@ -94,11 +94,11 @@ for QH0, QL0, T0 in ((-13, -10, 250.), (-5, -5, 266.), (60, 20, 272.5)):
     sa = seb_sub('prescribed', T0, QH0, QL0); sb = seb_sub('prescribed', T0, QH0, QL0)
     sb.flux_model = FixedFlux(QH0, QL0)
     pa, pb = phys(T0), phys(T0)
-    Ta, _, Ma, _ = sa.solve_Ts_subdt(pa, 0, T0, 0.); Tb, _, Mb, _ = sb.solve_Ts_subdt(pb, 0, T0, 0.)
+    Ta, _, Ma, _, _ = sa.solve_Ts_subdt(pa, 0, T0, 0.); Tb, _, Mb, _, _ = sb.solve_Ts_subdt(pb, 0, T0, 0.)
     check(f'subdt newton==quartic T0={T0}', abs(float(Ta)-float(Tb)) < 1.0 and abs(float(Ma)-float(Mb)) <= 0.05*abs(float(Ma))+0.05,
           (float(Ta), float(Tb), float(Ma), float(Mb)))
 for S in ('bulk_richardson', 'monin_obukhov'):
-    s = seb_sub(S, 268., 0, 0); Ts, Tz, melt, _ = s.solve_Ts_subdt(phys(268.), 0, 268., 0.)
+    s = seb_sub(S, 268., 0, 0); Ts, Tz, melt, _, _ = s.solve_Ts_subdt(phys(268.), 0, 268., 0.)
     check(f'{S} solve_Ts_subdt runs', np.isfinite(float(Ts)) and 200 < float(Ts) <= 273.15 and float(melt) >= 0, (float(Ts), float(melt)))
 print('\nRESULT:', 'FAIL' if fails else 'PASS', fails)
 sys.exit(1 if fails else 0)
