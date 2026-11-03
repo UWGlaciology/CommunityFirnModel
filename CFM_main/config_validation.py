@@ -64,7 +64,7 @@ ALLOWED_VALUES = {
         'Helsen2008', 'Arthern2010S', 'Arthern2010T', 'Simonsen2013',
         'Ligtenberg2011', 'Barnola1991', 'Morris2014', 'KuipersMunneke2015',
         'Brils2022', 'Veldhuijsen2023', 'Goujon2003', 'Breant2017',
-        'Crocus', 'GSFC2020',
+        'Crocus', 'GSFC2020', 'MaxSP',
     },
     'bdot_type': {'instant', 'mean', 'stress'},
     'conductivity': {
@@ -152,7 +152,7 @@ KNOWN_KEYS = {
     'tuning_bias_correction', 'InputFileNamedudx',
     # climate
     'spinup_climate_type', 'manual_climate', 'deepT', 'bdot_long',
-    'manual_iceout', 'iceout', 'QMorris', 'MQ', 'THist',
+    'manual_iceout', 'iceout', 'QMorris', 'THist',
     # melt / liquid water
     'liquid', 'merging', 'merge_min', 'LWCcorrect', 'ColeouLesaffre',
     'IrrVal', 'RhoImp', 'ThickImp', 'LeakyLenses', 'LensDecayLength', 'DownToIce', 'Ponding', 'DirectRunoff',

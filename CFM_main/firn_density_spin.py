@@ -533,12 +533,6 @@ class FirnDensitySpin:
                 'bdot_av':      self.bdot_av,
             }
 
-            if self.c['physRho']=='MaxSP':
-                try:
-                    PhysParams['MQ'] = self.c['MQ']
-                except:
-                    PhysParams['MQ'] = 60
-
             if self.c['THist']:
                 PhysParams['Hx'] = self.Hx
 

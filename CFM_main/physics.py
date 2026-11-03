@@ -1388,8 +1388,7 @@ class FirnPhysics:
 
     def MaxSP(self):
 
-        # Q = 60.0e3
-        Q = self.MQ * 1000
+        Q = 60.0e3 # activation energy [J mol-1]; the coefficients below are fits for this value
 
         def k_log_cf_d(xa,L,kL,os,d,rhoc):
             denom = 1 + np.exp(-kL*(xa - rhoc))

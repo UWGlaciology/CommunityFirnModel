@@ -121,7 +121,7 @@ physRho
   The firn-densification physics to use for the model run. Each option, with its reference, equation, and what to know about it, is described on the :ref:`densification models page <densification-page>`.
 
   :type: ``string``
-  :Options: ``HLdynamic``, ``HLSigfus``, ``Li2004``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Simonsen2013``, ``Goujon2003``, ``Breant2017``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Brils2022``, ``Veldhuijsen2023``, ``GSFC2020``, ``Crocus``, ``Ligtenberg2011``
+  :Options: ``HLdynamic``, ``HLSigfus``, ``Li2004``, ``Li2011``, ``Helsen2008``, ``Arthern2010S``, ``Arthern2010T``, ``Li2015``, ``Simonsen2013``, ``Goujon2003``, ``Breant2017``, ``Barnola1991``, ``Morris2014``, ``KuipersMunneke2015``, ``Brils2022``, ``Veldhuijsen2023``, ``GSFC2020``, ``Crocus``, ``Ligtenberg2011``, ``MaxSP`` (experimental)
 
 MELT
 ----
@@ -1047,14 +1047,6 @@ bdm_sublim
 Densification and thermal options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-MQ
---
-  Activation energy for the Morris and Wingham (2014) densification model. Only used when **physRho** is ``Morris2014``.
-
-  :type: ``float``
-  :default: ``60``
-  :units: :math:`\textrm{kJ mol}^{-1}`
-
 THist
 -----
   Whether to track the temperature history of each layer (required by physics such as Morris2014). Set automatically to True when **physRho** is ``Morris2014``.
@@ -1238,10 +1230,6 @@ LWCheat / LWCcorr_subdt / correct_therm_prop
 LWCcorrect / meltwater_solver_options
 -------------------------------------
   Accepted by the checker but not read by the current code. Choose the treatment of liquid water in the heat equation with **meltwater_solver**.
-
-MQ
---
-  Activation energy, in kJ mol\ :sup:`-1` (default 60), of the experimental ``MaxSP`` densification function in ``physics.py``. Only the original spin-up script (``firn_density_spin.py``) passes it to the physics; the main model (``firn_density_nospin.py``) does not, so ``MaxSP`` cannot be used for a main run and the key has no effect there. (The activation energy of the Morris and Wingham, 2014, model is **QMorris**.)
 
 runid
 -----
