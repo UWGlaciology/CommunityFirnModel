@@ -47,4 +47,5 @@ identifiers:
     value: 10.5281/zenodo.3585884
 repository-code: 'https://github.com/UWGlaciology/CommunityFirnModel'
 license: MIT
-version: 4.0.0
+version: 4.1.0
+date-released: '2026-11-03'

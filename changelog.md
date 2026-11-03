@@ -35,7 +35,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-4.0.0
+4.1.0
 
 ## Full Documentation
 
@@ -61,7 +61,7 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- I am working on adding additional physics to simulate near-surface snow compaction ("stage zero compaction")
 	- Vapor-phase transport (vapor.py) is in development and is not part of the release
 
-## [4.1.0] Unreleased
+## [4.1.0] 2026-11-03
 ### New
 - *SEB.py, RCMpkl_to_spin.py, run_CFM_example.py, docs/running/inputs.rst, docs/extras/seb.rst, docs/running/json.rst* **Sign convention of the surface energy fluxes: one rule, documented, and checked.** `QH` and `QL` are positive **into the snow** in every way of giving the forcing to the SEB. **Behavior change:** if `climateTS` was given to the model without `SEBfluxes`, the SEB used to multiply `QH` and `QL` by -1 (assuming MERRA-2 upward-positive fluxes); it no longer does, so such scripts must now provide fluxes positive into the snow (this is what `makeSpinFiles` and the example scripts already provide). The conventions of MERRA-2 and ERA5 are tabulated in the new section "Sign conventions of the forcing" of the Inputs page. New safety net: with `SEB_turb_method` `prescribed`, the model checks the sign of `QH` (`flux_sign_check` in `SEB.py`: `QH` should correlate positively with `T2m - TSKIN` and be positive on average) and prints a warning if it looks positive upward, for example when the multiplication by -1 of MERRA-2 fluxes was forgotten. It needs at least a year of data and checks `QH` only. Tests: `tests/test_seb_flux_sign.py`.
 - *config_validation.py, docs/running/json.rst, docs/extras/seb.rst* **`SEB` true now implies `MELT` true.** With `SEB` true and `MELT` false the surface energy balance computed melt that was then discarded (the surface stayed at the melting point and nothing melted, without any message). The configuration check now prints a warning and sets `MELT` to true. Tests: `tests/test_config_checks.py`.
