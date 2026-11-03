@@ -58,7 +58,6 @@ The scripts above are a template for your own. The steps are always the same: ge
     climateTS, stpsPerYear, depth_S1, depth_S2, grid_bottom, SEBfluxes = RCM.makeSpinFiles(
         df, timeres=c['DFresample'], spin_date_st=1980.0, spin_date_end=1984.0,
         melt=c['MELT'], desired_depth=None, SEB=c['SEB'], rho_bottom=900)
-    climateTS['SUBLIM'] = -1 * climateTS['SUBLIM']   # MERRA-2 sign convention, see the inputs page
     climateTS['forcing_data_start'] = 1980.0         # first date of the record
 
     # 4. Settings that depend on the time step and on the depth of the domain.

@@ -56,13 +56,13 @@ The columns, using the names the model expects, are:
 A few details that are easy to get wrong:
 
 * The **mass fluxes are in mass per time step of the dataframe**: if the dataframe is hourly, the accumulation is in kg m\ :sup:`-2` per hour (the mass of snow that fell in that hour), not a rate. ``makeSpinFiles`` converts them to the unit that the model uses, **m ice equivalent per year**, after it has resampled them.
-* **Sign of sublimation:** the model expects sublimation to be negative (a mass loss from the surface) and deposition to be positive. Some reanalyses use the opposite sign: MERRA-2 evaporation is positive for sublimation, so ``run_CFM_example.py`` multiplies the ``SUBLIM`` forcing by -1.
+* **Sign of sublimation:** the model expects sublimation to be negative (a mass loss from the surface) and deposition to be positive. Some reanalyses use the opposite sign: MERRA-2 evaporation (``EVAP``) is positive for sublimation, so it must be multiplied by -1 when the dataframe is made (``run_CFM_example.py`` does this, and the example dataframes already have the CFM sign). ``makeSpinFiles`` does not change the sign of a column named ``SUBLIM``. If the sign is wrong the model treats sublimation as deposition and the reverse, which changes the accumulation by the full sublimation flux (see the note on CFM 4.1.0 below).
 * **Sign of the turbulent fluxes:** ``QH`` and ``QL`` are positive when they heat the surface (**into the snow**). MERRA-2 fluxes are positive upward, so they must be multiplied by -1 when the dataframe is made, and the example scripts do this. See "Sign conventions of the forcing" below; the model also warns if ``QH`` looks like it has the wrong sign.
 * If **SEB** is true, **every column of the dataframe must be one of the names above**. A column with another name stops ``makeSpinFiles`` with a ``KeyError``. (Without the surface energy balance, columns that are not used are dropped.)
-* Some older MERRA-2 column names are converted by ``makeSpinFiles`` when the surface energy balance is not used: ``TS`` and ``EVAP`` are renamed ``TSKIN`` and ``SUBLIM``, ``BDOT`` is taken from ``PRECSNO`` and ``RAIN`` is ``PRECTOT`` - ``PRECSNO``. The pickle ``CFM_example_input_df.pkl``, which ``example_df.json`` and ``main.py`` use, has these names.
+* Some older MERRA-2 column names are converted by ``makeSpinFiles`` when the surface energy balance is not used: ``TS`` is renamed ``TSKIN``, ``SUBLIM`` is made from ``EVAP`` **with the sign changed** (``SUBLIM = -EVAP``, because ``EVAP`` is the raw MERRA-2 variable, positive upward), ``BDOT`` is taken from ``PRECSNO`` and ``RAIN`` is ``PRECTOT`` - ``PRECSNO``. The pickle ``CFM_example_input_df.pkl``, which ``example_df.json`` and ``main.py`` use, has these names.
 * The dataframe must cover the period you want to model, and the spin-up reference climate interval must be inside it. Its first date should be the start of a year (see :doc:`spinup`).
 
-The example dataframes in the folder ``CFMinput_example`` (``CFM_example_66.5_-46.25.pkl`` for DYE-2 and ``CFM_example_72.5_-38.75.pkl`` for Summit, both in Greenland) are daily MERRA-2 data from 1980 and have the columns ``T2m``, ``TSKIN``, ``SUBLIM``, ``QH``, ``QL``, ``SW_d``, ``LW_d``, ``RAIN``, ``BDOT``, ``ALBEDO`` and ``SMELT``. They are a template for your own dataframe. The comments at the top of ``run_CFM_example.py`` describe how they were made. The files ``CFM_example_<lat>_<lon>.csv`` in the same folder hold the same dataframes as text.
+The example dataframes in the folder ``CFMinput_example`` (``CFM_example_66.5_-46.25.pkl`` for DYE-2 and ``CFM_example_72.5_-38.75.pkl`` for Summit, both in Greenland) are daily MERRA-2 data from 1980 (with ``QH``, ``QL`` and ``SUBLIM`` in the CFM sign convention) and have the columns ``T2m``, ``TSKIN``, ``SUBLIM``, ``QH``, ``QL``, ``SW_d``, ``LW_d``, ``RAIN``, ``BDOT``, ``ALBEDO`` and ``SMELT``. They are a template for your own dataframe. The comments at the top of ``run_CFM_example.py`` describe how they were made. The files ``CFM_example_<lat>_<lon>.csv`` in the same folder hold the same dataframes as text.
 
 The configuration keys that go with it are **input_type**, **InputFileFolder**, **DFfile** (the name of the pickle, when using ``main.py``) and **DFresample**.
 
@@ -105,6 +105,26 @@ surface?
    convention for fluxes and agrees with Max's statement that ERA5 and MERRA-2 have opposite signs. Please check the exact
    wording in the ECMWF parameter database before publishing. I did not check the radiation parameters of ERA5 in detail
    (ssrd and strd are "downwards" by name).
+
+.. note::
+
+   **Change in CFM 4.1.0.** Before 4.1.0 the example forcing (the pickles and csv files in ``CFMinput_example``, including the
+   legacy ``CFM_example_input_df.pkl`` and ``example_SUBLIM.csv``) held the raw MERRA-2 sign of ``SUBLIM`` (positive =
+   sublimation), the opposite of what the model expects, and the sign was only corrected inside ``run_CFM_example.py`` and the notebook, after
+   ``makeSpinFiles`` had set up the spin-up. The consequences were that (1) ``main.py`` runs with the example inputs treated sublimation as
+   deposition and the reverse, and (2) the spin-up of the example script and notebook used the wrong accumulation to choose the number
+   of reference-climate-interval repetitions and the depth of the grid (accumulation +8% at DYE-2 and -6% at Summit). For the shipped
+   ``main.py`` examples the firn air content changes by 1.5 to 3%, the depth of the 830 kg m\ :sup:`-3` level by 2% and the density at
+   10 m depth by 1.6%. The inputs, the scripts and the example results in ``CFMoutput_example`` have been corrected. If you made your own
+   forcing by copying the old example, or ran ``main.py`` or ``firnbatch_generic.py`` with MERRA-2 data and did not multiply ``EVAP`` by -1,
+   check the sign of your ``SUBLIM`` and rerun.
+
+**A check for the sublimation sign.** The latent heat flux and the sublimation are the same process: sublimation (``SUBLIM`` < 0) removes
+energy from the surface (``QL`` < 0), so in the CFM convention the two are positively correlated. If a dataframe has both columns,
+``makeSpinFiles`` calculates their correlation and prints a warning if it is clearly negative (r < -0.5), which means that one of the
+two columns (usually ``QL``, ``QH`` or ``SUBLIM``, whichever was multiplied by -1 without the others) has the wrong sign. The check
+cannot be made if there is no ``QL`` column (for example without the surface energy balance), and it does not catch the case where both
+have the wrong sign.
 
 **A check for the sensible heat flux.** When the surface energy balance uses prescribed fluxes
 (**SEB_turb_method** ``prescribed``), the model checks the sign of ``QH`` and prints a warning if it looks positive

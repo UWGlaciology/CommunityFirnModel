@@ -151,6 +151,36 @@ def flux_to_rate(flux, time):
     ### end flux_to_rate ###
     #####################
 
+def sublim_sign_check(SUBLIM, QL, r_tol=-0.5):
+    '''
+    Check that the sublimation and the latent heat flux have consistent signs.
+
+    In the CFM convention QL is positive into the snow and SUBLIM is negative for sublimation,
+    so sublimation (SUBLIM < 0) cools the surface (QL < 0) and the two are positively correlated.
+    For raw MERRA-2 data (EVAP and EFLUX both positive upward, and EVAP is the latent heat flux
+    divided by the latent heat) the correlation is about +1 for both multiplied by -1 or both
+    unchanged, so a correlation near -1 means that exactly one of them was multiplied by -1.
+
+    Parameters
+    ----------
+    SUBLIM, QL: array-like
+        the two series, on the same time axis (NaNs are ignored)
+    r_tol: float
+        the correlation below which the signs are judged inconsistent
+
+    Returns
+    -------
+    dict(consistent=bool or None, r=float): consistent is None if the check could not be made
+    (constant or too short series)
+    '''
+    a = np.asarray(SUBLIM, dtype=float)
+    b = np.asarray(QL, dtype=float)
+    ok = np.isfinite(a) & np.isfinite(b)
+    if ok.sum() < 30 or np.std(a[ok]) == 0 or np.std(b[ok]) == 0:
+        return dict(consistent=None, r=np.nan)
+    r = float(np.corrcoef(a[ok], b[ok])[0, 1])
+    return dict(consistent=bool(r > r_tol), r=r)
+
 def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, spin_date_end = 1995.0,melt=False,desired_depth = None,SEB=False,rho_bottom=916,calc_melt=False,num_reps=None,bdm_sublim=True):
     '''
     load a pandas dataframe, called df_CLIM, that will be resampled and then used 
@@ -168,11 +198,13 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     CFM takes units of m ice eq./year, so this script returns units in that 
     format.
 
-    SIGN CONVENTIONS (the dataframe must already follow them; nothing here changes the sign):
+    SIGN CONVENTIONS (the dataframe must already follow them; nothing here changes the sign,
+    with one exception: a legacy MERRA-2 column named EVAP is converted to SUBLIM = -EVAP):
     energy fluxes QH and QL (surface energy balance) are positive INTO the snow, and SUBLIM is
     negative for sublimation (mass loss). MERRA-2 HFLUX, EFLUX (-> QH, QL) and EVAP (-> SUBLIM)
     are positive upward, so multiply them by -1; ERA5 sensible and latent heat fluxes are
-    positive downward and can be used as they are. SEB.py warns if QH looks positive upward.
+    positive downward and can be used as they are. SEB.py warns if QH looks positive upward,
+    and this function warns if SUBLIM and QL have opposite signs (see sublim_sign_check).
     See "Sign conventions of the forcing" in the documentation (Inputs for the CFM).
 
     Parameters
@@ -222,6 +254,15 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     else: #CLIM_name is not a pickle, it is the dataframe being passed
         df_CLIM = CLIM_name
 
+    if 'SUBLIM' in df_CLIM.columns and 'QL' in df_CLIM.columns:
+        _chk = sublim_sign_check(df_CLIM['SUBLIM'].values, df_CLIM['QL'].values)
+        if _chk['consistent'] is False:
+            print(f"WARNING: SUBLIM and QL are negatively correlated (r = {_chk['r']:.2f}). In the CFM convention\n"
+                  f"  SUBLIM is negative for sublimation and QL is negative when the surface loses heat, so they\n"
+                  f"  should be positively correlated. One of the two probably has the wrong sign (MERRA-2 EVAP and\n"
+                  f"  EFLUX are positive upward and must both be multiplied by -1). See 'Sign conventions of the\n"
+                  f"  forcing' in the documentation (Inputs for the CFM).")
+
     clim_start = toYearFraction(df_CLIM.index[0])
     spin_shift = spin_date_st - clim_start   # clim_start from the warning block
     if abs(spin_date_st - clim_start) > 1/365.25:
@@ -232,7 +273,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     #### Option 1: not using SEB; not calculating melt
     if (not SEB and not calc_melt): # just use T_surf and melt from the input climate
 
-        drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
+        drn = {'TS':'TSKIN'} #customize this to change your dataframe column names to match the required inputs
+        if 'EVAP' in df_CLIM.columns and 'SUBLIM' not in df_CLIM.columns:
+            # MERRA-2 EVAP is positive for sublimation; the CFM's SUBLIM is negative for sublimation.
+            df_CLIM['SUBLIM'] = -1 * df_CLIM['EVAP']
         try:
             df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
             df_CLIM['BDOT'] = df_CLIM['PRECSNO'] #+ df_CLIM['EVAP']
@@ -368,7 +412,10 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
     elif (not SEB and calc_melt): # calculate the melt flux based on energy fluxes from climate data, but SEB module in CFM will not run
         #(this is something of a pre-calculation of the melt.)
 
-        drn = {'TS':'TSKIN','EVAP':'SUBLIM'} #customize this to change your dataframe column names to match the required inputs
+        drn = {'TS':'TSKIN'} #customize this to change your dataframe column names to match the required inputs
+        if 'EVAP' in df_CLIM.columns and 'SUBLIM' not in df_CLIM.columns:
+            # MERRA-2 EVAP is positive for sublimation; the CFM's SUBLIM is negative for sublimation.
+            df_CLIM['SUBLIM'] = -1 * df_CLIM['EVAP']
         try:
             df_CLIM['RAIN'] = df_CLIM['PRECTOT'] - df_CLIM['PRECSNO']
             df_CLIM['BDOT'] = df_CLIM['PRECSNO'] #+ df_CLIM['EVAP']
