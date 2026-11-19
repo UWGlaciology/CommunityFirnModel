@@ -211,7 +211,10 @@ runoff_method_darcy = "Darcy"
 ######################################################################
 
 SEB_TL_thick = 0.05                    # thickness of the top layer over which the surface fluxes are integrated [m]
-albedo_factor = 1                      # scaling applied to the input albedo
+# how the albedo of the shortwave radiation is found: from the forcing (ALBEDO), or a parameterization (see albedo.py)
+# options: prescribed, gardner_sharp, greuell_konzelmann
+albedo_method = "prescribed"
+albedo_factor = 1                      # scaling applied to the input albedo (albedo_method = "prescribed")
 # turbulent heat fluxes: from the forcing (QH, QL) or computed from wind and humidity
 # options: prescribed, bulk_richardson, monin_obukhov
 SEB_turb_method = "prescribed"

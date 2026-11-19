@@ -40,7 +40,7 @@ Setting it up
   dataframe or as the dictionary ``climateTS`` (see :doc:`../running/inputs`), not with csv files, and only with
   ``"timesetup": "exact"``; the model stops with a message otherwise. **InputFileNamemelt** is not needed (the melt is
   computed), and a ``SMELT`` column in the dataframe is dropped.
-* The forcing needs these columns in the dataframe: ``T2m`` (2-m air temperature), ``TSKIN``, ``ALBEDO``, ``SW_d``,
+* The forcing needs these columns in the dataframe: ``T2m`` (2-m air temperature), ``TSKIN``, ``ALBEDO`` (only with ``albedo_method`` ``prescribed``), ``SW_d``,
   ``LW_d``, ``QH``, ``QL`` (with ``SEB_turb_method`` ``prescribed``; see below), ``RAIN`` and ``BDOT``, and ``SUBLIM`` if
   **SUBLIM** is true. For the other turbulent-flux methods, add ``WS``, ``QV2m`` and ``PS``. Units and signs are in the table of
   :doc:`../running/inputs`; **every column of the dataframe must be one of the recognized names**.
@@ -48,9 +48,9 @@ Setting it up
   and returns, in addition to ``climateTS``, the dictionary ``SEBfluxes``, which holds the energy fluxes at the
   time resolution of the original dataframe. Give both to ``FirnDensityNoSpin``. The ``run_CFM_example.py`` script
   uses the SEB with the example DYE-2 forcing (MERRA-2 energy fluxes, daily).
-* Missing (NaN) values of the albedo are replaced by the mean albedo (MERRA-2 gives no albedo when there is no
-  shortwave radiation).
-* **albedo_factor** multiplies the albedo; it is a simple way to tune the melt.
+* The albedo comes from the method that **albedo_method** selects (see :ref:`seb-albedo`). With ``prescribed`` (the default), missing (NaN) values of the
+  albedo are replaced by the mean albedo (MERRA-2 gives no albedo when there is no shortwave radiation), and
+  **albedo_factor** multiplies the albedo; it is a simple way to tune the melt.
 * In SEB mode, the temperature forcing of the model before the energy balance is solved, from which the mean annual
   temperature :math:`T_m` used by the densification models comes, is ``T2m`` and not ``TSKIN``.
 * The SEB is run through the whole series, including the repeated reference climate interval of the spin-up (see
@@ -200,6 +200,72 @@ gives the results of tests at DYE-2 against the fluxes of MERRA-2, with advice o
 from the surface temperature of the CFM, and not taking them from MERRA-2, gave about 16% less melt at DYE-2 for 1980-1999
 (see the changelog for version 4.0.0).
 
+.. _seb-albedo:
+
+The albedo
+----------
+
+The shortwave radiation that the surface absorbs is :math:`SW_d (1 - \alpha)`, with :math:`\alpha` the albedo. The module ``albedo.py`` gives
+the albedo to the SEB, and the key **albedo_method** selects how it is found. The methods are:
+
+* ``prescribed``: the albedo of the forcing (the column ``ALBEDO``), with the treatment of missing values and **albedo_factor**
+  described above.
+* ``gardner_sharp``: the physically based parameterization of Gardner and Sharp (2010) (their equations 7 to 12), see below.
+* ``greuell_konzelmann``: the albedo from the density of the surface snow of Greuell and Konzelmann (1994), see below.
+
+The model asks for the albedo once for each model time step (an albedo for each SEB sub-step, if the SEB forcing is finer than the model step;
+see :ref:`seb-substeps`), from the state of the column at the start of the step. An albedo that depends on the melt or on the surface temperature
+therefore uses the values of the last step. The albedo that was used (the mean over the sub-steps) is the output ``albedo`` (see :doc:`../running/outputs`),
+which is written whenever **SEB** is true: with a parameterization it is the way to see what the model did.
+
+**Gardner and Sharp (2010).** The broadband albedo of snow is a function of the specific surface area :math:`\hat{S}` (cm\ :sup:`2` g\ :sup:`-1`) of the snow, the
+concentration :math:`c` (ppmw) of light-absorbing carbon, the cosine :math:`u` of the solar zenith angle and the cloud optical thickness :math:`\tau`:
+
+.. math::
+
+    \alpha_{\hat{S}} = 1.48 - \hat{S}^{-0.07}, \qquad
+    d\alpha_c = \max\left(0.04 - \alpha_{\hat{S}},\; \frac{-c^{0.55}}{0.16 + 0.6\hat{S}^{0.5} + 1.8\,c^{0.6}\hat{S}^{-0.25}}\right), \qquad
+    \alpha_c = \alpha_{\hat{S}} + d\alpha_c ,
+
+.. math::
+
+    u' = 0.64\,x + (1-x)\,u, \quad x = \min\left[\left(\frac{\tau}{3u}\right)^{0.5}, 1\right], \qquad
+    d\alpha_{u'} = 0.53\,\alpha_{\hat{S}}\,(1-\alpha_c)\,(1-u')^{1.2}, \qquad
+    d\alpha_\tau = \frac{0.1\,\tau\,\alpha_c^{1.3}}{(1 + 1.5\tau)^{\alpha_{\hat{S}}}} ,
+
+.. math::
+
+    \alpha = \alpha_{\hat{S}} + d\alpha_c + d\alpha_{u'} + d\alpha_\tau .
+
+It was fitted to a radiative transfer model of snow (Se = 0.01, maximum error 0.06) for :math:`\hat{S}` of 0.07 to 1300 cm\ :sup:`2` g\ :sup:`-1`,
+:math:`c` up to 2 ppmw, solar zenith angles up to 85 degrees and :math:`\tau` up to 30. The finite-snow-depth correction of the paper (its equation 13, for a layer of snow over ice) is not included.
+How the CFM finds the inputs:
+
+* :math:`\hat{S}` is :math:`3/(\rho_i r_e)` with :math:`\rho_i = 910` kg m\ :sup:`-3` and :math:`r_e` the grain radius, from :math:`\sqrt{r^2}`: **r2s0** (a constant) without the grain growth, and the
+  grain radius of each node with it (**physGrain**). It is the mean of :math:`\hat{S}` of the nodes down to **albedo_grain_depth** (default 0.05 m, the top layer of the SEB), weighted by mass.
+  Be aware of two things. The grain growth of the CFM is slow: at DYE-2 the radius of the nodes of the top 5 cm grows by about 0.5% (from 0.1000 to 0.1004 mm), so **r2s0** is the value that sets the albedo,
+  and the albedo of the method is that of pure, new snow of that radius (0.81 for 0.1 mm), which is higher than the albedo of MERRA-2 (0.79 on average at DYE-2, with the 2-year test run giving about a quarter of the melt).
+  Use a larger **r2s0**, or **albedo_carbon**, to tune it. It is also not checked that the grain radius of the CFM is the optical effective radius of the paper.
+* The solar zenith angle is calculated from the latitude (**albedo_latitude**, or **lat_val**), the longitude (**albedo_longitude**, or **lon_val**; it only matters for steps shorter than a day) and the time of the forcing.
+  The albedo of a step is the mean over the step, weighted by :math:`u` (the shortwave radiation of a clear sky). A step is the interval that starts at its time, as for a daily mean of a dataframe.
+* :math:`c` is **albedo_carbon** (default 0) and :math:`\tau` is the column ``TAU`` of the forcing if there is one, else **albedo_cloud_tau** (default 0, clear sky). The cloud optical thickness is not estimated from the radiation.
+
+**Greuell and Konzelmann (1994).** The albedo changes linearly with the density :math:`\rho_{ss}` of the surface snow, from the albedo :math:`\alpha_s` of fresh snow at the density :math:`\rho_s` to the albedo :math:`\alpha_i` of ice at :math:`\rho_i`:
+
+.. math::
+
+    \alpha = \alpha_i + (\rho_{ss} - \rho_i)\,\frac{\alpha_s - \alpha_i}{\rho_s - \rho_i} .
+
+:math:`\alpha_s` and :math:`\alpha_i` are **albedo_snow** and **albedo_ice**. They have no default, because they are tuning constants that depend on the application. :math:`\rho_s` and :math:`\rho_i` are **albedo_rho_snow** (default 300 kg m\ :sup:`-3`)
+and **albedo_rho_ice** (default 910 kg m\ :sup:`-3`). The density of the surface is that of the top node, and it is limited to the range from :math:`\rho_s` to :math:`\rho_i`, so that the albedo is between :math:`\alpha_i` and :math:`\alpha_s`.
+The cloud dependence of Greuell and Konzelmann (1994) is not included. With a constant surface density (**rhos0**) the albedo is nearly constant, since the top node is new snow at each step with accumulation.
+
+To add a parameterization, write a class in ``albedo.py`` that inherits from ``AlbedoModel`` and calculates the albedo of the steps in ``step()``, and add it to
+``ALBEDO_METHODS``. The docstring of the module has the details: what ``step()`` gets (the model state, the forcing) and the other files that list the
+options (the validation of the configuration, the example configuration files, and the documentation).
+
+.. _seb-substeps:
+
 Sub-daily forcing (sub-steps)
 =============================
 
@@ -232,7 +298,7 @@ Status and limitations
   heavy-melt day it can remove more than a thin top layer holds. For the solvers that do thicken, the thickening changes the melt
   by about 1% on such days (27 of 600 random heavy-melt test days, and no change in the 20-year DYE-2 runs; see the changelog
   for version 4.0.0).
-* The albedo is an input (``ALBEDO``); the model does not calculate it, so the effect of melt or of the accumulation of
+* With ``albedo_method`` ``prescribed`` the albedo is an input (``ALBEDO``); the model does not calculate it, so the effect of melt or of the accumulation of
   new snow on the albedo is only in the forcing. For this reason **IceMeltFactor** is not used with the SEB.
 * **Sublimation and the latent heat flux.** With prescribed fluxes, sublimation and deposition are taken from the forcing
   (``SUBLIM``), and the forcing ``QL`` is used in the energy balance; with one product (for example ``QL`` and the evaporation

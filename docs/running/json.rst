@@ -731,9 +731,60 @@ SEB_TL_thick
   :default: ``0.05``
   :units: :math:`\textrm{m}`
 
+albedo_method
+-------------
+  How the albedo of the shortwave radiation is found. ``prescribed`` takes it from the ``ALBEDO`` column of the forcing. ``gardner_sharp`` is the parameterization of Gardner and Sharp (2010) (from the grain size, the solar zenith angle, the carbon and the cloud optical thickness), and ``greuell_konzelmann`` is the density-dependent albedo of Greuell and Konzelmann (1994); with these two the forcing does not need ``ALBEDO``. More methods can be added in ``albedo.py``, see :doc:`../extras/seb`, which has the equations and the keys below. The albedo that the model used is the output ``albedo`` (see :doc:`outputs`). Only used when **SEB** is True.
+
+  :type: ``string``
+  :options: ``prescribed``, ``gardner_sharp``, ``greuell_konzelmann``
+  :default: ``prescribed``
+
+albedo_snow, albedo_ice
+-----------------------
+  Only with **albedo_method** ``greuell_konzelmann``, where they are required (they have no default): the albedo of fresh snow (at the density **albedo_rho_snow**) and of ice (at **albedo_rho_ice**). They are tuning constants.
+
+  :type: ``float``
+
+albedo_rho_snow, albedo_rho_ice
+-------------------------------
+  Only with **albedo_method** ``greuell_konzelmann``: the density of fresh snow and of ice, between which the albedo changes linearly with the density of the surface snow.
+
+  :type: ``float``
+  :default: ``300`` and ``910``
+  :units: :math:`\textrm{kg m}^{-3}`
+
+albedo_latitude, albedo_longitude
+---------------------------------
+  Only with **albedo_method** ``gardner_sharp``: the latitude and the longitude (degrees; east is positive) of the site, for the solar zenith angle. If they are not given, **lat_val** and **lon_val** are used (the example script sets them). The latitude is required, and the longitude only matters for steps shorter than a day (default 0).
+
+  :type: ``float``
+
+albedo_carbon
+-------------
+  Only with **albedo_method** ``gardner_sharp``: the concentration of light-absorbing carbon in the snow. The parameterization is fitted for 0 to 2 ppmw.
+
+  :type: ``float``
+  :default: ``0``
+  :units: ppmw
+
+albedo_cloud_tau
+----------------
+  Only with **albedo_method** ``gardner_sharp``: the cloud optical thickness, if the forcing does not have a column ``TAU``. 0 is a clear sky. The parameterization is fitted for 0 to 30.
+
+  :type: ``float``
+  :default: ``0``
+
+albedo_grain_depth
+------------------
+  Only with **albedo_method** ``gardner_sharp``: the depth to which the specific surface area of the snow is averaged (weighted by mass), from the surface.
+
+  :type: ``float``
+  :default: ``0.05``
+  :units: m
+
 albedo_factor
 -------------
-  Scaling factor applied to the input albedo (albedo is multiplied by this value). Use for tuning surface reflectivity. Only used when **SEB** is True.
+  Scaling factor applied to the input albedo (albedo is multiplied by this value). Use for tuning surface reflectivity. Only used when **SEB** is True and **albedo_method** is ``prescribed``.
 
   :type: ``float``
   :default: ``1``

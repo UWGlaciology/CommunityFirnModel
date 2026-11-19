@@ -1074,6 +1074,14 @@ class FirnDensityNoSpin:
         
         if ((not self.MELT) and ('LWC' in self.output_list)):
             self.output_list.remove('LWC')
+        if self.c['SEB']: # the albedo of the surface energy balance (prescribed or calculated) is always an output
+            if 'albedo' not in self.output_list:
+                self.output_list.append('albedo')
+                print('Added albedo to model output list.')
+        elif 'albedo' in self.output_list:
+            self.output_list.remove('albedo')
+            print('Removed albedo from the model output list: it is an output of the surface energy balance (SEB is false).')
+        self.albedo = np.nan # albedo of the surface energy balance at the output time (the value at the start of the run is not calculated)
         if ((not self.c['FirnAir']) and ('gasses' in self.output_list)):
             self.output_list.remove('gasses')
         if ((not self.c['isoDiff']) and ('isotopes' in self.output_list)):
@@ -1332,6 +1340,7 @@ class FirnDensityNoSpin:
                     self.Ts[iii], self.Tz, melt_mass, M2TS, sublim_mass = self.SEB.solve_Ts_subdt(PhysParams,iii,T_old,mtime)
                 else: # SEB time step is the same as main model.
                     self.Ts[iii], self.Tz, melt_mass, M2TS, sublim_mass = self.SEB.solve_Ts(PhysParams,iii,T_old)
+                self.albedo = self.SEB.albedo_out
 
                 # self.Ts[iii] = self.Tz[0] # set the surface temp to the skin temp calclated by SEB (needed for diffusion module)
                 ### SEB gives us mass of melt flux, at this time step. the following makes it consistent with other surface mass fluxes

@@ -82,6 +82,7 @@ ALLOWED_VALUES = {
     },
     'spinup_climate_type': {'mean', 'initial'},
     'srho_type': {'userinput', 'param', 'noise', 'Brils22'},
+    'albedo_method': {'prescribed', 'gardner_sharp', 'greuell_konzelmann'},
     'timesetup': {'exact', 'interp', 'retmip'},
     'SeasonalThemi': {'north', 'south'},
     # list-valued keys (checked per element)
@@ -89,7 +90,7 @@ ALLOWED_VALUES = {
         'density', 'depth', 'temperature', 'age', 'Dcon', 'bdot_mean',
         'climate', 'compaction', 'grainsize', 'temp_Hx', 'isotopes', 'BCO',
         'DIPc', 'DIP', 'LWC', 'gasses', 'PLWC_mem', 'viscosity', 'runoff',
-        'refrozen', 'meltoutputs',
+        'refrozen', 'meltoutputs', 'albedo',
     },
     'iso': {'d18O', 'dD', 'NoDiffusion'},
     'meltwater_solver': {'enthalpy', 'ahc', 'decp', 'ncz', 'legacy'},
@@ -163,7 +164,8 @@ KNOWN_KEYS = {
     'lat_runoff_darcy', 'slope_proxy_darcy', 'rholim_dcy', 'eps_cvg_darcy',
     'runoff_method_darcy',
     # SEB
-    'SEB', 'SEB_TL_thick', 'albedo_factor',
+    'SEB', 'SEB_TL_thick', 'albedo_method', 'albedo_factor', 'albedo_snow', 'albedo_ice', 'albedo_rho_snow',
+    'albedo_rho_ice', 'albedo_carbon', 'albedo_cloud_tau', 'albedo_grain_depth', 'albedo_latitude', 'albedo_longitude',
     'SEB_turb_method', 'SEB_roughness_mode', 'SEB_z0m', 'SEB_z0h', 'SEB_z0q',
     'SEB_z_ref_wind', 'SEB_z_ref_T', 'SEB_z_ref_q',
     # stage zero snow
@@ -202,6 +204,12 @@ CONDITIONAL_REQUIREMENTS = [
     (lambda c: c.get('FirnAir'),
      ['AirConfigName'],
      "FirnAir is enabled"),
+    (lambda c: c.get('SEB') and c.get('albedo_method') == 'greuell_konzelmann',
+     ['albedo_snow', 'albedo_ice'],
+     "albedo_method is 'greuell_konzelmann'"),
+    (lambda c: c.get('SEB') and c.get('albedo_method') == 'gardner_sharp' and 'lat_val' not in c,
+     ['albedo_latitude'],
+     "albedo_method is 'gardner_sharp' (and 'lat_val' is not given)"),
 ]
 
 

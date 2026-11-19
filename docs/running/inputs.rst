@@ -47,7 +47,7 @@ The columns, using the names the model expects, are:
      - Horizontal strain rates (optional; see **horizontal_divergence**, **strain_softening**).
      - a\ :sup:`-1`
    * - ``T2m``, ``ALBEDO``, ``SW_d``, ``LW_d``, ``QH``, ``QL``
-     - Surface-energy-balance forcing (needed if **SEB** is true): 2 m air temperature, albedo, downwelling short- and long-wave radiation, sensible and latent heat flux.
+     - Surface-energy-balance forcing (needed if **SEB** is true): 2 m air temperature, albedo, downwelling short- and long-wave radiation, sensible and latent heat flux. ``ALBEDO`` is only needed with **albedo_method** ``prescribed``: the other methods calculate it (see :doc:`../extras/seb`). ``TAU`` (cloud optical thickness) is an optional column for **albedo_method** ``gardner_sharp``.
      - K; unitless; W m\ :sup:`-2`
    * - ``WS``, ``QV2m``, ``PS``, ``LW_u``, ``z0m``, ``z0h``, ``z0q``
      - More SEB forcing: wind speed, specific humidity and surface pressure (needed for the ``bulk_richardson`` and ``monin_obukhov`` methods of **SEB_turb_method**; see that key for the details), and upwelling long-wave radiation and roughness lengths (both optional).

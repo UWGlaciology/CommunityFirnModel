@@ -35,7 +35,7 @@ Each output is a dataset in the results file. There are two kinds.
 * **truncate_outputs** true saves only every fifth row of ``density``, ``temperature``, ``LWC`` and ``age`` (and row 0), to reduce the file size, so their rows no longer line up with the other outputs.
 * The numbers are written with the precision of **output_bits** (``float32`` by default). Decimal dates around 2000 are therefore only precise to about 1e-4 years in float32; this is why the times in the examples look like 1980.0819.
 
-**Vectors** (2-D arrays with a few columns: ``DIP``, ``BCO``, ``Modelclimate``, ``meltvol``, ``refreeze``, ``runoff``): column 0 is the time, and the other columns are the values at that time, as described below.
+**Vectors** (2-D arrays with a few columns: ``DIP``, ``BCO``, ``Modelclimate``, ``meltvol``, ``refreeze``, ``runoff``, ``albedo``): column 0 is the time, and the other columns are the values at that time, as described below.
 
 The profile outputs
 -------------------
@@ -92,6 +92,9 @@ The vector outputs
 
 ``Modelclimate``
     (written when ``climate`` is in **outputs**) The forcing at each written time step. Six columns: time, accumulation (m a\ :sup:`-1` ice equivalent), skin temperature (K), melt (m a\ :sup:`-1` ice equivalent), rain (m a\ :sup:`-1` ice equivalent) and sublimation (m a\ :sup:`-1` ice equivalent, negative = mass loss). With the surface energy balance the melt is the melt that the SEB module calculated. These are the values of the time step; for the whole forcing, use the forcing file.
+
+``albedo``
+    (written when **SEB** is true) The albedo of the shortwave radiation that the surface energy balance used at each written time step. Two columns: time and albedo (dimensionless). If the SEB forcing is finer than the model time step, it is the mean over the sub-steps of the model step. With ``albedo_method`` ``prescribed`` it is the albedo of the forcing (with the missing values filled and **albedo_factor** applied; see :doc:`../extras/seb`). Row 0 (the initial state) is NaN: the albedo is calculated in the time steps.
 
 ``DIP``
     The depth-integrated porosity (firn air content) and the change of the surface elevation. The columns (with Python's 0-based indexing) are: (0) time, (1) depth-integrated porosity, a.k.a. firn air content (m), to the bottom of the model domain, (2) surface elevation change during the last time step (m), (3) cumulative elevation change since the start of the model run (m), (4) change in thickness (m) of the firn column by densification alone since the last time step, negative when the column got thinner (it is minus the sum of ``compaction`` over the nodes; zero in the first written row), (5) 'corrected' surface elevation change during the last time step (m), (6) 'corrected' cumulative elevation change since the start of the model run (m), (7) firn air content to the horizon given by **DIPhorizon** (m).

@@ -26,6 +26,7 @@ import traceback
 
 import pandas as pd
 
+from albedo import make_albedo_model
 from SEB_turbulent import (FORCING_KEYS, RoughnessLengths,
                             PrescribedTurbulentFlux, BulkRichardsonFlux,
                             MoninObukhovFlux, latent_heat_turbulent)
@@ -45,6 +46,16 @@ def _extract_optional(source, key, start_ind):
     return None
 ### end _extract_optional ###
 ##############################
+
+def _forcing_arrays(source, start_ind):
+    '''
+    The arrays of the forcing dictionary source that are on its time axis, from element start_ind
+    (the forcing that the albedo model gets, see albedo.py).
+    '''
+    n = len(source['time'])
+    return {k: v[start_ind:] for k, v in source.items() if np.ndim(v) > 0 and len(v) == n}
+### end _forcing_arrays ###
+############################
 
 def flux_sign_check(QH, T2m, TSKIN, time=None, min_years=1.0, r_tol=0.05):
     '''
@@ -148,14 +159,7 @@ class SurfaceEnergyBudget:
             self.time_in = SEBfluxes['time'][start_ind_EF:]
             self.SW_d    = SEBfluxes['SW_d'][start_ind_EF:]
             self.LW_d    = SEBfluxes['LW_d'][start_ind_EF:]
-            self.ALBEDO  = SEBfluxes['ALBEDO'][start_ind_EF:]
-            self.ALBEDO[np.isnan(self.ALBEDO)] = np.nanmean(self.ALBEDO)
-            try:
-                self.albedo_factor = self.c['albedo_factor']
-                self.ALBEDO = self.ALBEDO * self.albedo_factor
-                print(f'ALBEDO is multipled by {self.albedo_factor}')
-            except:
-                print('"albedo_factor" not defined in .json. Using 1')
+            self.albedo_model = make_albedo_model(self.c, _forcing_arrays(SEBfluxes, start_ind_EF))
             self.T2m     = SEBfluxes['T2m'][start_ind_EF:]
             self.TSKIN   = SEBfluxes['TSKIN'][start_ind_EF:]
             self.QH      = SEBfluxes['QH'][start_ind_EF:] # Positive fluxes are into the snow, negative into the sky
@@ -167,22 +171,14 @@ class SurfaceEnergyBudget:
             self.dtRATIO = SEBfluxes['dtRATIO'] # This is the ratio of dt in SEBfluxes to dt in climateTS (how many sub steps to do, e.g it is 6 with daily res climateTS and 4-hourly SEB fields)
             self.T2m_daily = climateTS['T2m'][start_ind:]
 
-            self.df_CLIM = pd.DataFrame({'SW_d':self.SW_d,'LW_d':self.LW_d,'ALBEDO':self.ALBEDO, 'T2m':self.T2m, 
+            self.df_CLIM = pd.DataFrame({'SW_d':self.SW_d,'LW_d':self.LW_d, 'T2m':self.T2m, 
                 'TSKIN':self.TSKIN, 'QH':self.QH, 'QL':self.QL, 'RAIN':self.RAIN},index=self.time_in)
-            self.df_CLIM['flux'] = ((self.df_CLIM['SW_d'] * (1 - self.df_CLIM['ALBEDO'])) + self.df_CLIM['LW_d'] + self.df_CLIM['QH'] + self.df_CLIM['QL'])
 
         else:       
             self.time_in = climateTS['time'][start_ind:]
             self.SW_d    = climateTS['SW_d'][start_ind:]
             self.LW_d    = climateTS['LW_d'][start_ind:]
-            self.ALBEDO  = climateTS['ALBEDO'][start_ind:]
-            self.ALBEDO[np.isnan(self.ALBEDO)] = np.nanmean(self.ALBEDO)
-            try:
-                self.albedo_factor = self.c['albedo_factor']
-                self.ALBEDO = self.ALBEDO * self.albedo_factor
-                print(f'ALBEDO is multipled by {self.albedo_factor}')
-            except:
-                print('"albedo_factor" not defined in .json. Using 1')
+            self.albedo_model = make_albedo_model(self.c, _forcing_arrays(climateTS, start_ind))
             self.T2m     = climateTS['T2m'][start_ind:]
             self.TSKIN   = climateTS['TSKIN'][start_ind:]
             if (('EVAP' in climateTS.keys()) and ('SUBLIM' in climateTS.keys())):
@@ -255,6 +251,8 @@ class SurfaceEnergyBudget:
             self.TL_thick = 0.05
 
         
+        self.albedo_out = np.nan # the albedo of the last model step (the model output 'albedo')
+
         self.SBC = 5.67e-8 # Stefan-Boltzmann constant [W K^-4 m^-2
         self.emissivity_air = 1
         self.emissivity_snow = 0.98
@@ -289,6 +287,17 @@ class SurfaceEnergyBudget:
         '''
         _, QL = self.flux_model.compute(Ts, isub)
         return QL / latent_heat_turbulent(Ts) * dt
+
+    def _albedo_for_step(self, PhysParams, iii):
+        '''
+        Albedo of the SEB steps of model step iii (an array with one value per SEB sub-step,
+        see albedo.py). The mean over the sub-steps is kept in albedo_out, which is the model output 'albedo'.
+        '''
+        albedo = self.albedo_model.step(iii, iii * self.dtRATIO, self.dtRATIO, PhysParams)
+        self.albedo_out = float(np.mean(albedo))
+        return albedo
+    ### end _albedo_for_step ###
+    ############################
 
     def solve_Ts(self, PhysParams, iii, T_old):
         '''
@@ -422,7 +431,8 @@ class SurfaceEnergyBudget:
 
         Qrain_i = self._rain_heat(self.RAIN[iii], self.T2m[iii]) # [W m-2]
 
-        Q_SW_net = self.SW_d[iii] * (1 - self.ALBEDO[iii])
+        albedo = self._albedo_for_step(PhysParams, iii)
+        Q_SW_net = self.SW_d[iii] * (1 - albedo[0])
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
         i_GL = np.where(z >= 1)[0][0]
@@ -496,7 +506,8 @@ class SurfaceEnergyBudget:
 
         Qrain_i = self._rain_heat(self.RAIN[iii], self.T2m[iii]) # [W m-2]
 
-        Q_SW_net = self.SW_d[iii] * (1 - self.ALBEDO[iii])
+        albedo = self._albedo_for_step(PhysParams, iii)
+        Q_SW_net = self.SW_d[iii] * (1 - albedo[0])
         Q_LW_d = self.emissivity_air * self.LW_d[iii]
 
         i_GL = np.where(z >= 1)[0][0]
@@ -594,6 +605,7 @@ class SurfaceEnergyBudget:
         K_GL  = K_ice * (rho_GL / RHO_I) ** (2 - 0.5 * (rho_GL / RHO_I))
 
         i0  = iii * self.dtRATIO
+        albedo = self._albedo_for_step(PhysParams, iii)
         cum_mass = np.cumsum(mass)
         cum_mass_T = np.cumsum(mass * Tz)
 
@@ -608,7 +620,7 @@ class SurfaceEnergyBudget:
 
             for jj in range(self.dtRATIO):
                 isub = i0 + jj
-                Q_SW_net = self.SW_d[isub] * (1 - self.ALBEDO[isub])
+                Q_SW_net = self.SW_d[isub] * (1 - albedo[jj])
                 Q_LW_d   = self.emissivity_air * self.LW_d[isub]
                 Qrain_i  = self._rain_heat(self.RAIN[isub], self.T2m[isub]) # [W m-2]
 
@@ -695,7 +707,9 @@ class SurfaceEnergyBudget:
         
         flux_df1 = self.df_CLIM.iloc[iiisub:iiisub+self.dtRATIO]
         Qrain_sub = np.array([self._rain_heat(r_, T_) for r_, T_ in zip(flux_df1.RAIN.values, flux_df1.T2m.values)]) # heat of rain in each sub-step [W m-2]
-        flux_df1_r = flux_df1.flux.values + G + Qrain_sub
+        albedo = self._albedo_for_step(PhysParams, iii)
+        flux_sub = (flux_df1.SW_d.values * (1 - albedo)) + flux_df1.LW_d.values + flux_df1.QH.values + flux_df1.QL.values # net flux without G and rain heat [W m-2]
+        flux_df1_r = flux_sub + G + Qrain_sub
 
         Tcalc = np.zeros_like(flux_df1_r)
         meltmass = np.zeros_like(flux_df1_r)

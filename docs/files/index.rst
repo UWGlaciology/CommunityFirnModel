@@ -7,6 +7,7 @@ Here is a list.
     :maxdepth: 2
 
     AirConfig.rst
+    albedo.rst
     config_loader.rst
     config_validation.rst
     constants.rst

@@ -1,0 +1,5 @@
+albedo
+======
+
+.. automodule:: albedo
+	:members:

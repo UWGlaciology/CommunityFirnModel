@@ -125,6 +125,8 @@
 "SUBLIM": true,
 "keep_firnthickness": true,
 "SEB_TL_thick": 0.05,
+"albedo_method": "prescribed",
+"albedo_method_options": ["prescribed","gardner_sharp","greuell_konzelmann"],
 "albedo_factor": 1,
 "SEB_turb_method": "prescribed",
 "SEB_turb_method_options": ["prescribed","bulk_richardson","monin_obukhov"],
