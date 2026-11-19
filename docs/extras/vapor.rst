@@ -195,8 +195,6 @@ Status and limitations
 References
 ==========
 
-.. VERIFY: the page ranges of Johnsen et al. (2000), Clow (1987) and Yosida (1955) are from memory; check them against the papers.
-
 * Arthern, R. J., Winebrenner, D. P., and Waddington, E. D. (2000). Densification of water vapor-saturated firn under Martian conditions. *Icarus*, 144, 367-386.
 * Calonne, N., Milliancourt, L., Burr, A., Philip, A., Martin, C. L., Flin, F., and Geindreau, C. (2019). Thermal conductivity of snow, firn, and porous ice from 3-D image-based computations. *Geophys. Res. Lett.*, 46, 13079-13089.
 * Clow, G. D. (1987). Generation of liquid water on Mars through the melting of a dusty snowpack. *Icarus*, 72, 95-127.
