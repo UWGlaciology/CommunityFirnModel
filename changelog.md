@@ -35,7 +35,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-4.1.0
+4.2.0
 
 ## Full Documentation
 
@@ -62,10 +62,11 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- Vapor-phase transport (vapor.py) is experimental (beta): off by default, not validated against data (see the 4.2.0 entry and docs/extras/vapor.rst)
 	- Mars: what is still missing for the Arthern et al. (2000) densification is listed in mars_todo.md
 
-## [4.2.0] in preparation (not released yet; the version number is not changed in main.py, CITATION.cff, setup.py or docs/conf.py)
+## [4.2.0] 2026-11-18
 ### Notes
 - Three groups of changes since 4.1.0: reproducibility of a run from its results folder, an albedo module (with two parameterizations from the literature and an `albedo` output), and **experimental** vapor transport in the pore space. All of them leave the results of existing configurations unchanged, with two exceptions listed under *Changes that alter results*. With the new keys at their defaults (`vaporTransport` false, `albedo_method` `prescribed`) the model results are bit-for-bit identical to 4.1.0 (checked for a plain run, a melt run with `isoDiff`, the isotope diffusion itself, and every result dataset of the SEB examples).
 - Vapor transport (`vapor.py`) is part of this release as a **beta feature**: it is off by default, conserves mass and has been checked for energy consistency, but it has not been validated against measured firn density, temperature or isotope profiles. See the page "Vapor transport in the pore space" of the documentation (docs/extras/vapor.rst).
+- `CFMoutput_example/df/CFMforcing.hdf5` was regenerated (33 KB instead of 288 KB: the new forcing-file format); the results files of the examples are unchanged (identical to the 4.1.0 ones).
 - Tests: 471 (4.1.0: 392), of which one is an expected failure (`prefsnowpack`).
 
 ### Changes that alter results
