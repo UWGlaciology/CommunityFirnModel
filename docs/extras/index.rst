@@ -8,6 +8,7 @@ Here is some extra information you might use when running the CFM.
 
     densification.rst
     seb.rst
+    vapor.rst
     doublegrid.rst
     MWfix.rst
     meltwater_solver.rst

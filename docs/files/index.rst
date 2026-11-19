@@ -37,4 +37,5 @@ Here is a list.
     solver.rst
     strain.rst
     sublim.rst
+    vapor.rst
     writer.rst
