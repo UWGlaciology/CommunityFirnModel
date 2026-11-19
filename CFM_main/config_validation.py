@@ -83,6 +83,7 @@ ALLOWED_VALUES = {
     'spinup_climate_type': {'mean', 'initial'},
     'srho_type': {'userinput', 'param', 'noise', 'Brils22'},
     'albedo_method': {'prescribed', 'gardner_sharp', 'greuell_konzelmann'},
+    'vapor_atmosphere': {'air', 'CO2'},
     'timesetup': {'exact', 'interp', 'retmip'},
     'SeasonalThemi': {'north', 'south'},
     # list-valued keys (checked per element)
@@ -171,7 +172,7 @@ KNOWN_KEYS = {
     # stage zero snow
     'stage_zero', 'snow_model', 's_zero_rho',
     # misc / measurement
-    'manualT', 'no_densification', 'rad_pen', 'site_pressure',
+    'manualT', 'no_densification', 'vaporTransport', 'vapor_atmosphere', 'vapor_yosida_factor', 'vapor_tortuosity_b', 'vapor_min_thickness', 'vapor_latent_heat', 'vapor_surface_exchange', 'rad_pen', 'site_pressure',
     'spinUpdate', 'spinUpdateDate', 'DIPhorizon', 'NewSpin',
     # run metadata / site (injected by run scripts)
     'runID', 'lat_int', 'lon_int', 'lat_val', 'lon_val', 'runid', 'x_val', 'y_val', 'runloc', 'quad', 'x_int', 'y_int', 'resultspath'

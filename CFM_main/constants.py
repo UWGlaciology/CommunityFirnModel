@@ -58,6 +58,12 @@ M_AIR       = 28.97e-3
 # Standard Amtmospheric Pressure, Pa
 P_0         = 1.01325e5
 
+# Reference values for the diffusivity of water vapor (m^2/s)
+D_V_STAR_CO2 = 1.37e-5   # in CO2 (Mars) at T = 273 K, P = 101300 Pa; Clow (1987), Eq. 10 (temperature exponent 2)
+D_V_STAR_AIR = 2.11e-5   # in air (Earth) at T = 273.15 K, P = 101325 Pa; as in isotopeDiffusion.py (Johnsen et al., 2000)
+D_V_EXP_AIR  = 1.94      # temperature exponent for air
+
+
 # specific heat of water, J kg^-1 K^-1
 CP_W		= 4180.0                
 

@@ -55,6 +55,7 @@ from re_snowpack import resingledomain #VV
 from prefflow_snowpack import prefflow #VV
 from sublim import sublim #VV
 from ModelOutputs import ModelOutputs
+from vapor import vapor_mass_flux_divergence
 
 class FirnDensityNoSpin:
     '''
@@ -909,6 +910,16 @@ class FirnDensityNoSpin:
         else:
             pass
 
+        if "vaporTransport" not in self.c:
+            self.c["vaporTransport"] = False
+        if self.c["vaporTransport"] and self.c['isoDiff']:
+            print('\n' + '*'*78)
+            print('WARNING: ISOTOPE DIFFUSION DOES NOT CURRENTLY INCLUDE VAPOR TRANSPORT.')
+            print('  The mass that the vapor transport (vaporTransport) moves between layers carries no isotopic')
+            print('  composition: the isotope profiles are not changed by it. The isotope diffusion itself uses the')
+            print('  same diffusivity and tortuosity as the vapor transport.')
+            print('*'*78 + '\n')
+
         ### Isotopes ########
         if self.c['isoDiff']:
             self.spin = False
@@ -1289,6 +1300,11 @@ class FirnDensityNoSpin:
                 RD_snow = getattr(FirnPhysics(PhysParams),'Yamazaki1993')()
                 drho_dt[self.rho<300] = get_drho_dt(RD_snow, self.rho)[self.rho<300]
 
+            ### Two different ways in which the density of a layer changes:
+            ###  - densification (drho_dt): the mass is fixed and the volume changes (the layer gets thinner);
+            ###  - a mass change (here vapor transport, dmass_dt_vapor [kg m-2 s-1]): the volume is fixed and the mass changes
+            ###    (vapor fills or empties the pores), so dz stays and rho changes. It is calculated and applied after dz is recalculated below.
+
             if self.c['no_densification']:
                 drho_dt = np.zeros_like(drho_dt)
             self.viscosity = RD['viscosity']
@@ -1325,6 +1341,15 @@ class FirnDensityNoSpin:
             self.dsdz_step = dsdz        # densification + horizontal-strain thickness change this step
             self.dsdz_strain = sdz_new - np.sum(dz_dens) # the horizontal-strain part of it
             self.dsdz_comp = self.dsdz_step - self.dsdz_strain # the densification part of it (negative when the column gets thinner)
+            ### vapor transport: a mass change at fixed volume (dz does not change, so the thickness diagnostics above are not affected)
+            if self.c['vaporTransport'] and not self.c['no_densification']: # no_densification freezes the mass too
+                dmass_dt_vapor, n_limited = vapor_mass_flux_divergence(self, self.dt[iii]) # temperature of the last step, density and volume as updated above
+                if n_limited > 0 and not getattr(self, '_vapor_limit_noted', False):
+                    print(f'NOTE: vapor transport was limited in {n_limited} layers at step {iii} (no layer loses more than half its mass or fills more than half its free pore space in a step); it is printed once.')
+                    self._vapor_limit_noted = True
+                self.mass = self.mass + self.dt[iii] * dmass_dt_vapor
+                full = self.dz > 0 # layers with no mass have no thickness: their density stays as it is
+                self.rho  = np.where(full, self.mass * self.dx / np.where(full, self.dz, 1.0), self.rho) # same volume: dz = mass / rho * dx
             self.rho_bot = self.rho[-1]  # density of the layer that will exit the bottom
 
             ### Surface energy balance #####

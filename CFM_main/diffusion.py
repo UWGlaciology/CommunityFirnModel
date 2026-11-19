@@ -50,6 +50,7 @@ from solver import (
                              # would have raised NameError the moment enthalpyDiff_old tried to call it.
 )
 from constants import *
+from vapor import vapor_latent_conductivity
 import numpy as np
 
 def firnConductivity(self, iii, K_ice):
@@ -200,6 +201,8 @@ def heatDiff(self, iii):
 
     K_ice           = 9.828 * np.exp(-0.0057 * phi_0) # thermal conductivity, Cuffey and Paterson, eq. 9.2 (Yen 1981)
     K_firn = firnConductivity(self,iii,K_ice)
+    if self.c.get('vaporTransport', False) and self.c.get('vapor_latent_heat', False):
+        K_firn = K_firn + vapor_latent_conductivity(self.Tz, self.rho, self.c)   # latent heat of the vapor flux
 
     c_firn          = 152.5 + 7.122 * phi_0 # specific heat, Cuffey and Paterson, eq. 9.1 (page 400)
     # c_firn        = CP_I # If you prefer a constant specific heat.
@@ -353,6 +356,8 @@ def refreezeDiff(self, iii, solver_name='transient_solve_enthalpy'):
     K_water = 0.55575                         # thermal conductivity, water (W/m/K)
     # K_liquid = K_water * (th_wat/1000)**1.885 # assume that conductivity of water in porous material follows a similar relationship to ice.
     K_liquid = K_water
+    if self.c.get('vaporTransport', False) and self.c.get('vapor_latent_heat', False):
+        K_firn = K_firn + vapor_latent_conductivity(self.Tz, self.rho, self.c)   # latent heat of the vapor flux (weighted with the ice fraction as the rest of K_firn)
     K_eff = g_liquid * K_liquid + g_solid * K_firn # effective conductivity
     ###
     

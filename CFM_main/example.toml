@@ -50,6 +50,14 @@ heatDiff = true                        # heat diffusion
 conductivity = "Calonne2019"
 manualT = false                        # use measured temperatures (e.g. a thermistor string) instead of heat diffusion
 no_densification = false               # switch densification off (e.g. temperature diffusion in a lab core)
+vaporTransport = false                 # vapor diffusion in the pore space moves mass between layers (in development, see the documentation)
+# gas of the pore space for the vapor diffusivity (with vaporTransport)
+# options: air, CO2
+vapor_atmosphere = "air"
+vapor_tortuosity_b = 1.3               # tortuosity of the firn for the vapor (Johnsen et al. 2000): isotope diffusion and vapor transport
+vapor_surface_exchange = false          # vapor transport: vapor flux through the surface (saturated at the surface temperature), for Mars; not with SUBLIM
+vapor_latent_heat = false               # vapor transport: add the latent heat of the vapor flux to the conductivity (Calonne2019 conductivity only)
+vapor_min_thickness = 0.01             # vapor transport: layers thinner than this are grouped in blocks for the flux [m]
 rad_pen = false                        # radiation penetration module
 
 ######################################################################
