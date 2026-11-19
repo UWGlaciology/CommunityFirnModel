@@ -12,7 +12,10 @@ lists. (TOML has no null, so a config that needs ``null`` has to stay JSON.)
 
 import json
 import tomllib
+import zlib
 from pathlib import Path
+
+import numpy as np
 
 
 def load_config(path):
@@ -27,3 +30,20 @@ def load_config(path):
     if path.suffix.lower() == '.toml':
         return tomllib.loads(text)
     return json.loads(text)
+
+
+def get_rng(c, stream=''):
+    '''
+    Return a numpy random Generator for one source of randomness in a run.
+
+    The seed is the configuration key ``random_seed`` (default 0), so a run is
+    repeated exactly by the configuration file alone. ``stream`` names the source
+    (for example ``'srho'`` or an isotope name); each name gets its own
+    independent sequence, so the draws of one source do not depend on whether
+    another source is used.
+
+    :param c: configuration dictionary
+    :param stream: name of the source of randomness
+    '''
+    seed = int(c.get('random_seed', 0))
+    return np.random.default_rng([seed, zlib.crc32(str(stream).encode())])

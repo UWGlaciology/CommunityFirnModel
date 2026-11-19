@@ -111,7 +111,18 @@ The vector outputs
 The forcing file
 ----------------
 
-``CFMforcing.hdf5`` holds the group ``main`` with the arrays the model used: ``time`` (decimal date), ``TSKIN`` (K), ``BDOT``, ``SUBLIM``, ``RAIN`` and ``SMELT`` (m ice equivalent per year; see :doc:`inputs`), and ``forcing_data_start``, the first date of the record. The reference-climate-interval repeats of the spin-up are not in it: it starts at the beginning of the record. With the surface energy balance there is also a group ``SEB`` with the sub-daily SEB forcing (``dtRATIO`` is the number of SEB steps per model step). It is not written when the forcing is read from csv files.
+``CFMforcing.hdf5`` holds the forcing that the model used. With the configuration file, it is what is needed to repeat the run (see :ref:`repeating-a-run`). The groups are:
+
+``main``
+    The arrays of ``climateTS`` (see :doc:`inputs`): ``time`` (decimal date), and the forcing on the model time step, for example ``TSKIN`` (K), ``BDOT``, ``SUBLIM`` and ``RAIN`` (m ice equivalent per year), and ``SMELT`` (without the surface energy balance, since with it the model calculates the melt). With the surface energy balance the columns of the dataframe that are not mass fluxes are also there (``T2m``, ``ALBEDO``, ``SW_d``, ``LW_d``, ``QH``, ``QL`` and so on). ``forcing_data_start`` is the first date of the record.
+
+``SEB``
+    Only with the surface energy balance: the forcing at the time resolution of the dataframe, which can be finer than the model time step (``dtRATIO`` is the number of SEB steps per model step). Albedo is an input of the surface energy balance and is not an output of the model, so this is where it is saved.
+
+``strain_rates``
+    Only if the ``strain_rates`` argument was given to the model.
+
+The reference-climate-interval repeats of the spin-up (see :doc:`spinup`) are about 85% of the series in a typical run, and they are copies of the record. They are not in the file. Instead, each group has the record, and the datasets ``sds``, ``sde`` and ``num_reps``: the start of the reference climate interval, the start of its last year, and the number of repeats that the model used. ``read_forcing`` puts the repeats back, and gives the series that the model ran. The attribute ``rci_trimmed`` of the group is true when the repeats were left out. The writer checks that the series can be made again exactly from the record before it leaves the repeats out. If it cannot (for example, when the first date of the reference climate interval is not the first date of the record), the whole series is written and ``rci_trimmed`` is false. A group can also have the group ``patch``: elements of a variable that the repeats do not give (the first time step of the mass fluxes without the surface energy balance, because the first time step has the mean step length), with their ``index`` and ``value``. The file is not written when the forcing is read from csv files.
 
 The spin file
 -------------

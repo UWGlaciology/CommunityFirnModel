@@ -11,7 +11,7 @@ Distributed under terms of the MIT license.
 
 from diffusion import *
 import solver
-from config_loader import load_config
+from config_loader import load_config, get_rng
 from reader import read_input
 from reader import read_init
 from writer import write_spin_hdf5
@@ -146,7 +146,7 @@ class FirnDensityNoSpin:
             if 'forcing_data_start' not in climateTS.keys():
                 climateTS['forcing_data_start'] = climateTS['time'][0]
             self.forcing_data_start = climateTS['forcing_data_start']
-            forcing_writer(self,climateTS, SEBfluxes)
+            forcing_writer(self,climateTS, SEBfluxes, strain_rates)
         else:
             self.forcing_data_start = None
 
@@ -753,7 +753,7 @@ class FirnDensityNoSpin:
 
             elif self.c['srho_type']=='noise':
                 rho_stdv        = 25 # the standard deviation of the surface density (I made up 25)
-                self.rhos0      = np.random.normal(self.c['rhos0'], rho_stdv, self.stp)
+                self.rhos0      = get_rng(self.c, 'srho').normal(self.c['rhos0'], rho_stdv, self.stp)
                 self.rhos0[self.rhos0>450]=450
                 self.rhos0[self.rhos0<250]=250
 

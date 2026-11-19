@@ -160,7 +160,7 @@ class ShortRun:
             df, timeres=c['DFresample'], melt=c['MELT'],
             desired_depth=c['H'] - c['HbaseSpin'],
             spin_date_st=float(start_year), spin_date_end=float(end_year),
-            num_reps=num_reps)
+            num_reps=num_reps, SEB=bool(c.get('SEB', False)))
 
     @property
     def results_path(self):

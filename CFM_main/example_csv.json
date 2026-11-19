@@ -41,6 +41,7 @@
 "srho_type": "userinput",
 "srho_type_options": ["userinput","param","noise","Brils22"],
 "rhos0": 350.0,
+"random_seed": 0,
 "r2s0": 1.0e-8,
 "AutoSpinUpTime": false,
 "yearSpin": 1,

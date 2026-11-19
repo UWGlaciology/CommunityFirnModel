@@ -258,6 +258,13 @@ rhos0
   :default: ``350.0``
   :units: :math:`\textrm{kg m}^{-3}`
 
+random_seed
+-----------
+  Seed for the random numbers in a run. They are used by the surface-density noise (**srho_type** ``noise``) and by the synthetic surface isotope signal that the model makes when there is no isotope forcing file. Each source of randomness has its own sequence from this seed, so the same configuration file gives the same results every time. Change the seed to get another realisation of the noise.
+
+  :type: ``integer``
+  :default: ``0``
+
 r2s0
 ----
   Surface grain size at each time step if **calcGrainSize** is false.

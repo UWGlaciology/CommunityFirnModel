@@ -8,6 +8,7 @@ from solver import transient_solve_TR
 # from Gasses import gasses 
 # from Sites import sites 
 from reader import read_input, read_init
+from config_loader import get_rng
 import json
 import scipy.interpolate as interpolate
 from constants import *
@@ -98,9 +99,10 @@ class isotopeDiffusion:
                 self.iso_sig2_z = iso_sig2_init[1:]
                 ar1             = 0.9   # red noise memory coefficient
                 std_rednoise    = 2    # red noise standard deviation
-                self.del_s      = std_rednoise*np.random.randn(stp) # white noise
+                rng             = get_rng(config, isotope)
+                self.del_s      = std_rednoise*rng.standard_normal(stp) # white noise
                 for x in range(1,stp):
-                    self.del_s[x] = self.del_s[x-1]*ar1 + np.random.randn()  # create red noise from white
+                    self.del_s[x] = self.del_s[x-1]*ar1 + rng.standard_normal()  # create red noise from white
                 self.del_s      = self.del_s - 50
                 self.iso_sig2_s = np.zeros(stp)
 

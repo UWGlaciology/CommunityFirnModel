@@ -83,6 +83,26 @@ This takes a bit more than a minute on a laptop. Notes on the choices:
 * The dictionary keeps the forcing in the units that the model uses (m ice equivalent per year). If the forcing is not in a dataframe, build ``climateTS`` yourself (see :doc:`inputs`), or leave it out and give the model csv files.
 * If your climate record is in a different time step or covers different years, change the dates of the reference climate interval, ``forcing_data_start``, and ``TWriteStart`` in the configuration (the time at which the output starts to be written; set it to the first date of the record to leave the spin-up out of the output).
 
+.. _repeating-a-run:
+
+Repeating a run from its results folder
+---------------------------------------
+
+The results folder of a run has what is needed to repeat it: the configuration file (``run_CFM_example.py`` and ``main.py`` put it there) and the forcing file ``CFMforcing.hdf5`` (see :doc:`outputs`). ``read_forcing`` reads the forcing, with the repeats of the reference climate interval that are left out of the file, and the model runs from it:
+
+.. code-block:: python
+
+    from reader import read_forcing
+    from firn_density_nospin import FirnDensityNoSpin
+
+    folder = 'CFMoutput_example/CFMresults_66.5_-46.25_GSFC2020'
+    climateTS, SEBfluxes, strain_rates = read_forcing(folder)
+    firn = FirnDensityNoSpin(f'{folder}/CFMconfig_66.5_-46.25_GSFC2020_MERRA2_example.json',
+                             climateTS=climateTS, SEBfluxes=SEBfluxes, strain_rates=strain_rates, NewSpin=True)
+    firn.time_evolve()
+
+Set **resultsFolder** to a new folder in the configuration first, or the run overwrites the results of the first one. The results are identical to those of the first run, because the forcing is the same and the random numbers (surface-density noise and the synthetic isotope signal) come from the configuration key **random_seed**. Two things are not in the forcing file: a csv file that the configuration names (for example **InputFileNameStrain**, or the isotope files), and the code. Keep the csv files with the results, and note the version of the CFM.
+
 Legacy: ``main.py``
 -------------------
 

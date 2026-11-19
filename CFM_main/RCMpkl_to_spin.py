@@ -395,6 +395,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         CD = {}
         CD['time'] = df_FULL.index.values
         CD['forcing_data_start'] = df_CLIM_decdate.index[0]
+        CD['sds'] = spin_date_st # the RCI and its number of repeats: with the record, they give the whole series (see reader.expand_rci)
+        CD['sde'] = spin_date_end
+        CD['num_reps'] = num_reps
         mass_ids = ['SMELT','BDOT','RAIN','SUBLIM']
         for ID in df_CLIM_ids:
             if ID in mass_ids:
@@ -600,6 +603,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         CD = {}
         CD['time'] = np.concatenate((spin_days_all,df_CLIM_re['decdate'].values))
         CD['forcing_data_start'] = df_CLIM_re['decdate'].values[0]
+        CD['sds'] = spin_date_st # the RCI and its number of repeats: with the record, they give the whole series (see reader.expand_rci)
+        CD['sde'] = spin_date_end
+        CD['num_reps'] = num_reps
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             _v = np.concatenate((np.tile(df_CLIM_re[ID][msk].values, len(sub)),df_CLIM_re[ID].values))
@@ -771,6 +777,9 @@ def makeSpinFiles(CLIM_name,timeres='1D',Tinterp='mean',spin_date_st = 1980.0, s
         CD = {}
         CD['time'] = np.concatenate((spin_days_all,df_CLIM_re['decdate'].values))
         CD['forcing_data_start'] = df_CLIM_re['decdate'].values[0]
+        CD['sds'] = spin_date_st # the RCI and its number of repeats: with the record, they give the whole series (see reader.expand_rci)
+        CD['sde'] = spin_date_end
+        CD['num_reps'] = num_reps
         massIDs = ['SMELT','BDOT','RAIN','SUBLIM','EVAP']
         for ID in df_CLIM_ids:
             if ID not in massIDs:

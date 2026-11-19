@@ -11,6 +11,7 @@ import os
 import numpy as np
 import h5py
 from constants import *
+from reader import expand_rci, RCI_KEYS, FORCING_FILENAME
 
 def write_nospin_hdf5(self,Mout_dict,forcing_dict=None):
     '''
@@ -251,49 +252,102 @@ def SpinUpdate_res(self,mtime):
 
     spin_results.close()
 
-def forcing_writer(self, climateTS, SEBfluxes = None):
-    
+MAX_PATCH = 10 # the most elements per variable that the RCI repeats may fail to reproduce (see _trim_rci)
+
+def _trim_rci(d, sds, sde, num_reps):
+    '''
+    Remove the repeats of the reference climate interval from a forcing series.
+
+    The record is what follows the repeats (it starts at sds). The record is only used if reader.expand_rci
+    gives back the series d from it. A few elements may differ: for the mass fluxes of the series without
+    the surface energy balance, makeSpinFiles gives the first time step the mean step length (flux_to_rate),
+    and that is not what the repeat of the first year of the record has. Those elements are returned
+    as a patch, so that the series is still exactly the same.
+
+    :return: (record, patch), where patch is {key: (indices, values)}; or None if the series cannot be
+        reproduced from its record (then the whole series has to be stored)
+    '''
+    t = d['time']
+    if any(np.ndim(v) > 0 and len(v) != len(t) for v in d.values()):
+        return None
+    i0 = np.searchsorted(t, sds)
+    record = {k: (v[i0:] if np.ndim(v) > 0 else v) for k, v in d.items()}
+    rebuilt = expand_rci(record, sds, sde, num_reps)
+
+    patch = {}
+    for k, v in d.items():
+        if np.ndim(v) == 0:
+            continue
+        r = rebuilt[k]
+        if r.shape != v.shape or r.dtype != v.dtype:
+            return None
+        same = (r == v)
+        if np.issubdtype(v.dtype, np.floating):
+            same = same | (np.isnan(r) & np.isnan(v))
+        bad = np.flatnonzero(~same)
+        if len(bad) > MAX_PATCH:
+            return None
+        if len(bad) > 0:
+            patch[k] = (bad, v[bad])
+    return record, patch
+
+
+def _write_series(f, name, d, rci):
+    '''
+    Write one forcing series (a dictionary of arrays and scalars) as the group name of the file f. If rci
+    is (sds, sde, num_reps), the repeats of the reference climate interval are left out when that is possible.
+    '''
+    got = _trim_rci(d, *rci) if rci is not None else None
+    if rci is not None and got is None:
+        print(f'forcing_writer: the repeats of the reference climate interval cannot be left out of "{name}" '
+              f'(it does not start at sds, or it was changed). The whole series is stored.')
+    record, patch = got if got is not None else (d, {})
+
+    g = f.create_group(name)
+    for k, v in record.items():
+        g.create_dataset(k, data=v)
+    g.attrs['rci_trimmed'] = got is not None
+    if got is not None:
+        for k, v in zip(RCI_KEYS, rci):
+            g.create_dataset(k, data=v)
+        for k, (idx, val) in patch.items():
+            g.create_dataset(f'patch/{k}/index', data=idx)
+            g.create_dataset(f'patch/{k}/value', data=val)
+
+
+def forcing_writer(self, climateTS, SEBfluxes = None, strain_rates = None):
+
     '''
     write forcing data to its own hdf5 file
     units on mass fluxes (e.g., bdot, rain, etc.) are m ice eq. per year.
 
+    Together with the configuration file, this file is what is needed to repeat the run (reader.read_forcing
+    reads it). The forcing of a run with a reference climate interval (RCI) spin-up is the RCI repeated
+    num_reps times and then the record. The repeats are not stored: the file has the record, and sds, sde
+    and num_reps (which makeSpinFiles puts in climateTS) to make the repeats again. If that is not
+    possible without changing the series, the whole series is written.
+
+    Groups: main (climateTS), SEB (SEBfluxes, if given), strain_rates (the strain_rates argument, if given).
     '''
-    
+
     try:
         forcing_filename = self.c['forcingFileName']
     except:
         print('forcing_filename not in json. Defaulting to CFMforcing.hdf5')
-        forcing_filename = 'CFMforcing.hdf5'
-    
-    f6 = h5py.File(os.path.join(self.c['resultsFolder'], forcing_filename),'w')
-    f6.create_group('main')
-    if 'sds' in  climateTS.keys():
-        sds = True
-        f6['main'].create_dataset('sds', data = climateTS['sds'])
-        f6['main'].create_dataset('sde', data = climateTS['sde'])
-        f6['main'].create_dataset('num_reps', data = climateTS['num_reps'])
-        main_start_i = np.where(climateTS['time']>=climateTS['sds'])[0][0]
+        forcing_filename = FORCING_FILENAME
+
+    rci = None
+    if all(k in climateTS for k in RCI_KEYS):
+        rci = (float(climateTS['sds']), float(climateTS['sde']), int(climateTS['num_reps']))
+    series = {k: v for k, v in climateTS.items() if k not in RCI_KEYS}
+
+    with h5py.File(os.path.join(self.c['resultsFolder'], forcing_filename), 'w') as f6:
+        _write_series(f6, 'main', series, rci)
         if SEBfluxes is not None:
-            seb_start_i = np.where(SEBfluxes['time']>=climateTS['sds'])[0][0]
-    else:
-        sds = False
-        main_start_i = 0
-        seb_start_i = 0
-            
-    for VW in climateTS.keys():
-        if ((VW == 'sds') or (VW == 'sde') or (VW == 'num_reps')): 
-            pass
-        elif VW=='forcing_data_start':
-            f6['main'].create_dataset(VW, data = climateTS[VW])
-        else:
-            f6['main'].create_dataset(VW, data = climateTS[VW][main_start_i:])
-    
-    if SEBfluxes is not None:
-        f6.create_group('SEB')
-        for VW in SEBfluxes.keys():
-            if VW == 'dtRATIO':
-                f6['SEB'].create_dataset(VW, data = SEBfluxes[VW])
+            _write_series(f6, 'SEB', SEBfluxes, rci)
+        if strain_rates is not None:
+            if isinstance(strain_rates, dict):
+                for k, v in strain_rates.items():
+                    f6.create_dataset(f'strain_rates/{k}', data=np.asarray(v))
             else:
-                f6['SEB'].create_dataset(VW, data = SEBfluxes[VW][seb_start_i:])
-    
-    f6.close()
+                f6.create_dataset('strain_rates', data=np.asarray(strain_rates, dtype=float))

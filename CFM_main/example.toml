@@ -61,6 +61,7 @@ variable_srho = false                  # vary the surface density through time
 # options: userinput, param, noise, Brils22
 srho_type = "userinput"
 rhos0 = 350.0                          # surface density [kg m-3] (constant, or the mean if srho_type = "noise")
+random_seed = 0                        # seed for the random draws (srho_type = "noise", synthetic isotope forcing); the same seed repeats a run exactly
 r2s0 = 1e-08                           # surface grain radius squared [m2] (if calcGrainSize is false)
 D_surf = 1.0                           # value of the generic layer tracker (Dcon) given to new surface layers
 SeasonalTcycle = false                 # add a seasonal temperature cycle on top of the forcing
