@@ -11,11 +11,14 @@ lists. (TOML has no null, so a config that needs ``null`` has to stay JSON.)
 '''
 
 import json
+import subprocess
 import tomllib
 import zlib
 from pathlib import Path
 
 import numpy as np
+
+from _version import __version__
 
 
 def load_config(path):
@@ -30,6 +33,24 @@ def load_config(path):
     if path.suffix.lower() == '.toml':
         return tomllib.loads(text)
     return json.loads(text)
+
+
+def provenance():
+    '''
+    Return the version and git revision of the CFM source as a dictionary
+    (``cfm_version``, ``cfm_git``), to be stored in the configuration of a run.
+
+    ``cfm_git`` is the output of ``git describe --tags --dirty --always`` in the
+    directory of this file, so ``-dirty`` flags uncommitted changes. It is
+    ``'unknown'`` when the source is not a git checkout or git is unavailable.
+    '''
+    try:
+        rev = subprocess.run(['git', 'describe', '--tags', '--dirty', '--always'],
+                             cwd=Path(__file__).resolve().parent, capture_output=True,
+                             text=True, timeout=5, check=True).stdout.strip() or 'unknown'
+    except Exception:
+        rev = 'unknown'
+    return {'cfm_version': __version__, 'cfm_git': rev}
 
 
 def get_rng(c, stream=''):

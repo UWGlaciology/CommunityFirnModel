@@ -258,6 +258,12 @@ rhos0
   :default: ``350.0``
   :units: :math:`\textrm{kg m}^{-3}`
 
+cfm_version, cfm_git
+--------------------
+  The version of the CFM and the git revision of its source (``git describe --tags --dirty --always``; a ``-dirty`` ending means uncommitted changes, ``unknown`` means the source is not a git checkout). You do not set these. ``run_CFM_example.py`` writes them into the configuration that it saves, so the copy in the results folder records which code made the run. A value already in the file is overwritten.
+
+  :type: ``string``
+
 random_seed
 -----------
   Seed for the random numbers in a run. They are used by the surface-density noise (**srho_type** ``noise``) and by the synthetic surface isotope signal that the model makes when there is no isotope forcing file. Each source of randomness has its own sequence from this seed, so the same configuration file gives the same results every time. Change the seed to get another realisation of the noise.

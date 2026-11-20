@@ -140,7 +140,7 @@ KNOWN_KEYS = {
     'heatDiff', 'conductivity', 'LWCheat', 'LWCcorr_subdt',
     'correct_therm_prop',
     # surface density
-    'variable_srho', 'srho_type', 'rhos0', 'random_seed',
+    'variable_srho', 'srho_type', 'rhos0', 'random_seed', 'cfm_version', 'cfm_git',
     # spin up / domain
     'AutoSpinUpTime', 'yearSpin', 'stpsPerYear', 'stpsPerYearSpin',
     'H', 'HbaseSpin', 'D_surf', 'bdot_type', 'iceblock', 'iceblock_rho',

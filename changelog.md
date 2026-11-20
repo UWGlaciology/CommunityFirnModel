@@ -1,7 +1,7 @@
 # CFM Change Log
 All notable changes to the Community Firn Model should be documented in this file. Contributors to the CFM who are unfamiliar with changelogs should review the notes at the end of this document.
 
-TL;DR: Write down the changes that you made to the the model in this document and update the version number here, in CITATION.cff, and in main.py, then update main branch on github.
+TL;DR: Write down the changes that you made to the the model in this document and update the version number here, in CITATION.cff, and in CFM_main/_version.py (setup.py and the saved configuration read it from there), then update main branch on github.
 
 General update protocol:
 - First, get the staging branch to match main branch.
@@ -61,6 +61,10 @@ https://communityfirnmodel.readthedocs.io/en/latest/
 	- I am working on adding additional physics to simulate near-surface snow compaction ("stage zero compaction")
 	- Vapor-phase transport (vapor.py) is experimental (beta): off by default, not validated against data (see the 4.2.0 entry and docs/extras/vapor.rst)
 	- Mars: what is still missing for the Arthern et al. (2000) densification is listed in mars_todo.md
+
+## [Unreleased]
+### Changes
+- *_version.py, config_loader.py, config_validation.py, run_CFM_example.py, setup.py, docs/running/json.rst* **The saved configuration records which code made the run.** `config_loader.provenance()` returns `cfm_version` and `cfm_git` (`git describe --tags --dirty --always` of the CFM source, so `-dirty` marks uncommitted changes; `unknown` outside a git checkout). `run_CFM_example.py` adds them to the configuration before saving it, so the copy in the results folder has them. The version number is now set in `CFM_main/_version.py`, which `setup.py` reads. Runs that build the configuration another way, and the spin files, are not stamped. Results are unchanged.
 
 ## [4.2.0] 2026-11-18
 ### Notes

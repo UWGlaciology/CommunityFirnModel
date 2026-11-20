@@ -4,7 +4,9 @@ import os
 
 HERE = pathlib.Path(__file__).parent
 
-VERSION = '4.2.0'
+VERSION = {}
+exec((HERE / 'CFM_main' / '_version.py').read_text(), VERSION)
+VERSION = VERSION['__version__']
 PACKAGE_NAME = 'CommunityFirnModel'
 AUTHOR = 'Max Stevens'
 AUTHOR_EMAIL = 'maxstev@umd.edu'

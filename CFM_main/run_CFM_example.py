@@ -95,7 +95,7 @@ zarr_path = Path('/Path/To/zarr')
 sys.path.append(str(cfm_path))
 
 from firn_density_nospin import FirnDensityNoSpin
-from config_loader import load_config
+from config_loader import load_config, provenance
 import RCMpkl_to_spin as RCM
 
 ##########
@@ -337,6 +337,7 @@ class M2_CFM():
         else:
             CFMconfig = configName
 
+        c.update(provenance()) # record the CFM version and git revision in the saved config
         with open(CFMconfig,'w') as fp:
             fp.write(json.dumps(c,sort_keys=True, indent=4, separators=(',', ': ')))
 
