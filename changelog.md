@@ -35,7 +35,7 @@ git push origin vX.Y.Z
 Then, on github do a release, which will trigger an updated DOI. 
 
 ## Current Version
-4.2.0
+4.2.1
 
 ## Full Documentation
 
