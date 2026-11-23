@@ -23,12 +23,12 @@ from firn_density_nospin import FirnDensityNoSpin
 import time
 import json
 from config_loader import load_config
+from _version import __version__
 import shutil
 import RCMpkl_to_spin as RCM
 
 __author__ = "C. Max Stevens, Vincent Verjans, Brita Horlings, Annika Horlings, Jessica Lundin"
 __license__ = "MIT"
-__version__ = "4.2.0"
 __maintainer__ = "Max Stevens"
 __email__ = "maxstev@umd.edu"
 __status__ = "Production"
